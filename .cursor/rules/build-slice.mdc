@@ -1,0 +1,13 @@
+---
+description: Build the chess-training app from planning/BUILD.md. Apply when implementing a milestone (M0–M10), continuing the build, or doing a vertical slice of app code — turns a terse prompt like "build M3" into a full disciplined implementation.
+alwaysApply: false
+---
+
+Apply the full skill: @.claude/skills/build-slice/SKILL.md
+Blueprint to read: @planning/BUILD.md
+
+TL;DR: read the milestone in BUILD.md §10 (Goal·Depends·Contract·Tasks·Tests·DoD); if none named,
+build the lowest milestone not yet Done. Types/contracts first, then schema/migration, then pure
+Engine/methodology fns, then tRPC + UI wiring, then golden + e2e tests. Hold the three laws (L1 science
+only in config, L2 pure/deterministic with injected Clock, L3 every methodology leaf a GradedValue).
+Not done until the slice's DoD boxes pass and CI is green (typecheck→lint→unit→build→e2e→guards).

@@ -1,0 +1,11 @@
+---
+description: Research synthesis conventions for the chess-training app. Apply when writing or updating reports in research/ or distilling them into planning/METHODOLOGY.md.
+alwaysApply: false
+---
+
+Apply the full skill: @.claude/skills/research-synthesis/SKILL.md
+
+TL;DR: keep reports citation-heavy (citation with the claim), label Tier 1 (chess-specific,
+weak) vs Tier 2 (general learning-science, extrapolated), grade findings A/B/C/D, preserve the
+"no study shows a training activity *causes* a rating gain" caveat, and record grade+citation
+next to any number destined for MethodologyConfig.

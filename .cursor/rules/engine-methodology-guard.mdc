@@ -1,0 +1,11 @@
+---
+description: Engine vs Methodology separation for the chess-training app. Apply when writing or reviewing application code, planning/BUILD.md, the MethodologyConfig schema/loader, or any data model.
+alwaysApply: false
+---
+
+Apply the full skill: @.claude/skills/engine-methodology-guard/SKILL.md
+
+TL;DR: the generic Engine holds NO chess/learning knowledge — never hardcode rating
+assumptions, targets, intervals, or volumes into it. Anything that varies by band/theme/finding
+goes into a versioned MethodologyConfig that the Engine reads. No LLM on the product path; Phase-1
+scope only (no in-app play, hosted content, social, or payments).

@@ -1,0 +1,11 @@
+---
+description: Evidence grading & honest claims for the chess-training app. Apply when writing or reviewing any user-facing recommendation, training directive, methodology value (success-rate target, FSRS interval, difficulty offset, daily volume, per-band rule), or research claim.
+alwaysApply: false
+---
+
+Apply the full skill: @.claude/skills/evidence-grade/SKILL.md
+
+TL;DR: attach an evidence grade (A=strong/replicated, B=suggestive/limited, C=theory/expert,
+D=myth) + a citation + a "why this / why now" rationale to every claim and config value;
+label Tier 1 (chess-specific) vs Tier 2 (general learning-science); never imply a training
+activity *causes* a rating gain.

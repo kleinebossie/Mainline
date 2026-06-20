@@ -1,0 +1,99 @@
+// Single source of DB truth (BUILD.md §4, §5). M0 ships the Auth.js identity
+// tables; M1 adds identity fields (§5.1) + PlatformConnection (§5.2). The rest of
+// the data model (§5) lands milestone by milestone.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// --- Auth.js (NextAuth v5) standard tables (BUILD.md §5.1) ---
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  // Identity fields (BUILD.md §5.1). `patronStatus` is a billing-capable
+  // reservation — no billing is built in Phase 1 (VISION §7).
+  locale        String    @default("en")
+  role          String    @default("user") // user | admin
+  patronStatus  String    @default("none") // none | patron
+  deletedAt     DateTime? // soft-delete for GDPR export/erase
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts            Account[]
+  sessions            Session[]
+  platformConnections PlatformConnection[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// --- Platform connections (BUILD.md §5.2, §6) ---
+
+// A linked chess account. Lichess connections carry OAuth2 PKCE tokens; Chess.com
+// connections are username-only and store NO tokens (§6.3 — read-only PubAPI).
+model PlatformConnection {
+  id               String    @id @default(cuid())
+  userId           String
+  platform         String // lichess | chesscom
+  externalUsername String
+  // Lichess only — Chess.com is tokenless (§6.3). `isLoginProvider` on the
+  // adapter (§6) is the source of truth for whether tokens are expected.
+  accessToken      String?
+  refreshToken     String?
+  scopes           String?
+  status           String    @default("active") // active | error | revoked
+  connectedAt      DateTime  @default(now())
+  lastSyncedAt     DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, platform])
+  @@index([userId])
+}

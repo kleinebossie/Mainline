@@ -1,0 +1,13 @@
+---
+description: Standing house rules for any code change in the chess-training app — stack, src/ import boundaries, Engine-vs-chess-engine naming, the three architectural laws, and CI gates. Apply on any app-code task.
+alwaysApply: false
+---
+
+Apply the full skill: @.claude/skills/chess-app-conventions/SKILL.md
+
+TL;DR: TypeScript strict · Next.js App Router · tRPC+Zod · Prisma/Supabase · Auth.js · Tailwind+shadcn ·
+stockfish.wasm client-side · FSRS · Vitest+Playwright · Vercel. Boundaries: engine/ & analysis/ never
+import the reverse and hold no science constants; methodology/ imports only lib/ + engine/math; db/ has
+no business logic. Laws: L1 science only in config, L2 pure/deterministic (inject Clock, no Date.now/
+Math.random), L3 every methodology leaf a GradedValue. Done = green CI (typecheck→lint→unit→build→e2e→
+guards). Phase-1: no payments, native apps, social, hosted content, LLM at runtime.
