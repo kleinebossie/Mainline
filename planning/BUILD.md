@@ -791,12 +791,13 @@ DoD checklist._
   ESLint/Prettier + L1/L2 lint rules; Vitest + Playwright; GitHub Actions CI; Vercel deploy;
   `next.config.js` COOP/COEP headers; seed `CLAUDE.md`.
 - **Tests:** CI runs typecheck + lint + (empty) unit/e2e + build; a smoke Playwright test loads `/`.
-- **DoD:** ☐ green CI on push ☐ app deploys to Vercel ✅ Google sign-in works ✅ migrations run on
+- **DoD:** ✅ green CI on push ☐ app deploys to Vercel ✅ Google sign-in works ✅ migrations run on
   Supabase ✅ COOP/COEP headers verified.
-- **Status (2026-06-20): mostly done.** All six gates green locally (typecheck · lint · unit · guards ·
-  `next build` · e2e); COOP/COEP headers active in `next.config.mjs`; Google OAuth sign-in working;
-  `0_init` migration applied to Supabase. **Remaining:** deploy to Vercel and the first GitHub push so
-  CI runs there (these two flip the last boxes).
+- **Status (2026-06-20): nearly done — only Vercel deploy remains.** Repo pushed to GitHub
+  (`kleinebossie/Mainline`, private); **GitHub Actions CI is green on `main`** (npm ci · prisma generate ·
+  typecheck · lint · unit · guards · `next build` · e2e). CI/`.nvmrc` pinned to Node 25.2.0 (npm 11.6.2)
+  to match the lockfile. COOP/COEP headers active; Google OAuth working; `0_init` migration applied to
+  Supabase. **Remaining:** deploy to Vercel.
 
 ### M1 — Identity & connections
 
