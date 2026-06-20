@@ -2,10 +2,12 @@
 // single type the client imports for end-to-end safety.
 
 import { connectionsRouter } from "@/server/routers/connections";
+import { importRouter } from "@/server/routers/import";
 import { router } from "@/server/trpc";
 
 export const appRouter = router({
   connections: connectionsRouter,
+  import: importRouter,
 });
 
 export type AppRouter = typeof appRouter;

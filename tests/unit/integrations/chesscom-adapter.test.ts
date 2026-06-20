@@ -84,12 +84,51 @@ describe("chessComAdapter (M1: Chess.com username link, §6.3)", () => {
     expect(Object.keys(profile.ratings)).toHaveLength(0);
   });
 
-  it("does not implement game import in M1", async () => {
+  it("imports games from monthly archives (M2)", async () => {
+    const fetchMock = vi
+      .fn()
+      // archives list
+      .mockResolvedValueOnce(
+        json(200, {
+          archives: ["https://api.chess.com/pub/player/newbie/games/2026/06"],
+        }),
+      )
+      // one month
+      .mockResolvedValueOnce(
+        json(200, {
+          games: [
+            {
+              url: "https://www.chess.com/game/live/123",
+              pgn: "[Event \"x\"]",
+              time_control: "600",
+              end_time: 1_700_000_000,
+              white: { username: "newbie", rating: 900, result: "win" },
+              black: { username: "rival", rating: 950, result: "resigned" },
+            },
+          ],
+        }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const games = await chessComAdapter.fetchGames({
+      platform: "chesscom",
+      externalUsername: "Newbie",
+    });
+    expect(games).toHaveLength(1);
+    expect(games[0]).toMatchObject({
+      dedupeKey: "chesscom:123",
+      color: "w",
+      result: "win",
+      userRatingAtGame: 900,
+      opponentRating: 950,
+      source: "chesscom",
+    });
+  });
+
+  it("maps a 403 archive list to a typed forbidden error", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(json(403, {})));
     await expect(
-      chessComAdapter.fetchGames({
-        platform: "chesscom",
-        externalUsername: "x",
-      }),
-    ).rejects.toMatchObject({ code: "not_implemented" });
+      chessComAdapter.fetchGames({ platform: "chesscom", externalUsername: "x" }),
+    ).rejects.toMatchObject({ code: "forbidden" });
   });
 });

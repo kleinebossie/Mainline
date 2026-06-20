@@ -827,8 +827,22 @@ DoD checklist._
   ratings.
 - **Tests:** unit — dedupe idempotency (re-import = no dupes), PGN/result parsing, rate-limit
   middleware; e2e — import populates dashboard.
-- **DoD:** ☐ import is idempotent ☐ snapshots captured ☐ 429/403 handled with back-off ☐ dashboard
+- **DoD:** ✅ import is idempotent ✅ snapshots captured ✅ 429/403 handled with back-off ✅ dashboard
   shows imported data.
+- **Status (2026-06-20): ✅ DONE — verified live.** Migration applied to Supabase and a real Lichess
+  import populated the dashboard (ratings + games) via "Sync now"; `CRON_SECRET` set locally + Vercel.
+  Schema: `ChessProfileSnapshot`,
+  `ImportedGame` (unique `(userId, dedupeKey)`), `JobRun` ledger (§5.2/§5.7) + migration
+  `20260620000000_m2_import_profile`. Adapters: Lichess NDJSON game export + puzzle activity;
+  Chess.com monthly-archive import; both via `politeFetch` (descriptive User-Agent, serial, bounded
+  429 back-off — `src/integrations/http.ts`). Pure parsers (`lichess/parse.ts`, `chesscom/parse.ts`,
+  `pgn.ts`) + in-batch `dedupeImportedGames`. Orchestration `src/server/import.ts` (`withJobRun`
+  idempotency, snapshot capture, `createMany skipDuplicates`); `import` tRPC router
+  (`sync`/`recentGames`/`latestProfiles`); Vercel Cron route `/api/cron/import` (CRON_SECRET-gated) +
+  `vercel.json` daily schedule; `/dashboard` UI with "Sync now". Tests: 34 unit/guard green (parse
+  golden, dedupe idempotency, back-off + 429 retry, JobRun ledger), build green, 5 e2e green
+  (dashboard auth-gate; live import verified manually). **Remaining user steps:** (1) apply the
+  migration to Supabase, (2) set `CRON_SECRET` locally + on Vercel.
 
 ### M3 — Resource catalog (puzzle DB)
 

@@ -60,13 +60,51 @@ describe("lichessAdapter (M1: Lichess connection, §6.2)", () => {
     ).rejects.toMatchObject({ code: "unauthorized" });
   });
 
-  it("does not implement game import in M1", async () => {
-    await expect(
-      lichessAdapter.fetchGames({
-        platform: "lichess",
-        externalUsername: "x",
-        accessToken: "t",
+  it("imports games from the NDJSON export, sending the bearer token (M2)", async () => {
+    const ndjson = [
+      JSON.stringify({
+        id: "abc123",
+        createdAt: 1_700_000_000_000,
+        winner: "white",
+        clock: { initial: 600, increment: 5 },
+        opening: { eco: "B01", name: "Scandinavian" },
+        players: {
+          white: { user: { name: "Thibault" }, rating: 1500 },
+          black: { user: { name: "rival" }, rating: 1480 },
+        },
+        pgn: "[Event \"x\"]",
       }),
-    ).rejects.toMatchObject({ code: "not_implemented" });
+      "",
+    ].join("\n");
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(ndjson, { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const games = await lichessAdapter.fetchGames({
+      platform: "lichess",
+      externalUsername: "thibault",
+      accessToken: "tok-123",
+    });
+    expect(games).toHaveLength(1);
+    expect(games[0]).toMatchObject({
+      dedupeKey: "lichess:abc123",
+      color: "w",
+      result: "win",
+      eco: "B01",
+      opening: "Scandinavian",
+      userRatingAtGame: 1500,
+      opponentRating: 1480,
+    });
+
+    const init = (fetchMock.mock.calls[0]?.[1] ?? {}) as RequestInit;
+    const headers = (init.headers ?? {}) as Record<string, string>;
+    expect(headers.Authorization).toBe("Bearer tok-123");
+  });
+
+  it("throws unauthorized for game import without a token", async () => {
+    await expect(
+      lichessAdapter.fetchGames({ platform: "lichess", externalUsername: "x" }),
+    ).rejects.toMatchObject({ code: "unauthorized" });
   });
 });

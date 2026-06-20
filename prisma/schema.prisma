@@ -1,6 +1,7 @@
 // Single source of DB truth (BUILD.md §4, §5). M0 ships the Auth.js identity
-// tables; M1 adds identity fields (§5.1) + PlatformConnection (§5.2). The rest of
-// the data model (§5) lands milestone by milestone.
+// tables; M1 adds identity fields (§5.1) + PlatformConnection (§5.2); M2 adds
+// ChessProfileSnapshot + ImportedGame (§5.2) and the JobRun ledger (§5.7). The rest
+// of the data model (§5) lands milestone by milestone.
 
 generator client {
   provider = "prisma-client-js"
@@ -28,9 +29,11 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  accounts            Account[]
-  sessions            Session[]
-  platformConnections PlatformConnection[]
+  accounts              Account[]
+  sessions              Session[]
+  platformConnections   PlatformConnection[]
+  chessProfileSnapshots ChessProfileSnapshot[]
+  importedGames         ImportedGame[]
 }
 
 model Account {
@@ -96,4 +99,70 @@ model PlatformConnection {
 
   @@unique([userId, platform])
   @@index([userId])
+}
+
+// --- Chess data: snapshots + imported games (BUILD.md §5.2) ---
+
+// Point-in-time ratings + counts for a platform (time series feeds the Measurement
+// seam). Keyed by (userId, platform) rather than an FK to PlatformConnection so the
+// series survives a disconnect/reconnect. `ratings` is `{ format: { rating, rd,
+// games } }`; `raw` keeps the untouched provider payload. Nothing here is
+// interpreted (L1).
+model ChessProfileSnapshot {
+  id         String   @id @default(cuid())
+  userId     String
+  platform   String // lichess | chesscom
+  capturedAt DateTime
+  ratings    Json
+  totalGames Int
+  raw        Json
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, platform, capturedAt])
+}
+
+// One imported game. Idempotency is enforced by the unique (userId, dedupeKey):
+// re-importing the same game is a no-op (createMany skipDuplicates). Only raw,
+// uninterpreted facts are stored (L1). AnalysisResult (M5) attaches 1—0..1 later.
+model ImportedGame {
+  id               String   @id @default(cuid())
+  userId           String
+  platform         String // lichess | chesscom
+  externalGameId   String
+  dedupeKey        String // e.g. `${platform}:${externalGameId}`
+  pgn              String
+  playedAt         DateTime
+  timeControl      String?
+  color            String? // w | b
+  result           String? // win | loss | draw
+  userRatingAtGame Int?
+  opponentRating   Int?
+  eco              String?
+  opening          String?
+  source           String // lichess | chesscom
+  importedAt       DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, dedupeKey])
+  @@index([userId, playedAt])
+}
+
+// --- Background-job ledger (BUILD.md §5.7) ---
+
+// Idempotent ledger for background jobs (import sync, ingest, adaptation cron). The
+// unique `key` is the idempotency token: a job claims its key before running so a
+// retried cron tick or double-trigger does not duplicate work.
+model JobRun {
+  id         String    @id @default(cuid())
+  kind       String // import_sync | ingest | adaptation
+  key        String    @unique
+  status     String    @default("running") // running | success | error
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+  error      String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 }

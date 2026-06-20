@@ -15,10 +15,10 @@ export default async function Home() {
         later milestones.
       </p>
       <Link
-        href={session?.user ? "/connections" : "/signin"}
+        href={session?.user ? "/dashboard" : "/signin"}
         className={buttonVariants()}
       >
-        {session?.user ? "Manage connections" : "Get started"}
+        {session?.user ? "Open dashboard" : "Get started"}
       </Link>
     </main>
   );

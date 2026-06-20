@@ -12,9 +12,19 @@ import {
   type ProfileSnapshotInput,
   type RatingEntry,
 } from "@/integrations/adapter";
+import {
+  parseChessComGame,
+  type ChessComGame,
+} from "@/integrations/chesscom/parse";
+import { politeFetch } from "@/integrations/http";
 import { PLATFORM_USER_AGENT } from "@/integrations/user-agent";
 
 const PUB_BASE = "https://api.chess.com/pub/player";
+
+// Infra bounds (not methodology): cap a single import so a deep history does not
+// blow the free-tier budget; the rest backfills incrementally later (§6.5).
+const DEFAULT_MAX_GAMES = 100;
+const MAX_ARCHIVES_PER_IMPORT = 3; // newest months first
 
 // Subset of the Chess.com /stats response we read (raw, no interpretation).
 interface ChessComFormatStats {
@@ -131,11 +141,54 @@ export const chessComAdapter: PlatformAdapter = {
     };
   },
 
-  async fetchGames(): Promise<ImportedGameInput[]> {
-    throw new PlatformError(
-      "not_implemented",
+  // Monthly archives → games. List the archive URLs (immutable once a month
+  // closes, so safe to cache), fetch the newest few months serially, parse, then
+  // filter by `since` and cap at `max`. Idempotent downstream via dedupeKey.
+  async fetchGames(
+    conn: PlatformConnectionRef,
+    since?: number,
+    max: number = DEFAULT_MAX_GAMES,
+  ): Promise<ImportedGameInput[]> {
+    const username = conn.externalUsername.trim().toLowerCase();
+    const headers = { "User-Agent": PLATFORM_USER_AGENT, Accept: "application/json" };
+
+    const listRes = await politeFetch(
       "chesscom",
-      "Chess.com game import arrives in M2",
+      `${PUB_BASE}/${encodeURIComponent(username)}/games/archives`,
+      { headers },
     );
+    if (listRes.status === 404) {
+      throw new PlatformError("not_found", "chesscom", `No Chess.com player "${username}"`);
+    }
+    if (listRes.status === 403) {
+      throw new PlatformError(
+        "forbidden",
+        "chesscom",
+        "Chess.com rejected the request (descriptive User-Agent required)",
+      );
+    }
+    if (!listRes.ok) {
+      throw new PlatformError(
+        "network",
+        "chesscom",
+        `Chess.com archive list failed (${listRes.status})`,
+      );
+    }
+    const { archives = [] } = (await listRes.json()) as { archives?: string[] };
+
+    const out: ImportedGameInput[] = [];
+    // Newest months first; stop once we have enough.
+    for (const url of archives.slice(-MAX_ARCHIVES_PER_IMPORT).reverse()) {
+      const monthRes = await politeFetch("chesscom", url, { headers });
+      if (!monthRes.ok) continue; // skip a bad month rather than fail the whole import
+      const { games = [] } = (await monthRes.json()) as { games?: ChessComGame[] };
+      for (const g of games) {
+        const parsed = parseChessComGame(g, username);
+        if (since && parsed.playedAt < since) continue;
+        out.push(parsed);
+      }
+      if (out.length >= max) break;
+    }
+    return out.slice(0, max);
   },
 };
