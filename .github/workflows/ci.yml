@@ -16,7 +16,10 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          # Single source of truth: .nvmrc (Node 24 → npm 11, matching the lockfile).
+          # Mirror the dev machine exactly via .nvmrc (Node 25.2.0 → npm 11.6.2).
+          # npm 10 vs 11 prune the optional @emnapi/* (unrs-resolver WASM) sub-tree
+          # differently, which breaks `npm ci`; pinning the version keeps the lockfile
+          # compatible. Move to an LTS later by bumping .nvmrc + regenerating the lock.
           node-version-file: ".nvmrc"
           cache: "npm"
 
