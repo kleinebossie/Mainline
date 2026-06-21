@@ -35,10 +35,43 @@ describe("L3: methodology config integrity", () => {
       const cfg = loadMethodology(version);
       const ledger = new Set(cfg.evidenceLedger.map((a) => a.key));
       const used = new Set<string>();
+      // Walk every seam (M6 added interpretation/activities/difficulty/prioritization/
+      // rationale) so a dangling citation anywhere fails.
       walkCitationKeys(cfg.bands, used);
       walkCitationKeys(cfg.assessment, used);
+      walkCitationKeys(cfg.interpretation, used);
+      walkCitationKeys(cfg.activities, used);
+      walkCitationKeys(cfg.difficulty, used);
+      walkCitationKeys(cfg.prioritization, used);
+      walkCitationKeys(cfg.rationale, used);
       expect(used.size).toBeGreaterThan(0);
       for (const key of used) expect(ledger).toContain(key);
+    },
+  );
+
+  it.each(SHIPPED)(
+    "%s: every C/D-grade rationale entry is softened (Seam-8 honesty rule)",
+    (version) => {
+      const cfg = loadMethodology(version);
+      expect(cfg.rationale.length).toBeGreaterThan(0);
+      for (const r of cfg.rationale) {
+        if (r.grade === "C" || r.grade === "D") expect(r.soften).toBe(true);
+      }
+    },
+  );
+
+  it.each(SHIPPED)(
+    "%s: every dimension/activity/rationale reference resolves",
+    (version) => {
+      const cfg = loadMethodology(version);
+      const dimIds = new Set(cfg.dimensions.map((d) => d.id));
+      const ratKeys = new Set(cfg.rationale.map((r) => r.key));
+      for (const a of cfg.activities) {
+        for (const d of a.dimensions) expect(dimIds).toContain(d);
+        expect(ratKeys).toContain(a.rationaleKey);
+      }
+      expect(dimIds).toContain(cfg.interpretation.blunderRate.dimension);
+      expect(ratKeys).toContain(cfg.interpretation.blunderRate.rationaleKey);
     },
   );
 
@@ -81,6 +114,30 @@ describe("L3: methodology config integrity", () => {
   it("rejects a non-channel-qualified version", () => {
     const broken = structuredClone(stub010) as Record<string, unknown>;
     broken.version = "1.0.0";
+    expect(methodologyConfigSchema.safeParse(broken).success).toBe(false);
+  });
+
+  it("rejects a C/D-grade rationale entry that is not softened", () => {
+    const broken = structuredClone(stub010) as MethodologyConfig;
+    const cd = broken.rationale.find(
+      (r) => r.grade === "C" || r.grade === "D",
+    )!;
+    cd.soften = false;
+    expect(methodologyConfigSchema.safeParse(broken).success).toBe(false);
+  });
+
+  it("rejects a dangling dimension reference", () => {
+    const broken = structuredClone(stub010) as MethodologyConfig;
+    broken.interpretation.blunderRate.dimension = "no_such_dimension";
+    expect(methodologyConfigSchema.safeParse(broken).success).toBe(false);
+  });
+
+  it("rejects a per-band record that is missing a band", () => {
+    const broken = structuredClone(stub010) as Record<string, unknown>;
+    const interp = broken.interpretation as {
+      blunderRate: { baselineByBand: Record<string, unknown> };
+    };
+    delete interp.blunderRate.baselineByBand.u800;
     expect(methodologyConfigSchema.safeParse(broken).success).toBe(false);
   });
 });

@@ -110,6 +110,15 @@
       }
     }
   ],
+  "dimensions": [
+    { "id": "tactics", "label": "Tactical pattern recognition" },
+    { "id": "board_vision", "label": "Blunder avoidance / board vision" },
+    { "id": "calculation", "label": "Calculation / visualisation" },
+    { "id": "positional", "label": "Positional understanding" },
+    { "id": "openings", "label": "Opening knowledge" },
+    { "id": "endgames", "label": "Endgame technique" },
+    { "id": "time_mgmt", "label": "Time management" }
+  ],
   "assessment": {
     "selfReportForSkill": {
       "value": false,
@@ -231,6 +240,822 @@
       }
     }
   },
+  "interpretation": {
+    "thresholds": {
+      "blunderCpLoss": {
+        "value": 150,
+        "grade": "A",
+        "tier": 1,
+        "citationKey": "weakness_diagnosis",
+        "note": "A move losing ≥150cp (from the mover's perspective) is a blunder."
+      },
+      "excludeDecidedAboveCp": {
+        "value": 600,
+        "grade": "A",
+        "tier": 1,
+        "citationKey": "weakness_diagnosis",
+        "note": "Ignore blunders in already-decided positions (|eval| already > 600cp)."
+      }
+    },
+    "blunderRate": {
+      "dimension": "board_vision",
+      "baselineByBand": {
+        "u800": {
+          "value": 0.2,
+          "grade": "B",
+          "tier": 1,
+          "citationKey": "weakness_diagnosis",
+          "flag": "contested",
+          "note": "Expected blunder rate; reports disagree — recalibrate from telemetry."
+        },
+        "b800_1200": {
+          "value": 0.15,
+          "grade": "B",
+          "tier": 1,
+          "citationKey": "weakness_diagnosis",
+          "flag": "contested"
+        },
+        "b1200_1600": {
+          "value": 0.075,
+          "grade": "B",
+          "tier": 1,
+          "citationKey": "weakness_diagnosis",
+          "flag": "contested"
+        },
+        "b1600_2000": {
+          "value": 0.035,
+          "grade": "B",
+          "tier": 1,
+          "citationKey": "weakness_diagnosis",
+          "flag": "contested"
+        },
+        "b2000_2200": {
+          "value": 0.015,
+          "grade": "B",
+          "tier": 1,
+          "citationKey": "weakness_diagnosis",
+          "flag": "contested"
+        },
+        "b2200plus": {
+          "value": 0.008,
+          "grade": "B",
+          "tier": 1,
+          "citationKey": "weakness_diagnosis",
+          "flag": "contested"
+        }
+      },
+      "weaknessMultiplier": {
+        "value": 1.2,
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "weakness_diagnosis",
+        "flag": "best-guess",
+        "note": "Flag a weakness when the user's rate exceeds 1.2× the band baseline."
+      },
+      "rationaleKey": "blunder_focus"
+    },
+    "confidenceGates": {
+      "blunderRate": {
+        "low": {
+          "value": 20,
+          "grade": "A",
+          "tier": 1,
+          "citationKey": "weakness_diagnosis",
+          "note": "≥20 trailing games to flag a blunder-rate weakness at all (binomial power)."
+        },
+        "medium": {
+          "value": 35,
+          "grade": "C",
+          "tier": 1,
+          "citationKey": "weakness_diagnosis",
+          "flag": "best-guess"
+        },
+        "high": {
+          "value": 50,
+          "grade": "C",
+          "tier": 1,
+          "citationKey": "weakness_diagnosis",
+          "flag": "best-guess"
+        }
+      }
+    }
+  },
+  "activities": [
+    {
+      "id": "play_games",
+      "label": "Play rated games (longer time control)",
+      "activityType": "play_game",
+      "dimensions": ["tactics", "board_vision", "calculation", "time_mgmt"],
+      "resourceTheme": null,
+      "estMinutes": {
+        "value": 30,
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "stub_open_question",
+        "flag": "best-guess",
+        "note": "Time-budget estimate for packing; not a chess value."
+      },
+      "track": null,
+      "rationaleKey": "play_games",
+      "priorityByBand": {
+        "u800": {
+          "value": 3,
+          "grade": "B",
+          "tier": 1,
+          "citationKey": "howard2012"
+        },
+        "b800_1200": {
+          "value": 3,
+          "grade": "B",
+          "tier": 1,
+          "citationKey": "howard2012"
+        },
+        "b1200_1600": {
+          "value": 3,
+          "grade": "B",
+          "tier": 1,
+          "citationKey": "howard2012"
+        },
+        "b1600_2000": {
+          "value": 3,
+          "grade": "B",
+          "tier": 1,
+          "citationKey": "howard2012"
+        },
+        "b2000_2200": {
+          "value": 2,
+          "grade": "B",
+          "tier": 1,
+          "citationKey": "howard2012"
+        },
+        "b2200plus": {
+          "value": 2,
+          "grade": "B",
+          "tier": 1,
+          "citationKey": "howard2012"
+        }
+      }
+    },
+    {
+      "id": "themed_tactics",
+      "label": "Themed tactics (reflective)",
+      "activityType": "puzzle_theme",
+      "dimensions": ["tactics"],
+      "resourceTheme": "fork",
+      "estMinutes": {
+        "value": 10,
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "stub_open_question",
+        "flag": "best-guess"
+      },
+      "track": "pattern",
+      "rationaleKey": "puzzle_difficulty",
+      "priorityByBand": {
+        "u800": {
+          "value": 3,
+          "grade": "C",
+          "tier": 1,
+          "citationKey": "smith_tikkanen2018",
+          "flag": "best-guess"
+        },
+        "b800_1200": {
+          "value": 3,
+          "grade": "C",
+          "tier": 1,
+          "citationKey": "smith_tikkanen2018",
+          "flag": "best-guess"
+        },
+        "b1200_1600": {
+          "value": 3,
+          "grade": "C",
+          "tier": 1,
+          "citationKey": "smith_tikkanen2018",
+          "flag": "best-guess"
+        },
+        "b1600_2000": {
+          "value": 2,
+          "grade": "C",
+          "tier": 1,
+          "citationKey": "smith_tikkanen2018",
+          "flag": "best-guess"
+        },
+        "b2000_2200": {
+          "value": 2,
+          "grade": "C",
+          "tier": 1,
+          "citationKey": "smith_tikkanen2018",
+          "flag": "best-guess"
+        },
+        "b2200plus": {
+          "value": 1,
+          "grade": "C",
+          "tier": 1,
+          "citationKey": "smith_tikkanen2018",
+          "flag": "best-guess"
+        }
+      }
+    },
+    {
+      "id": "spaced_review",
+      "label": "Spaced review of failed tactics",
+      "activityType": "spaced_review",
+      "dimensions": ["tactics"],
+      "resourceTheme": null,
+      "estMinutes": {
+        "value": 10,
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "stub_open_question",
+        "flag": "best-guess"
+      },
+      "track": "pattern",
+      "rationaleKey": "redo_failed",
+      "priorityByBand": {
+        "u800": {
+          "value": 2,
+          "grade": "C",
+          "tier": 2,
+          "citationKey": "cepeda2006",
+          "flag": "best-guess"
+        },
+        "b800_1200": {
+          "value": 3,
+          "grade": "C",
+          "tier": 2,
+          "citationKey": "cepeda2006",
+          "flag": "best-guess"
+        },
+        "b1200_1600": {
+          "value": 3,
+          "grade": "C",
+          "tier": 2,
+          "citationKey": "cepeda2006",
+          "flag": "best-guess"
+        },
+        "b1600_2000": {
+          "value": 2,
+          "grade": "C",
+          "tier": 2,
+          "citationKey": "cepeda2006",
+          "flag": "best-guess"
+        },
+        "b2000_2200": {
+          "value": 2,
+          "grade": "C",
+          "tier": 2,
+          "citationKey": "cepeda2006",
+          "flag": "best-guess"
+        },
+        "b2200plus": {
+          "value": 1,
+          "grade": "C",
+          "tier": 2,
+          "citationKey": "cepeda2006",
+          "flag": "best-guess"
+        }
+      }
+    },
+    {
+      "id": "analyse_own_games",
+      "label": "Analyse your own games",
+      "activityType": "analyse",
+      "dimensions": ["positional", "calculation", "openings"],
+      "resourceTheme": null,
+      "estMinutes": {
+        "value": 15,
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "stub_open_question",
+        "flag": "best-guess"
+      },
+      "track": null,
+      "rationaleKey": "analyse_own_games",
+      "priorityByBand": {
+        "u800": {
+          "value": 2,
+          "grade": "C",
+          "tier": 1,
+          "citationKey": "stub_open_question",
+          "flag": "best-guess"
+        },
+        "b800_1200": {
+          "value": 2,
+          "grade": "C",
+          "tier": 1,
+          "citationKey": "stub_open_question",
+          "flag": "best-guess"
+        },
+        "b1200_1600": {
+          "value": 3,
+          "grade": "C",
+          "tier": 1,
+          "citationKey": "stub_open_question",
+          "flag": "best-guess"
+        },
+        "b1600_2000": {
+          "value": 3,
+          "grade": "C",
+          "tier": 1,
+          "citationKey": "stub_open_question",
+          "flag": "best-guess"
+        },
+        "b2000_2200": {
+          "value": 3,
+          "grade": "C",
+          "tier": 1,
+          "citationKey": "stub_open_question",
+          "flag": "best-guess"
+        },
+        "b2200plus": {
+          "value": 3,
+          "grade": "C",
+          "tier": 1,
+          "citationKey": "stub_open_question",
+          "flag": "best-guess"
+        }
+      }
+    },
+    {
+      "id": "endgame_study",
+      "label": "Endgame study",
+      "activityType": "study",
+      "dimensions": ["endgames"],
+      "resourceTheme": "endgame",
+      "estMinutes": {
+        "value": 15,
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "stub_open_question",
+        "flag": "best-guess"
+      },
+      "track": null,
+      "rationaleKey": "endgame_focus",
+      "priorityByBand": {
+        "u800": {
+          "value": 1,
+          "grade": "C",
+          "tier": 1,
+          "citationKey": "stub_open_question",
+          "flag": "best-guess"
+        },
+        "b800_1200": {
+          "value": 1,
+          "grade": "C",
+          "tier": 1,
+          "citationKey": "stub_open_question",
+          "flag": "best-guess"
+        },
+        "b1200_1600": {
+          "value": 2,
+          "grade": "C",
+          "tier": 1,
+          "citationKey": "stub_open_question",
+          "flag": "best-guess"
+        },
+        "b1600_2000": {
+          "value": 2,
+          "grade": "C",
+          "tier": 1,
+          "citationKey": "stub_open_question",
+          "flag": "best-guess"
+        },
+        "b2000_2200": {
+          "value": 3,
+          "grade": "C",
+          "tier": 1,
+          "citationKey": "stub_open_question",
+          "flag": "best-guess"
+        },
+        "b2200plus": {
+          "value": 3,
+          "grade": "C",
+          "tier": 1,
+          "citationKey": "stub_open_question",
+          "flag": "best-guess"
+        }
+      }
+    },
+    {
+      "id": "calculation_drill",
+      "label": "Calculation / visualisation drill",
+      "activityType": "puzzle_theme",
+      "dimensions": ["calculation"],
+      "resourceTheme": "veryLong",
+      "estMinutes": {
+        "value": 15,
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "stub_open_question",
+        "flag": "best-guess"
+      },
+      "track": "calculation",
+      "rationaleKey": "calculation_focus",
+      "priorityByBand": {
+        "u800": {
+          "value": 1,
+          "grade": "C",
+          "tier": 1,
+          "citationKey": "stub_open_question",
+          "flag": "best-guess"
+        },
+        "b800_1200": {
+          "value": 1,
+          "grade": "C",
+          "tier": 1,
+          "citationKey": "stub_open_question",
+          "flag": "best-guess"
+        },
+        "b1200_1600": {
+          "value": 2,
+          "grade": "C",
+          "tier": 1,
+          "citationKey": "stub_open_question",
+          "flag": "best-guess"
+        },
+        "b1600_2000": {
+          "value": 3,
+          "grade": "C",
+          "tier": 1,
+          "citationKey": "stub_open_question",
+          "flag": "best-guess"
+        },
+        "b2000_2200": {
+          "value": 3,
+          "grade": "C",
+          "tier": 1,
+          "citationKey": "stub_open_question",
+          "flag": "best-guess"
+        },
+        "b2200plus": {
+          "value": 3,
+          "grade": "C",
+          "tier": 1,
+          "citationKey": "stub_open_question",
+          "flag": "best-guess"
+        }
+      }
+    }
+  ],
+  "weaknessResourceRules": [
+    {
+      "dimension": "board_vision",
+      "activityId": "themed_tactics",
+      "theme": "hangingPiece",
+      "rationaleKey": "blunder_focus"
+    }
+  ],
+  "difficulty": {
+    "patternTrack": {
+      "successTarget": {
+        "value": 0.8,
+        "grade": "B",
+        "tier": 2,
+        "citationKey": "wilson2019",
+        "flag": "semi-evidenced",
+        "note": "≈85% optimal-difficulty (ML, extrapolated to chess); conservative 0.80."
+      },
+      "offsetSeedByBand": {
+        "u800": {
+          "value": -100,
+          "grade": "B",
+          "tier": 1,
+          "citationKey": "wilson2019",
+          "flag": "contested"
+        },
+        "b800_1200": {
+          "value": -125,
+          "grade": "B",
+          "tier": 1,
+          "citationKey": "wilson2019",
+          "flag": "contested"
+        },
+        "b1200_1600": {
+          "value": -150,
+          "grade": "B",
+          "tier": 1,
+          "citationKey": "wilson2019",
+          "flag": "contested"
+        },
+        "b1600_2000": {
+          "value": -200,
+          "grade": "B",
+          "tier": 1,
+          "citationKey": "wilson2019",
+          "flag": "contested"
+        },
+        "b2000_2200": {
+          "value": -225,
+          "grade": "B",
+          "tier": 1,
+          "citationKey": "wilson2019",
+          "flag": "contested"
+        },
+        "b2200plus": {
+          "value": -250,
+          "grade": "B",
+          "tier": 1,
+          "citationKey": "wilson2019",
+          "flag": "contested"
+        }
+      }
+    },
+    "calculationTrack": {
+      "successTarget": {
+        "value": 0.55,
+        "grade": "C",
+        "tier": 2,
+        "citationKey": "stub_open_question",
+        "flag": "best-guess",
+        "note": "Productive-struggle target for the calculation track (50–60%)."
+      },
+      "offsetSeedByBand": {
+        "u800": {
+          "value": 0,
+          "grade": "C",
+          "tier": 1,
+          "citationKey": "stub_open_question",
+          "flag": "contested"
+        },
+        "b800_1200": {
+          "value": 25,
+          "grade": "C",
+          "tier": 1,
+          "citationKey": "stub_open_question",
+          "flag": "contested"
+        },
+        "b1200_1600": {
+          "value": 50,
+          "grade": "C",
+          "tier": 1,
+          "citationKey": "stub_open_question",
+          "flag": "contested"
+        },
+        "b1600_2000": {
+          "value": 100,
+          "grade": "C",
+          "tier": 1,
+          "citationKey": "stub_open_question",
+          "flag": "contested"
+        },
+        "b2000_2200": {
+          "value": 150,
+          "grade": "C",
+          "tier": 1,
+          "citationKey": "stub_open_question",
+          "flag": "contested"
+        },
+        "b2200plus": {
+          "value": 200,
+          "grade": "C",
+          "tier": 1,
+          "citationKey": "stub_open_question",
+          "flag": "contested"
+        }
+      }
+    },
+    "controllerSuccessToRating": {
+      "value": 400,
+      "grade": "C",
+      "tier": 2,
+      "citationKey": "stub_open_question",
+      "flag": "best-guess",
+      "note": "Servo gain: a success-rate error maps to this many rating points of offset nudge."
+    },
+    "beginnerBands": ["u800"],
+    "beginnerSuccessTarget": {
+      "value": 0.9,
+      "grade": "C",
+      "tier": 2,
+      "citationKey": "stub_open_question",
+      "flag": "best-guess",
+      "note": "Motivational override for the fragile early phase; a motivation, not learning-rate, choice."
+    },
+    "structureByBand": {
+      "u800": {
+        "value": "blocked",
+        "grade": "A",
+        "tier": 2,
+        "citationKey": "sweller1988"
+      },
+      "b800_1200": {
+        "value": "clustered",
+        "grade": "A",
+        "tier": 2,
+        "citationKey": "sweller1988"
+      },
+      "b1200_1600": {
+        "value": "clustered",
+        "grade": "A",
+        "tier": 2,
+        "citationKey": "rohrer2010"
+      },
+      "b1600_2000": {
+        "value": "interleaved",
+        "grade": "A",
+        "tier": 2,
+        "citationKey": "rohrer2010"
+      },
+      "b2000_2200": {
+        "value": "interleaved",
+        "grade": "A",
+        "tier": 2,
+        "citationKey": "rohrer2010"
+      },
+      "b2200plus": {
+        "value": "interleaved",
+        "grade": "A",
+        "tier": 2,
+        "citationKey": "rohrer2010"
+      }
+    },
+    "motifMasteryThreshold": {
+      "value": 0.8,
+      "grade": "C",
+      "tier": 2,
+      "citationKey": "stub_open_question",
+      "flag": "best-guess",
+      "note": "Block a new motif until accuracy clears this, then interleave it."
+    },
+    "workedExampleBands": ["u800", "b800_1200"],
+    "workedExampleComplexityThreshold": {
+      "value": 0.7,
+      "grade": "B",
+      "tier": 2,
+      "citationKey": "vangog2015",
+      "flag": "best-guess",
+      "note": "Show a worked example before active testing at high element-interactivity."
+    },
+    "ratingFloor": {
+      "value": 400,
+      "grade": "C",
+      "tier": 1,
+      "citationKey": "stub_open_question",
+      "flag": "best-guess",
+      "note": "Lower clamp for any servo-produced puzzle-rating target."
+    },
+    "ratingCeil": {
+      "value": 2900,
+      "grade": "C",
+      "tier": 1,
+      "citationKey": "stub_open_question",
+      "flag": "best-guess",
+      "note": "Upper clamp for any servo-produced puzzle-rating target."
+    }
+  },
+  "prioritization": {
+    "weights": {
+      "weaknessSeverity": {
+        "value": 3,
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "weakness_diagnosis",
+        "flag": "best-guess",
+        "note": "Weight on a current weakness signal (A descriptive / C as a training prescription)."
+      },
+      "activityRoiPrior": {
+        "value": 1,
+        "grade": "B",
+        "tier": 1,
+        "citationKey": "howard2012",
+        "flag": "best-guess"
+      },
+      "dueReviews": {
+        "value": 2,
+        "grade": "A",
+        "tier": 2,
+        "citationKey": "cepeda2006",
+        "flag": "best-guess"
+      },
+      "varietyRecency": {
+        "value": 0.5,
+        "grade": "A",
+        "tier": 2,
+        "citationKey": "rohrer2010",
+        "flag": "best-guess"
+      }
+    },
+    "volume": {
+      "dailyPuzzleDose": {
+        "value": 15,
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "stub_open_question",
+        "flag": "best-guess",
+        "note": "10–20 themed puzzles; deliberately no volume-chasing (S7)."
+      }
+    }
+  },
+  "rationale": [
+    {
+      "key": "blunder_focus",
+      "whenShown": "high blunder rate detected",
+      "value": "Below master level, games are usually decided by the last blunder. Today targets board safety.",
+      "grade": "C",
+      "tier": 1,
+      "citationKey": "smith_tikkanen2018",
+      "soften": true
+    },
+    {
+      "key": "play_games",
+      "whenShown": "a play-games item",
+      "value": "Playing full-length games is the strongest single correlate of rating in the data. That's correlation, not proof — but it's where real skill is tested.",
+      "grade": "B",
+      "tier": 1,
+      "citationKey": "howard2012",
+      "soften": false
+    },
+    {
+      "key": "puzzle_difficulty",
+      "whenShown": "a themed-tactics set",
+      "value": "You learn fastest at around 80–85% success: hard enough to make you think, easy enough to lock in the pattern.",
+      "grade": "B",
+      "tier": 2,
+      "citationKey": "wilson2019",
+      "soften": false
+    },
+    {
+      "key": "redo_failed",
+      "whenShown": "a spaced-review item",
+      "value": "Re-solving your misses, spaced over days, is the most science-backed way to make patterns stick — proven mostly on flashcards, not chess yet.",
+      "grade": "C",
+      "tier": 2,
+      "citationKey": "roediger2006",
+      "soften": true
+    },
+    {
+      "key": "analyse_own_games",
+      "whenShown": "an analyse-own-games item",
+      "value": "Reviewing your own losses finds your specific leaks — generic advice can't. Coaching consensus, not formally proven.",
+      "grade": "C",
+      "tier": 1,
+      "citationKey": "stub_open_question",
+      "soften": true
+    },
+    {
+      "key": "endgame_focus",
+      "whenShown": "an endgame-study item",
+      "value": "A few key endgame positions turn draws into wins. They matter more as you climb.",
+      "grade": "C",
+      "tier": 1,
+      "citationKey": "stub_open_question",
+      "soften": true
+    },
+    {
+      "key": "calculation_focus",
+      "whenShown": "a calculation drill",
+      "value": "Slow, calculate-to-the-end puzzles train depth. Aim for ~50–60% success — these are meant to be hard.",
+      "grade": "C",
+      "tier": 1,
+      "citationKey": "stub_open_question",
+      "soften": true
+    },
+    {
+      "key": "interleaving",
+      "whenShown": "a mixed-theme set",
+      "value": "Mixed themes feel harder, and that's the point — in a real game nobody tells you what to look for.",
+      "grade": "C",
+      "tier": 2,
+      "citationKey": "rohrer2010",
+      "soften": true
+    },
+    {
+      "key": "weekly_volume",
+      "whenShown": "program setup",
+      "value": "A little most days beats cramming — one of the most reliable findings in learning science. We keep sessions short so fatigue doesn't wreck accuracy.",
+      "grade": "C",
+      "tier": 2,
+      "citationKey": "cepeda2006",
+      "soften": true
+    },
+    {
+      "key": "process_goal",
+      "whenShown": "the daily target",
+      "value": "Your goal today is what you can control — finishing these reps — not your rating. Research on athletes shows process goals beat outcome goals for results and confidence.",
+      "grade": "A",
+      "tier": 2,
+      "citationKey": "williamson2022",
+      "soften": false
+    },
+    {
+      "key": "expectations",
+      "whenShown": "onboarding + dashboard",
+      "value": "We can't promise a rating. No training activity is proven to cause rating gains, and how much people improve varies enormously. We personalise to your trajectory and show our evidence.",
+      "grade": "A",
+      "tier": 1,
+      "citationKey": "blanch2023",
+      "soften": false
+    },
+    {
+      "key": "expectations_timeline",
+      "whenShown": "progress / onboarding",
+      "value": "Climbing 100 points takes a month or two near 1000, but often years around 1800 — that's normal, not you stalling. We measure you against your own past, never an average.",
+      "grade": "A",
+      "tier": 1,
+      "citationKey": "lichess_etl",
+      "soften": false
+    }
+  ],
   "evidenceLedger": [
     {
       "key": "heck2025",
@@ -267,6 +1092,72 @@
       "source": "Engineering constraint (BUILD.md §6.5)",
       "anchors": "Client-side instant-analysis budget at onboarding",
       "grade": "C"
+    },
+    {
+      "key": "weakness_diagnosis",
+      "source": "WEAKNESS_DIAGNOSIS.md §1",
+      "anchors": "Blunder cp thresholds; blunder rate = highest-ROI sub-2000 diagnostic; contested per-band baselines; ≥20-game gate",
+      "grade": "A"
+    },
+    {
+      "key": "smith_tikkanen2018",
+      "source": "Smith & Tikkanen 2018 (Woodpecker) + DiscoChess (N=1,017)",
+      "anchors": "Tactics dominate decisive games below master; themed-tactics ROI",
+      "grade": "B"
+    },
+    {
+      "key": "howard2012",
+      "source": "Howard 2012, Appl. Cogn. Psychol. 26:359",
+      "anchors": "log(games) is the strongest single rating predictor (correlational)",
+      "grade": "B"
+    },
+    {
+      "key": "cepeda2006",
+      "source": "Cepeda et al. 2006, Psych. Bull. 132:354 (839 assessments)",
+      "anchors": "Spacing > massing; consistency over cramming; due reviews get priority",
+      "grade": "A"
+    },
+    {
+      "key": "roediger2006",
+      "source": "Roediger & Karpicke 2006; Adesope et al. 2017",
+      "anchors": "Retrieval/testing effect (g≈0.51) → spaced redo of failed tactics",
+      "grade": "A"
+    },
+    {
+      "key": "rohrer2010",
+      "source": "Rohrer & Taylor 2010",
+      "anchors": "Interleaving +43% long-term retention; interleave from intermediate up",
+      "grade": "A"
+    },
+    {
+      "key": "sweller1988",
+      "source": "Sweller 1988 (CLT); van Gog & Sweller 2015",
+      "anchors": "Beginners need blocked practice + worked examples (high cognitive load)",
+      "grade": "A"
+    },
+    {
+      "key": "vangog2015",
+      "source": "van Gog & Sweller 2015",
+      "anchors": "Testing effect reverses at high element-interactivity → worked-example cutoff",
+      "grade": "A"
+    },
+    {
+      "key": "williamson2022",
+      "source": "Williamson et al. 2022 (27-study meta-analysis)",
+      "anchors": "Process goals beat outcome goals for performance + self-efficacy",
+      "grade": "A"
+    },
+    {
+      "key": "blanch2023",
+      "source": "Blanch 2023, OSF Preprints (N=72,022, 7 yrs)",
+      "anchors": "96% of active players show no substantial lasting rating gain",
+      "grade": "A"
+    },
+    {
+      "key": "lichess_etl",
+      "source": "Lichess ETL / jcw024 (2.3M players, 450M games)",
+      "anchors": "Non-linear diminishing-returns timeline by band (weeks-per-+100)",
+      "grade": "A"
     }
   ]
 }

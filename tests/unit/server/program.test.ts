@@ -1,0 +1,155 @@
+import { describe, expect, it } from "vitest";
+import type { PrismaClient } from "@prisma/client";
+
+import { generateAndSaveProgram, getTodayProgram } from "@/server/program";
+import { fixedClock } from "@/lib/clock";
+
+// M6 server orchestration: a generate → read round-trip over an in-memory fake Prisma.
+// The graded decisions are golden-tested in engine/generator + methodology/program-seams;
+// this pins the plumbing — persistence of the L3 snapshot and the /today DTO shaping.
+
+interface FakeOpts {
+  tacticalRating?: number;
+  minutesPerDay?: number;
+  features?: unknown[];
+  seededRefIds?: string[];
+}
+
+interface CreatedItem {
+  id: string;
+  orderIndex: number;
+  activityId: string;
+  activityType: string;
+  resourceRefId: string | null;
+  params: unknown;
+  dimensionsTargeted: string[];
+  rationaleKey: string;
+  rationaleText: string;
+  evidenceGrade: string;
+  evidenceTier: number;
+  citationKey: string;
+  confidence: string;
+  soften: boolean;
+  status: string;
+  resourceRef: null;
+}
+
+function fakeDb(opts: FakeOpts) {
+  const state: {
+    created: {
+      id: string;
+      createdAt: Date;
+      methodologyVersion: string;
+      items: CreatedItem[];
+    } | null;
+  } = { created: null };
+
+  const db = {
+    assessment: {
+      findUnique: async () =>
+        opts.tacticalRating != null
+          ? { tacticalRatingEstimate: opts.tacticalRating }
+          : null,
+    },
+    chessProfileSnapshot: { findFirst: async () => null },
+    analysisResult: {
+      findMany: async () =>
+        (opts.features ?? []).map((f) => ({ rawFeatures: f })),
+    },
+    constraintSet: {
+      findFirst: async () =>
+        opts.minutesPerDay != null
+          ? {
+              id: "c1",
+              version: 1,
+              minutesPerDay: opts.minutesPerDay,
+              daysPerWeek: 5,
+              goals: [],
+              ownedResources: [],
+              formatPrefs: { formats: [], preferredVariety: false },
+              ifThenPlan: null,
+            }
+          : null,
+    },
+    resourceRef: {
+      findMany: async ({ where }: { where: { id: { in: string[] } } }) =>
+        (opts.seededRefIds ?? [])
+          .filter((id) => where.id.in.includes(id))
+          .map((id) => ({ id })),
+    },
+    program: {
+      updateMany: async () => ({ count: 0 }),
+      create: async ({
+        data,
+      }: {
+        data: {
+          methodologyVersion: string;
+          items: {
+            create: Omit<CreatedItem, "id" | "status" | "resourceRef">[];
+          };
+        };
+      }) => {
+        state.created = {
+          id: "prog1",
+          createdAt: new Date(0),
+          methodologyVersion: data.methodologyVersion,
+          items: data.items.create.map((it, i) => ({
+            ...it,
+            id: `item${i}`,
+            status: "pending",
+            resourceRef: null,
+          })),
+        };
+        return { id: "prog1" };
+      },
+      findFirst: async () => state.created,
+    },
+    $transaction: async (cb: (tx: unknown) => unknown) => cb(db),
+  } as unknown as PrismaClient;
+
+  return db;
+}
+
+const clock = fixedClock(1_700_000_000_000);
+
+describe("generateAndSaveProgram + getTodayProgram (round-trip)", () => {
+  it("persists a graded session for a fresh user and shapes the /today DTO", async () => {
+    const db = fakeDb({ tacticalRating: 1300, minutesPerDay: 30 });
+
+    const id = await generateAndSaveProgram(db, "u1", clock);
+    expect(id).toBe("prog1");
+
+    const today = await getTodayProgram(db, "u1");
+    expect(today).not.toBeNull();
+    expect(today!.methodologyVersion).toBe("stub-0.1.0");
+    // Honest framing copy is surfaced (Seam 8).
+    expect(today!.honesty.processGoal.length).toBeGreaterThan(0);
+    expect(today!.honesty.expectations.length).toBeGreaterThan(0);
+
+    // Same order as the generator golden at b1200_1600 / 30 min.
+    expect(today!.items.map((i) => i.label)).toEqual([
+      "Analyse your own games",
+      "Themed tactics (reflective)",
+    ]);
+
+    // Every item carries a graded, snapshotted "why" (L3).
+    for (const item of today!.items) {
+      expect(item.rationaleText.length).toBeGreaterThan(0);
+      expect(["A", "B", "C", "D"]).toContain(item.evidenceGrade);
+      expect(item.citationSource).not.toBeNull(); // resolved from the ledger
+    }
+
+    // The puzzle item resolves an external Lichess URL from its theme (no seed needed).
+    const tactics = today!.items.find(
+      (i) => i.label === "Themed tactics (reflective)",
+    )!;
+    expect(tactics.externalUrl).toBe("https://lichess.org/training/fork");
+    expect(tactics.params.targetRating).toBe(1150);
+    expect(tactics.estMinutes).toBe(10);
+  });
+
+  it("returns null when no program has been generated", async () => {
+    const db = fakeDb({ tacticalRating: 1300, minutesPerDay: 30 });
+    expect(await getTodayProgram(db, "u1")).toBeNull();
+  });
+});

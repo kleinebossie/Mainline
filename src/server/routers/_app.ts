@@ -6,6 +6,7 @@ import { assessmentRouter } from "@/server/routers/assessment";
 import { connectionsRouter } from "@/server/routers/connections";
 import { constraintsRouter } from "@/server/routers/constraints";
 import { importRouter } from "@/server/routers/import";
+import { programRouter } from "@/server/routers/program";
 import { router } from "@/server/trpc";
 
 export const appRouter = router({
@@ -14,6 +15,7 @@ export const appRouter = router({
   assessment: assessmentRouter,
   constraints: constraintsRouter,
   analysis: analysisRouter,
+  program: programRouter,
 });
 
 export type AppRouter = typeof appRouter;

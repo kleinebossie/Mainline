@@ -13,6 +13,7 @@ export function OnboardingSteps() {
   const connections = trpc.connections.list.useQuery();
   const calibration = trpc.assessment.state.useQuery();
   const constraints = trpc.constraints.getCurrent.useQuery();
+  const today = trpc.program.getToday.useQuery();
 
   const steps = [
     {
@@ -38,6 +39,13 @@ export function OnboardingSteps() {
       title: "See where you stand",
       detail: "Your data-driven starting picture (more lands with the engine).",
       done: false,
+    },
+    {
+      href: "/today",
+      title: "Get your first program",
+      detail:
+        "A daily session built from your data, each item with a graded why.",
+      done: (today.data?.items.length ?? 0) > 0,
     },
   ];
 

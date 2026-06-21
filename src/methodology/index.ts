@@ -12,10 +12,29 @@ export {
   nextCalibrationItem,
   scoreCalibration,
   buildImplementationIntention,
+  // Program-engine seams (M6): Seams 1/3/4/5/7/8 pure reader functions.
+  bandForRating,
+  interpretGameFeatures,
+  confidenceFromSampleSize,
+  mapWeaknessToActivities,
+  targetPuzzleRating,
+  practiceStructure,
+  useWorkedExample,
+  prioritizeDailyMix,
+  rationaleFor,
   type CalibrationResponse,
   type NextCalibrationItem,
   type CalibrationEstimate,
   type IfThenPlan,
+  type Band,
+  type Track,
+  type Confidence,
+  type PracticeStructureKind,
+  type WeaknessSignal,
+  type CandidateActivity,
+  type ScoredCandidate,
+  type DueItem,
+  type PuzzleTarget,
 } from "@/methodology/provider";
 
 export type {
@@ -23,6 +42,13 @@ export type {
   AssessmentConfig,
   CalibrationConfig,
   BandDefinition,
+  SkillDimension,
+  InterpretationConfig,
+  ActivityDefinition,
+  WeaknessResourceRule,
+  DifficultyConfig,
+  PrioritizationConfig,
+  RationaleEntry,
   AnchorSource,
 } from "@/methodology/schema/config";
 

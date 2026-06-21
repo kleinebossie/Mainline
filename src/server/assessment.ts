@@ -33,7 +33,7 @@ function parseResponses(stored: unknown): CalibrationResponse[] {
 }
 
 /** Pull a tactical-ish rating (puzzle, else rapid) from a snapshot's ratings JSON. */
-function ratingFromSnapshot(ratings: unknown): number | null {
+export function ratingFromSnapshot(ratings: unknown): number | null {
   if (!ratings || typeof ratings !== "object") return null;
   const r = ratings as Record<string, unknown>;
   for (const fmt of ["puzzle", "rapid"]) {

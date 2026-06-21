@@ -128,8 +128,10 @@ CI (`.github/workflows/ci.yml`) runs, in order: **`typecheck → lint → unit �
 
 The app is built as vertical slices **M0–M10** (`BUILD.md` §10). Shipped so far: **M0** scaffold,
 **M1** identity & connections, **M2** import & profile, **M3** resource catalog, **M4** constraints &
-assessment, **M5** client-side Stockfish analysis → raw features. **Next: M6** — Program engine v0. `planning/BUILD.md` is the
-source of truth these notes summarize; the `build-slice` skill drives a milestone end-to-end.
+assessment, **M5** client-side Stockfish analysis → raw features, **M6** program engine v0 (generator +
+Seams 1/3/4/5/7/8 stub config → a graded, budget-fitted `/today`). **Next: M7** — Tracker + adaptation v0
+(the loop closes). `planning/BUILD.md` is the source of truth these notes summarize; the `build-slice`
+skill drives a milestone end-to-end.
 
 ## Working with the research reports
 

@@ -933,8 +933,38 @@ DoD checklist._
   snapshots (L3).
 - **Tests:** **golden** — fixed inputs + pinned stub version → exact ordered program incl. rationale
   keys + grades; time-budget packing respects `minutesPerDay`; e2e — onboarding → first program.
-- **DoD:** ☐ deterministic program (golden green) ☐ every item shows a graded "why" ☐ fits the time
-  budget ☐ no science constant in `engine/` (L1 guard green).
+- **DoD:** [x] deterministic program (golden green) [x] every item shows a graded "why" [x] fits the time
+  budget [x] no science constant in `engine/` (L1 guard green).
+  **Status (2026-06-21): code-complete & locally green.** This slice lands the program-engine seams
+  the generator consumes: the `MethodologyConfig` schema + `stub-0.1.0` now carry **dimensions** (Seam 1,
+  taxonomy), **interpretation** (Seam 3), **activities + weaknessResourceRules** (Seam 4), **difficulty**
+  (Seam 5), **prioritization** (Seam 7) and the **rationale** copy table (Seam 8) — every leaf graded,
+  every citation resolving, every per-band record covering all bands, and **every C/D rationale carries
+  `soften`** (new L3-guard checks + negative cases). Pure provider fns (`bandForRating`,
+  `interpretGameFeatures`, `confidenceFromSampleSize`, `mapWeaknessToActivities`, `targetPuzzleRating`,
+  `practiceStructure`, `useWorkedExample`, `prioritizeDailyMix`, `rationaleFor`) read config only (L1),
+  no clock/random (L2). Generic Engine math (`engine/math/{servo,packing,weighted-sort}`) is the only
+  thing the Engine itself decides (fit only, §7.1). `generateProgram` (`engine/generator.ts`) wires
+  interpret→map→prioritise→difficulty→pack→rationale and snapshots the graded "why" onto each draft (L3);
+  it's golden-tested (deterministic order + budget fit + grades) via an injected `Clock`. Data model:
+  `Program` + `ProgramItem` (§5.5, denormalised transparency snapshot) + migration
+  `20260621020000_m6_program` (hand-written offline via `prisma migrate diff`). Server: `db/program.ts`
+  helpers, `server/program.ts` orchestration (band via `bandForRating`, signals via `interpretGameFeatures`
+  over persisted `AnalysisResult`s, `generateProgram`, persist + supersede), `program` tRPC router
+  (`getToday`/`generate`). UI: `/today` + `TransparencyCard` (grade/tier/confidence/soften, never renders a
+  stub as fact) + the onboarding "first program" step. Tests: **123 unit + guards green** (math, the nine
+  seam fns, generator goldens, server round-trip, extended L3 guard), **`next build` green** (12 routes),
+  **10 e2e green** (`/today` auth-gate; the full signed-in onboarding→first-program flow is verified
+  manually per §13.5, as in M1/M2/M4/M5). **Deviations (deliberate, documented in code):** (a) Seam 3
+  ships the **blunder-rate signal only** (the highest-ROI sub-2000 diagnostic, S3); phase/conversion/time/
+  VOC stay STUB per METHODOLOGY Seam 3. (b) `generateProgram` input concretises §7.1: `skillState`/`profile`
+  reduce to `band` + `tacticalRating` (the dimension that drives difficulty); fuller `SkillState` use +
+  `detectPlateau` land with adaptation (M7), and `dueItems` is always empty until the scheduler (Seam 6, M7).
+  (c) `targetPuzzleRating`/`practiceStructure` return richer objects than the "→ ratingTarget" sketch.
+  (d) `stub-0.1.0` was **extended in place (no version bump)** — additive seams on a pre-release placeholder;
+  the calibration goldens are untouched. (e) `estMinutes` rides in the `ProgramItem.params` JSON (display),
+  not its own column. **Remaining user step (infra): apply migration `20260621020000_m6_program` to Supabase
+  (`npm run prisma:deploy`).**
 
 ### M7 — Tracker + adaptation v0 (loop closes)
 

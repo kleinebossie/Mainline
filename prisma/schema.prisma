@@ -3,7 +3,9 @@
 // ChessProfileSnapshot + ImportedGame (§5.2) and the JobRun ledger (§5.7); M3 adds
 // the resource catalog — LichessPuzzle + ResourceRef (§5.3); M4 adds Assessment +
 // ConstraintSet (§5.4); M5 adds AnalysisResult — raw, client-computed game features
-// (§5.2). The rest of the data model (§5) lands milestone by milestone.
+// (§5.2); M6 adds Program + ProgramItem — the generated daily session with its
+// denormalised transparency snapshot (§5.5). The rest of the data model (§5) lands
+// milestone by milestone.
 
 generator client {
   provider = "prisma-client-js"
@@ -38,6 +40,7 @@ model User {
   importedGames         ImportedGame[]
   assessment            Assessment?
   constraintSets        ConstraintSet[]
+  programs              Program[]
 }
 
 model Account {
@@ -224,18 +227,18 @@ model LichessPuzzle {
 // https://lichess.org/training/<theme>). `metadata` is a typed-in-lib JSON blob.
 // `methodologyKey` (optional) links a catalog entry to a Seam-4 ActivityDefinition and
 // is populated once the methodology layer lands (M4+). Seeded idempotently with
-// deterministic ids by scripts/seed-resources.ts. The ProgramItem relation (§5.5) is
-// added in M6 when ProgramItem exists.
+// deterministic ids by scripts/seed-resources.ts.
 model ResourceRef {
-  id             String   @id @default(cuid())
+  id             String        @id @default(cuid())
   type           String // lichess_puzzle_theme | book | endgame_trainer | study | master_game_collection | video
   title          String
   externalUrl    String?
   provider       String
   metadata       Json
   methodologyKey String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  programItems   ProgramItem[]
 
   @@index([type])
 }
@@ -286,4 +289,58 @@ model ConstraintSet {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, isCurrent])
+}
+
+// --- Program & tracking (BUILD.md §5.5, M6) ---
+
+// A generated plan instance. `generationInput` snapshots the inputs the generator ran on
+// (band, tactical rating, weakness signals, constraints, due items) so any "Today" can be
+// re-derived (reproducibility, L2). `methodologyVersion` records the config it was produced
+// under; `status` flips active → superseded when a newer program is generated.
+model Program {
+  id                 String   @id @default(cuid())
+  userId             String
+  methodologyVersion String
+  status             String   @default("active") // active | superseded
+  generationInput    Json
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  user  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items ProgramItem[]
+
+  @@index([userId, status])
+}
+
+// One activity in a day. The transparency snapshot (rationaleText/evidenceGrade/
+// evidenceTier/citationKey/confidence/soften) is DENORMALISED at generation time (L3,
+// §5.5) so a later config bump never silently rewrites a persisted "why". `params` is the
+// ProgramItemParams JSON (theme, track, targetRating, count, structure, …); `activityId`
+// is the Seam-4 activity that produced it (kept for M7 adaptation). ActivityEvent (M7)
+// attaches 1—* later. resourceRef is optional (set when the catalog has a matching entry).
+model ProgramItem {
+  id                 String   @id @default(cuid())
+  programId          String
+  date               DateTime
+  orderIndex         Int
+  activityId         String
+  activityType       String
+  resourceRefId      String?
+  params             Json
+  dimensionsTargeted String[]
+  rationaleKey       String
+  rationaleText      String
+  evidenceGrade      String // A | B | C | D
+  evidenceTier       Int // 1 | 2
+  citationKey        String
+  confidence         String // insufficient | low | medium | high
+  soften             Boolean
+  status             String   @default("pending") // pending | done | skipped
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  program     Program      @relation(fields: [programId], references: [id], onDelete: Cascade)
+  resourceRef ResourceRef? @relation(fields: [resourceRefId], references: [id], onDelete: SetNull)
+
+  @@index([programId, date, orderIndex])
 }
