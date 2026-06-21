@@ -39,6 +39,8 @@ export interface ProgramItemParams {
   count?: number;
   structure?: PracticeStructureKind;
   workedExample?: boolean;
+  /** For a spaced-review item: the due item refs to redo (Seam 6 / the redo flow, M7). */
+  dueItemRefs?: string[];
 }
 
 /** One activity in the generated day, with its L3 transparency snapshot denormalised on
@@ -111,7 +113,16 @@ export function generateProgram(
   const items = packed.map((candidate, index): ProgramItemDraft => {
     // Seam 5: difficulty params for puzzle activities (track !== null).
     let params: ProgramItemParams;
-    if (candidate.track) {
+    if (candidate.activityType === "spaced_review") {
+      // Seam 6 (M7): a spaced-review item carries the due misses to redo — no fresh servo
+      // target; these are prior items coming back spaced (the redo flow, §7.5).
+      params = {
+        theme: candidate.resourceTheme,
+        track: candidate.track,
+        dueItemRefs: input.dueItems.map((d) => d.itemRef),
+        count: input.dueItems.length,
+      };
+    } else if (candidate.track) {
       const recentSuccess = input.recentSuccessByTrack?.[candidate.track];
       const target = targetPuzzleRating(
         {

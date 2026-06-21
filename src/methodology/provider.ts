@@ -12,6 +12,11 @@ import type {
 import type { RawGameFeatures } from "@/lib/raw-features";
 import { servoOffset } from "@/engine/math/servo";
 import { stableSortByScoreDesc } from "@/engine/math/weighted-sort";
+import { fsrsStep, type FsrsGrade, type FsrsState } from "@/engine/math/fsrs";
+import { glickoConfidenceInterval } from "@/engine/math/glicko";
+import { DAY_MS } from "@/lib/clock";
+
+export type { FsrsGrade, FsrsState };
 
 // ---------------------------------------------------------------------------
 // Seam 2 — Assessment calibration (WEAKNESS_DIAGNOSIS §2; METHODOLOGY Seam 2)
@@ -224,9 +229,11 @@ export interface ScoredCandidate extends CandidateActivity {
   score: number;
 }
 
-/** A spaced-review item that is due (Seam 6, M7). M6 always passes none. */
+/** A spaced-review item that is due (Seam 6, M7). The generator surfaces these refs on the
+ *  spaced-review activity so the user redoes exactly their due misses. */
 export interface DueItem {
   itemRef: string;
+  itemType: string;
 }
 
 /** The servo-controlled puzzle-rating target + its evidence (Seam 5). */
@@ -524,4 +531,147 @@ export function prioritizeDailyMix(
     (c) => c.score,
     (c) => c.activityId,
   );
+}
+
+// ---------------------------------------------------------------------------
+// Seam 6 — Spacing / scheduling (SPACED_REPETITION; METHODOLOGY Seam 6, M7)
+// ---------------------------------------------------------------------------
+
+/**
+ * Seam 6 — map an outcome to an FSRS grade (1 Again · 2 Hard · 3 Good · 4 Easy). A wrong
+ * answer is always Again. A correct answer is Good unless solve time (relative to the band
+ * median) places it Fast→Easy or Slow→Hard. The solve-time thresholds are a STUB until the
+ * app has its own timing data, so without a median (or without timing) every correct answer
+ * is Good. All numbers read from config (L1).
+ */
+export function gradeFromOutcome(
+  input: {
+    correct: boolean;
+    solveTimeMs?: number | null;
+    bandMedianMs?: number | null;
+  },
+  cfg: MethodologyConfig,
+): FsrsGrade {
+  if (!input.correct) return 1;
+  const median = input.bandMedianMs;
+  const t = input.solveTimeMs;
+  if (median != null && median > 0 && t != null) {
+    const g = cfg.scheduling.solveTimeGrade;
+    if (t < median * g.fastFactor.value) return 4;
+    if (t > median * g.slowFactor.value) return 2;
+  }
+  return 3;
+}
+
+/**
+ * Seam 6 — step an item's spaced-review schedule for a grade. The Engine owns the FSRS math
+ * (engine/math/fsrsStep); this fn only feeds it the Seam-6 parameters (weight vector,
+ * desired retention, interval cap). `fsrsState === null` is a first review. Pure (L2): the
+ * review time `now` is injected. Returns the next due time + the new memory state.
+ */
+export function scheduleReview(
+  input: { grade: FsrsGrade; fsrsState: FsrsState | null; now: number },
+  cfg: MethodologyConfig,
+): { nextDue: number; newState: FsrsState } {
+  const s = cfg.scheduling;
+  const newState = fsrsStep(input.fsrsState, input.grade, input.now, {
+    weights: s.fsrsWeights.value,
+    desiredRetention: s.desiredRetention.value,
+    maximumIntervalDays: s.maximumIntervalDays.value,
+  });
+  return { nextDue: newState.due, newState };
+}
+
+// ---------------------------------------------------------------------------
+// Measurement & expectations — signal-vs-noise on the Glicko-2 CI (EXPECTATIONS;
+// METHODOLOGY Measurement, M7). The expectation table + FIDE rule land with M8.
+// ---------------------------------------------------------------------------
+
+/** One point in a rating time series (a ChessProfileSnapshot reduced to rating + RD). */
+export interface RatingPoint {
+  at: number;
+  rating: number;
+  rd: number;
+}
+
+/** Whether a rating is a "stable enough" baseline: its RD is at/below the config max. */
+export function isStableBaseline(rd: number, cfg: MethodologyConfig): boolean {
+  return rd <= cfg.measurement.rdBaselineMax.value;
+}
+
+/**
+ * Measurement — is the change between the first and latest STABLE points a real gain, not
+ * noise? True only when the latest CI lower bound clears the baseline CI upper bound (the
+ * non-overlapping-CI rule; Glickman 2012). Needs ≥2 stable points, else false.
+ */
+export function isProgressReal(
+  input: { history: readonly RatingPoint[] },
+  cfg: MethodologyConfig,
+): boolean {
+  const k = cfg.measurement.ciMultiplier.value;
+  const stable = input.history
+    .filter((p) => isStableBaseline(p.rd, cfg))
+    .sort((a, b) => a.at - b.at);
+  if (stable.length < 2) return false;
+  const base = stable[0]!;
+  const cur = stable[stable.length - 1]!;
+  return (
+    glickoConfidenceInterval(cur.rating, cur.rd, k).lower >
+    glickoConfidenceInterval(base.rating, base.rd, k).upper
+  );
+}
+
+export interface PlateauResult {
+  isPlateau: boolean;
+  suggestedStimulusChange: boolean;
+  /** Why this verdict — surfaced honestly (insufficient data is not a plateau). */
+  reason: "insufficient" | "new_high" | "plateau";
+}
+
+/**
+ * Seam 7 — plateau detection over a Glicko-2 history (uses the Measurement CI rule). A
+ * plateau is flagged when, within the last `plateauWindowDays`, the CI upper bound has set
+ * NO new high above its pre-window historical max — i.e. progress has stalled within noise.
+ * Deterministic without a clock: "now" is the latest stable point's timestamp. Insufficient
+ * history (no stable points before/within the window) is reported as such, never as a
+ * plateau (the honesty engine).
+ */
+export function detectPlateau(
+  input: { history: readonly RatingPoint[] },
+  cfg: MethodologyConfig,
+): PlateauResult {
+  const k = cfg.measurement.ciMultiplier.value;
+  const windowMs = cfg.measurement.plateauWindowDays.value * DAY_MS;
+  const stable = input.history
+    .filter((p) => isStableBaseline(p.rd, cfg))
+    .sort((a, b) => a.at - b.at);
+  if (stable.length < 2) {
+    return {
+      isPlateau: false,
+      suggestedStimulusChange: false,
+      reason: "insufficient",
+    };
+  }
+  const windowStart = stable[stable.length - 1]!.at - windowMs;
+  const before = stable.filter((p) => p.at < windowStart);
+  const within = stable.filter((p) => p.at >= windowStart);
+  if (before.length === 0 || within.length === 0) {
+    return {
+      isPlateau: false,
+      suggestedStimulusChange: false,
+      reason: "insufficient",
+    };
+  }
+  const upper = (p: RatingPoint): number =>
+    glickoConfidenceInterval(p.rating, p.rd, k).upper;
+  const histMax = Math.max(...before.map(upper));
+  const recentMax = Math.max(...within.map(upper));
+  if (recentMax > histMax) {
+    return {
+      isPlateau: false,
+      suggestedStimulusChange: false,
+      reason: "new_high",
+    };
+  }
+  return { isPlateau: true, suggestedStimulusChange: true, reason: "plateau" };
 }

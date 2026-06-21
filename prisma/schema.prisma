@@ -4,8 +4,10 @@
 // the resource catalog — LichessPuzzle + ResourceRef (§5.3); M4 adds Assessment +
 // ConstraintSet (§5.4); M5 adds AnalysisResult — raw, client-computed game features
 // (§5.2); M6 adds Program + ProgramItem — the generated daily session with its
-// denormalised transparency snapshot (§5.5). The rest of the data model (§5) lands
-// milestone by milestone.
+// denormalised transparency snapshot (§5.5); M7 closes the loop with the tracker +
+// adaptation state — ActivityEvent (append-only), SkillState, ScheduleState (FSRS),
+// and AdaptationLog (§5.5/§5.6). The rest of the data model (§5) lands milestone by
+// milestone.
 
 generator client {
   provider = "prisma-client-js"
@@ -41,6 +43,10 @@ model User {
   assessment            Assessment?
   constraintSets        ConstraintSet[]
   programs              Program[]
+  activityEvents        ActivityEvent[]
+  skillStates           SkillState[]
+  scheduleStates        ScheduleState[]
+  adaptationLogs        AdaptationLog[]
 }
 
 model Account {
@@ -339,8 +345,99 @@ model ProgramItem {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
-  program     Program      @relation(fields: [programId], references: [id], onDelete: Cascade)
-  resourceRef ResourceRef? @relation(fields: [resourceRefId], references: [id], onDelete: SetNull)
+  program        Program         @relation(fields: [programId], references: [id], onDelete: Cascade)
+  resourceRef    ResourceRef?    @relation(fields: [resourceRefId], references: [id], onDelete: SetNull)
+  activityEvents ActivityEvent[]
 
   @@index([programId, date, orderIndex])
+}
+
+// --- Tracker + adaptation: the loop closes (BUILD.md §5.5, §5.6, M7) ---
+
+// The append-only tracker log (§5.5): every outcome is one immutable row — never updated
+// or deleted. It is the substrate the adaptation loop reads. `payload` is the
+// ActivityEventPayload JSON ({ correct?, solveTimeMs?, durationMin?, externalRef? },
+// typed in lib/tracker.ts). `programItemId` links the outcome to the activity it came
+// from (so the loop can resolve the item's config dimensions/track); it is nullable for
+// outcomes with no on-screen item (e.g. an imported game). Indexed by (userId,
+// occurredAt) for "events since last run".
+model ActivityEvent {
+  id            String   @id @default(cuid())
+  userId        String
+  programItemId String?
+  type          String // puzzle_attempt | drill_done | game_played | skip | self_report
+  occurredAt    DateTime
+  payload       Json
+  source        String   @default("user") // user | import | system
+  createdAt     DateTime @default(now())
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  programItem ProgramItem? @relation(fields: [programItemId], references: [id], onDelete: SetNull)
+
+  @@index([userId, occurredAt])
+}
+
+// Per-dimension skill estimate (§5.5). The adaptation loop maintains a v0 competence
+// proxy — the running success proportion over the dimension's logged outcomes — with its
+// standard error as `uncertainty` (generic statistics in engine/math/estimate.ts, not a
+// graded chess constant). One row per (userId, dimension). Consumed by the dashboard
+// (M8); generation still drives difficulty off the calibrated tactical rating in v0.
+model SkillState {
+  id          String   @id @default(cuid())
+  userId      String
+  dimension   String // a Seam-1 dimension id
+  estimate    Float
+  uncertainty Float
+  sampleSize  Int
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, dimension])
+  @@index([userId])
+}
+
+// Spacing/due state per spaced item (§5.5, FSRS). `due` is a top-level indexed column
+// (the queryable "what's due today" key) mirroring `fsrsState.due`; `fsrsState` carries
+// the full FSRS memory state ({ stability, difficulty, due, reps, lapses, lastReview })
+// for re-stepping. The math is the generic engine `fsrsStep`; ALL parameters come from
+// the Seam-6 `scheduling` config. `itemRef`/`itemType` identify the spaced item (v0: a
+// puzzle theme, e.g. itemType "puzzle_theme", itemRef "fork"). Unique per (userId,
+// itemType, itemRef) so a repeat failure re-steps the same row.
+model ScheduleState {
+  id        String   @id @default(cuid())
+  userId    String
+  itemRef   String
+  itemType  String
+  fsrsState Json
+  due       DateTime
+  lastGrade Int? // last FSRS grade 1..4
+  source    String   @default("redo") // redo | drill
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, itemType, itemRef])
+  @@index([userId, due])
+}
+
+// Why the program changed (§5.6) — transparency for the loop. Each run records its
+// trigger, the input snapshot it ran on (reproducibility, L2), and the ordered
+// `decisions` (each carrying its rationaleKey + evidence grade, L3), under the
+// `methodologyVersion` it used. Surfaced in the dashboard (M8).
+model AdaptationLog {
+  id                 String   @id @default(cuid())
+  userId             String
+  runAt              DateTime
+  trigger            String // new_events | new_import | daily_cron
+  inputsSnapshot     Json
+  decisions          Json
+  methodologyVersion String
+  createdAt          DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, runAt])
 }

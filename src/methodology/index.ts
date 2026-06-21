@@ -22,6 +22,12 @@ export {
   useWorkedExample,
   prioritizeDailyMix,
   rationaleFor,
+  // Seam 6 (scheduling) + Measurement seams (M7): the adaptation-loop reader functions.
+  gradeFromOutcome,
+  scheduleReview,
+  detectPlateau,
+  isProgressReal,
+  isStableBaseline,
   type CalibrationResponse,
   type NextCalibrationItem,
   type CalibrationEstimate,
@@ -35,6 +41,10 @@ export {
   type ScoredCandidate,
   type DueItem,
   type PuzzleTarget,
+  type FsrsGrade,
+  type FsrsState,
+  type RatingPoint,
+  type PlateauResult,
 } from "@/methodology/provider";
 
 export type {
@@ -47,7 +57,9 @@ export type {
   ActivityDefinition,
   WeaknessResourceRule,
   DifficultyConfig,
+  SchedulingConfig,
   PrioritizationConfig,
+  MeasurementConfig,
   RationaleEntry,
   AnchorSource,
 } from "@/methodology/schema/config";

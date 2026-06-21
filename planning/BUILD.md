@@ -976,8 +976,43 @@ DoD checklist._
 - **Tests:** **golden** — outcome → FSRS grade → next-due (Seam 6 stub); adaptation changes the next
   program deterministically; e2e — **log activities → next session differs**; redo item reappears
   spaced.
-- **DoD:** ☐ end-to-end loop runs (the Phase-1 success criterion, VISION §10) ☐ adaptation is
-  deterministic & logged ☐ redo-failed-puzzles works ☐ events are immutable.
+- **DoD:** [x] end-to-end loop runs (the Phase-1 success criterion, VISION §10) [x] adaptation is
+  deterministic & logged [x] redo-failed-puzzles works [x] events are immutable.
+  **Status (2026-06-21): code-complete & locally green.** The loop closes: logging an outcome on
+  `/today` appends an immutable `ActivityEvent`, runs the adaptation loop, and a regenerated session
+  reflects it. New methodology seams land in `stub-0.1.0` (extended in place, no version bump — as M6):
+  **scheduling** (Seam 6 — FSRS-6 desired retention + 21-weight vector + solve-time→grade thresholds)
+  and **measurement** (Glicko-2 CI multiplier + RD baseline + plateau window) — every leaf graded,
+  every citation resolving (+2 ledger anchors `fsrs_spaced_repetition`/`glickman2012`, +2 rationale
+  `skill_update`/`plateau`). Pure provider fns: `gradeFromOutcome`/`scheduleReview` (Seam 6),
+  `detectPlateau` (Seam 7), `isProgressReal`/`isStableBaseline` (Measurement) — config-only (L1), no
+  clock/random (L2). Generic Engine math: `engine/math/{fsrs,glicko,estimate}` (FSRS-6 step, Glicko CI,
+  running proportion) — every parameter injected from config. `runAdaptation` (`engine/adaptation.ts`)
+  is the pure core (outcome→FSRS grade→reschedule + per-dimension skill update + plateau, each a graded
+  `AdaptationLog` decision); `logOutcome` (`server/tracker.ts`) is `applyEvent` — append-only write +
+  run + persist. Data model: `ActivityEvent` (append-only), `SkillState`, `ScheduleState` (FSRS), and
+  `AdaptationLog` (§5.5/§5.6) + migration `20260621030000_m7_tracker_adaptation` (hand-written offline).
+  `generateAndSaveProgram` now reads due reviews + rolling success → a regenerated day surfaces a
+  **spaced-review item carrying the due refs** and a **servo-shifted puzzle target**. `/today` gains
+  per-item logging (solved / struggled / done / skip) + a "reviews due" nudge. Tests: **156 unit +
+  guards green** (33 new: FSRS/glicko/estimate goldens, the five seam fns, `runAdaptation` goldens,
+  generator due-review + servo, the server `logOutcome` round-trip incl. append-only immutability, the
+  L3 guard extended to the new seams), **`next build` green** (12 routes), **10 e2e green** (`/today`
+  auth-gate; the full signed-in log→regenerate→redo loop is verified manually per §13.5, as in
+  M1/M2/M4/M5/M6). **Deviations (deliberate, documented in code):** (a) the redo flow (§7.5) ships its
+  **inter-session** phase only — a miss is scheduled (FSRS) to return spaced; phases 1–2 (scaffolded
+  hint, intra-session retest) need an in-app board the external-resource model doesn't have, so they
+  are deferred. (b) the v0 redo unit is a **puzzle theme** (the puzzle DB isn't ingested, so there are
+  no per-puzzle ids yet). (c) `fsrsStep` implements the FSRS-6 **long-term** equations; the sub-day
+  short-term path is omitted (the daily scheduler never reviews sub-day). (d) the 21-weight FSRS vector
+  is **one graded leaf** (a single trained artifact, one provenance). (e) `SkillState` is a v0
+  running-proportion competence proxy — persisted + logged for the M8 dashboard, not yet consumed by
+  generation (difficulty still rides the calibrated tactical rating, as M6). (f) `expectationForBand` +
+  the per-band expectation table are deferred to **M8** (where expectations are surfaced). (g)
+  `gradeFromOutcome`'s fast/slow→Easy/Hard needs band-median timing (STUB); v0 logs correct-only →
+  Good/Again. (h) `ScheduleState.due` is a top-level indexed column mirroring `fsrsState.due` (the
+  queryable "due today" key). **Remaining user step (infra): apply migration
+  `20260621030000_m7_tracker_adaptation` to Supabase (`npm run prisma:deploy`).**
 
 ### M8 — Transparency UI
 

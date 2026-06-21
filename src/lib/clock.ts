@@ -9,6 +9,10 @@
  */
 export type EpochMs = number;
 
+/** Milliseconds in one day — a generic time constant (not a methodology value), used by
+ *  the FSRS/Glicko/plateau math to convert between epochs and day-granularity intervals. */
+export const DAY_MS = 86_400_000;
+
 export interface Clock {
   now(): EpochMs;
 }

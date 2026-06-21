@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import { servoOffset } from "@/engine/math/servo";
 import { packToBudget } from "@/engine/math/packing";
 import { stableSortByScoreDesc } from "@/engine/math/weighted-sort";
+import { glickoConfidenceInterval } from "@/engine/math/glicko";
+import { runningProportion } from "@/engine/math/estimate";
 
 // Generic Engine math (BUILD.md §2.8). Pure + deterministic (L2), science-free (L1) —
 // every number is supplied by the caller, so these tests pin behaviour, not policy.
@@ -44,6 +46,36 @@ describe("packToBudget", () => {
 
   it("returns nothing for an empty candidate list", () => {
     expect(packToBudget([], 60)).toEqual([]);
+  });
+});
+
+describe("glickoConfidenceInterval", () => {
+  it("returns [R − k·RD, R + k·RD]", () => {
+    expect(glickoConfidenceInterval(1500, 50, 1.96)).toEqual({
+      lower: 1500 - 98,
+      upper: 1500 + 98,
+    });
+  });
+});
+
+describe("runningProportion", () => {
+  it("is the observed rate with SE = √(p(1−p)/n), 0 trials → 0/0", () => {
+    expect(runningProportion(0, 0, 0, 0)).toEqual({
+      estimate: 0,
+      uncertainty: 0,
+      sampleSize: 0,
+    });
+    const fresh = runningProportion(0, 0, 3, 4);
+    expect(fresh.estimate).toBe(0.75);
+    expect(fresh.sampleSize).toBe(4);
+    expect(fresh.uncertainty).toBeCloseTo(Math.sqrt((0.75 * 0.25) / 4), 6);
+  });
+
+  it("folds new outcomes into a prior (running mean)", () => {
+    // prior 1.0 over 2 trials + 0 successes of 2 new → 2/4 = 0.5 over 4.
+    const folded = runningProportion(1, 2, 0, 2);
+    expect(folded.estimate).toBe(0.5);
+    expect(folded.sampleSize).toBe(4);
   });
 });
 

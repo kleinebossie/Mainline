@@ -27,6 +27,7 @@ import {
   saveProgram,
   type ActiveProgram,
 } from "@/db/program";
+import { findDueScheduleStates, findRecentPuzzleAttempts } from "@/db/tracker";
 import { EMPTY_CONSTRAINTS } from "@/lib/constraints";
 
 type Db = Pick<
@@ -37,6 +38,8 @@ type Db = Pick<
   | "constraintSet"
   | "resourceRef"
   | "program"
+  | "scheduleState"
+  | "activityEvent"
   | "$transaction"
 >;
 
@@ -89,6 +92,35 @@ async function gatherFeatures(
   return features;
 }
 
+/** Rolling success rate per Seam-5 track from recent puzzle-attempt outcomes (servo input,
+ *  M7). Plumbing only — the servo decision lives in targetPuzzleRating (Seam 5). */
+async function gatherRecentSuccessByTrack(
+  db: Db,
+  userId: string,
+): Promise<{ pattern?: number; calculation?: number }> {
+  const rows = await findRecentPuzzleAttempts(db, userId, 50);
+  const agg: Record<"pattern" | "calculation", { s: number; n: number }> = {
+    pattern: { s: 0, n: 0 },
+    calculation: { s: 0, n: 0 },
+  };
+  for (const row of rows) {
+    const params = (row.programItem?.params ?? null) as {
+      track?: unknown;
+    } | null;
+    const track = params?.track;
+    if (track !== "pattern" && track !== "calculation") continue;
+    const correct = (row.payload as { correct?: unknown } | null)?.correct;
+    if (typeof correct !== "boolean") continue;
+    agg[track].n += 1;
+    if (correct) agg[track].s += 1;
+  }
+  const out: { pattern?: number; calculation?: number } = {};
+  if (agg.pattern.n > 0) out.pattern = agg.pattern.s / agg.pattern.n;
+  if (agg.calculation.n > 0)
+    out.calculation = agg.calculation.s / agg.calculation.n;
+  return out;
+}
+
 const themeRefId = (theme: string): string => `lichess_theme_${theme}`;
 
 /**
@@ -109,12 +141,26 @@ export async function generateAndSaveProgram(
   const minutesPerDay =
     constraints?.minutesPerDay ?? EMPTY_CONSTRAINTS.minutesPerDay;
 
+  // M7: the loop's feedback — spaced reviews due now + the rolling success that nudges
+  // difficulty. Reading these here is what makes a regenerated session reflect adaptation.
+  const dueRows = await findDueScheduleStates(
+    db,
+    userId,
+    new Date(clock.now()),
+  );
+  const dueItems = dueRows.map((d) => ({
+    itemRef: d.itemRef,
+    itemType: d.itemType,
+  }));
+  const recentSuccessByTrack = await gatherRecentSuccessByTrack(db, userId);
+
   const result = generateProgram({
     band,
     tacticalRating,
     weaknessSignals,
-    dueItems: [],
+    dueItems,
     constraints: { minutesPerDay },
+    recentSuccessByTrack,
     clock,
     config: cfg,
   });
@@ -142,7 +188,8 @@ export async function generateAndSaveProgram(
     tacticalRating,
     minutesPerDay,
     weaknessSignals,
-    dueItems: [],
+    dueItems,
+    recentSuccessByTrack,
     methodologyVersion: cfg.version,
     generatedAt: result.generatedAt,
   } as unknown as Prisma.InputJsonValue;

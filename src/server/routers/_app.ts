@@ -7,6 +7,7 @@ import { connectionsRouter } from "@/server/routers/connections";
 import { constraintsRouter } from "@/server/routers/constraints";
 import { importRouter } from "@/server/routers/import";
 import { programRouter } from "@/server/routers/program";
+import { trackerRouter } from "@/server/routers/tracker";
 import { router } from "@/server/trpc";
 
 export const appRouter = router({
@@ -16,6 +17,7 @@ export const appRouter = router({
   constraints: constraintsRouter,
   analysis: analysisRouter,
   program: programRouter,
+  tracker: trackerRouter,
 });
 
 export type AppRouter = typeof appRouter;

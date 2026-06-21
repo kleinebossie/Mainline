@@ -218,6 +218,42 @@ const prioritizationSchema = z.object({
   }),
 });
 
+// Seam 6 — spacing / scheduling (SPACED_REPETITION). FSRS v6: the Engine owns the generic
+// `fsrsStep` math (engine/math/fsrs.ts); this seam supplies its parameters and the
+// outcome→grade mapping. `scheduler` is a structural selector (which algorithm), like a
+// dimension id — not a graded number. The weight vector is ONE graded leaf (a single
+// trained artifact with one provenance), semi-evidenced (Anki defaults, not chess-validated).
+const schedulingSchema = z.object({
+  scheduler: z.string().min(1),
+  // Target recall probability that sets review intervals (≈0.90; Ye et al. 2022).
+  desiredRetention: gradedValue(z.number().min(0).max(1)),
+  // Hard cap on any scheduled interval (days) — keeps the queue sane.
+  maximumIntervalDays: gradedValue(z.number().int().positive()),
+  // FSRS-6 weight vector: 21 entries (w0..w20). Graded as a unit.
+  fsrsWeights: gradedValue(z.array(z.number()).length(21)),
+  // Outcome→FSRS-grade solve-time thresholds, relative to the band median (STUB until the
+  // app has its own timing data): fast (< median×fast) → Easy, slow (> median×slow) → Hard.
+  solveTimeGrade: z.object({
+    fastFactor: gradedValue(z.number().positive()),
+    slowFactor: gradedValue(z.number().positive()),
+  }),
+});
+
+// Measurement & expectations (cross-cutting; EXPECTATIONS.md). A rating is a distribution,
+// not a number — progress/plateau are signal-vs-noise on the Glicko-2 CI. M7 ships the
+// CI + baseline + plateau-window parameters the adaptation loop reads (detectPlateau /
+// isProgressReal / isStableBaseline); the per-band expectation table + FIDE rule (surfaced
+// in the dashboard) land with M8.
+const measurementSchema = z.object({
+  // CI multiplier (≈1.96 for 95%; Glickman 2012).
+  ciMultiplier: gradedValue(z.number().positive()),
+  // RD at/below which a rating is a "stable enough" baseline (best-guess value).
+  rdBaselineMax: gradedValue(z.number().positive()),
+  // Active-day window over which a non-new CI high is read as a plateau (best-guess; the
+  // CI-crossing rule itself is evidenced).
+  plateauWindowDays: gradedValue(z.number().int().positive()),
+});
+
 // Seam 8 — rationale & evidence copy (USER_FACING). A versioned copy table keyed by
 // trigger. Each entry IS the graded leaf: `value` is the microcopy, with its grade/tier/
 // citation alongside (so isGradedValue picks up its citationKey). `soften` MUST be true
@@ -264,7 +300,9 @@ export const methodologyConfigSchema = z
     activities: z.array(activityDefinitionSchema).min(1),
     weaknessResourceRules: z.array(weaknessResourceRuleSchema),
     difficulty: difficultySchema,
+    scheduling: schedulingSchema,
     prioritization: prioritizationSchema,
+    measurement: measurementSchema,
     rationale: z.array(rationaleEntrySchema).min(1),
     evidenceLedger: z.array(anchorSourceSchema).min(1),
   })
@@ -278,7 +316,9 @@ export const methodologyConfigSchema = z
       cfg.interpretation,
       cfg.activities,
       cfg.difficulty,
+      cfg.scheduling,
       cfg.prioritization,
+      cfg.measurement,
       cfg.rationale,
     ]) {
       collectCitationKeys(section, usedCitations);
@@ -409,6 +449,8 @@ export type ActivityDefinition = MethodologyConfig["activities"][number];
 export type WeaknessResourceRule =
   MethodologyConfig["weaknessResourceRules"][number];
 export type DifficultyConfig = MethodologyConfig["difficulty"];
+export type SchedulingConfig = MethodologyConfig["scheduling"];
 export type PrioritizationConfig = MethodologyConfig["prioritization"];
+export type MeasurementConfig = MethodologyConfig["measurement"];
 export type RationaleEntry = MethodologyConfig["rationale"][number];
 export type AnchorSource = MethodologyConfig["evidenceLedger"][number];

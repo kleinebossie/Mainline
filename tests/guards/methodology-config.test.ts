@@ -42,7 +42,9 @@ describe("L3: methodology config integrity", () => {
       walkCitationKeys(cfg.interpretation, used);
       walkCitationKeys(cfg.activities, used);
       walkCitationKeys(cfg.difficulty, used);
+      walkCitationKeys(cfg.scheduling, used);
       walkCitationKeys(cfg.prioritization, used);
+      walkCitationKeys(cfg.measurement, used);
       walkCitationKeys(cfg.rationale, used);
       expect(used.size).toBeGreaterThan(0);
       for (const key of used) expect(ledger).toContain(key);
@@ -83,6 +85,20 @@ describe("L3: methodology config integrity", () => {
       const cfg = loadMethodology(version);
       expect(cfg.assessment.calibration.stepDown.flag).toBeDefined();
       expect(cfg.assessment.selfReportForSkill.value).toBe(false);
+    },
+  );
+
+  it.each(SHIPPED)(
+    "%s: the M7 scheduling + measurement seams load with graded leaves",
+    (version) => {
+      const cfg = loadMethodology(version);
+      // FSRS-6 weight vector is one graded leaf of 21 numbers.
+      expect(cfg.scheduling.fsrsWeights.value).toHaveLength(21);
+      expect(cfg.scheduling.desiredRetention.grade).toBeDefined();
+      expect(cfg.scheduling.maximumIntervalDays.value).toBeGreaterThan(0);
+      // Measurement CI/baseline/plateau params present and graded.
+      expect(cfg.measurement.ciMultiplier.value).toBeGreaterThan(0);
+      expect(cfg.measurement.plateauWindowDays.value).toBeGreaterThan(0);
     },
   );
 

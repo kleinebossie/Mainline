@@ -903,6 +903,55 @@
       "note": "Upper clamp for any servo-produced puzzle-rating target."
     }
   },
+  "scheduling": {
+    "scheduler": "FSRS_v6",
+    "desiredRetention": {
+      "value": 0.9,
+      "grade": "A",
+      "tier": 2,
+      "citationKey": "fsrs_spaced_repetition",
+      "flag": "semi-evidenced",
+      "note": "FSRS desired retention; 0.90 default (validated on flashcards; chess-spatial validity unverified)."
+    },
+    "maximumIntervalDays": {
+      "value": 365,
+      "grade": "C",
+      "tier": 1,
+      "citationKey": "stub_open_question",
+      "flag": "best-guess",
+      "note": "Interval cap (days) — an infra sanity bound, not a learning value."
+    },
+    "fsrsWeights": {
+      "value": [
+        0.2172, 1.1771, 3.2602, 16.1507, 7.0114, 0.57, 2.0966, 0.0069, 1.5261,
+        0.112, 1.0178, 1.849, 0.1133, 0.3127, 2.2934, 0.2191, 3.0004, 0.7536,
+        0.3332, 0.1437, 0.2
+      ],
+      "grade": "A",
+      "tier": 2,
+      "citationKey": "fsrs_spaced_repetition",
+      "flag": "semi-evidenced",
+      "note": "FSRS-6 default 21-weight vector (Anki corpus); personalise from telemetry after ~1000 reviews."
+    },
+    "solveTimeGrade": {
+      "fastFactor": {
+        "value": 0.5,
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "stub_open_question",
+        "flag": "best-guess",
+        "note": "Correct & solve time < band-median × 0.5 → Easy (FSRS grade 4)."
+      },
+      "slowFactor": {
+        "value": 1.5,
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "stub_open_question",
+        "flag": "best-guess",
+        "note": "Correct & solve time > band-median × 1.5 → Hard (2); between → Good (3)."
+      }
+    }
+  },
   "prioritization": {
     "weights": {
       "weaknessSeverity": {
@@ -944,6 +993,31 @@
         "flag": "best-guess",
         "note": "10–20 themed puzzles; deliberately no volume-chasing (S7)."
       }
+    }
+  },
+  "measurement": {
+    "ciMultiplier": {
+      "value": 1.96,
+      "grade": "A",
+      "tier": 1,
+      "citationKey": "glickman2012",
+      "note": "95% confidence interval = rating ± 1.96 × RD (Glicko-2)."
+    },
+    "rdBaselineMax": {
+      "value": 110,
+      "grade": "A",
+      "tier": 1,
+      "citationKey": "glickman2012",
+      "flag": "best-guess",
+      "note": "Use a rating as a baseline only when RD ≤ this (enough recent games); the threshold value is best-guess."
+    },
+    "plateauWindowDays": {
+      "value": 90,
+      "grade": "B",
+      "tier": 1,
+      "citationKey": "lichess_etl",
+      "flag": "best-guess",
+      "note": "Flag a plateau when the CI upper bound sets no new high over this many active days; the CI-crossing rule is evidenced, the window best-guess."
     }
   },
   "rationale": [
@@ -1054,6 +1128,24 @@
       "tier": 1,
       "citationKey": "lichess_etl",
       "soften": false
+    },
+    {
+      "key": "skill_update",
+      "whenShown": "after logging results",
+      "value": "We re-estimate each skill from your logged results. Early estimates are rough — we show them with their uncertainty, never as a verdict.",
+      "grade": "C",
+      "tier": 1,
+      "citationKey": "stub_open_question",
+      "soften": true
+    },
+    {
+      "key": "plateau",
+      "whenShown": "a flat rating trend",
+      "value": "Your rating hasn't cleared its noise band in a while. At your level that's statistically normal — the fix is changing the stimulus (harder sweet-spot puzzles, your recurring mistakes), not just doing more.",
+      "grade": "B",
+      "tier": 1,
+      "citationKey": "lichess_etl",
+      "soften": false
     }
   ],
   "evidenceLedger": [
@@ -1157,6 +1249,18 @@
       "key": "lichess_etl",
       "source": "Lichess ETL / jcw024 (2.3M players, 450M games)",
       "anchors": "Non-linear diminishing-returns timeline by band (weeks-per-+100)",
+      "grade": "A"
+    },
+    {
+      "key": "fsrs_spaced_repetition",
+      "source": "Ye et al. 2022 (FSRS); open-spaced-repetition benchmark; SPACED_REPETITION.md",
+      "anchors": "FSRS-6 scheduler + default weights + 0.90 desired retention (flashcard-validated; chess-spatial extrapolated)",
+      "grade": "A"
+    },
+    {
+      "key": "glickman2012",
+      "source": "Glickman 2012 (Glicko-2)",
+      "anchors": "Rating as a distribution; 95% CI = R ± 1.96·RD; real change only on non-overlapping CIs; RD baseline gate",
       "grade": "A"
     }
   ]

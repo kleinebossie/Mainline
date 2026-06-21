@@ -114,4 +114,42 @@ describe("generateProgram (golden)", () => {
     });
     expect(items.length).toBe(1);
   });
+
+  it("surfaces due reviews as a spaced-review item carrying the due refs (M7)", () => {
+    const { items } = generateProgram({
+      band: "b1200_1600",
+      tacticalRating: 1300,
+      weaknessSignals: [],
+      dueItems: [{ itemRef: "fork", itemType: "puzzle_theme" }],
+      constraints: { minutesPerDay: 60 },
+      clock,
+      config: cfg,
+    });
+    const review = items.find((i) => i.activityType === "spaced_review");
+    expect(review).toBeDefined();
+    expect(review!.params.dueItemRefs).toEqual(["fork"]);
+    expect(review!.params.count).toBe(1);
+    // No due items → no spaced-review item (the prior goldens confirm it's dropped).
+  });
+
+  it("a higher recent success nudges the puzzle target harder (servo, M7)", () => {
+    const common = {
+      band: "b1200_1600" as const,
+      tacticalRating: 1300,
+      weaknessSignals: [],
+      dueItems: [],
+      constraints: { minutesPerDay: 60 },
+      clock,
+      config: cfg,
+    };
+    const seedOnly = generateProgram(common);
+    const hot = generateProgram({
+      ...common,
+      recentSuccessByTrack: { pattern: 0.95 },
+    });
+    const target = (r: ReturnType<typeof generateProgram>): number =>
+      r.items.find((i) => i.activityId === "themed_tactics")!.params
+        .targetRating!;
+    expect(target(hot)).toBeGreaterThan(target(seedOnly));
+  });
 });

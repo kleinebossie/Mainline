@@ -13,6 +13,11 @@ interface FakeOpts {
   minutesPerDay?: number;
   features?: unknown[];
   seededRefIds?: string[];
+  dueRows?: { itemRef: string; itemType: string; due: Date }[];
+  recentAttempts?: {
+    payload: unknown;
+    programItem: { params: unknown } | null;
+  }[];
 }
 
 interface CreatedItem {
@@ -77,6 +82,8 @@ function fakeDb(opts: FakeOpts) {
           .filter((id) => where.id.in.includes(id))
           .map((id) => ({ id })),
     },
+    scheduleState: { findMany: async () => opts.dueRows ?? [] },
+    activityEvent: { findMany: async () => opts.recentAttempts ?? [] },
     program: {
       updateMany: async () => ({ count: 0 }),
       create: async ({
@@ -151,5 +158,20 @@ describe("generateAndSaveProgram + getTodayProgram (round-trip)", () => {
   it("returns null when no program has been generated", async () => {
     const db = fakeDb({ tacticalRating: 1300, minutesPerDay: 30 });
     expect(await getTodayProgram(db, "u1")).toBeNull();
+  });
+
+  it("a due review surfaces a spaced-review item in the regenerated session (M7)", async () => {
+    const db = fakeDb({
+      tacticalRating: 1300,
+      minutesPerDay: 60,
+      dueRows: [
+        { itemRef: "fork", itemType: "puzzle_theme", due: new Date(0) },
+      ],
+    });
+    await generateAndSaveProgram(db, "u1", clock);
+    const today = await getTodayProgram(db, "u1");
+    const review = today!.items.find((i) => i.activityType === "spaced_review");
+    expect(review).toBeDefined();
+    expect(review!.params.dueItemRefs).toEqual(["fork"]);
   });
 });
