@@ -4,38 +4,110 @@
     {
       "id": "u800",
       "label": "<800",
-      "minRating": { "value": null, "grade": "C", "tier": 1, "citationKey": "bands_convention", "flag": "best-guess" },
-      "maxRating": { "value": 800, "grade": "C", "tier": 1, "citationKey": "bands_convention", "flag": "best-guess" }
+      "minRating": {
+        "value": null,
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "bands_convention",
+        "flag": "best-guess"
+      },
+      "maxRating": {
+        "value": 800,
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "bands_convention",
+        "flag": "best-guess"
+      }
     },
     {
       "id": "b800_1200",
       "label": "800–1200",
-      "minRating": { "value": 800, "grade": "C", "tier": 1, "citationKey": "bands_convention", "flag": "best-guess" },
-      "maxRating": { "value": 1200, "grade": "C", "tier": 1, "citationKey": "bands_convention", "flag": "best-guess" }
+      "minRating": {
+        "value": 800,
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "bands_convention",
+        "flag": "best-guess"
+      },
+      "maxRating": {
+        "value": 1200,
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "bands_convention",
+        "flag": "best-guess"
+      }
     },
     {
       "id": "b1200_1600",
       "label": "1200–1600",
-      "minRating": { "value": 1200, "grade": "C", "tier": 1, "citationKey": "bands_convention", "flag": "best-guess" },
-      "maxRating": { "value": 1600, "grade": "C", "tier": 1, "citationKey": "bands_convention", "flag": "best-guess" }
+      "minRating": {
+        "value": 1200,
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "bands_convention",
+        "flag": "best-guess"
+      },
+      "maxRating": {
+        "value": 1600,
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "bands_convention",
+        "flag": "best-guess"
+      }
     },
     {
       "id": "b1600_2000",
       "label": "1600–2000",
-      "minRating": { "value": 1600, "grade": "C", "tier": 1, "citationKey": "bands_convention", "flag": "best-guess" },
-      "maxRating": { "value": 2000, "grade": "C", "tier": 1, "citationKey": "bands_convention", "flag": "best-guess" }
+      "minRating": {
+        "value": 1600,
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "bands_convention",
+        "flag": "best-guess"
+      },
+      "maxRating": {
+        "value": 2000,
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "bands_convention",
+        "flag": "best-guess"
+      }
     },
     {
       "id": "b2000_2200",
       "label": "2000–2200",
-      "minRating": { "value": 2000, "grade": "C", "tier": 1, "citationKey": "bands_convention", "flag": "best-guess" },
-      "maxRating": { "value": 2200, "grade": "C", "tier": 1, "citationKey": "bands_convention", "flag": "best-guess" }
+      "minRating": {
+        "value": 2000,
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "bands_convention",
+        "flag": "best-guess"
+      },
+      "maxRating": {
+        "value": 2200,
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "bands_convention",
+        "flag": "best-guess"
+      }
     },
     {
       "id": "b2200plus",
       "label": "2200+",
-      "minRating": { "value": 2200, "grade": "C", "tier": 1, "citationKey": "bands_convention", "flag": "best-guess" },
-      "maxRating": { "value": null, "grade": "C", "tier": 1, "citationKey": "bands_convention", "flag": "best-guess" }
+      "minRating": {
+        "value": 2200,
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "bands_convention",
+        "flag": "best-guess"
+      },
+      "maxRating": {
+        "value": null,
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "bands_convention",
+        "flag": "best-guess"
+      }
     }
   ],
   "assessment": {

@@ -27,7 +27,9 @@ const DRAW_RESULTS = new Set([
   "timevsinsufficient",
 ]);
 
-function outcomeFor(sideResult: string | undefined): ImportedGameInput["result"] {
+function outcomeFor(
+  sideResult: string | undefined,
+): ImportedGameInput["result"] {
   if (!sideResult) return undefined;
   if (sideResult === "win") return "win";
   if (DRAW_RESULTS.has(sideResult)) return "draw";
@@ -54,8 +56,10 @@ export function parseChessComGame(
   username: string,
 ): ImportedGameInput {
   const color = sideOf(game, username);
-  const me = color === "w" ? game.white : color === "b" ? game.black : undefined;
-  const opp = color === "w" ? game.black : color === "b" ? game.white : undefined;
+  const me =
+    color === "w" ? game.white : color === "b" ? game.black : undefined;
+  const opp =
+    color === "w" ? game.black : color === "b" ? game.white : undefined;
   const id = gameIdFromUrl(game.url);
   const pgn = game.pgn ?? "";
   return {

@@ -16,8 +16,8 @@ export default async function RevealPage() {
       <header className="flex flex-col gap-1">
         <h1 className="text-3xl font-bold tracking-tight">Where you stand</h1>
         <p className="text-muted-foreground text-sm">
-          Built from what you do, not what you say. We&apos;ll never overstate how
-          strong the evidence is.
+          Built from what you do, not what you say. We&apos;ll never overstate
+          how strong the evidence is.
         </p>
       </header>
       <Reveal />

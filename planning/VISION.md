@@ -2,19 +2,19 @@
 
 > **Purpose of this document:** a **high-level overview** of what the app should become — the
 > product idea, the principles it's built on, and the boundaries around it. It is deliberately
-> *not* detailed. The concrete technical plan (stack, data model, build order, conventions) lives
+> _not_ detailed. The concrete technical plan (stack, data model, build order, conventions) lives
 > in `BUILD.md`; the science lives in the research phase (`research/`). Read this first to
-> understand *what* and *why*; read `BUILD.md` for *how*.
+> understand _what_ and _why_; read `BUILD.md` for _how_.
 >
 > **Build intent:** built **personal-first** — the builder is user zero and the first goal is a tool
-> good enough to train *himself*. But it is **architected from day one to become a public, monetized
+> good enough to train _himself_. But it is **architected from day one to become a public, monetized
 > product.** Nothing personal is ever hardcoded; everything user-specific lives in data, so the jump
 > from "works for me" to "works for the public" is a change of degree, not a rewrite.
 >
 > **Language:** English (document + code). User-facing UI copy may be localized later.
 
-Phases 2 (*Shipping*) and 3 (*Acquiring Users*) are tracked in `SHIPPING.md` and `GROWTH.md`.
-This document is about Phase 1 (*Building*) at the level of intent.
+Phases 2 (_Shipping_) and 3 (_Acquiring Users_) are tracked in `SHIPPING.md` and `GROWTH.md`.
+This document is about Phase 1 (_Building_) at the level of intent.
 
 ---
 
@@ -25,14 +25,14 @@ keeps adapting it.
 
 It is **not** another game-analysis tool, puzzle trainer, or spaced-repetition deck. Those exist
 and many are good. This app sits one layer up: it is the **training-program layer** that decides
-*what you should work on, with which resources, and why* — and revises that plan continuously as
+_what you should work on, with which resources, and why_ — and revises that plan continuously as
 you train and play.
 
 Three things make it different:
 
 1. **Personalization through constraints.** The user describes their situation — time per day,
    days per week, goals, the resources they already own, preferences — and connects their chess
-   accounts. The program is built around *their* reality, not a generic curriculum.
+   accounts. The program is built around _their_ reality, not a generic curriculum.
 2. **It's alive.** After generation the program is **super dynamic**: a tracker records every
    outcome, and the program re-prioritizes itself over time. There is no fixed syllabus.
 3. **It hosts no content.** Every activity is a **reference to an external resource** (Lichess
@@ -43,21 +43,21 @@ Three things make it different:
 
 ## 2. The brand: science-based and radically honest
 
-The product's identity is **trust**. Two commitments, both visible *in the app itself*:
+The product's identity is **trust**. Two commitments, both visible _in the app itself_:
 
 - **Science-based.** Recommendations are grounded in research on skill acquisition, practice
   design, and retention — not folklore or guru opinion.
-- **No-BS.** The app is honest about *why* it suggests each activity and **how strong the evidence
+- **No-BS.** The app is honest about _why_ it suggests each activity and **how strong the evidence
   is**. It shows a "why this / why now" rationale and is candid where the science is thin or where
   expectations should be realistic. It does not over-promise rating gains.
 
 The strongest honest statement, and the app says it plainly: **no training activity has been
-*proven* to cause a measured rating gain.** The app helps you train smarter on the best available
+_proven_ to cause a measured rating gain.** The app helps you train smarter on the best available
 evidence; it never promises you a rating.
 
 The stance is deliberately **polarizing, and that's fine.** If a user would rather follow their
-favorite course-selling guru, that's their choice. The honest position is: *training with weak or
-indirect evidence is still better than training with none* — but only when that's actually true, so
+favorite course-selling guru, that's their choice. The honest position is: _training with weak or
+indirect evidence is still better than training with none_ — but only when that's actually true, so
 the app never pretends evidence is stronger than it is. It shows the grade and the reasoning, and
 lets the user decide. This honesty isn't a footnote — it's the differentiator. Every recommendation
 is explainable.
@@ -66,7 +66,7 @@ is explainable.
 
 ## 3. Adherence is a first-class problem
 
-The hardest problem in chess improvement isn't *knowing* what to train — it's actually doing it,
+The hardest problem in chess improvement isn't _knowing_ what to train — it's actually doing it,
 consistently, over months. A smarter plan that no one follows is worthless. So **engagement and
 adherence are a first-class product concern, not a late add-on.**
 
@@ -120,7 +120,7 @@ later without a rewrite.
   app is multi-user from day one and nothing personal is hardcoded — the methodology must generalize
   beyond the builder's own rating, resources, and tastes, or the path to a public product is broken.
 - **Every rating.** The app makes no hardcoded assumptions about level; a beginner and an expert
-  both get something coherent. Level lives in the user's data, not in the code. (This also *serves*
+  both get something coherent. Level lives in the user's data, not in the code. (This also _serves_
   the public-product goal — it forces the methodology to generalize.)
 - **Built solo, via AI coding agents,** by a non-professional developer working limited hours on a
   tight budget. This shapes every technical choice toward simplicity, type-safety, and tooling that
@@ -150,7 +150,7 @@ research anyway. The durable advantages are:
 
 - **A curated, evidence-graded methodology corpus** — the slow, hard work of mapping a thin and
   scattered literature into concrete, honest recommendations. Hard to replicate well.
-- **Trust and brand** — being *the* honest, science-first option in a market full of hype.
+- **Trust and brand** — being _the_ honest, science-first option in a market full of hype.
 - **Longitudinal data** — over time, what actually moves real users' ratings. This compounds and
   cannot be copied.
 
@@ -171,7 +171,7 @@ Two hard rules keep this on-brand:
   burden. Free means genuinely free, not ad-supported.
 - **Never paywall training quality.** The science, the program, and the adaptation are free
   forever. Premium perks are **cosmetic or non-functional only** (e.g. a supporter badge, maybe
-  early access). The moment better *training* sits behind the paywall, the app has become the thing
+  early access). The moment better _training_ sits behind the paywall, the app has become the thing
   it's fighting.
 
 ### Open source
@@ -179,11 +179,11 @@ Two hard rules keep this on-brand:
 The app is intended to be **open source** — the strongest possible proof of the transparency brand,
 and the rest of the Lichess playbook. Key decisions:
 
-- **License: AGPL-3.0** (copyleft *with* the network clause), the same as Lichess. This lets anyone
+- **License: AGPL-3.0** (copyleft _with_ the network clause), the same as Lichess. This lets anyone
   read, verify, and self-host, but **forbids a closed-source commercial fork run as a service** — a
   permissive license (MIT/Apache) would let a competitor clone it, add ads, and monetize. AGPL is
   what makes "free + open" safe rather than self-defeating.
-- **What is *not* given away:** open-sourcing the *code* (engine + methodology config) does not
+- **What is _not_ given away:** open-sourcing the _code_ (engine + methodology config) does not
   surrender the compounding moats — the **longitudinal outcome data** (private user data, never in
   the repo) and the **ongoing curation + trust**. The methodology is already exposed in-app by the
   transparency brand, so opening it formally is consistent, not a new sacrifice.
@@ -214,7 +214,7 @@ Principles:
 
 ---
 
-## 8. Boundaries (what this app is deliberately *not*)
+## 8. Boundaries (what this app is deliberately _not_)
 
 - **No social or multiplayer.** Not in the beta, not after it. It isn't the goal of the app.
 - **No LLM/AI in the product** — AI plays chess poorly and invites cost and abuse.

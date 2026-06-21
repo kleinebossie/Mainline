@@ -26,7 +26,9 @@ describe("constraintsInputSchema", () => {
   });
 
   it("accepts the empty default (no goals, no if-then plan)", () => {
-    expect(constraintsInputSchema.safeParse(EMPTY_CONSTRAINTS).success).toBe(true);
+    expect(constraintsInputSchema.safeParse(EMPTY_CONSTRAINTS).success).toBe(
+      true,
+    );
     expect(EMPTY_CONSTRAINTS.ifThenPlan).toBeNull();
   });
 
@@ -35,7 +37,8 @@ describe("constraintsInputSchema", () => {
       constraintsInputSchema.safeParse({ ...valid, minutesPerDay: 0 }).success,
     ).toBe(false);
     expect(
-      constraintsInputSchema.safeParse({ ...valid, minutesPerDay: 601 }).success,
+      constraintsInputSchema.safeParse({ ...valid, minutesPerDay: 601 })
+        .success,
     ).toBe(false);
     expect(
       constraintsInputSchema.safeParse({ ...valid, daysPerWeek: 0 }).success,

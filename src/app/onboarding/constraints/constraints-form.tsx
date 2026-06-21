@@ -128,7 +128,9 @@ function Form({ initial }: { initial: ConstraintsInput }) {
       </fieldset>
 
       <fieldset className="flex flex-col gap-2">
-        <legend className="text-sm font-medium">What do you want from training?</legend>
+        <legend className="text-sm font-medium">
+          What do you want from training?
+        </legend>
         <div className="flex flex-col gap-1.5">
           {GOAL_OPTIONS.map((g) => (
             <label key={g.kind} className="flex items-center gap-2 text-sm">
@@ -151,10 +153,15 @@ function Form({ initial }: { initial: ConstraintsInput }) {
       </fieldset>
 
       <fieldset className="flex flex-col gap-2">
-        <legend className="text-sm font-medium">Which formats do you play?</legend>
+        <legend className="text-sm font-medium">
+          Which formats do you play?
+        </legend>
         <div className="flex flex-wrap gap-3">
           {CHESS_FORMATS.map((f) => (
-            <label key={f} className="flex items-center gap-2 text-sm capitalize">
+            <label
+              key={f}
+              className="flex items-center gap-2 text-sm capitalize"
+            >
               <input
                 type="checkbox"
                 checked={formats.has(f)}
@@ -178,7 +185,8 @@ function Form({ initial }: { initial: ConstraintsInput }) {
         <legend className="text-sm font-medium">Your if-then plan</legend>
         <p className="text-muted-foreground text-sm">
           Anchoring training to an existing daily habit roughly doubles
-          follow-through (Gollwitzer &amp; Sheeran 2006). Optional, but it helps.
+          follow-through (Gollwitzer &amp; Sheeran 2006). Optional, but it
+          helps.
         </p>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <span className="text-sm">After</span>

@@ -29,23 +29,29 @@ describe("L3: methodology config integrity", () => {
     expect(cfg.version).toBe(version);
   });
 
-  it.each(SHIPPED)("%s: every citationKey resolves in the ledger", (version) => {
-    const cfg = loadMethodology(version);
-    const ledger = new Set(cfg.evidenceLedger.map((a) => a.key));
-    const used = new Set<string>();
-    walkCitationKeys(cfg.bands, used);
-    walkCitationKeys(cfg.assessment, used);
-    expect(used.size).toBeGreaterThan(0);
-    for (const key of used) expect(ledger).toContain(key);
-  });
+  it.each(SHIPPED)(
+    "%s: every citationKey resolves in the ledger",
+    (version) => {
+      const cfg = loadMethodology(version);
+      const ledger = new Set(cfg.evidenceLedger.map((a) => a.key));
+      const used = new Set<string>();
+      walkCitationKeys(cfg.bands, used);
+      walkCitationKeys(cfg.assessment, used);
+      expect(used.size).toBeGreaterThan(0);
+      for (const key of used) expect(ledger).toContain(key);
+    },
+  );
 
-  it.each(SHIPPED)("%s: stub/best-guess leaves are flagged (never bare)", (version) => {
-    // Every calibration leaf in the stub carries a grade; spot-check that the
-    // best-guess ladder params are flagged so the UI can soften them.
-    const cfg = loadMethodology(version);
-    expect(cfg.assessment.calibration.stepDown.flag).toBeDefined();
-    expect(cfg.assessment.selfReportForSkill.value).toBe(false);
-  });
+  it.each(SHIPPED)(
+    "%s: stub/best-guess leaves are flagged (never bare)",
+    (version) => {
+      // Every calibration leaf in the stub carries a grade; spot-check that the
+      // best-guess ladder params are flagged so the UI can soften them.
+      const cfg = loadMethodology(version);
+      expect(cfg.assessment.calibration.stepDown.flag).toBeDefined();
+      expect(cfg.assessment.selfReportForSkill.value).toBe(false);
+    },
+  );
 
   it("the loaded config is deeply frozen (immutability, §2.6)", () => {
     const cfg = loadMethodology("stub-0.1.0");
@@ -60,7 +66,9 @@ describe("L3: methodology config integrity", () => {
 
   it("rejects a bare (ungraded) leaf number", () => {
     const broken = structuredClone(stub010) as Record<string, unknown>;
-    (broken.assessment as { calibration: Record<string, unknown> }).calibration.minItems = 8;
+    (
+      broken.assessment as { calibration: Record<string, unknown> }
+    ).calibration.minItems = 8;
     expect(methodologyConfigSchema.safeParse(broken).success).toBe(false);
   });
 

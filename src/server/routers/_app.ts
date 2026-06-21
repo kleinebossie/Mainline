@@ -1,6 +1,7 @@
 // The root tRPC router — one sub-router per domain (BUILD.md §4). `AppRouter` is the
 // single type the client imports for end-to-end safety.
 
+import { analysisRouter } from "@/server/routers/analysis";
 import { assessmentRouter } from "@/server/routers/assessment";
 import { connectionsRouter } from "@/server/routers/connections";
 import { constraintsRouter } from "@/server/routers/constraints";
@@ -12,6 +13,7 @@ export const appRouter = router({
   import: importRouter,
   assessment: assessmentRouter,
   constraints: constraintsRouter,
+  analysis: analysisRouter,
 });
 
 export type AppRouter = typeof appRouter;

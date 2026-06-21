@@ -4,11 +4,7 @@
 // chess/learning constant in this file. M4 ships the Seam 2 functions (assessment) and
 // the Seam 9 if-then assembler; later seams' functions land with their milestones.
 
-import type {
-  Grade,
-  GradedFlag,
-  Tier,
-} from "@/methodology/schema/graded";
+import type { Grade, GradedFlag, Tier } from "@/methodology/schema/graded";
 import type { MethodologyConfig } from "@/methodology/schema/config";
 
 // ---------------------------------------------------------------------------
@@ -64,11 +60,11 @@ function estimate(
       uncertainty: Math.round(c.uncertaintyBase.value),
     };
   }
-  const meanShown =
-    responses.reduce((s, r) => s + r.ratingShown, 0) / n;
+  const meanShown = responses.reduce((s, r) => s + r.ratingShown, 0) / n;
   const successRate = responses.filter((r) => r.correct).length / n;
   const raw =
-    meanShown + (successRate - c.targetSuccessRate.value) * c.abilitySpread.value;
+    meanShown +
+    (successRate - c.targetSuccessRate.value) * c.abilitySpread.value;
   return {
     tacticalRatingEstimate: Math.round(
       clamp(raw, c.ratingFloor.value, c.ratingCeil.value),
@@ -111,7 +107,9 @@ export function nextCalibrationItem(
         : responses[n - 1]!.ratingShown - c.stepDown.value;
 
   return {
-    ratingTarget: Math.round(clamp(base, c.ratingFloor.value, c.ratingCeil.value)),
+    ratingTarget: Math.round(
+      clamp(base, c.ratingFloor.value, c.ratingCeil.value),
+    ),
     itemNumber: n + 1,
     done: false,
   };

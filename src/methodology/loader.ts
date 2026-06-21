@@ -34,7 +34,8 @@ function deepFreeze<T>(obj: T): T {
  * Throws if the version is unknown or the config fails validation (fail-closed, §2.6).
  */
 export function loadMethodology(version?: string): MethodologyConfig {
-  const resolved = version ?? process.env.METHODOLOGY_VERSION ?? DEFAULT_VERSION;
+  const resolved =
+    version ?? process.env.METHODOLOGY_VERSION ?? DEFAULT_VERSION;
   const cached = cache.get(resolved);
   if (cached) return cached;
 

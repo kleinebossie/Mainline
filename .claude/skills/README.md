@@ -4,9 +4,10 @@ Three project-specific Agent Skills that encode this repo's conventions so the a
 them without being re-told each prompt. They use the cross-tool **`SKILL.md`** open standard.
 
 ## Why skills (and not more lines in CLAUDE.md)
+
 Skills use **progressive disclosure**: only each skill's `name` + `description` (~40 tokens)
 stay in context. The full instructions load **only when a skill is triggered** by the task at
-hand. So adding skills raises output quality *without* a standing per-prompt token cost — the
+hand. So adding skills raises output quality _without_ a standing per-prompt token cost — the
 opposite of stuffing everything into an always-on rules file.
 
 ## The skills
@@ -24,19 +25,20 @@ opposite of stuffing everything into an always-on rules file.
 | `evidence-grade` | any recommendation, copy string, methodology value, or research claim |
 | `research-synthesis` | editing `research/*` reports or `planning/METHODOLOGY.md` |
 
-**Terse-prompt examples** that now carry full context: *"build the next slice"* · *"do M5"* ·
-*"add the ScheduleState model"* · *"wire the tracker router"*. The skill supplies the stack, the
+**Terse-prompt examples** that now carry full context: _"build the next slice"_ · _"do M5"_ ·
+_"add the ScheduleState model"_ · _"wire the tracker router"_. The skill supplies the stack, the
 `src/` boundaries, the three laws, the right `BUILD.md` sections to read, and the Definition of Done —
 so you don't restate them.
 
 ## How the three tools read them (single source of truth)
+
 The real content lives once in `.claude/skills/<name>/SKILL.md`. The others point at it:
 
 - **Claude Code** → `.claude/skills/<name>/SKILL.md` (canonical, native auto-discovery).
 - **Antigravity** → `.agents/skills/<name>` is a **symlink** to the canonical folder, so edits
   propagate automatically. (If your Antigravity build doesn't follow symlinks, replace each
   link with `cp -r ../../.claude/skills/<name> <name>`.)
-- **Cursor** → `.cursor/rules/<name>.mdc` is an *Agent Requested* rule (`alwaysApply: false`):
+- **Cursor** → `.cursor/rules/<name>.mdc` is an _Agent Requested_ rule (`alwaysApply: false`):
   only its `description` is in context until the model decides it's relevant, then it pulls the
   canonical `SKILL.md` via the `@`-reference. Cursor has no native skill auto-discovery, so this
   rule shim is how skills reach it.
@@ -45,12 +47,14 @@ The real content lives once in `.claude/skills/<name>/SKILL.md`. The others poin
 symlink; Cursor follows the `@`-reference. Keep the `.mdc` TL;DR in sync if you change the gist.
 
 ## Verify it's wired
+
 - Claude Code: start a session here and run `/skills` (or check that the skill name appears in
   the available-skills list). Ask it to draft a methodology value and confirm it attaches a grade.
 - Antigravity: `ls -lL .agents/skills/*/SKILL.md` should resolve to real files.
 - Cursor: open Settings → Rules; the three project rules should be listed as "Agent Requested".
 
 ## Adding more skills from GitHub (e.g. `skill-creator`)
+
 The genuinely useful generic one for a repo like this is an authoring helper. Install method
 that works for all three tools (just drop a `SKILL.md` folder into the canonical dir):
 

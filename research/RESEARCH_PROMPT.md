@@ -1,6 +1,6 @@
 # Deep Research Prompt Toolkit
 
-This is the brief for the **research phase** (the *onderzoek* phase). Its output becomes the
+This is the brief for the **research phase** (the _onderzoek_ phase). Its output becomes the
 **Methodology layer** of the app — it fills the 9 research seams listed in
 `planning/BUILD.md` §11. The app architecture does **not** change when this research lands; only
 `MethodologyConfig` (rules, parameters, copy) does.
@@ -19,6 +19,7 @@ and produce long, cited reports.
 - **Best value / budget:** **Perplexity Deep Research** (has a free tier with daily limits).
 
 **Strategy:**
+
 1. Paste the **Shared Header** (below) before every run — it sets the evidence standard, product
    context, rating bands, and output format.
 2. Run **Mode A (one-shot)** once for the full overview.
@@ -215,7 +216,7 @@ Evidence grade (A/B/C/D) -> Key citations -> Confidence & caveats -> one honest 
 labelled best-guess defaults".
 ```
 
-### #1 — Skill taxonomy  (feeds: the dimensions the app measures)
+### #1 — Skill taxonomy (feeds: the dimensions the app measures)
 
 ```
 TOPIC: The distinct, measurable components of chess skill.
@@ -228,7 +229,7 @@ recommended taxonomy of 6-10 trainable dimensions the app should track, each wit
 measurable definition.
 ```
 
-### #2 — Diagnosis from games + assessment validity  (feeds: feature→weakness + onboarding assessment)
+### #2 — Diagnosis from games + assessment validity (feeds: feature→weakness + onboarding assessment)
 
 ```
 TOPIC: Diagnosing a player's weaknesses.
@@ -242,7 +243,7 @@ weaknesses? How should an onboarding assessment be designed to be genuinely info
 calibration puzzles, what to ask, what NOT to claim)? Give a recommended assessment design.
 ```
 
-### #3 — What actually raises rating, per level (the core question)  (feeds: activity mapping + prioritisation)
+### #3 — What actually raises rating, per level (the core question) (feeds: activity mapping + prioritisation)
 
 ```
 TOPIC: Evidence-ranked training activities by rating ROI, per band.
@@ -255,7 +256,7 @@ conventional wisdom, say so plainly. Then give a recommended priority ordering o
 band, each with its evidence grade.
 ```
 
-### #4 — Optimal difficulty & practice design  (feeds: difficulty/calibration targets)
+### #4 — Optimal difficulty & practice design (feeds: difficulty/calibration targets)
 
 ```
 TOPIC: Optimal training difficulty and problem selection.
@@ -267,7 +268,7 @@ Config-ready output: target success-rate band, rule for puzzle-rating vs user-ra
 interleaving rules.
 ```
 
-### #5 — Spaced repetition, retention & "redo failed puzzles"  (feeds: scheduling algorithm + params)
+### #5 — Spaced repetition, retention & "redo failed puzzles" (feeds: scheduling algorithm + params)
 
 ```
 TOPIC: Spaced repetition for chess pattern learning + scheduling.
@@ -279,7 +280,7 @@ feature be scheduled (initial interval, interval growth, lapse handling)? Give a
 scheduling spec.
 ```
 
-### #6 — Volume, frequency, periodisation & plateaus  (feeds: periodisation/volume + honest caveats)
+### #6 — Volume, frequency, periodisation & plateaus (feeds: periodisation/volume + honest caveats)
 
 ```
 TOPIC: How much/how often to train; periodisation; plateaus.
@@ -293,7 +294,7 @@ available-time and level, session-length guidance, and whether/how to vary load 
 evidence grade).
 ```
 
-### #7 — Adherence, motivation & ethical engagement  (feeds: engagement mechanics + ethical limits)
+### #7 — Adherence, motivation & ethical engagement (feeds: engagement mechanics + ethical limits)
 
 ```
 TOPIC: What sustains practice, done ethically.
@@ -306,7 +307,7 @@ patterns)? Recommend a set of mechanics for an honest "no-BS" app, with explicit
 (what we will NOT do).
 ```
 
-### #8 — Realistic expectations & measuring improvement  (feeds: expectation copy + progress measurement)
+### #8 — Realistic expectations & measuring improvement (feeds: expectation copy + progress measurement)
 
 ```
 TOPIC: Honest expectations and reliable progress measurement.
@@ -318,7 +319,7 @@ differences, and rating inflation/deflation? Give honest expectation statements 
 users, and a recommended way to measure and display progress.
 ```
 
-### #9 — Synthesis: user-facing "why" copy  (run LAST, normal Gemini, not Deep Research)
+### #9 — Synthesis: user-facing "why" copy (run LAST, normal Gemini, not Deep Research)
 
 ```
 Run AFTER the 8 reports; paste them in as context. Do NOT do new research.

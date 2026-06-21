@@ -15,7 +15,7 @@ describe("parseLichessGame", () => {
     createdAt: 1_700_000_000_000,
     clock: { initial: 300, increment: 0 },
     opening: { eco: "C50", name: "Italian Game" },
-    pgn: "[ECO \"C50\"]",
+    pgn: '[ECO "C50"]',
     players: {
       white: { user: { name: "alice" }, rating: 1600 },
       black: { user: { name: "bob" }, rating: 1700 },
@@ -27,7 +27,7 @@ describe("parseLichessGame", () => {
       platform: "lichess",
       externalGameId: "g1",
       dedupeKey: "lichess:g1",
-      pgn: "[ECO \"C50\"]",
+      pgn: '[ECO "C50"]',
       playedAt: 1_700_000_000_000,
       timeControl: "300+0",
       color: "w",
@@ -49,7 +49,7 @@ describe("parseLichessGame", () => {
 
   it("falls back to PGN tags when opening fields are absent", () => {
     const g = parseLichessGame(
-      { ...base, opening: undefined, pgn: "[ECO \"D20\"]\n[Opening \"QGA\"]" },
+      { ...base, opening: undefined, pgn: '[ECO "D20"]\n[Opening "QGA"]' },
       "alice",
     );
     expect(g.eco).toBe("D20");

@@ -150,7 +150,10 @@ export const chessComAdapter: PlatformAdapter = {
     max: number = DEFAULT_MAX_GAMES,
   ): Promise<ImportedGameInput[]> {
     const username = conn.externalUsername.trim().toLowerCase();
-    const headers = { "User-Agent": PLATFORM_USER_AGENT, Accept: "application/json" };
+    const headers = {
+      "User-Agent": PLATFORM_USER_AGENT,
+      Accept: "application/json",
+    };
 
     const listRes = await politeFetch(
       "chesscom",
@@ -158,7 +161,11 @@ export const chessComAdapter: PlatformAdapter = {
       { headers },
     );
     if (listRes.status === 404) {
-      throw new PlatformError("not_found", "chesscom", `No Chess.com player "${username}"`);
+      throw new PlatformError(
+        "not_found",
+        "chesscom",
+        `No Chess.com player "${username}"`,
+      );
     }
     if (listRes.status === 403) {
       throw new PlatformError(
@@ -181,7 +188,9 @@ export const chessComAdapter: PlatformAdapter = {
     for (const url of archives.slice(-MAX_ARCHIVES_PER_IMPORT).reverse()) {
       const monthRes = await politeFetch("chesscom", url, { headers });
       if (!monthRes.ok) continue; // skip a bad month rather than fail the whole import
-      const { games = [] } = (await monthRes.json()) as { games?: ChessComGame[] };
+      const { games = [] } = (await monthRes.json()) as {
+        games?: ChessComGame[];
+      };
       for (const g of games) {
         const parsed = parseChessComGame(g, username);
         if (since && parsed.playedAt < since) continue;

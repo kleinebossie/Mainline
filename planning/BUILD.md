@@ -920,8 +920,9 @@ DoD checklist._
   depth/movetime; instant-eval of ~5 recent games + queued backfill; persist `AnalysisResult`.
 - **Tests:** unit — feature extraction golden on a known PGN (deterministic at fixed depth); worker
   init under/without cross-origin isolation.
-- **DoD:** ☐ raw features computed client-side ☐ **no interpreted field present** (L1 guard passes) ☐
-  graceful fallback when threads unavailable ☐ zero server compute.
+- **DoD:** [x] raw features computed client-side [x] **no interpreted field present** (L1 guard passes) [x]
+  graceful fallback when threads unavailable [x] zero server compute.
+  **Status (2026-06-21): code-complete & locally green.** Deliberate deviations: (a) the §4 `stockfish.worker.ts` host role is fulfilled by the vendored nmrugg engine + adapter's UCI bridge (avoids bundling custom worker); (b) cp-loss buckets / phase split live in `src/analysis/thresholds.ts` as RAW measurement conventions, not graded methodology; (c) `analyzeGame` takes `AnalyzeGameContext` extending §6.5; (d) migration hand-written offline. **Remaining user step: apply migration 20260621010000_m5_analysis_result to Supabase (`npm run prisma:deploy`).** setup:stockfish runs automatically on build/dev.
 
 ### M6 — Program engine v0
 

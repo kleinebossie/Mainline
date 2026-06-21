@@ -26,8 +26,8 @@ export function Reveal() {
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           <p className="text-muted-foreground text-sm">
-            Finish the short tactical calibration and your starting picture appears
-            here.
+            Finish the short tactical calibration and your starting picture
+            appears here.
           </p>
           <Link
             href="/onboarding/calibration"
@@ -55,9 +55,9 @@ export function Reveal() {
             role="note"
           >
             Grade {estimate.evidenceGrade}
-            {estimate.flag ? ` (${estimate.flag})` : ""} — a placeholder calibration
-            method, tactical vision only. It&apos;s a rough starting point, not a
-            judgement of your overall play.
+            {estimate.flag ? ` (${estimate.flag})` : ""} — a placeholder
+            calibration method, tactical vision only. It&apos;s a rough starting
+            point, not a judgement of your overall play.
           </p>
         </CardContent>
       </Card>
@@ -68,11 +68,15 @@ export function Reveal() {
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           <p className="text-muted-foreground text-sm">
-            Your real weaknesses (blunders, phase leaks, time use) come from analysing
-            your games — that lands with the analysis engine and your first training
-            program in a later step. We won&apos;t guess at them here.
+            Your real weaknesses (blunders, phase leaks, time use) come from
+            analysing your games — that lands with the analysis engine and your
+            first training program in a later step. We won&apos;t guess at them
+            here.
           </p>
-          <Link href="/dashboard" className={buttonVariants({ variant: "ghost", size: "sm" })}>
+          <Link
+            href="/dashboard"
+            className={buttonVariants({ variant: "ghost", size: "sm" })}
+          >
             Back to dashboard
           </Link>
         </CardContent>

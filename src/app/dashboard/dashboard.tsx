@@ -52,7 +52,10 @@ export function Dashboard() {
           <p className="text-destructive text-sm" role="alert">
             Some platforms couldn’t be reached:{" "}
             {syncMutation.data.errors
-              .map((e) => `${PLATFORM_LABEL[e.platform] ?? e.platform} (${e.code})`)
+              .map(
+                (e) =>
+                  `${PLATFORM_LABEL[e.platform] ?? e.platform} (${e.code})`,
+              )
               .join(", ")}
             .
           </p>
@@ -99,11 +102,14 @@ export function Dashboard() {
                   </span>{" "}
                   · {g.playedAt.toLocaleDateString()}
                   {g.opening ? (
-                    <span className="text-muted-foreground"> · {g.opening}</span>
+                    <span className="text-muted-foreground">
+                      {" "}
+                      · {g.opening}
+                    </span>
                   ) : null}
                 </span>
                 <span className="text-muted-foreground">
-                  {g.result ? RESULT_LABEL[g.result] ?? g.result : "—"}
+                  {g.result ? (RESULT_LABEL[g.result] ?? g.result) : "—"}
                   {g.userRatingAtGame ? ` · ${g.userRatingAtGame}` : ""}
                 </span>
               </li>

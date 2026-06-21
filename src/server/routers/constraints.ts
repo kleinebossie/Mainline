@@ -13,5 +13,7 @@ export const constraintsRouter = router({
 
   save: protectedProcedure
     .input(constraintsInputSchema)
-    .mutation(({ ctx, input }) => saveConstraints(ctx.prisma, ctx.userId, input)),
+    .mutation(({ ctx, input }) =>
+      saveConstraints(ctx.prisma, ctx.userId, input),
+    ),
 });

@@ -25,6 +25,11 @@ next-env.d.ts
 /lichess_db_puzzle.csv
 /lichess_db_puzzle.csv.zst
 
+# Stockfish WASM engine (GPLv3, ~14 MB) — copied from node_modules/stockfish into
+# public/ by `npm run setup:stockfish` (also auto-run before dev/build). Not committed;
+# regenerated from the pinned devDependency so client-side analysis (M5, §6.5) works.
+/public/stockfish/
+
 # misc
 .DS_Store
 *.pem

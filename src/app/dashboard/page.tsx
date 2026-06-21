@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/server/auth";
 import { buttonVariants } from "@/components/ui/button";
 import { Dashboard } from "@/app/dashboard/dashboard";
+import { AnalysisRunner } from "@/app/dashboard/analysis-runner";
 
 // Imported-data dashboard (BUILD.md M2). Auth-gated. Lists imported games + current
 // ratings and offers an on-demand "Sync now". Display only — no chess/learning
@@ -39,6 +40,7 @@ export default async function DashboardPage() {
       </header>
 
       <Dashboard />
+      <AnalysisRunner />
     </main>
   );
 }

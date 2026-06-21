@@ -13,11 +13,13 @@ export default async function CalibrationPage() {
   return (
     <main className="mx-auto flex min-h-screen max-w-xl flex-col gap-6 p-8">
       <header className="flex flex-col gap-1">
-        <h1 className="text-3xl font-bold tracking-tight">Tactical calibration</h1>
+        <h1 className="text-3xl font-bold tracking-tight">
+          Tactical calibration
+        </h1>
         <p className="text-muted-foreground text-sm">
           We don&apos;t ask you to rate yourself — self-assessment is unreliable
-          (Dunning-Kruger). This short check estimates your tactical level from how
-          you actually solve.
+          (Dunning-Kruger). This short check estimates your tactical level from
+          how you actually solve.
         </p>
       </header>
       <Calibration />

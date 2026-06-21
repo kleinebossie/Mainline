@@ -14,11 +14,29 @@ This is the source code repository for a chess training app. It contains the Nex
   technical plan (stack, data model, repository layout, build order M0–M10, and the 9 "research
   seams"); it defines the generic **Engine** and the **`MethodologyConfig`** schema/loader.
   `METHODOLOGY.md` is the science that fills those seams (values, grades, citations, copy).
-- `research/` — the evidence base (the *onderzoek* phase). Long, citation-heavy reports that become
+- `research/` — the evidence base (the _onderzoek_ phase). Long, citation-heavy reports that become
   the app's **Methodology layer**. `RESEARCH_PROMPT.md` is the brief that generated them; the others
   (`SKILL_TAXONOMY.md`, `WEAKNESS_DIAGNOSIS.md`, `WHAT_RAISES_RATING.md`, `PRACTICE_DESIGN.md`,
   `SPACED_REPETITION.md`) are the resulting reports, one per research question.
 
+## Commands
+
+Node is pinned by `.nvmrc` (CI mirrors it exactly — npm 11; an older npm mis-prunes the lockfile and
+breaks `npm ci`). Run `nvm use` first. Copy `.env.example` → `.env.local` and fill `DATABASE_URL`
+(Supabase), `AUTH_SECRET`, Google OAuth, and `CRON_SECRET` before `dev`/`build`.
+
+- **Dev server:** `npm run dev` (http://localhost:3000)
+- **Build:** `npm run build` (runs `prisma generate` first — required on a clean checkout/CI)
+- **Typecheck:** `npm run typecheck` (`tsc --noEmit`; strict + `noUncheckedIndexedAccess`)
+- **Lint / format:** `npm run lint` · `npm run format` (`npm run format:check` in CI)
+- **All Vitest:** `npm test` — or scope with `npm run test:unit` / `npm run test:guards`
+- **One unit test:** `npx vitest run tests/unit/puzzles/select.test.ts` (by file) or
+  `npx vitest run -t "<partial test name>"` (by name); drop `run` for watch mode
+- **E2E (Playwright):** `npm run test:e2e` — one spec: `npx playwright test tests/e2e/onboarding.spec.ts`
+  (or `-g "<title>"`)
+- **DB:** `npm run prisma:migrate` (dev) · `npm run prisma:generate` · `npm run prisma:deploy` (prod)
+- **Puzzle DB / resources:** `npm run ingest:puzzles` (Lichess puzzle-DB → `LichessPuzzle`) ·
+  `npm run seed:resources` · `npm run check:puzzles`
 
 ## The product in one paragraph
 
@@ -45,13 +63,57 @@ When writing code, never hardcode chess knowledge, rating assumptions, or anythi
 builder into the Engine — it lives in data/config. This is what keeps "works for me" → "works for
 the public" a change of degree, not a rewrite.
 
+## The three architectural laws (enforced in CI)
+
+The split above is operationalized as three laws (`BUILD.md` §0.1), machine-checked by `tests/guards/`.
+Treat them as hard constraints in any code:
+
+- **L1 — science only in `methodology/`.** The Engine (`engine/`, `analysis/`, `server/`, `app/`)
+  consumes methodology **only through the `@/methodology` surface** (`src/methodology/index.ts`) —
+  never deep-import `@/methodology/{loader,provider,schema,configs}`, and keep no chess/learning
+  constants outside config. Guarded by `tests/guards/architecture.test.ts`.
+- **L2 — decisions are pure & deterministic.** Code in `engine/` and `methodology/` takes an injected
+  `Clock` (`src/lib/clock.ts`) and explicit seeds — no `Date.now()`, `new Date()`, or `Math.random()`.
+  Same guard fails the build on any occurrence.
+- **L3 — every methodology value is graded.** Every leaf of a `MethodologyConfig` is a `GradedValue`
+  (grade A/B/C/D + tier + citation). The loader validates structure + grading + citation resolution
+  against the Zod schema, deep-freezes, caches, and **fails closed** (a bad config is a boot error,
+  never a silent default). Guarded by `tests/guards/methodology-config.test.ts`.
+
+**Import direction is load-bearing:** `engine`/`analysis` may import `methodology` (types + provider
+fns) and `lib`, **never the reverse**; `methodology` imports only `lib` and `engine/math`; `db/` holds
+no business logic; `app`/`server` orchestrate, they don't decide graded choices.
+
+## How the implemented code is organized
+
+One Next.js App Router app under `src/`. Request flow: **`app/` (server + client components) →
+`server/` (tRPC) → domain logic + persistence.**
+
+- **`src/app/`** — routes: the onboarding flow (`connect → import → assess → constraints → reveal`),
+  `dashboard/`, `connections/`, and API route handlers `api/trpc/[trpc]`, `api/auth/[...nextauth]`,
+  `api/cron/import` (Vercel Cron, `CRON_SECRET`-gated).
+- **`src/server/`** — the typed API. `routers/_app.ts` composes one router per domain
+  (`connections`, `import`, `assessment`, `constraints`) into `AppRouter`; `trpc.ts` defines
+  `protectedProcedure` (the auth gate that narrows `ctx.userId`) and superjson transport. Sibling
+  service modules (`assessment.ts`, `import.ts`, …) hold orchestration; `auth.ts` is NextAuth v5
+  (Google + Lichess PKCE).
+- **`src/methodology/`** — the one science seam (see the laws). `configs/stub-0.1.0.json` is the active
+  placeholder; a `research-*.json` swaps in later with no Engine change.
+- **`src/integrations/`** — `PlatformAdapter` interface + `lichess/` and `chesscom/` (read-only PubAPI,
+  username-only) adapters, PGN/dedupe helpers, and `puzzles/` (parse + stratify the Lichess puzzle DB).
+- **`src/db/`** — Prisma client singleton + typed query helpers, no business logic. Schema in
+  `prisma/schema.prisma` (Auth.js tables; `PlatformConnection`/`ChessProfileSnapshot`/`ImportedGame`/
+  `JobRun`; `LichessPuzzle`/`ResourceRef`; `Assessment`/`ConstraintSet`).
+- **`src/engine/`** — generic deterministic machinery (generator, adaptation, tracker, `math/`);
+  largely arrives M5+, kept science-free. **`src/lib/`** — shared utils incl. the injectable `Clock`.
+
 ## Conventions that constrain the work
 
 These come from `VISION.md` and the research brief; honor them in any code or recommendation:
 
 - **No LLM/AI inside the product.** (AI agents build it; the running product uses none.)
 - **No hosted content, no in-app play, no social/multiplayer, no payments/native apps in Phase 1.**
-  Stay multi-user and billing-*capable*, but don't build billing yet.
+  Stay multi-user and billing-_capable_, but don't build billing yet.
 - **Radical honesty is a feature, not copy.** Every recommendation carries an **evidence grade**
   (A = strong/replicated, B = suggestive/limited, C = theory/expert opinion, D = popular but
   unsupported myth) and a user-facing "why this / why now" rationale. Do not overstate evidence or
@@ -59,11 +121,21 @@ These come from `VISION.md` and the research brief; honor them in any code or re
 - **English** for documents and code. Free-infrastructure tiers only (Phase 1 targets personal use →
   closed free beta).
 
+## Verification & current build status
+
+CI (`.github/workflows/ci.yml`) runs, in order: **`typecheck → lint → unit → guards → build → e2e`**.
+"Done" means all green — that's the contract for every change.
+
+The app is built as vertical slices **M0–M10** (`BUILD.md` §10). Shipped so far: **M0** scaffold,
+**M1** identity & connections, **M2** import & profile, **M3** resource catalog, **M4** constraints &
+assessment, **M5** client-side Stockfish analysis → raw features. **Next: M6** — Program engine v0. `planning/BUILD.md` is the
+source of truth these notes summarize; the `build-slice` skill drives a milestone end-to-end.
+
 ## Working with the research reports
 
 The reports are evidence-graded and deliberately distinguish **Tier 1** (chess-specific, mostly
 observational/weak) from **Tier 2** (strong general learning-science, extrapolated to chess). The
-central honest caveat to preserve everywhere: **no study has shown any training activity *causes* a
+central honest caveat to preserve everywhere: **no study has shown any training activity _causes_ a
 measured rating gain** — design and copy must not pretend otherwise. When extracting parameters into
 config (success-rate targets, FSRS intervals, difficulty offsets, daily volumes, per-band
 directives), carry the grade and citation with the number; don't strip the evidence from the value.

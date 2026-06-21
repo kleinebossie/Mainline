@@ -9,12 +9,14 @@ This product treats **radical honesty as a feature, not copy**. Every recommenda
 parameter must carry its evidence — never a bare number or a confident promise.
 
 ## The grade scale (always attach one)
+
 - **A** — strong, replicated evidence
 - **B** — suggestive but limited evidence
 - **C** — theory / expert opinion
 - **D** — popular but unsupported myth (label it; do not implement as if true)
 
 ## Rules
+
 1. Every recommendation, copy string, or config value carries: the **grade**, a **citation**
    (a source in `research/` or `planning/METHODOLOGY.md`), and a user-facing
    **"why this / why now"** rationale.
@@ -23,11 +25,12 @@ parameter must carry its evidence — never a bare number or a confident promise
    evidence from the value.
 3. Distinguish **Tier 1** (chess-specific, mostly observational/weak) from **Tier 2** (strong
    general learning-science extrapolated to chess). Label which tier a claim rests on.
-4. Preserve the central caveat everywhere: **no study has shown any training activity *causes*
+4. Preserve the central caveat everywhere: **no study has shown any training activity _causes_
    a measured rating gain.** Do not imply otherwise; do not promise rating gains.
 5. Do not overstate. If evidence is grade C or D, say so plainly in the copy and rationale.
 
 ## Quick check before shipping a claim
+
 - [ ] Grade attached (A/B/C/D)?
 - [ ] Citation present?
 - [ ] "Why this / why now" rationale written?

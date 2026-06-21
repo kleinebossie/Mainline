@@ -72,7 +72,7 @@ describe("lichessAdapter (M1: Lichess connection, §6.2)", () => {
           white: { user: { name: "Thibault" }, rating: 1500 },
           black: { user: { name: "rival" }, rating: 1480 },
         },
-        pgn: "[Event \"x\"]",
+        pgn: '[Event "x"]',
       }),
       "",
     ].join("\n");

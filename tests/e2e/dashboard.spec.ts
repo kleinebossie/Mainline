@@ -4,7 +4,9 @@ import { test, expect } from "@playwright/test";
 // round-trip is verified manually with a real connection (BUILD.md §13.5 / M2 DoD),
 // since CI has no platform credentials.
 
-test("dashboard redirects to sign-in when unauthenticated", async ({ page }) => {
+test("dashboard redirects to sign-in when unauthenticated", async ({
+  page,
+}) => {
   await page.goto("/dashboard");
   await expect(page).toHaveURL(/\/signin/);
   await expect(

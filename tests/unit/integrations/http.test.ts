@@ -36,10 +36,8 @@ describe("politeFetch", () => {
 
     const res = await politeFetch("lichess", "https://x/y");
     expect(res.status).toBe(200);
-    const headers = (fetchMock.mock.calls[0]?.[1] as RequestInit).headers as Record<
-      string,
-      string
-    >;
+    const headers = (fetchMock.mock.calls[0]?.[1] as RequestInit)
+      .headers as Record<string, string>;
     expect(headers["User-Agent"]).toBeTruthy();
   });
 
@@ -52,7 +50,12 @@ describe("politeFetch", () => {
       .mockResolvedValueOnce(new Response("{}", { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
 
-    const res = await politeFetch("lichess", "https://x/y", {}, DEFAULT_BACKOFF);
+    const res = await politeFetch(
+      "lichess",
+      "https://x/y",
+      {},
+      DEFAULT_BACKOFF,
+    );
     expect(res.status).toBe(200);
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
@@ -67,11 +70,16 @@ describe("politeFetch", () => {
         ),
     );
     await expect(
-      politeFetch("chesscom", "https://x/y", {}, {
-        maxRetries: 2,
-        baseMs: 0,
-        capMs: 0,
-      }),
+      politeFetch(
+        "chesscom",
+        "https://x/y",
+        {},
+        {
+          maxRetries: 2,
+          baseMs: 0,
+          capMs: 0,
+        },
+      ),
     ).rejects.toMatchObject({ code: "rate_limited" });
   });
 });

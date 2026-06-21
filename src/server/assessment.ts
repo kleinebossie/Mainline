@@ -64,7 +64,8 @@ export async function resolveStartRating(
     select: { ratings: true },
   });
   return (
-    ratingFromSnapshot(snap?.ratings) ?? cfg.assessment.calibration.startRating.value
+    ratingFromSnapshot(snap?.ratings) ??
+    cfg.assessment.calibration.startRating.value
   );
 }
 

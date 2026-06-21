@@ -3,7 +3,10 @@
 // here — never the schema internals or config JSON directly. This is the typed boundary
 // across which science enters the system (VISION §4).
 
-export { loadMethodology, ACTIVE_METHODOLOGY_VERSION } from "@/methodology/loader";
+export {
+  loadMethodology,
+  ACTIVE_METHODOLOGY_VERSION,
+} from "@/methodology/loader";
 
 export {
   nextCalibrationItem,

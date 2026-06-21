@@ -45,6 +45,7 @@ const eslintConfig = [
       "**/*.config.mjs",
       "**/*.config.js",
       "**/.agents/**",
+      "**/public/stockfish/**",
     ],
   },
 ];

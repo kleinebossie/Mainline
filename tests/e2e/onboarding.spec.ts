@@ -12,7 +12,9 @@ const GATED = [
 ];
 
 for (const path of GATED) {
-  test(`${path} redirects to sign-in when unauthenticated`, async ({ page }) => {
+  test(`${path} redirects to sign-in when unauthenticated`, async ({
+    page,
+  }) => {
     await page.goto(path);
     await expect(page).toHaveURL(/\/signin/);
     await expect(

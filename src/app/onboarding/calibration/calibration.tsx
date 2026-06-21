@@ -74,10 +74,7 @@ export function Calibration() {
               : "Calibration estimates tactical vision only; the rest comes from your games."}
           </p>
           <div className="flex flex-wrap gap-3">
-            <Link
-              href="/onboarding/constraints"
-              className={buttonVariants()}
-            >
+            <Link href="/onboarding/constraints" className={buttonVariants()}>
               Continue
             </Link>
             <Button

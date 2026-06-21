@@ -50,7 +50,8 @@ export const importRouter = router({
       },
     });
     const latest = new Map<string, (typeof snaps)[number]>();
-    for (const s of snaps) if (!latest.has(s.platform)) latest.set(s.platform, s);
+    for (const s of snaps)
+      if (!latest.has(s.platform)) latest.set(s.platform, s);
     return [...latest.values()];
   }),
 });

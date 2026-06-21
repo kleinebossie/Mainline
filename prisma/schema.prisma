@@ -2,7 +2,8 @@
 // tables; M1 adds identity fields (§5.1) + PlatformConnection (§5.2); M2 adds
 // ChessProfileSnapshot + ImportedGame (§5.2) and the JobRun ledger (§5.7); M3 adds
 // the resource catalog — LichessPuzzle + ResourceRef (§5.3); M4 adds Assessment +
-// ConstraintSet (§5.4). The rest of the data model (§5) lands milestone by milestone.
+// ConstraintSet (§5.4); M5 adds AnalysisResult — raw, client-computed game features
+// (§5.2). The rest of the data model (§5) lands milestone by milestone.
 
 generator client {
   provider = "prisma-client-js"
@@ -147,10 +148,31 @@ model ImportedGame {
   source           String // lichess | chesscom
   importedAt       DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  analysis AnalysisResult?
 
   @@unique([userId, dedupeKey])
   @@index([userId, playedAt])
+}
+
+// Raw engine features for one imported game (BUILD.md §5.2, M5). RAW MEASUREMENTS ONLY
+// (L1): no interpreted or graded field ever lands here — "good/bad" judgement is Seam 3
+// (interpretGameFeatures), which CONSUMES this. Features are computed CLIENT-SIDE by
+// Stockfish WASM (§6.5), so the server only persists what the browser sends (zero server
+// compute). 1—1 with the game it analyses; cascades when the game (hence the user) is
+// deleted (GDPR). `rawFeatures` is the RawGameFeatures shape (src/lib/raw-features.ts),
+// validated by its Zod schema at the tRPC boundary before it is stored.
+model AnalysisResult {
+  id            String   @id @default(cuid())
+  gameId        String   @unique
+  engineVersion String // e.g. "stockfish-18-lite" — provenance for reproducibility
+  depth         Int // the bounded search depth the features were computed at
+  rawFeatures   Json // RawGameFeatures (uninterpreted measurements only, L1)
+  analyzedAt    DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  game ImportedGame @relation(fields: [gameId], references: [id], onDelete: Cascade)
 }
 
 // --- Background-job ledger (BUILD.md §5.7) ---

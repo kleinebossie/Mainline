@@ -68,7 +68,10 @@ export function OnboardingSteps() {
           <Link
             href={step.href}
             className={cn(
-              buttonVariants({ variant: step.done ? "ghost" : "default", size: "sm" }),
+              buttonVariants({
+                variant: step.done ? "ghost" : "default",
+                size: "sm",
+              }),
               "shrink-0",
             )}
           >

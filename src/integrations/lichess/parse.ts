@@ -38,7 +38,8 @@ function resultFor(
 ): ImportedGameInput["result"] {
   if (!winner) return "draw";
   if (!color) return undefined;
-  const won = (winner === "white" && color === "w") ||
+  const won =
+    (winner === "white" && color === "w") ||
     (winner === "black" && color === "b");
   return won ? "win" : "loss";
 }

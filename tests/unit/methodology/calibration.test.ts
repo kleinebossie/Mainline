@@ -57,7 +57,10 @@ describe("scoreCalibration (golden)", () => {
   });
 
   it("lower success lowers the estimate below mean-shown", () => {
-    const out = scoreCalibration({ responses: repeat(10, r(1500, false)) }, cfg);
+    const out = scoreCalibration(
+      { responses: repeat(10, r(1500, false)) },
+      cfg,
+    );
     // 1500 + (0 − 0.8)·400 = 1180
     expect(out.tacticalRatingEstimate).toBe(1180);
   });
@@ -124,10 +127,7 @@ describe("nextCalibrationItem (golden ladder)", () => {
   });
 
   it("stops at maxItems even if still uncertain", () => {
-    const mixed = [
-      ...repeat(6, r(1200, true)),
-      ...repeat(6, r(1200, false)),
-    ];
+    const mixed = [...repeat(6, r(1200, true)), ...repeat(6, r(1200, false))];
     const out = nextCalibrationItem(
       { responses: mixed, startRating: 1200 },
       cfg,
@@ -140,7 +140,10 @@ describe("nextCalibrationItem (golden ladder)", () => {
 describe("buildImplementationIntention", () => {
   it("assembles and trims the if-then plan (Seam 9 data assembly)", () => {
     expect(
-      buildImplementationIntention("  my morning coffee ", " open today's session "),
+      buildImplementationIntention(
+        "  my morning coffee ",
+        " open today's session ",
+      ),
     ).toEqual({ cue: "my morning coffee", plan: "open today's session" });
   });
 });

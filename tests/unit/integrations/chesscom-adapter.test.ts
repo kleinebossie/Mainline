@@ -99,7 +99,7 @@ describe("chessComAdapter (M1: Chess.com username link, §6.3)", () => {
           games: [
             {
               url: "https://www.chess.com/game/live/123",
-              pgn: "[Event \"x\"]",
+              pgn: '[Event "x"]',
               time_control: "600",
               end_time: 1_700_000_000,
               white: { username: "newbie", rating: 900, result: "win" },
@@ -128,7 +128,10 @@ describe("chessComAdapter (M1: Chess.com username link, §6.3)", () => {
   it("maps a 403 archive list to a typed forbidden error", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(json(403, {})));
     await expect(
-      chessComAdapter.fetchGames({ platform: "chesscom", externalUsername: "x" }),
+      chessComAdapter.fetchGames({
+        platform: "chesscom",
+        externalUsername: "x",
+      }),
     ).rejects.toMatchObject({ code: "forbidden" });
   });
 });

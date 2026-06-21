@@ -132,7 +132,11 @@ export const lichessAdapter: PlatformAdapter = {
       },
     );
     if (res.status === 401) {
-      throw new PlatformError("unauthorized", "lichess", "Lichess token rejected");
+      throw new PlatformError(
+        "unauthorized",
+        "lichess",
+        "Lichess token rejected",
+      );
     }
     if (!res.ok) {
       throw new PlatformError(
@@ -171,7 +175,11 @@ export const lichessAdapter: PlatformAdapter = {
       },
     );
     if (res.status === 401) {
-      throw new PlatformError("unauthorized", "lichess", "Lichess token rejected");
+      throw new PlatformError(
+        "unauthorized",
+        "lichess",
+        "Lichess token rejected",
+      );
     }
     if (!res.ok) {
       throw new PlatformError(

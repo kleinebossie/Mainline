@@ -26,7 +26,9 @@ describe("withJobRun", () => {
     expect(result).toBe("ok");
     expect(fn).toHaveBeenCalledOnce();
     expect(update).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ status: "success" }) }),
+      expect.objectContaining({
+        data: expect.objectContaining({ status: "success" }),
+      }),
     );
   });
 
@@ -48,7 +50,9 @@ describe("withJobRun", () => {
       withJobRun(db, "import_sync", "k1", () => Promise.reject(boom)),
     ).rejects.toThrow("429");
     expect(update).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ status: "error" }) }),
+      expect.objectContaining({
+        data: expect.objectContaining({ status: "error" }),
+      }),
     );
   });
 });

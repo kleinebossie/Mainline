@@ -16,8 +16,7 @@ const FORBIDDEN: ReadonlyArray<readonly [RegExp, string]> = [
 // surface (`@/methodology`), never reaching into its internals (provider/loader/schema/
 // configs). Importing an internal would let science leak past the seam boundary (§2.3).
 const CONSUMER_DIRS = ["src/engine", "src/analysis", "src/server", "src/app"];
-const METHODOLOGY_INTERNAL_IMPORT =
-  /from\s+["']@\/methodology\/[^"']+["']/;
+const METHODOLOGY_INTERNAL_IMPORT = /from\s+["']@\/methodology\/[^"']+["']/;
 
 function tsFiles(dir: string): string[] {
   if (!existsSync(dir)) return [];
