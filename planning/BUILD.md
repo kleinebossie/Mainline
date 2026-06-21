@@ -854,6 +854,26 @@ DoD checklist._
   idempotent; golden test on a fixed puzzle fixture.
 - **DoD:** ☐ stratified DB ingested within free-tier budget ☐ theme+rating query < target latency ☐
   ResourceRefs resolvable to external URLs.
+- **Status (2026-06-20): code-complete & locally green; live ingest is the remaining user step.**
+  Schema: `LichessPuzzle` (PK `puzzleId`, **GIN index on `themes`** + btree on `rating`) and
+  `ResourceRef` (§5.3) + migration `20260620010000_m3_resource_catalog` (generated offline via
+  `prisma migrate diff`). Selection: `selectPuzzles` (`src/db/puzzles.ts`) — theme + rating-window
+  query with deterministic proximity ranking. Ingest: `scripts/ingest-puzzles.ts` streams the CC0 CSV
+  → rating-×-theme **stratified** subset (`src/integrations/puzzles/stratify.ts`; default ≤200k rows,
+  well under the Supabase free 500 MB tier) → idempotent `createMany(skipDuplicates)` on the
+  `puzzleId` PK. Catalog: `scripts/seed-resources.ts` seeds one resolvable Lichess training-page
+  `ResourceRef` per theme (`src/integrations/catalog.ts`; deterministic ids → idempotent re-seed).
+  Tests: 17 new unit/golden (CSV parse, stratify caps/ceiling/determinism, query + proximity ranking,
+  catalog URLs) — full suite **50 unit + guards + `next build` + 5 e2e green**; ingest **dry-run
+  verified** on a fixture (`--dry-run`/`--max-rows`/`--cap`). `tsx` added (dev) to run the ops scripts.
+  **`cfg` deviation (L1, deliberate):** the M3 contract sketches `selectPuzzles(…, cfg)`, but
+  METHODOLOGY.md Seam 5 defines **no** puzzle-selection rating window — difficulty is the servo's
+  single `targetPuzzleRating`. Inventing a graded window would inject ungraded "science," so the
+  window is an **infrastructure retrieval radius** (caller-supplied) and the methodology layer
+  (`GradedValue` + loader + stub config) lands in **M4**, its first real consumer (Seam 2 provider
+  fns). **Remaining user steps (infra — all spelled out in the handoff):** (1) apply the migration to
+  Supabase; (2) download + decompress the Lichess puzzle CSV; (3) `npm run ingest:puzzles`; (4)
+  `npm run seed:resources`; (5) optional `npm run check:puzzles` to confirm query latency.
 
 ### M4 — Constraints + assessment
 

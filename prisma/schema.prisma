@@ -1,7 +1,8 @@
 // Single source of DB truth (BUILD.md §4, §5). M0 ships the Auth.js identity
 // tables; M1 adds identity fields (§5.1) + PlatformConnection (§5.2); M2 adds
-// ChessProfileSnapshot + ImportedGame (§5.2) and the JobRun ledger (§5.7). The rest
-// of the data model (§5) lands milestone by milestone.
+// ChessProfileSnapshot + ImportedGame (§5.2) and the JobRun ledger (§5.7); M3 adds
+// the resource catalog — LichessPuzzle + ResourceRef (§5.3). The rest of the data
+// model (§5) lands milestone by milestone.
 
 generator client {
   provider = "prisma-client-js"
@@ -165,4 +166,52 @@ model JobRun {
   error      String?
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
+}
+
+// --- Resource catalog: external puzzle DB + resource references (BUILD.md §5.3, §6.4) ---
+
+// An ingested slice of the Lichess open puzzle DB (CC0). Global, not user-owned. The
+// full DB (~millions of rows) exceeds the Supabase free 500 MB tier (§6.4, §12), so
+// scripts/ingest-puzzles.ts ingests a rating-×-theme-stratified subset with full band
+// coverage and an on-demand fallback for gaps. Theme + rating selection is powered by
+// the GIN index on `themes` and the btree on `rating`. Raw catalog facts only — no
+// interpretation or grade (L1); WHICH theme addresses WHICH weakness is Seam 4
+// methodology, decided later, never stored here.
+model LichessPuzzle {
+  puzzleId        String   @id
+  fen             String
+  moves           String // space-separated UCI solution moves
+  rating          Int
+  ratingDeviation Int
+  popularity      Int
+  nbPlays         Int
+  themes          String[] // Lichess theme tags, e.g. ["fork", "mateIn2"]
+  gameUrl         String?
+  openingTags     String[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([rating])
+  @@index([themes], type: Gin)
+}
+
+// An external resource a program can point at (never hosted content — VISION §6).
+// `externalUrl` must resolve to a real external page (e.g. a Lichess training theme:
+// https://lichess.org/training/<theme>). `metadata` is a typed-in-lib JSON blob.
+// `methodologyKey` (optional) links a catalog entry to a Seam-4 ActivityDefinition and
+// is populated once the methodology layer lands (M4+). Seeded idempotently with
+// deterministic ids by scripts/seed-resources.ts. The ProgramItem relation (§5.5) is
+// added in M6 when ProgramItem exists.
+model ResourceRef {
+  id             String   @id @default(cuid())
+  type           String // lichess_puzzle_theme | book | endgame_trainer | study | master_game_collection | video
+  title          String
+  externalUrl    String?
+  provider       String
+  metadata       Json
+  methodologyKey String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([type])
 }

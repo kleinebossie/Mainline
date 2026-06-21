@@ -20,6 +20,11 @@ next-env.d.ts
 # prisma
 /prisma/*.db
 
+# Lichess open puzzle DB dumps (CC0) — large source data for scripts/ingest-puzzles.ts,
+# never committed (the stratified subset lives in Postgres). Download per the ingest docs.
+/lichess_db_puzzle.csv
+/lichess_db_puzzle.csv.zst
+
 # misc
 .DS_Store
 *.pem
