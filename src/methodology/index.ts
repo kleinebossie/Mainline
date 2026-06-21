@@ -28,6 +28,9 @@ export {
   detectPlateau,
   isProgressReal,
   isStableBaseline,
+  // Measurement seam (M8): per-band expectation copy for the transparency dashboard.
+  expectationForBand,
+  type GradedExpectation,
   type CalibrationResponse,
   type NextCalibrationItem,
   type CalibrationEstimate,

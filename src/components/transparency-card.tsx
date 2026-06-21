@@ -31,6 +31,7 @@ export interface TransparencyCardProps {
   citationSource?: string | null;
   confidence: string;
   soften: boolean;
+  flag?: string;
 }
 
 export function TransparencyCard({
@@ -41,13 +42,23 @@ export function TransparencyCard({
   citationSource,
   confidence,
   soften,
+  flag,
 }: TransparencyCardProps) {
+  const isPlaceholder = flag === "stub" || flag === "best-guess";
+
   return (
     <div
       className="text-muted-foreground rounded-md border border-dashed p-3 text-sm"
       role="note"
     >
-      <p className="text-xs font-medium uppercase tracking-wide">Why this?</p>
+      <div className="flex items-center gap-2">
+        <p className="text-xs font-medium uppercase tracking-wide">Why this?</p>
+        {isPlaceholder && (
+          <span className="bg-destructive/10 text-destructive rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider">
+            Placeholder
+          </span>
+        )}
+      </div>
       <p className="text-foreground mt-1">{rationaleText}</p>
 
       <dl className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs">

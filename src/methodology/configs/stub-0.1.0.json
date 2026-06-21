@@ -1018,6 +1018,44 @@
       "citationKey": "lichess_etl",
       "flag": "best-guess",
       "note": "Flag a plateau when the CI upper bound sets no new high over this many active days; the CI-crossing rule is evidenced, the window best-guess."
+    },
+    "expectationsByBand": {
+      "u800": {
+        "value": "Players around this level typically climb 100 points in a month or two.",
+        "grade": "A",
+        "tier": 1,
+        "citationKey": "lichess_etl"
+      },
+      "b800_1200": {
+        "value": "Reaching the next hundred-point mark typically takes a couple of months at this level.",
+        "grade": "A",
+        "tier": 1,
+        "citationKey": "lichess_etl"
+      },
+      "b1200_1600": {
+        "value": "Gains are slowing down. Climbing 100 points might take several months of focused work.",
+        "grade": "A",
+        "tier": 1,
+        "citationKey": "lichess_etl"
+      },
+      "b1600_2000": {
+        "value": "At this level, climbing 100 points often takes a year or more. Plateaus are statistically normal.",
+        "grade": "A",
+        "tier": 1,
+        "citationKey": "lichess_etl"
+      },
+      "b2000_2200": {
+        "value": "You are in the top few percent. Adding 50 points a year is excellent progress.",
+        "grade": "A",
+        "tier": 1,
+        "citationKey": "lichess_etl"
+      },
+      "b2200plus": {
+        "value": "Every 10 points is a grind against very strong opposition.",
+        "grade": "A",
+        "tier": 1,
+        "citationKey": "lichess_etl"
+      }
     }
   },
   "rationale": [

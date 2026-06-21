@@ -4,7 +4,11 @@
 // this router only orchestrates (L1).
 
 import { logOutcome } from "@/server/tracker";
-import { countDueScheduleStates } from "@/db/tracker";
+import {
+  countDueScheduleStates,
+  findDueScheduleStates,
+  findSkillStates,
+} from "@/db/tracker";
 import { protectedProcedure, router } from "@/server/trpc";
 import { logOutcomeInputSchema } from "@/lib/tracker";
 
@@ -15,5 +19,21 @@ export const trackerRouter = router({
 
   dueReviews: protectedProcedure.query(({ ctx }) =>
     countDueScheduleStates(ctx.prisma, ctx.userId, new Date()),
+  ),
+
+  skillStates: protectedProcedure.query(({ ctx }) =>
+    findSkillStates(ctx.prisma, ctx.userId),
+  ),
+
+  dueScheduleStates: protectedProcedure.query(({ ctx }) =>
+    findDueScheduleStates(ctx.prisma, ctx.userId, new Date()),
+  ),
+
+  adaptationLogs: protectedProcedure.query(({ ctx }) =>
+    ctx.prisma.adaptationLog.findMany({
+      where: { userId: ctx.userId },
+      orderBy: { runAt: "desc" },
+      take: 10,
+    }),
   ),
 });

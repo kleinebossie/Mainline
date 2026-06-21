@@ -252,6 +252,8 @@ const measurementSchema = z.object({
   // Active-day window over which a non-new CI high is read as a plateau (best-guess; the
   // CI-crossing rule itself is evidenced).
   plateauWindowDays: gradedValue(z.number().int().positive()),
+  // Expectations copy per band (surfaced on dashboards).
+  expectationsByBand: z.record(gradedValue(z.string().min(1))),
 });
 
 // Seam 8 — rationale & evidence copy (USER_FACING). A versioned copy table keyed by
@@ -367,6 +369,10 @@ export const methodologyConfigSchema = z
     requireBands(cfg.difficulty.structureByBand, [
       "difficulty",
       "structureByBand",
+    ]);
+    requireBands(cfg.measurement.expectationsByBand, [
+      "measurement",
+      "expectationsByBand",
     ]);
     cfg.activities.forEach((a, i) =>
       requireBands(a.priorityByBand, ["activities", i, "priorityByBand"]),

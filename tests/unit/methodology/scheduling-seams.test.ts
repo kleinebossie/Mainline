@@ -8,7 +8,9 @@ import {
   isProgressReal,
   isStableBaseline,
   scheduleReview,
+  expectationForBand,
   type RatingPoint,
+  type Band,
 } from "@/methodology/provider";
 
 // Golden tests for the M7 methodology seams (BUILD.md §13.1): Seam 6 (scheduling) +
@@ -115,5 +117,24 @@ describe("detectPlateau (Seam 7 — CI high over the window)", () => {
       { at: day(200), rating: 1600, rd: 40 },
     ];
     expect(detectPlateau({ history }, cfg).reason).toBe("new_high");
+  });
+});
+
+describe("expectationForBand (Measurement — per-band expectations)", () => {
+  it("returns the exact copy and grade for a known band", () => {
+    const expectation = expectationForBand("b800_1200", cfg);
+    expect(expectation.evidenceGrade).toBe("A");
+    expect(expectation.text).toContain("hundred-point mark");
+    expect(expectation.citationKey).toBe("lichess_etl");
+  });
+
+  it("falls back to the top band if the band is missing", () => {
+    // "unknown_band" is not in our stub config, so it should fall back to b2200plus
+    const expectation = expectationForBand(
+      "unknown_band" as unknown as Band,
+      cfg,
+    );
+    const topBandExpectation = expectationForBand("b2200plus", cfg);
+    expect(expectation.text).toBe(topBandExpectation.text);
   });
 });

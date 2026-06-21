@@ -1024,8 +1024,11 @@ DoD checklist._
 - **Tests:** unit — a `stub`/Grade-D value renders with its caveat (never as fact), and a C/D-grade
   `RationaleEntry` honors its `soften` flag (copy phrased tentatively); e2e — open a card, see grade +
   rationale; dashboard shows due items & skill estimates.
-- **DoD:** ☐ every recommendation explainable in-app ☐ stub/low-grade values visibly flagged (L3) ☐
+- **DoD:** [x] every recommendation explainable in-app [x] stub/low-grade values visibly flagged (L3) [x]
   skill/schedule/expectations dashboards render.
+  **Status (2026-06-21): code-complete & locally green.** Transparency UI deployed: TransparencyCard renders
+  caveats ("Placeholder") for 'stub' or 'best-guess' values, and a full dashboard surfaces SkillState, due FSRS
+  schedule items, the Engine's AdaptationLog, and per-band Measurement expectations. L3 honesty guard is intact.
 
 ### M9 — Engagement framework
 

@@ -675,3 +675,40 @@ export function detectPlateau(
   }
   return { isPlateau: true, suggestedStimulusChange: true, reason: "plateau" };
 }
+
+export interface GradedExpectation {
+  text: string;
+  evidenceGrade: Grade;
+  evidenceTier: Tier;
+  citationKey: string;
+  flag?: GradedFlag;
+}
+
+/**
+ * Measurement — return the graded expectation copy for a specific band.
+ */
+export function expectationForBand(
+  band: Band,
+  cfg: MethodologyConfig,
+): GradedExpectation {
+  const ex = cfg.measurement.expectationsByBand[band];
+  if (!ex) {
+    // Fall back to top band if missing (should not happen with coherent stub).
+    const topBand = cfg.bands[cfg.bands.length - 1]!.id;
+    const topEx = cfg.measurement.expectationsByBand[topBand]!;
+    return {
+      text: topEx.value,
+      evidenceGrade: topEx.grade,
+      evidenceTier: topEx.tier,
+      citationKey: topEx.citationKey,
+      flag: topEx.flag,
+    };
+  }
+  return {
+    text: ex.value,
+    evidenceGrade: ex.grade,
+    evidenceTier: ex.tier,
+    citationKey: ex.citationKey,
+    flag: ex.flag,
+  };
+}

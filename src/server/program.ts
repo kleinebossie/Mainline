@@ -53,7 +53,7 @@ function startOfDayUTC(epoch: number): Date {
 
 /** The rating that drives Seam-5 difficulty: the behavioural calibration estimate first,
  *  then a platform puzzle/rapid rating, else the config's no-data start (Seam 2 rule). */
-async function resolveTacticalRating(
+export async function resolveTacticalRating(
   db: Db,
   userId: string,
   cfg: MethodologyConfig,
