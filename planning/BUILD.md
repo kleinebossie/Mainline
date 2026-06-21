@@ -886,6 +886,31 @@ DoD checklist._
   constraints Zod validation; e2e — complete calibration + constraints.
 - **DoD:** ☐ `ConstraintSet` persisted & current ☐ calibration produces a graded estimate ☐ self-report
   never used for skill (only constraints/goals) ☐ if-then plan captured.
+- **Status (2026-06-21): code-complete & locally green; the one remaining step is applying the
+  migration to Supabase.** This slice also lands the **methodology layer** (M3's deferred piece, its
+  first real consumer): the `GradedValue` wrapper + `MethodologyConfig` Zod schema
+  (`src/methodology/schema/`), the **fail-closed, immutable** `loadMethodology()` loader, the
+  `stub-0.1.0` config (every leaf a graded value, every `citationKey` resolving), and the pure
+  provider fns `nextCalibrationItem` / `scoreCalibration` (Seam 2) + `buildImplementationIntention`
+  (Seam 9) — read config only, no chess constants (L1), no clock (L2). Data model: `Assessment`
+  (one-per-user; **behavioural** responses only — skill is never self-reported) + `ConstraintSet`
+  (versioned, one `isCurrent`) + migration `20260621000000_m4_constraints_assessment` (generated
+  offline via `prisma migrate diff` between schema datamodels — no DB needed). API: `assessment`
+  (`state`/`submit`/`reset`) and `constraints` (`getCurrent`/`save` with supersede + version bump)
+  tRPC routers; shared `lib/constraints.ts` Zod is the one validation truth for form + router. UI:
+  resumable `/onboarding` overview + adaptive `/onboarding/calibration` (items rendered from config;
+  the graded estimate shows its evidence grade/flag so a stub value never reads as fact, L3) +
+  `/onboarding/constraints` form (time, goals, formats, Seam-9 if-then) + `/onboarding/reveal`
+  scaffold (calibration estimate surfaced honestly; game-signal interpretation deferred to Seam 3 /
+  M5–M6). New guards now in CI: **L3** (`tests/guards/methodology-config.test.ts` — every shipped
+  config validates, citations resolve, config is deep-frozen; negative cases prove a bare/ungraded
+  leaf or dangling citation is rejected) and **L1** (`engine`/`analysis`/`server`/`app` import the
+  `@/methodology` surface, never its internals). Tests: **80 unit + guards green** (12 calibration
+  golden, 8 constraints Zod, 8 L3 config-integrity, +L1 import boundary), **`next build` green** (11
+  routes), **9 e2e green** (onboarding auth-gates; the full signed-in calibration + constraints flow
+  is verified manually per §13.5, as in M1/M2). **`instantEvalGames` deviation (deliberate):** the
+  Seam-2 config field ships flagged `best-guess` but is consumed in M5 (client-side analysis), not
+  here. **Remaining user step (infra — spelled out in the handoff): apply the migration to Supabase.**
 
 ### M5 — Analysis (client-side Stockfish)
 

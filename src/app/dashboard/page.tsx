@@ -22,9 +22,20 @@ export default async function DashboardPage() {
             milestone.
           </p>
         </div>
-        <Link href="/connections" className={buttonVariants({ variant: "ghost", size: "sm" })}>
-          Connections
-        </Link>
+        <nav className="flex items-center gap-2">
+          <Link
+            href="/onboarding"
+            className={buttonVariants({ variant: "ghost", size: "sm" })}
+          >
+            Onboarding
+          </Link>
+          <Link
+            href="/connections"
+            className={buttonVariants({ variant: "ghost", size: "sm" })}
+          >
+            Connections
+          </Link>
+        </nav>
       </header>
 
       <Dashboard />

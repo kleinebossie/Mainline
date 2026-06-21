@@ -1,0 +1,200 @@
+{
+  "version": "stub-0.1.0",
+  "bands": [
+    {
+      "id": "u800",
+      "label": "<800",
+      "minRating": { "value": null, "grade": "C", "tier": 1, "citationKey": "bands_convention", "flag": "best-guess" },
+      "maxRating": { "value": 800, "grade": "C", "tier": 1, "citationKey": "bands_convention", "flag": "best-guess" }
+    },
+    {
+      "id": "b800_1200",
+      "label": "800–1200",
+      "minRating": { "value": 800, "grade": "C", "tier": 1, "citationKey": "bands_convention", "flag": "best-guess" },
+      "maxRating": { "value": 1200, "grade": "C", "tier": 1, "citationKey": "bands_convention", "flag": "best-guess" }
+    },
+    {
+      "id": "b1200_1600",
+      "label": "1200–1600",
+      "minRating": { "value": 1200, "grade": "C", "tier": 1, "citationKey": "bands_convention", "flag": "best-guess" },
+      "maxRating": { "value": 1600, "grade": "C", "tier": 1, "citationKey": "bands_convention", "flag": "best-guess" }
+    },
+    {
+      "id": "b1600_2000",
+      "label": "1600–2000",
+      "minRating": { "value": 1600, "grade": "C", "tier": 1, "citationKey": "bands_convention", "flag": "best-guess" },
+      "maxRating": { "value": 2000, "grade": "C", "tier": 1, "citationKey": "bands_convention", "flag": "best-guess" }
+    },
+    {
+      "id": "b2000_2200",
+      "label": "2000–2200",
+      "minRating": { "value": 2000, "grade": "C", "tier": 1, "citationKey": "bands_convention", "flag": "best-guess" },
+      "maxRating": { "value": 2200, "grade": "C", "tier": 1, "citationKey": "bands_convention", "flag": "best-guess" }
+    },
+    {
+      "id": "b2200plus",
+      "label": "2200+",
+      "minRating": { "value": 2200, "grade": "C", "tier": 1, "citationKey": "bands_convention", "flag": "best-guess" },
+      "maxRating": { "value": null, "grade": "C", "tier": 1, "citationKey": "bands_convention", "flag": "best-guess" }
+    }
+  ],
+  "assessment": {
+    "selfReportForSkill": {
+      "value": false,
+      "grade": "A",
+      "tier": 1,
+      "citationKey": "heck2025",
+      "note": "Self-report is invalid for skill diagnosis (Dunning-Kruger); diagnose behaviourally."
+    },
+    "selfReportForConstraints": {
+      "value": true,
+      "grade": "A",
+      "tier": 1,
+      "citationKey": "heck2025",
+      "note": "Self-report remains valid for constraints/goals/resources — not a skill claim."
+    },
+    "instantEvalGames": {
+      "value": 5,
+      "grade": "C",
+      "tier": 1,
+      "citationKey": "compute_realism",
+      "flag": "best-guess",
+      "note": "Client-side instant-analysis budget at onboarding; consumed in M5."
+    },
+    "calibration": {
+      "minItems": {
+        "value": 8,
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "stub_open_question",
+        "flag": "best-guess",
+        "note": "IRT ladder length lower bound; best-guess."
+      },
+      "maxItems": {
+        "value": 12,
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "stub_open_question",
+        "flag": "best-guess",
+        "note": "IRT ladder length upper bound; best-guess."
+      },
+      "timeBudgetMin": {
+        "value": 3,
+        "grade": "C",
+        "tier": 2,
+        "citationKey": "cheung2014",
+        "flag": "best-guess",
+        "note": "≈3 min keeps onboarding cognitive load low; exact length best-guess."
+      },
+      "startRating": {
+        "value": 1200,
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "stub_open_question",
+        "flag": "best-guess",
+        "note": "Default ladder start when the user has no platform rating."
+      },
+      "targetSuccessRate": {
+        "value": 0.8,
+        "grade": "B",
+        "tier": 2,
+        "citationKey": "wilson2019",
+        "note": "Servo target; pattern-learning sweet spot ≈85%, conservative 80%."
+      },
+      "stepUp": {
+        "value": 50,
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "stub_open_question",
+        "flag": "best-guess",
+        "note": "Transformed staircase: raise difficulty by this much after a solve."
+      },
+      "stepDown": {
+        "value": 200,
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "stub_open_question",
+        "flag": "best-guess",
+        "note": "4× stepUp ⇒ ladder converges to ~80% success (the target above)."
+      },
+      "ratingFloor": {
+        "value": 600,
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "stub_open_question",
+        "flag": "best-guess",
+        "note": "Lower clamp of the calibration rating span."
+      },
+      "ratingCeil": {
+        "value": 2600,
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "stub_open_question",
+        "flag": "best-guess",
+        "note": "Upper clamp of the calibration rating span."
+      },
+      "abilitySpread": {
+        "value": 400,
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "stub_open_question",
+        "flag": "best-guess",
+        "note": "Maps (success − target) to a rating offset in the estimator."
+      },
+      "uncertaintyBase": {
+        "value": 350,
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "stub_open_question",
+        "flag": "best-guess",
+        "note": "Estimate SE at n=1; shrinks by √n as items accrue."
+      },
+      "stopUncertainty": {
+        "value": 120,
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "stub_open_question",
+        "flag": "best-guess",
+        "note": "Stop the ladder early once SE drops below this (and minItems met)."
+      }
+    }
+  },
+  "evidenceLedger": [
+    {
+      "key": "heck2025",
+      "source": "Heck, Benjamin, Simons & Chabris 2025",
+      "anchors": "Dunning-Kruger in chess → reject self-report for skill; valid for constraints/goals",
+      "grade": "A"
+    },
+    {
+      "key": "cheung2014",
+      "source": "Cheung et al. 2014",
+      "anchors": "Onboarding cognitive load → keep the assessment short",
+      "grade": "A"
+    },
+    {
+      "key": "wilson2019",
+      "source": "Wilson et al. 2019, Nat. Commun. 10:4646",
+      "anchors": "≈85% optimal-difficulty success target (ML; extrapolated to chess)",
+      "grade": "B"
+    },
+    {
+      "key": "bands_convention",
+      "source": "Rating-band convenience prior (METHODOLOGY §0.4)",
+      "anchors": "Fuzzy ±150 online bands; pools differ (Lichess>Chess.com>FIDE); user data overrides",
+      "grade": "C"
+    },
+    {
+      "key": "stub_open_question",
+      "source": "Deliberately stubbed best-guess (METHODOLOGY §4)",
+      "anchors": "Conservative placeholder pending the app's own outcome telemetry",
+      "grade": "C"
+    },
+    {
+      "key": "compute_realism",
+      "source": "Engineering constraint (BUILD.md §6.5)",
+      "anchors": "Client-side instant-analysis budget at onboarding",
+      "grade": "C"
+    }
+  ]
+}

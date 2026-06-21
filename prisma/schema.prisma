@@ -1,8 +1,8 @@
 // Single source of DB truth (BUILD.md §4, §5). M0 ships the Auth.js identity
 // tables; M1 adds identity fields (§5.1) + PlatformConnection (§5.2); M2 adds
 // ChessProfileSnapshot + ImportedGame (§5.2) and the JobRun ledger (§5.7); M3 adds
-// the resource catalog — LichessPuzzle + ResourceRef (§5.3). The rest of the data
-// model (§5) lands milestone by milestone.
+// the resource catalog — LichessPuzzle + ResourceRef (§5.3); M4 adds Assessment +
+// ConstraintSet (§5.4). The rest of the data model (§5) lands milestone by milestone.
 
 generator client {
   provider = "prisma-client-js"
@@ -35,6 +35,8 @@ model User {
   platformConnections   PlatformConnection[]
   chessProfileSnapshots ChessProfileSnapshot[]
   importedGames         ImportedGame[]
+  assessment            Assessment?
+  constraintSets        ConstraintSet[]
 }
 
 model Account {
@@ -214,4 +216,52 @@ model ResourceRef {
   updatedAt      DateTime @updatedAt
 
   @@index([type])
+}
+
+// --- Assessment & constraints (BUILD.md §5.4) ---
+
+// Onboarding behavioural calibration (Seam 2). One row per user (upserted as the
+// adaptive ladder progresses). `calibrationResponses` is the append-only list of
+// CalibrationResponse ({ ratingShown, correct }) — BEHAVIOURAL evidence only; skill is
+// NEVER taken from self-report (Seam 2 / Dunning-Kruger). `tacticalRatingEstimate` +
+// `uncertainty` are produced by the pure `scoreCalibration` (graded, best-guess);
+// `derivedSkillSeed` seeds SkillState in M6/M7. `methodologyVersion` records the config
+// the estimate was scored under (reproducibility, §2.6).
+model Assessment {
+  id                     String    @id @default(cuid())
+  userId                 String    @unique
+  completedAt            DateTime?
+  calibrationResponses   Json
+  tacticalRatingEstimate Int?
+  uncertainty            Int?
+  derivedSkillSeed       Json?
+  methodologyVersion     String
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// The user's reality (BUILD.md §5.4): current + history. Exactly one row per user has
+// `isCurrent = true` (the latest version feeds the generator, M6); saving a new set
+// supersedes the previous current row and bumps `version`. `goals`/`formatPrefs`/
+// `ifThenPlan` are typed via lib/constraints.ts Zod. All self-report here is
+// constraints/goals/resources — never a skill claim (Seam 2 boundary).
+model ConstraintSet {
+  id             String   @id @default(cuid())
+  userId         String
+  minutesPerDay  Int
+  daysPerWeek    Int
+  goals          Json
+  ownedResources String[]
+  formatPrefs    Json
+  ifThenPlan     Json?
+  isCurrent      Boolean  @default(true)
+  version        Int      @default(1)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isCurrent])
 }
