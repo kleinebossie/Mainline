@@ -12,7 +12,9 @@ export function TransparencyDashboard() {
   return (
     <div className="flex flex-col gap-12 mt-4">
       <section className="flex flex-col gap-4">
-        <h2 className="eyebrow border-b border-line/80 pb-3">Skill Estimates</h2>
+        <h2 className="eyebrow border-b border-line/80 pb-3">
+          Skill Estimates
+        </h2>
         {skillStates.isLoading ? (
           <p className="text-graphite font-mono text-sm">Loading skills…</p>
         ) : skillStates.data && skillStates.data.length > 0 ? (
@@ -23,7 +25,9 @@ export function TransparencyDashboard() {
                 className="bg-card rounded-lg border p-4 shadow-sheet"
               >
                 <div className="flex items-center justify-between gap-4">
-                  <span className="font-serif text-base font-semibold">{s.dimension}</span>
+                  <span className="font-serif text-base font-semibold">
+                    {s.dimension}
+                  </span>
                   <span className="font-mono text-xs font-semibold tabular-nums text-ink">
                     {Math.round(s.estimate)} ±{Math.round(s.uncertainty)}
                   </span>
@@ -42,7 +46,9 @@ export function TransparencyDashboard() {
       </section>
 
       <section className="flex flex-col gap-4">
-        <h2 className="eyebrow border-b border-line/80 pb-3">Schedule & Due Items</h2>
+        <h2 className="eyebrow border-b border-line/80 pb-3">
+          Schedule & Due Items
+        </h2>
         {dueStates.isLoading ? (
           <p className="text-graphite font-mono text-sm">Loading schedule…</p>
         ) : dueStates.data && dueStates.data.length > 0 ? (
@@ -62,9 +68,7 @@ export function TransparencyDashboard() {
             ))}
           </ul>
         ) : (
-          <p className="text-graphite text-sm">
-            No due items right now.
-          </p>
+          <p className="text-graphite text-sm">No due items right now.</p>
         )}
       </section>
 
@@ -94,16 +98,16 @@ export function TransparencyDashboard() {
             ))}
           </ul>
         ) : (
-          <p className="text-graphite text-sm">
-            No engine adaptations yet.
-          </p>
+          <p className="text-graphite text-sm">No engine adaptations yet.</p>
         )}
       </section>
 
       <section className="flex flex-col gap-4">
         <h2 className="eyebrow border-b border-line/80 pb-3">Expectations</h2>
         {expectation.isLoading ? (
-          <p className="text-graphite font-mono text-sm">Loading expectations…</p>
+          <p className="text-graphite font-mono text-sm">
+            Loading expectations…
+          </p>
         ) : expectation.data ? (
           <TransparencyCard
             rationaleText={expectation.data.text}

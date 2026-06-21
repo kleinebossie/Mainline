@@ -62,9 +62,10 @@ export default async function Home() {
             </p>
 
             <p className="text-paper/70 max-w-md text-base leading-relaxed">
-              A personalized training program built from your real games and your
-              real constraints — then adapted as you play. Every recommendation
-              shows its reasoning and exactly how strong the evidence is.
+              A personalized training program built from your real games and
+              your real constraints — then adapted as you play. Every
+              recommendation shows its reasoning and exactly how strong the
+              evidence is.
             </p>
 
             <div className="mt-2 flex flex-wrap items-center gap-3">
@@ -134,27 +135,40 @@ export default async function Home() {
             </p>
           </div>
 
-          <ul className="divide-line/80 divide-y border-y border-line/80">
+          <div className="grid gap-4 sm:grid-cols-2">
             {GRADE_KEY.map((g) => (
-              <li key={g.grade} className="flex items-center gap-5 py-4">
-                <span
-                  aria-hidden
-                  className={cn(
-                    "w-10 shrink-0 text-center font-mono text-2xl font-bold leading-none",
-                    GRADE_CLR[g.grade],
-                  )}
-                >
-                  {g.glyph}
-                </span>
-                <span className="font-mono text-sm font-medium uppercase tracking-[0.12em]">
-                  Grade {g.grade}
-                </span>
-                <span className="text-graphite ml-auto text-right font-serif text-base">
-                  {g.label}
-                </span>
-              </li>
+              <div
+                key={g.grade}
+                className="bg-card eval-gutter rounded-lg border p-5 pl-6 shadow-sheet transition-all duration-150 hover:translate-y-[-1px]"
+                data-grade={g.grade}
+              >
+                <div className="flex items-center gap-3">
+                  <span
+                    aria-hidden
+                    className={cn(
+                      "font-mono text-2xl font-bold leading-none select-none",
+                      GRADE_CLR[g.grade],
+                    )}
+                  >
+                    {g.glyph}
+                  </span>
+                  <span className="font-mono text-xs font-semibold uppercase tracking-[0.12em]">
+                    Grade {g.grade}
+                  </span>
+                </div>
+                <p className="text-graphite mt-3 font-serif text-sm leading-relaxed">
+                  {g.label} evidence. Used to mark{" "}
+                  {g.grade === "A"
+                    ? "strong, replicated research results (like FSRS spacing formulas)."
+                    : g.grade === "B"
+                      ? "suggestive studies with limited size or context."
+                      : g.grade === "C"
+                        ? "logical theories, placeholders, or calibration estimates."
+                        : "popular chess improvement myths that the app actively avoids."}
+                </p>
+              </div>
             ))}
-          </ul>
+          </div>
         </div>
 
         <p className="text-graphite mt-12 max-w-2xl border-l-2 border-evergreen/40 pl-4 font-serif text-lg italic leading-relaxed">

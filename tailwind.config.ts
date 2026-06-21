@@ -78,7 +78,8 @@ const config: Config = {
         sm: "calc(var(--radius) - 4px)",
       },
       boxShadow: {
-        sheet: "0 1px 2px hsl(var(--ink) / 0.04), 0 8px 24px -16px hsl(var(--ink) / 0.18)",
+        sheet:
+          "0 1px 2px hsl(var(--ink) / 0.04), 0 8px 24px -16px hsl(var(--ink) / 0.18)",
       },
     },
   },

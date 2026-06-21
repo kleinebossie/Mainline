@@ -42,6 +42,27 @@ export function Calibration() {
 
   if (completed || next.done) {
     const softened = estimate.flag != null || estimate.evidenceGrade >= "C";
+
+    const minRating = 800;
+    const maxRating = 2500;
+    const range = maxRating - minRating;
+    const ratingVal = estimate.tacticalRatingEstimate;
+    const unc = estimate.uncertainty;
+
+    const pctEstimate = Math.min(
+      100,
+      Math.max(0, ((ratingVal - minRating) / range) * 100),
+    );
+    const pctMin = Math.min(
+      100,
+      Math.max(0, ((ratingVal - unc - minRating) / range) * 100),
+    );
+    const pctMax = Math.min(
+      100,
+      Math.max(0, ((ratingVal + unc - minRating) / range) * 100),
+    );
+    const widthPct = pctMax - pctMin;
+
     return (
       <Card gutter={asGrade(estimate.evidenceGrade)} className="settle">
         <CardHeader className="pb-4">
@@ -54,6 +75,32 @@ export function Calibration() {
           </p>
         </CardHeader>
         <CardContent className="flex flex-col gap-5">
+          <div className="flex flex-col gap-2 rounded-md border p-4 bg-paper/30 mb-1">
+            <div className="flex justify-between font-mono text-[0.62rem] text-graphite uppercase tracking-wider">
+              <span>Calibration Gauge</span>
+              <span>800 – 2500</span>
+            </div>
+            <div className="relative h-4 w-full bg-ink/5 dark:bg-ink/20 rounded-sm border border-line overflow-hidden">
+              {/* Uncertainty range block */}
+              <div
+                className="absolute top-0 bottom-0 bg-evergreen/15 dark:bg-evergreen/35 border-x border-evergreen/30"
+                style={{ left: `${pctMin}%`, width: `${widthPct}%` }}
+              />
+              {/* Estimate indicator line */}
+              <div
+                className="absolute top-0 bottom-0 w-0.5 bg-evergreen"
+                style={{ left: `${pctEstimate}%` }}
+              />
+            </div>
+            <div className="flex justify-between font-mono text-[0.65rem] text-graphite/70 tabular-nums">
+              <span>800</span>
+              <span>1200</span>
+              <span>1600</span>
+              <span>2000</span>
+              <span>2400</span>
+            </div>
+          </div>
+
           <div className="bg-paper/60 rounded-md border border-dashed p-4">
             <div className="flex items-center gap-2 mb-3">
               <GradeMark grade={estimate.evidenceGrade} />
@@ -100,9 +147,7 @@ export function Calibration() {
       </CardHeader>
       <CardContent className="flex flex-col gap-5">
         <div className="bg-paper/60 rounded-md border p-5 text-center">
-          <p className="eyebrow !text-[0.65rem] mb-1">
-            Puzzle strength target
-          </p>
+          <p className="eyebrow !text-[0.65rem] mb-1">Puzzle strength target</p>
           <p className="text-4xl font-mono font-bold tracking-tight text-ink tabular-nums">
             {next.ratingTarget}
           </p>

@@ -18,7 +18,9 @@ export default async function ConnectionsPage() {
       title="Connections"
       lede={
         <span className="flex flex-wrap items-center justify-between gap-4">
-          <span>Link your chess accounts so Mainline can analyse your games.</span>
+          <span>
+            Link your chess accounts so Mainline can analyse your games.
+          </span>
           <form
             action={async () => {
               "use server";
@@ -46,9 +48,7 @@ export default async function ConnectionsPage() {
               await signIn("lichess", { redirectTo: "/connections" });
             }}
           >
-            <Button type="submit">
-              Connect Lichess
-            </Button>
+            <Button type="submit">Connect Lichess</Button>
           </form>
         </section>
 

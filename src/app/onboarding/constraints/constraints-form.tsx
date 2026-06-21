@@ -106,7 +106,9 @@ function Form({ initial }: { initial: ConstraintsInput }) {
     <form className="flex flex-col gap-10 settle" onSubmit={onSubmit}>
       <fieldset className="grid grid-cols-1 gap-6 sm:grid-cols-2">
         <label className="flex flex-col gap-2 font-serif text-sm font-medium">
-          <span className="eyebrow !text-[0.65rem] !tracking-wider">Minutes per day</span>
+          <span className="eyebrow !text-[0.65rem] !tracking-wider">
+            Minutes per day
+          </span>
           <Input
             type="number"
             min={5}
@@ -116,7 +118,9 @@ function Form({ initial }: { initial: ConstraintsInput }) {
           />
         </label>
         <label className="flex flex-col gap-2 font-serif text-sm font-medium">
-          <span className="eyebrow !text-[0.65rem] !tracking-wider">Days per week</span>
+          <span className="eyebrow !text-[0.65rem] !tracking-wider">
+            Days per week
+          </span>
           <Input
             type="number"
             min={1}
@@ -133,7 +137,10 @@ function Form({ initial }: { initial: ConstraintsInput }) {
         </legend>
         <div className="flex flex-col gap-2.5">
           {GOAL_OPTIONS.map((g) => (
-            <label key={g.kind} className="flex items-center gap-3 font-serif text-sm text-ink cursor-pointer">
+            <label
+              key={g.kind}
+              className="flex items-center gap-3 font-serif text-sm text-ink cursor-pointer"
+            >
               <input
                 type="checkbox"
                 checked={goalKinds.has(g.kind)}
@@ -196,7 +203,9 @@ function Form({ initial }: { initial: ConstraintsInput }) {
           helps.
         </p>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <span className="font-serif text-sm text-graphite shrink-0">After</span>
+          <span className="font-serif text-sm text-graphite shrink-0">
+            After
+          </span>
           <Input
             value={cue}
             onChange={(e) => setCue(e.target.value)}
@@ -205,7 +214,9 @@ function Form({ initial }: { initial: ConstraintsInput }) {
             maxLength={160}
             className="flex-1"
           />
-          <span className="font-serif text-sm text-graphite shrink-0">, I will</span>
+          <span className="font-serif text-sm text-graphite shrink-0">
+            , I will
+          </span>
           <Input
             value={plan}
             onChange={(e) => setPlan(e.target.value)}
@@ -223,7 +234,10 @@ function Form({ initial }: { initial: ConstraintsInput }) {
         </Button>
         {saved && (
           <>
-            <span className="text-sm font-mono font-medium text-evergreen" role="status">
+            <span
+              className="text-sm font-mono font-medium text-evergreen"
+              role="status"
+            >
               Saved ✓
             </span>
             <Link

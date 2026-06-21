@@ -4,7 +4,11 @@
 // dashed/struck treatment for thin (C/D) or placeholder evidence so it can never read as
 // established fact (VISION §2).
 
-import { GradeMark, ConfidenceBar, PlaceholderTag } from "@/components/evidence";
+import {
+  GradeMark,
+  ConfidenceBar,
+  PlaceholderTag,
+} from "@/components/evidence";
 
 export interface TransparencyCardProps {
   rationaleText: string;

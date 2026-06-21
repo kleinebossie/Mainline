@@ -65,7 +65,9 @@ export function ConnectionsManager() {
       </section>
 
       <section className="flex flex-col gap-4">
-        <h2 className="eyebrow border-b border-line/80 pb-3">Connected accounts</h2>
+        <h2 className="eyebrow border-b border-line/80 pb-3">
+          Connected accounts
+        </h2>
         {list.isLoading ? (
           <p className="text-graphite font-mono text-sm">Loading…</p>
         ) : list.data && list.data.length > 0 ? (
@@ -79,7 +81,10 @@ export function ConnectionsManager() {
                   <span className="font-serif text-base font-medium">
                     {PLATFORM_LABEL[conn.platform] ?? conn.platform}
                   </span>{" "}
-                  · <span className="font-mono text-xs text-graphite">{conn.externalUsername}</span>
+                  ·{" "}
+                  <span className="font-mono text-xs text-graphite">
+                    {conn.externalUsername}
+                  </span>
                   {conn.status !== "active" && (
                     <span className="text-clay font-mono text-xs">
                       {" "}

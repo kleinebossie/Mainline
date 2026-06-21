@@ -20,12 +20,33 @@ const RESULT_CLR: Record<string, string> = {
   draw: "text-graphite",
 };
 
-function formatRatings(ratings: unknown): string {
-  if (!ratings || typeof ratings !== "object") return "—";
-  const entries = Object.entries(ratings as Record<string, { rating?: number }>)
-    .filter(([, v]) => typeof v?.rating === "number")
-    .map(([fmt, v]) => `${fmt} ${v.rating}`);
-  return entries.length ? entries.join(" · ") : "—";
+function renderRatings(ratings: unknown) {
+  if (!ratings || typeof ratings !== "object") {
+    return <span className="text-graphite font-mono text-xs">—</span>;
+  }
+  const entries = Object.entries(
+    ratings as Record<string, { rating?: number }>,
+  ).filter(([, v]) => typeof v?.rating === "number");
+
+  if (entries.length === 0) {
+    return <span className="text-graphite font-mono text-xs">—</span>;
+  }
+
+  return (
+    <div className="flex flex-wrap gap-1.5 mt-1.5 sm:mt-0">
+      {entries.map(([fmt, v]) => (
+        <span
+          key={fmt}
+          className="inline-flex items-center gap-1 rounded bg-ink/[0.04] dark:bg-ink/[0.18] px-2 py-0.5 font-mono text-[0.7rem] font-medium"
+        >
+          <span className="text-graphite uppercase tracking-wider">{fmt}</span>
+          <span className="text-ink font-semibold tabular-nums">
+            {v.rating}
+          </span>
+        </span>
+      ))}
+    </div>
+  );
 }
 
 export function Dashboard() {
@@ -73,14 +94,17 @@ export function Dashboard() {
             {profiles.data.map((p) => (
               <li
                 key={p.platform}
-                className="bg-card flex items-center justify-between gap-4 rounded-md border p-3.5"
+                className="bg-card flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-md border p-3.5 shadow-sm transition-all duration-150 hover:bg-ink/[0.01] hover:border-ink/20"
               >
-                <span className="font-serif text-base font-medium">
-                  {PLATFORM_LABEL[p.platform] ?? p.platform}
-                </span>
-                <span className="text-graphite font-mono text-xs tabular-nums">
-                  {formatRatings(p.ratings)} · {p.totalGames} games
-                </span>
+                <div className="flex items-baseline gap-2.5">
+                  <span className="font-serif text-base font-semibold">
+                    {PLATFORM_LABEL[p.platform] ?? p.platform}
+                  </span>
+                  <span className="text-graphite font-mono text-xs">
+                    · {p.totalGames} games
+                  </span>
+                </div>
+                {renderRatings(p.ratings)}
               </li>
             ))}
           </ul>
@@ -118,7 +142,10 @@ export function Dashboard() {
                     {g.result ? (RESULT_LABEL[g.result] ?? g.result) : "—"}
                   </span>
                   {g.userRatingAtGame ? (
-                    <span className="text-graphite"> · {g.userRatingAtGame}</span>
+                    <span className="text-graphite">
+                      {" "}
+                      · {g.userRatingAtGame}
+                    </span>
                   ) : (
                     ""
                   )}

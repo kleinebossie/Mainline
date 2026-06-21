@@ -69,8 +69,12 @@ export function OnboardingSteps() {
               {step.done ? "✓" : i + 1}
             </span>
             <div>
-              <p className="font-serif text-base font-semibold leading-tight">{step.title}</p>
-              <p className="text-graphite text-sm leading-relaxed mt-1">{step.detail}</p>
+              <p className="font-serif text-base font-semibold leading-tight">
+                {step.title}
+              </p>
+              <p className="text-graphite text-sm leading-relaxed mt-1">
+                {step.detail}
+              </p>
             </div>
           </div>
           <Link

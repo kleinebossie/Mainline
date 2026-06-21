@@ -112,7 +112,10 @@ export function AnalysisRunner() {
           </span>{" "}
           imported games
           {engineLabel ? (
-            <span className="text-graphite font-mono text-xs"> · {engineLabel}</span>
+            <span className="text-graphite font-mono text-xs">
+              {" "}
+              · {engineLabel}
+            </span>
           ) : null}
           .
         </p>

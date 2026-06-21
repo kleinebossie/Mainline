@@ -5,6 +5,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TransparencyCard } from "@/components/transparency-card";
 import type { TodayItem } from "@/server/program";
+import { cn } from "@/lib/utils";
 
 // The "Today" screen (BUILD.md §7.6, M6/M7). Renders the generated daily session: each item
 // is an external-resource activity with its difficulty params and a TransparencyCard
@@ -98,7 +99,7 @@ export function Today() {
   return (
     <div className="flex flex-col gap-5">
       {/* Honest framing: a process goal and realistic expectations, never a rating promise. */}
-      <div className="bg-card rounded-lg border border-l-[3px] border-l-evergreen p-5 shadow-sheet">
+      <div className="bg-card focus-card rounded-lg border p-5 shadow-sheet settle">
         <p className="eyebrow">Today&apos;s focus</p>
         <p className="mt-2 font-serif text-lg leading-snug">
           {program.honesty.processGoal}
@@ -108,13 +109,13 @@ export function Today() {
         </p>
         {due > 0 && (
           <p className="text-evergreen mt-3 font-mono text-xs">
-            {due} review{due === 1 ? "" : "s"} due — regenerate to pull them into
-            your session.
+            {due} review{due === 1 ? "" : "s"} due — regenerate to pull them
+            into your session.
           </p>
         )}
       </div>
 
-      {program.items.map((item) => {
+      {program.items.map((item, index) => {
         const done = item.status === "done";
         const skipped = item.status === "skipped";
         const busy = pendingItemId === item.id;
@@ -123,11 +124,23 @@ export function Today() {
             key={item.id}
             gutter={asGrade(item.evidenceGrade)}
             provisional={item.soften}
-            className={done ? "opacity-65" : undefined}
+            className={cn("settle", done ? "opacity-65" : undefined)}
+            style={{ animationDelay: `${(index + 1) * 80}ms` }}
           >
             <CardHeader className="pb-4">
               <div className="flex items-baseline justify-between gap-3">
-                <CardTitle>{item.label}</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  {item.activityType === "spaced_review" && (
+                    <span
+                      className="text-evergreen font-mono text-base shrink-0 select-none"
+                      aria-hidden="true"
+                      title="Spaced review item"
+                    >
+                      ⟳
+                    </span>
+                  )}
+                  {item.label}
+                </CardTitle>
                 {item.estMinutes != null && (
                   <span className="text-graphite shrink-0 font-mono text-sm tabular-nums">
                     ~{item.estMinutes} min
@@ -248,8 +261,8 @@ export function Today() {
       {log.data && log.data.scheduledReviews > 0 && (
         <p className="text-graphite border-l-2 border-evergreen/40 pl-3 font-mono text-xs leading-relaxed">
           Logged — {log.data.scheduledReviews} item
-          {log.data.scheduledReviews === 1 ? "" : "s"} queued to come back spaced
-          over the next days.
+          {log.data.scheduledReviews === 1 ? "" : "s"} queued to come back
+          spaced over the next days.
         </p>
       )}
 
