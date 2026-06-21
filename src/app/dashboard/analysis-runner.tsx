@@ -81,9 +81,9 @@ export function AnalysisRunner() {
   const pendingCount = pending.data?.length ?? 0;
 
   return (
-    <section className="flex flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <h2 className="font-semibold">Game analysis</h2>
+    <section className="flex flex-col gap-4">
+      <div className="flex items-center justify-between gap-4 border-b border-line/80 pb-3">
+        <h2 className="eyebrow">Game analysis</h2>
         <Button
           type="button"
           size="sm"
@@ -98,34 +98,34 @@ export function AnalysisRunner() {
         </Button>
       </div>
 
-      <p className="text-muted-foreground text-sm">
+      <p className="text-graphite text-sm leading-relaxed font-serif">
         Runs entirely in your browser (Stockfish WASM) — your games never leave
         your device for analysis. These are raw engine measurements only; the
         program engine turns them into training in a later step.
       </p>
 
       {counts ? (
-        <p className="text-sm">
+        <p className="text-ink text-sm font-serif">
           Analysed{" "}
-          <span className="font-medium">
+          <span className="font-mono text-xs font-semibold tabular-nums">
             {counts.analysed}/{counts.total}
           </span>{" "}
           imported games
           {engineLabel ? (
-            <span className="text-muted-foreground"> · {engineLabel}</span>
+            <span className="text-graphite font-mono text-xs"> · {engineLabel}</span>
           ) : null}
           .
         </p>
       ) : null}
 
       {status === "error" && error ? (
-        <p className="text-destructive text-sm" role="alert">
+        <p className="text-clay text-sm font-mono" role="alert">
           {error}
         </p>
       ) : null}
 
       {pendingCount === 0 && counts && counts.total === 0 ? (
-        <p className="text-muted-foreground text-sm">
+        <p className="text-graphite text-sm font-serif">
           No games to analyse yet. Import games first, then run analysis.
         </p>
       ) : null}

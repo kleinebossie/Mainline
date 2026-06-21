@@ -2,18 +2,27 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-const Card = React.forwardRef<HTMLDivElement, React.ComponentProps<"div">>(
-  ({ className, ...props }, ref) => (
-    <div
-      ref={ref}
-      className={cn(
-        "bg-card text-card-foreground rounded-lg border shadow-sm",
-        className,
-      )}
-      {...props}
-    />
-  ),
-);
+// A card is an "analysis entry" on the sheet: raised paper, a hairline, a soft shadow.
+// Pass `gutter` (an evidence grade) to light the leading eval-gutter that ties a card to
+// how strong its evidence is.
+type Grade = "A" | "B" | "C" | "D";
+
+const Card = React.forwardRef<
+  HTMLDivElement,
+  React.ComponentProps<"div"> & { gutter?: Grade; provisional?: boolean }
+>(({ className, gutter, provisional, ...props }, ref) => (
+  <div
+    ref={ref}
+    data-grade={gutter}
+    data-provisional={provisional ? "true" : undefined}
+    className={cn(
+      "bg-card text-card-foreground rounded-lg border shadow-sheet",
+      gutter && "eval-gutter",
+      className,
+    )}
+    {...props}
+  />
+));
 Card.displayName = "Card";
 
 const CardHeader = React.forwardRef<
@@ -33,7 +42,7 @@ const CardTitle = React.forwardRef<HTMLDivElement, React.ComponentProps<"div">>(
     <div
       ref={ref}
       className={cn(
-        "text-2xl font-semibold leading-none tracking-tight",
+        "font-serif text-2xl font-semibold leading-tight tracking-tight",
         className,
       )}
       {...props}
@@ -48,7 +57,7 @@ const CardDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("text-muted-foreground text-sm", className)}
+    className={cn("text-graphite text-sm leading-relaxed", className)}
     {...props}
   />
 ));

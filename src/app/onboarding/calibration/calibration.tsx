@@ -4,25 +4,19 @@ import Link from "next/link";
 
 import { trpc } from "@/lib/trpc/react";
 import { Button, buttonVariants } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { GradeMark } from "@/components/evidence";
 
 // Adaptive calibration UI. The difficulty of each item is produced by the methodology
 // (config-driven ladder); we present it as a strength target and record only the
 // behavioural outcome (solved / missed). The real puzzle board wires in once the puzzle
 // DB is ingested (M3 live step) and the generator lands (M6); here it is a faithful
 // shell that drives the same scoring path.
-const GRADE_NOTE: Record<string, string> = {
-  A: "Strong evidence",
-  B: "Suggestive evidence",
-  C: "Theory / best-guess",
-  D: "Unsupported — avoid",
-};
+
+type Grade = "A" | "B" | "C" | "D";
+function asGrade(g: string): Grade {
+  return g === "A" || g === "B" || g === "C" || g === "D" ? g : "C";
+}
 
 export function Calibration() {
   const utils = trpc.useUtils();
@@ -36,7 +30,7 @@ export function Calibration() {
   });
 
   if (state.isLoading || !state.data) {
-    return <p className="text-muted-foreground text-sm">Loading…</p>;
+    return <p className="text-graphite font-mono text-sm">Loading…</p>;
   }
 
   const { next, estimate, completed, responseCount, maxItems, timeBudgetMin } =
@@ -49,41 +43,43 @@ export function Calibration() {
   if (completed || next.done) {
     const softened = estimate.flag != null || estimate.evidenceGrade >= "C";
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-2xl">
+      <Card gutter={asGrade(estimate.evidenceGrade)} className="settle">
+        <CardHeader className="pb-4">
+          <CardTitle className="font-serif text-3xl font-semibold">
             Estimated tactical level ≈ {estimate.tacticalRatingEstimate}
           </CardTitle>
-          <CardDescription>
+          <p className="text-graphite font-mono text-sm mt-1">
             ± {estimate.uncertainty} (uncertainty shrinks with more games and
             reviews).
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <p
-            className="text-muted-foreground rounded-md border border-dashed p-3 text-sm"
-            role="note"
-          >
-            <span className="font-medium">
-              Grade {estimate.evidenceGrade} ·{" "}
-              {GRADE_NOTE[estimate.evidenceGrade] ?? "—"}
-              {estimate.flag ? ` (${estimate.flag})` : ""}.
-            </span>{" "}
-            {softened
-              ? "This calibration method is a placeholder — it estimates tactical vision only, and everything else comes from your actual games. Treat it as a rough starting point, not a verdict."
-              : "Calibration estimates tactical vision only; the rest comes from your games."}
           </p>
-          <div className="flex flex-wrap gap-3">
+        </CardHeader>
+        <CardContent className="flex flex-col gap-5">
+          <div className="bg-paper/60 rounded-md border border-dashed p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <GradeMark grade={estimate.evidenceGrade} />
+              {estimate.flag && (
+                <span className="border-clay/40 bg-clay/10 text-clay rounded px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider">
+                  {estimate.flag}
+                </span>
+              )}
+            </div>
+            <p className="text-ink font-serif text-[0.95rem] leading-relaxed">
+              {softened
+                ? "This calibration method is a placeholder — it estimates tactical vision only, and everything else comes from your actual games. Treat it as a rough starting point, not a verdict."
+                : "Calibration estimates tactical vision only; the rest comes from your games."}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-3 border-t border-line/80 pt-5">
             <Link href="/onboarding/constraints" className={buttonVariants()}>
               Continue
             </Link>
             <Button
               type="button"
-              variant="ghost"
+              variant="outline"
               disabled={pending}
               onClick={() => reset.mutate()}
             >
-              Retake
+              Retake calibration
             </Button>
           </div>
         </CardContent>
@@ -92,22 +88,24 @@ export function Calibration() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-2xl">
+    <Card className="settle">
+      <CardHeader className="pb-4">
+        <CardTitle className="font-serif text-3xl font-semibold">
           Item {next.itemNumber} of up to {maxItems}
         </CardTitle>
-        <CardDescription>
+        <p className="text-graphite text-sm leading-relaxed mt-1">
           About a {timeBudgetMin}-minute check. Solve a puzzle around this
           strength, then tell us how it went.
-        </CardDescription>
+        </p>
       </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        <div className="rounded-md border p-4 text-center">
-          <p className="text-muted-foreground text-xs uppercase tracking-wide">
-            Puzzle strength
+      <CardContent className="flex flex-col gap-5">
+        <div className="bg-paper/60 rounded-md border p-5 text-center">
+          <p className="eyebrow !text-[0.65rem] mb-1">
+            Puzzle strength target
           </p>
-          <p className="text-3xl font-bold tabular-nums">{next.ratingTarget}</p>
+          <p className="text-4xl font-mono font-bold tracking-tight text-ink tabular-nums">
+            {next.ratingTarget}
+          </p>
         </div>
         <div className="flex gap-3">
           <Button
@@ -129,14 +127,16 @@ export function Calibration() {
           </Button>
         </div>
         {responseCount > 0 && (
-          <button
+          <Button
             type="button"
-            className="text-muted-foreground hover:text-foreground self-start text-xs underline"
+            variant="ghost"
+            size="sm"
+            className="self-start text-xs"
             disabled={pending}
             onClick={() => reset.mutate()}
           >
             Start over
-          </button>
+          </Button>
         )}
       </CardContent>
     </Card>

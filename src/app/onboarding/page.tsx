@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { auth } from "@/server/auth";
+import { PageShell } from "@/components/app-shell";
 import { OnboardingSteps } from "@/app/onboarding/onboarding-steps";
 
 // Onboarding overview (BUILD.md §8). A linear, resumable flow: connect → import →
@@ -11,17 +12,12 @@ export default async function OnboardingPage() {
   if (!session?.user) redirect("/signin");
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-8 p-8">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-3xl font-bold tracking-tight">
-          Set up your training
-        </h1>
-        <p className="text-muted-foreground text-sm">
-          A few quick steps. You can stop and come back — your progress is
-          saved.
-        </p>
-      </header>
+    <PageShell
+      eyebrow="Onboarding"
+      title="Set up your training"
+      lede="A few quick steps. You can stop and come back at any time — your progress is saved."
+    >
       <OnboardingSteps />
-    </main>
+    </PageShell>
   );
 }

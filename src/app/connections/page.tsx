@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 
 import { auth, signIn, signOut } from "@/server/auth";
 import { Button } from "@/components/ui/button";
+import { PageShell } from "@/components/app-shell";
 import { ConnectionsManager } from "@/app/connections/connections-manager";
 
 // Connection management (BUILD.md M1). Auth-gated. Lichess is linked through the
@@ -12,47 +13,47 @@ export default async function ConnectionsPage() {
   if (!session?.user) redirect("/signin");
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-8 p-8">
-      <header className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Connections</h1>
-          <p className="text-muted-foreground text-sm">
-            Link your chess accounts so the app can analyse your games.
-          </p>
-        </div>
-        <form
-          action={async () => {
-            "use server";
-            await signOut({ redirectTo: "/" });
-          }}
-        >
-          <Button type="submit" variant="ghost" size="sm">
-            Sign out
-          </Button>
-        </form>
-      </header>
-
-      <section className="flex flex-col gap-3">
-        <div>
-          <h2 className="font-semibold">Lichess</h2>
-          <p className="text-muted-foreground text-sm">
+    <PageShell
+      eyebrow="Game sources"
+      title="Connections"
+      lede={
+        <span className="flex flex-wrap items-center justify-between gap-4">
+          <span>Link your chess accounts so Mainline can analyse your games.</span>
+          <form
+            action={async () => {
+              "use server";
+              await signOut({ redirectTo: "/" });
+            }}
+            className="shrink-0"
+          >
+            <Button type="submit" variant="outline" size="sm">
+              Sign out
+            </Button>
+          </form>
+        </span>
+      }
+    >
+      <div className="flex flex-col gap-12">
+        <section className="flex flex-col gap-4">
+          <h2 className="eyebrow border-b border-line/80 pb-3">Lichess</h2>
+          <p className="text-graphite text-sm leading-relaxed font-serif">
             Connects via Lichess OAuth (read-only). Imports games and puzzle
             history.
           </p>
-        </div>
-        <form
-          action={async () => {
-            "use server";
-            await signIn("lichess", { redirectTo: "/connections" });
-          }}
-        >
-          <Button type="submit" variant="outline">
-            Connect Lichess
-          </Button>
-        </form>
-      </section>
+          <form
+            action={async () => {
+              "use server";
+              await signIn("lichess", { redirectTo: "/connections" });
+            }}
+          >
+            <Button type="submit">
+              Connect Lichess
+            </Button>
+          </form>
+        </section>
 
-      <ConnectionsManager />
-    </main>
+        <ConnectionsManager />
+      </div>
+    </PageShell>
   );
 }

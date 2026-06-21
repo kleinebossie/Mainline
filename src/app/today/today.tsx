@@ -2,13 +2,7 @@
 
 import { trpc } from "@/lib/trpc/react";
 import { Button, buttonVariants } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TransparencyCard } from "@/components/transparency-card";
 import type { TodayItem } from "@/server/program";
 
@@ -17,6 +11,11 @@ import type { TodayItem } from "@/server/program";
 // carrying the graded "why" (L3). Honest framing up top (process goal + expectations,
 // Seam 8). M7: logging an outcome (solved/struggled/done) feeds the adaptation loop — a miss
 // is scheduled to come back spaced, and "Regenerate" rebuilds the session from the new state.
+
+type Grade = "A" | "B" | "C" | "D";
+function asGrade(g: string): Grade {
+  return g === "A" || g === "B" || g === "C" || g === "D" ? g : "C";
+}
 
 function itemDetails(item: TodayItem): string {
   const p = item.params;
@@ -60,7 +59,9 @@ export function Today() {
   });
 
   if (today.isLoading) {
-    return <p className="text-muted-foreground text-sm">Loading…</p>;
+    return (
+      <p className="text-graphite font-mono text-sm">Loading your session…</p>
+    );
   }
 
   const program = today.data;
@@ -70,19 +71,20 @@ export function Today() {
 
   if (!program) {
     return (
-      <Card>
+      <Card gutter="A">
         <CardHeader>
-          <CardTitle className="text-xl">No session yet</CardTitle>
-          <CardDescription>
-            Generate your first training session from your calibration, games
-            and constraints.
-          </CardDescription>
+          <CardTitle>No session yet</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex flex-col gap-4">
+          <p className="text-graphite text-sm leading-relaxed">
+            Build your first training session from your calibration, your games,
+            and the time you have. You can regenerate it any time.
+          </p>
           <Button
             type="button"
             disabled={generate.isPending}
             onClick={() => generate.mutate()}
+            className="self-start"
           >
             {generate.isPending ? "Generating…" : "Generate today's session"}
           </Button>
@@ -94,49 +96,55 @@ export function Today() {
   const due = dueReviews.data ?? 0;
 
   return (
-    <div className="flex flex-col gap-4">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Today&apos;s focus</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-2">
-          <p className="text-sm">{program.honesty.processGoal}</p>
-          <p className="text-muted-foreground text-xs">
-            {program.honesty.expectations}
+    <div className="flex flex-col gap-5">
+      {/* Honest framing: a process goal and realistic expectations, never a rating promise. */}
+      <div className="bg-card rounded-lg border border-l-[3px] border-l-evergreen p-5 shadow-sheet">
+        <p className="eyebrow">Today&apos;s focus</p>
+        <p className="mt-2 font-serif text-lg leading-snug">
+          {program.honesty.processGoal}
+        </p>
+        <p className="text-graphite mt-2 text-sm leading-relaxed">
+          {program.honesty.expectations}
+        </p>
+        {due > 0 && (
+          <p className="text-evergreen mt-3 font-mono text-xs">
+            {due} review{due === 1 ? "" : "s"} due — regenerate to pull them into
+            your session.
           </p>
-          {due > 0 && (
-            <p className="text-xs font-medium">
-              {due} review{due === 1 ? "" : "s"} due — regenerate to pull them
-              into your session.
-            </p>
-          )}
-        </CardContent>
-      </Card>
+        )}
+      </div>
 
       {program.items.map((item) => {
         const done = item.status === "done";
         const skipped = item.status === "skipped";
         const busy = pendingItemId === item.id;
         return (
-          <Card key={item.id} className={done ? "opacity-70" : undefined}>
-            <CardHeader>
+          <Card
+            key={item.id}
+            gutter={asGrade(item.evidenceGrade)}
+            provisional={item.soften}
+            className={done ? "opacity-65" : undefined}
+          >
+            <CardHeader className="pb-4">
               <div className="flex items-baseline justify-between gap-3">
-                <CardTitle className="text-xl">{item.label}</CardTitle>
+                <CardTitle>{item.label}</CardTitle>
                 {item.estMinutes != null && (
-                  <span className="text-muted-foreground shrink-0 text-sm tabular-nums">
+                  <span className="text-graphite shrink-0 font-mono text-sm tabular-nums">
                     ~{item.estMinutes} min
                   </span>
                 )}
               </div>
-              <CardDescription>{itemDetails(item)}</CardDescription>
+              <p className="text-graphite mt-1 font-mono text-xs">
+                {itemDetails(item)}
+              </p>
             </CardHeader>
-            <CardContent className="flex flex-col gap-3">
+            <CardContent className="flex flex-col gap-4">
               {item.dimensionLabels.length > 0 && (
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-1.5">
                   {item.dimensionLabels.map((d) => (
                     <span
                       key={d}
-                      className="bg-secondary text-secondary-foreground rounded-full px-2 py-0.5 text-xs"
+                      className="border-line text-graphite rounded-sm border bg-paper px-2 py-0.5 font-mono text-[0.7rem] uppercase tracking-wide"
                     >
                       {d}
                     </span>
@@ -166,9 +174,9 @@ export function Today() {
               />
 
               {/* M7 — log the outcome; a miss is scheduled to return spaced. */}
-              <div className="flex flex-wrap items-center gap-2 border-t pt-3">
+              <div className="flex flex-wrap items-center gap-2 border-t border-line/80 pt-4">
                 {done || skipped ? (
-                  <span className="text-muted-foreground text-xs">
+                  <span className="text-graphite font-mono text-xs">
                     {done ? "✓ Logged" : "Skipped"}
                   </span>
                 ) : isPuzzle(item) ? (
@@ -238,14 +246,14 @@ export function Today() {
       })}
 
       {log.data && log.data.scheduledReviews > 0 && (
-        <p className="text-muted-foreground text-xs">
+        <p className="text-graphite border-l-2 border-evergreen/40 pl-3 font-mono text-xs leading-relaxed">
           Logged — {log.data.scheduledReviews} item
-          {log.data.scheduledReviews === 1 ? "" : "s"} queued to come back
-          spaced over the next days.
+          {log.data.scheduledReviews === 1 ? "" : "s"} queued to come back spaced
+          over the next days.
         </p>
       )}
 
-      <div className="flex items-center gap-3">
+      <div className="mt-2 flex flex-wrap items-center gap-3 border-t border-line/80 pt-5">
         <Button
           type="button"
           variant="ghost"
@@ -253,9 +261,9 @@ export function Today() {
           disabled={generate.isPending}
           onClick={() => generate.mutate()}
         >
-          {generate.isPending ? "Regenerating…" : "Regenerate session"}
+          {generate.isPending ? "Regenerating…" : "↻ Regenerate session"}
         </Button>
-        <span className="text-muted-foreground text-xs">
+        <span className="text-graphite font-mono text-xs">
           Built from your data on {program.createdAt.toLocaleDateString()} ·{" "}
           {program.methodologyVersion}
         </span>

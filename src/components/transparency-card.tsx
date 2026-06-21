@@ -1,27 +1,10 @@
-// TransparencyCard — the honesty-brand component (BUILD.md §7.6). Renders the "why this /
-// why now" rationale snapshotted on a ProgramItem (L3) together with its evidence grade,
-// tier, confidence and citation. A softened (C/D) or low-confidence value is visibly
-// flagged so a placeholder can never read as established fact (VISION §2). This is the
-// framework now; M8 expands the dashboards around it.
+// TransparencyCard — the honesty-brand component (BUILD.md §7.6). It renders the
+// "why this / why now" rationale snapshotted on a ProgramItem (L3) as a chess-style
+// annotation: the evidence grade as a glyph, the confidence as an eval meter, and a
+// dashed/struck treatment for thin (C/D) or placeholder evidence so it can never read as
+// established fact (VISION §2).
 
-const GRADE_NOTE: Record<string, string> = {
-  A: "Strong, replicated evidence",
-  B: "Suggestive but limited",
-  C: "Theory / best-guess",
-  D: "Popular but unsupported — avoid",
-};
-
-const TIER_NOTE: Record<number, string> = {
-  1: "chess-specific",
-  2: "general learning science",
-};
-
-const CONFIDENCE_NOTE: Record<string, string> = {
-  insufficient: "not enough of your data yet",
-  low: "band prior, not your own data yet",
-  medium: "some of your own data",
-  high: "well-backed by your own data",
-};
+import { GradeMark, ConfidenceBar, PlaceholderTag } from "@/components/evidence";
 
 export interface TransparencyCardProps {
   rationaleText: string;
@@ -48,47 +31,39 @@ export function TransparencyCard({
 
   return (
     <div
-      className="text-muted-foreground rounded-md border border-dashed p-3 text-sm"
+      className="bg-paper/60 rounded-md border border-dashed p-4"
       role="note"
     >
-      <div className="flex items-center gap-2">
-        <p className="text-xs font-medium uppercase tracking-wide">Why this?</p>
-        {isPlaceholder && (
-          <span className="bg-destructive/10 text-destructive rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider">
-            Placeholder
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="eyebrow flex items-center gap-2">
+          <span aria-hidden className="text-evergreen not-italic">
+            ∴
           </span>
-        )}
+          Why this?
+        </p>
+        {isPlaceholder && <PlaceholderTag />}
       </div>
-      <p className="text-foreground mt-1">{rationaleText}</p>
 
-      <dl className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs">
-        <div className="flex items-center gap-1">
-          <dt className="font-medium">
-            Grade {evidenceGrade} · Tier {evidenceTier}
-          </dt>
-          <dd>
-            ({GRADE_NOTE[evidenceGrade] ?? "—"};{" "}
-            {TIER_NOTE[evidenceTier] ?? "—"})
-          </dd>
-        </div>
-        <div className="flex items-center gap-1">
-          <dt className="font-medium">Confidence:</dt>
-          <dd>
-            {confidence} ({CONFIDENCE_NOTE[confidence] ?? "—"})
-          </dd>
-        </div>
-      </dl>
+      <p className="text-ink mt-2 font-serif text-[0.95rem] leading-relaxed">
+        {rationaleText}
+      </p>
+
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+        <GradeMark grade={evidenceGrade} tier={evidenceTier} />
+        <ConfidenceBar confidence={confidence} />
+      </div>
 
       {soften && (
-        <p className="mt-2 italic">
-          Honest caveat: the evidence here is thin, so treat this as a
-          best-guess starting point, not a proven prescription. No training
-          activity is proven to cause a rating gain.
+        <p className="text-graphite mt-3 border-l-2 border-amber/50 pl-3 font-serif text-sm italic leading-relaxed">
+          Honest caveat: the evidence here is thin — treat this as a best-guess
+          starting point, not a proven prescription. No training activity is
+          proven to cause a rating gain.
         </p>
       )}
 
-      <p className="mt-2 text-xs opacity-70">
-        Source: {citationSource ?? citationKey}
+      <p className="text-graphite mt-3 font-mono text-[0.7rem]">
+        <span className="uppercase tracking-[0.12em]">Source</span> ·{" "}
+        {citationSource ?? citationKey}
       </p>
     </div>
   );

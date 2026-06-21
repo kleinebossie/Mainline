@@ -14,6 +14,12 @@ const RESULT_LABEL: Record<string, string> = {
   draw: "Draw",
 };
 
+const RESULT_CLR: Record<string, string> = {
+  win: "text-evergreen",
+  loss: "text-clay",
+  draw: "text-graphite",
+};
+
 function formatRatings(ratings: unknown): string {
   if (!ratings || typeof ratings !== "object") return "—";
   const entries = Object.entries(ratings as Record<string, { rating?: number }>)
@@ -35,10 +41,10 @@ export function Dashboard() {
   });
 
   return (
-    <div className="flex flex-col gap-8">
-      <section className="flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <h2 className="font-semibold">Current ratings</h2>
+    <div className="flex flex-col gap-12">
+      <section className="flex flex-col gap-4">
+        <div className="flex items-center justify-between gap-4 border-b border-line/80 pb-3">
+          <h2 className="eyebrow">Current ratings</h2>
           <Button
             type="button"
             size="sm"
@@ -49,7 +55,7 @@ export function Dashboard() {
           </Button>
         </div>
         {syncMutation.data?.errors.length ? (
-          <p className="text-destructive text-sm" role="alert">
+          <p className="text-clay text-sm" role="alert">
             Some platforms couldn’t be reached:{" "}
             {syncMutation.data.errors
               .map(
@@ -61,62 +67,67 @@ export function Dashboard() {
           </p>
         ) : null}
         {profiles.isLoading ? (
-          <p className="text-muted-foreground text-sm">Loading…</p>
+          <p className="text-graphite font-mono text-sm">Loading…</p>
         ) : profiles.data && profiles.data.length > 0 ? (
           <ul className="flex flex-col gap-2">
             {profiles.data.map((p) => (
               <li
                 key={p.platform}
-                className="flex items-center justify-between rounded-md border p-3 text-sm"
+                className="bg-card flex items-center justify-between gap-4 rounded-md border p-3.5"
               >
-                <span className="font-medium">
+                <span className="font-serif text-base font-medium">
                   {PLATFORM_LABEL[p.platform] ?? p.platform}
                 </span>
-                <span className="text-muted-foreground">
+                <span className="text-graphite font-mono text-xs tabular-nums">
                   {formatRatings(p.ratings)} · {p.totalGames} games
                 </span>
               </li>
             ))}
           </ul>
         ) : (
-          <p className="text-muted-foreground text-sm">
+          <p className="text-graphite text-sm">
             No ratings yet. Connect an account, then press “Sync now”.
           </p>
         )}
       </section>
 
-      <section className="flex flex-col gap-3">
-        <h2 className="font-semibold">Recent games</h2>
+      <section className="flex flex-col gap-4">
+        <h2 className="eyebrow border-b border-line/80 pb-3">Recent games</h2>
         {games.isLoading ? (
-          <p className="text-muted-foreground text-sm">Loading…</p>
+          <p className="text-graphite font-mono text-sm">Loading…</p>
         ) : games.data && games.data.length > 0 ? (
-          <ul className="flex flex-col gap-2">
+          <ul className="flex flex-col gap-1.5">
             {games.data.map((g) => (
               <li
                 key={g.id}
-                className="flex items-center justify-between rounded-md border p-3 text-sm"
+                className="flex items-center justify-between gap-4 rounded-md border border-transparent px-3.5 py-2.5 hover:border-line hover:bg-card"
               >
-                <span>
-                  <span className="font-medium">
+                <span className="text-sm">
+                  <span className="font-mono text-xs uppercase tracking-wide text-graphite">
                     {PLATFORM_LABEL[g.platform] ?? g.platform}
                   </span>{" "}
-                  · {g.playedAt.toLocaleDateString()}
+                  <span className="text-graphite font-mono text-xs">
+                    {g.playedAt.toLocaleDateString()}
+                  </span>
                   {g.opening ? (
-                    <span className="text-muted-foreground">
-                      {" "}
-                      · {g.opening}
-                    </span>
+                    <span className="ml-1 font-serif">· {g.opening}</span>
                   ) : null}
                 </span>
-                <span className="text-muted-foreground">
-                  {g.result ? (RESULT_LABEL[g.result] ?? g.result) : "—"}
-                  {g.userRatingAtGame ? ` · ${g.userRatingAtGame}` : ""}
+                <span className="font-mono text-xs tabular-nums">
+                  <span className={g.result ? RESULT_CLR[g.result] : ""}>
+                    {g.result ? (RESULT_LABEL[g.result] ?? g.result) : "—"}
+                  </span>
+                  {g.userRatingAtGame ? (
+                    <span className="text-graphite"> · {g.userRatingAtGame}</span>
+                  ) : (
+                    ""
+                  )}
                 </span>
               </li>
             ))}
           </ul>
         ) : (
-          <p className="text-muted-foreground text-sm">
+          <p className="text-graphite text-sm">
             No games imported yet. Press “Sync now” to pull your latest games.
           </p>
         )}

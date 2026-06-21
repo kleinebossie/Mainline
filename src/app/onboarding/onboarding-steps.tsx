@@ -50,34 +50,34 @@ export function OnboardingSteps() {
   ];
 
   return (
-    <ol className="flex flex-col gap-3">
+    <ol className="flex flex-col gap-4">
       {steps.map((step, i) => (
         <li
           key={step.href}
-          className="flex items-center justify-between gap-4 rounded-md border p-4"
+          className="bg-card flex items-center justify-between gap-4 rounded-lg border p-4 shadow-sheet"
         >
-          <div className="flex items-start gap-3">
+          <div className="flex items-start gap-3.5">
             <span
               aria-hidden
               className={cn(
-                "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs font-medium",
+                "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs font-mono font-medium transition-colors",
                 step.done
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "text-muted-foreground",
+                  ? "border-evergreen bg-evergreen text-primary-foreground"
+                  : "border-line text-graphite bg-paper",
               )}
             >
               {step.done ? "✓" : i + 1}
             </span>
             <div>
-              <p className="font-medium">{step.title}</p>
-              <p className="text-muted-foreground text-sm">{step.detail}</p>
+              <p className="font-serif text-base font-semibold leading-tight">{step.title}</p>
+              <p className="text-graphite text-sm leading-relaxed mt-1">{step.detail}</p>
             </div>
           </div>
           <Link
             href={step.href}
             className={cn(
               buttonVariants({
-                variant: step.done ? "ghost" : "default",
+                variant: step.done ? "outline" : "default",
                 size: "sm",
               }),
               "shrink-0",

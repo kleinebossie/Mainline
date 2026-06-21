@@ -6,11 +6,38 @@ const config: Config = {
   theme: {
     container: {
       center: true,
-      padding: "2rem",
-      screens: { "2xl": "1400px" },
+      padding: "1.5rem",
+      screens: { "2xl": "1200px" },
     },
     extend: {
+      fontFamily: {
+        serif: ["var(--font-fraunces)", "Georgia", "serif"],
+        mono: ["var(--font-plex-mono)", "ui-monospace", "monospace"],
+        sans: ["var(--font-fraunces)", "Georgia", "serif"],
+      },
       colors: {
+        // raw palette — the analysis sheet
+        paper: {
+          DEFAULT: "hsl(var(--paper))",
+          raised: "hsl(var(--paper-raised))",
+        },
+        ink: "hsl(var(--ink))",
+        graphite: "hsl(var(--graphite))",
+        line: "hsl(var(--line))",
+        evergreen: {
+          DEFAULT: "hsl(var(--evergreen))",
+          bright: "hsl(var(--evergreen-bright))",
+        },
+        amber: "hsl(var(--amber))",
+        clay: "hsl(var(--clay))",
+        // evidence grade ramp (chess annotation grammar)
+        grade: {
+          a: "hsl(var(--grade-a))",
+          b: "hsl(var(--grade-b))",
+          c: "hsl(var(--grade-c))",
+          d: "hsl(var(--grade-d))",
+        },
+        // shadcn surface names (kept so existing utilities work)
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -49,6 +76,9 @@ const config: Config = {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+      },
+      boxShadow: {
+        sheet: "0 1px 2px hsl(var(--ink) / 0.04), 0 8px 24px -16px hsl(var(--ink) / 0.18)",
       },
     },
   },

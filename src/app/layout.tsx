@@ -1,18 +1,41 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import { Fraunces, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import { TRPCReactProvider } from "@/lib/trpc/react";
 
+// Two families, split by role — the product's Engine⟷Methodology, human⟷machine split.
+// Fraunces is the human voice (titles, prose, honest declarations); IBM Plex Mono is the
+// machine readout (data, grades, labels, controls-as-commands).
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  style: ["normal", "italic"],
+  display: "swap",
+  variable: "--font-fraunces",
+});
+
+const plexMono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  style: ["normal", "italic"],
+  display: "swap",
+  variable: "--font-plex-mono",
+});
+
 export const metadata: Metadata = {
-  title: "Mainline",
+  title: "Mainline — the honest chess training program",
   description:
-    "Mainline — a personalized, science-based, no-BS chess training program that adapts as you play.",
+    "Mainline — a personalized, science-based, no-BS chess training program. Every recommendation is graded and explained; it never promises you a rating.",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
-      <body className="min-h-screen antialiased">
+    <html
+      lang="en"
+      className={`${fraunces.variable} ${plexMono.variable}`}
+      suppressHydrationWarning
+    >
+      <body className="bg-paper text-ink min-h-screen antialiased">
         <TRPCReactProvider>{children}</TRPCReactProvider>
       </body>
     </html>

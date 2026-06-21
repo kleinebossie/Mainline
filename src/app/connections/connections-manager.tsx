@@ -32,17 +32,15 @@ export function ConnectionsManager() {
   });
 
   return (
-    <div className="flex flex-col gap-8">
-      <section className="flex flex-col gap-3">
-        <div>
-          <h2 className="font-semibold">Chess.com</h2>
-          <p className="text-muted-foreground text-sm">
-            Link by username (read-only public data — no password or token
-            stored).
-          </p>
-        </div>
+    <div className="flex flex-col gap-12">
+      <section className="flex flex-col gap-4">
+        <h2 className="eyebrow border-b border-line/80 pb-3">Chess.com</h2>
+        <p className="text-graphite text-sm leading-relaxed font-serif">
+          Link by username (read-only public data — no password or token
+          stored).
+        </p>
         <form
-          className="flex gap-2"
+          className="flex max-w-md gap-2"
           onSubmit={(e) => {
             e.preventDefault();
             const value = username.trim();
@@ -60,30 +58,30 @@ export function ConnectionsManager() {
           </Button>
         </form>
         {error && (
-          <p className="text-destructive text-sm" role="alert">
+          <p className="text-clay text-sm font-mono" role="alert">
             {error}
           </p>
         )}
       </section>
 
-      <section className="flex flex-col gap-3">
-        <h2 className="font-semibold">Connected accounts</h2>
+      <section className="flex flex-col gap-4">
+        <h2 className="eyebrow border-b border-line/80 pb-3">Connected accounts</h2>
         {list.isLoading ? (
-          <p className="text-muted-foreground text-sm">Loading…</p>
+          <p className="text-graphite font-mono text-sm">Loading…</p>
         ) : list.data && list.data.length > 0 ? (
           <ul className="flex flex-col gap-2">
             {list.data.map((conn) => (
               <li
                 key={conn.id}
-                className="flex items-center justify-between rounded-md border p-3"
+                className="bg-card flex items-center justify-between gap-4 rounded-md border p-3.5 shadow-sheet"
               >
                 <span className="text-sm">
-                  <span className="font-medium">
+                  <span className="font-serif text-base font-medium">
                     {PLATFORM_LABEL[conn.platform] ?? conn.platform}
                   </span>{" "}
-                  · {conn.externalUsername}
+                  · <span className="font-mono text-xs text-graphite">{conn.externalUsername}</span>
                   {conn.status !== "active" && (
-                    <span className="text-muted-foreground">
+                    <span className="text-clay font-mono text-xs">
                       {" "}
                       ({conn.status})
                     </span>
@@ -102,7 +100,7 @@ export function ConnectionsManager() {
             ))}
           </ul>
         ) : (
-          <p className="text-muted-foreground text-sm">
+          <p className="text-graphite text-sm font-serif">
             No accounts connected yet.
           </p>
         )}

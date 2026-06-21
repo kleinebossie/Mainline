@@ -1,48 +1,30 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/server/auth";
-import { buttonVariants } from "@/components/ui/button";
+import { PageShell } from "@/components/app-shell";
 import { Dashboard } from "@/app/dashboard/dashboard";
 import { AnalysisRunner } from "@/app/dashboard/analysis-runner";
 import { TransparencyDashboard } from "@/app/dashboard/transparency-dashboard";
 
-// Imported-data dashboard (BUILD.md M2). Auth-gated. Lists imported games + current
-// ratings and offers an on-demand "Sync now". Display only — no chess/learning
-// judgement (that arrives with the program engine, M6).
+// Imported-data dashboard (BUILD.md M2 + M8). Auth-gated. Lists imported games + current
+// ratings, on-demand "Sync now" and client-side analysis, then the transparency dashboard
+// (skill estimates, due reviews, the engine's adaptation log, honest expectations).
 export default async function DashboardPage() {
   const session = await auth();
   if (!session?.user) redirect("/signin");
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-8 p-8">
-      <header className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground text-sm">
-            Your imported games and ratings. Training plans arrive in a later
-            milestone.
-          </p>
-        </div>
-        <nav className="flex items-center gap-2">
-          <Link
-            href="/onboarding"
-            className={buttonVariants({ variant: "ghost", size: "sm" })}
-          >
-            Onboarding
-          </Link>
-          <Link
-            href="/connections"
-            className={buttonVariants({ variant: "ghost", size: "sm" })}
-          >
-            Connections
-          </Link>
-        </nav>
-      </header>
-
-      <Dashboard />
-      <AnalysisRunner />
-      <TransparencyDashboard />
-    </main>
+    <PageShell
+      eyebrow="Your data & the engine's reasoning"
+      title="Dashboard"
+      lede="The raw picture Mainline builds from: your ratings, your games, the measurements, and every adjustment the engine has made — with its evidence shown."
+      width="wide"
+    >
+      <div className="flex flex-col gap-14">
+        <Dashboard />
+        <AnalysisRunner />
+        <TransparencyDashboard />
+      </div>
+    </PageShell>
   );
 }

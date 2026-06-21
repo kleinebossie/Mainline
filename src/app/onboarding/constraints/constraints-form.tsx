@@ -27,7 +27,7 @@ const GOAL_OPTIONS: ReadonlyArray<{ kind: Goal["kind"]; label: string }> = [
 export function ConstraintsForm() {
   const current = trpc.constraints.getCurrent.useQuery();
   if (current.isLoading) {
-    return <p className="text-muted-foreground text-sm">Loading…</p>;
+    return <p className="text-graphite font-mono text-sm">Loading…</p>;
   }
   // Key on the loaded row so the form initialises its state from saved values once.
   return (
@@ -103,10 +103,10 @@ function Form({ initial }: { initial: ConstraintsInput }) {
   };
 
   return (
-    <form className="flex flex-col gap-6" onSubmit={onSubmit}>
-      <fieldset className="flex gap-4">
-        <label className="flex flex-1 flex-col gap-1 text-sm font-medium">
-          Minutes per day
+    <form className="flex flex-col gap-10 settle" onSubmit={onSubmit}>
+      <fieldset className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+        <label className="flex flex-col gap-2 font-serif text-sm font-medium">
+          <span className="eyebrow !text-[0.65rem] !tracking-wider">Minutes per day</span>
           <Input
             type="number"
             min={5}
@@ -115,8 +115,8 @@ function Form({ initial }: { initial: ConstraintsInput }) {
             onChange={(e) => setMinutes(Number(e.target.value))}
           />
         </label>
-        <label className="flex flex-1 flex-col gap-1 text-sm font-medium">
-          Days per week
+        <label className="flex flex-col gap-2 font-serif text-sm font-medium">
+          <span className="eyebrow !text-[0.65rem] !tracking-wider">Days per week</span>
           <Input
             type="number"
             min={1}
@@ -127,106 +127,115 @@ function Form({ initial }: { initial: ConstraintsInput }) {
         </label>
       </fieldset>
 
-      <fieldset className="flex flex-col gap-2">
-        <legend className="text-sm font-medium">
+      <fieldset className="flex flex-col gap-4">
+        <legend className="eyebrow border-b border-line/80 pb-2 w-full mb-2">
           What do you want from training?
         </legend>
-        <div className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-2.5">
           {GOAL_OPTIONS.map((g) => (
-            <label key={g.kind} className="flex items-center gap-2 text-sm">
+            <label key={g.kind} className="flex items-center gap-3 font-serif text-sm text-ink cursor-pointer">
               <input
                 type="checkbox"
                 checked={goalKinds.has(g.kind)}
                 onChange={() => setGoalKinds((s) => toggle(s, g.kind))}
+                className="rounded border-input text-evergreen focus:ring-evergreen h-4 w-4 bg-paper-raised"
               />
               {g.label}
             </label>
           ))}
-          <Input
-            value={otherGoal}
-            onChange={(e) => setOtherGoal(e.target.value)}
-            placeholder="Something else (optional)"
-            aria-label="Other goal"
-            maxLength={120}
-          />
+          <div className="mt-2 max-w-md">
+            <Input
+              value={otherGoal}
+              onChange={(e) => setOtherGoal(e.target.value)}
+              placeholder="Something else (optional)"
+              aria-label="Other goal"
+              maxLength={120}
+            />
+          </div>
         </div>
       </fieldset>
 
-      <fieldset className="flex flex-col gap-2">
-        <legend className="text-sm font-medium">
+      <fieldset className="flex flex-col gap-4">
+        <legend className="eyebrow border-b border-line/80 pb-2 w-full mb-2">
           Which formats do you play?
         </legend>
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap gap-x-6 gap-y-2">
           {CHESS_FORMATS.map((f) => (
             <label
               key={f}
-              className="flex items-center gap-2 text-sm capitalize"
+              className="flex items-center gap-3 font-serif text-sm text-ink capitalize cursor-pointer"
             >
               <input
                 type="checkbox"
                 checked={formats.has(f)}
                 onChange={() => setFormats((s) => toggle(s, f))}
+                className="rounded border-input text-evergreen focus:ring-evergreen h-4 w-4 bg-paper-raised"
               />
               {f}
             </label>
           ))}
         </div>
-        <label className="mt-1 flex items-center gap-2 text-sm">
+        <label className="mt-2 flex items-center gap-3 font-serif text-sm text-ink cursor-pointer">
           <input
             type="checkbox"
             checked={preferredVariety}
             onChange={(e) => setVariety(e.target.checked)}
+            className="rounded border-input text-evergreen focus:ring-evergreen h-4 w-4 bg-paper-raised"
           />
           I like variety in my daily sessions
         </label>
       </fieldset>
 
-      <fieldset className="flex flex-col gap-2">
-        <legend className="text-sm font-medium">Your if-then plan</legend>
-        <p className="text-muted-foreground text-sm">
+      <fieldset className="flex flex-col gap-4">
+        <legend className="eyebrow border-b border-line/80 pb-2 w-full mb-1">
+          Your if-then plan
+        </legend>
+        <p className="text-graphite font-serif text-sm leading-relaxed mb-2">
           Anchoring training to an existing daily habit roughly doubles
           follow-through (Gollwitzer &amp; Sheeran 2006). Optional, but it
           helps.
         </p>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <span className="text-sm">After</span>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <span className="font-serif text-sm text-graphite shrink-0">After</span>
           <Input
             value={cue}
             onChange={(e) => setCue(e.target.value)}
             placeholder="my morning coffee"
             aria-label="If-then cue"
             maxLength={160}
+            className="flex-1"
           />
-          <span className="text-sm">, I will</span>
+          <span className="font-serif text-sm text-graphite shrink-0">, I will</span>
           <Input
             value={plan}
             onChange={(e) => setPlan(e.target.value)}
             placeholder="open today's session"
             aria-label="If-then plan"
             maxLength={160}
+            className="flex-1"
           />
         </div>
       </fieldset>
 
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-4 border-t border-line/80 pt-6 mt-4">
         <Button type="submit" disabled={save.isPending}>
-          {save.isPending ? "Saving…" : "Save"}
+          {save.isPending ? "Saving…" : "Save constraints"}
         </Button>
         {saved && (
           <>
-            <span className="text-sm text-green-600" role="status">
+            <span className="text-sm font-mono font-medium text-evergreen" role="status">
               Saved ✓
             </span>
             <Link
               href="/onboarding/reveal"
-              className={buttonVariants({ variant: "ghost", size: "sm" })}
+              className={buttonVariants({ variant: "outline", size: "sm" })}
             >
-              Continue
+              Continue →
             </Link>
           </>
         )}
         {error && (
-          <span className="text-destructive text-sm" role="alert">
+          <span className="text-clay font-mono text-sm" role="alert">
             {error}
           </span>
         )}

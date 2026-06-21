@@ -2,50 +2,85 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+  Mainline — "The Analysis Sheet"
+  A calm scientific instrument built from chess's own materials: notation, evaluation,
+  annotation glyphs. Cool drafting-paper + ink, one evergreen "eval" accent. Color encodes
+  evidence and nothing else (VISION §2). The shadcn token names are kept and remapped to
+  this palette so the whole app re-skins from one place.
+*/
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --radius: 0.5rem;
+    /* — raw palette (HSL triplets) — */
+    --paper: 80 14% 93%; /* cool graph-paper ground (board light-square echo) */
+    --paper-raised: 75 24% 97%; /* cards / raised surfaces */
+    --ink: 210 13% 9%; /* near-black notation ink */
+    --graphite: 210 7% 38%; /* muted / secondary text */
+    --line: 84 12% 84%; /* hairline rules + the faint grid */
+    --evergreen: 152 39% 30%; /* primary · Grade A "best line" */
+    --evergreen-bright: 150 39% 41%; /* hover / Grade B */
+    --amber: 38 70% 38%; /* Grade C "dubious" */
+    --clay: 12 56% 42%; /* Grade D "blunder" · destructive */
+
+    /* — evidence grade ramp (the signature; chess annotation grammar) — */
+    --grade-a: var(--evergreen);
+    --grade-b: var(--evergreen-bright);
+    --grade-c: var(--amber);
+    --grade-d: var(--clay);
+
+    /* — shadcn surface remap (existing utility classes adopt the palette) — */
+    --background: var(--paper);
+    --foreground: var(--ink);
+    --card: var(--paper-raised);
+    --card-foreground: var(--ink);
+    --popover: var(--paper-raised);
+    --popover-foreground: var(--ink);
+    --primary: var(--evergreen);
+    --primary-foreground: 75 24% 97%;
+    --secondary: 150 12% 89%;
+    --secondary-foreground: var(--ink);
+    --muted: 84 10% 90%;
+    --muted-foreground: var(--graphite);
+    --accent: 150 14% 88%;
+    --accent-foreground: 152 39% 22%;
+    --destructive: var(--clay);
+    --destructive-foreground: 75 24% 97%;
+    --border: var(--line);
+    --input: 84 12% 80%;
+    --ring: var(--evergreen);
+    --radius: 0.4rem;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --paper: 210 13% 9%;
+    --paper-raised: 210 12% 12%;
+    --ink: 80 14% 93%;
+    --graphite: 210 8% 62%;
+    --line: 210 10% 22%;
+    --evergreen: 150 39% 45%;
+    --evergreen-bright: 150 45% 55%;
+    --amber: 38 64% 52%;
+    --clay: 12 58% 56%;
+
+    --background: var(--paper);
+    --foreground: var(--ink);
+    --card: var(--paper-raised);
+    --card-foreground: var(--ink);
+    --popover: var(--paper-raised);
+    --popover-foreground: var(--ink);
+    --primary: var(--evergreen);
+    --primary-foreground: 210 13% 9%;
+    --secondary: 210 10% 18%;
+    --secondary-foreground: var(--ink);
+    --muted: 210 10% 16%;
+    --muted-foreground: var(--graphite);
+    --accent: 210 10% 18%;
+    --accent-foreground: 80 14% 93%;
+    --destructive: var(--clay);
+    --destructive-foreground: 210 13% 9%;
+    --border: var(--line);
+    --input: 210 10% 26%;
+    --ring: var(--evergreen-bright);
   }
 }
 
@@ -53,7 +88,109 @@
   * {
     @apply border-border;
   }
+
   body {
-    @apply bg-background text-foreground;
+    /* the human voice reads by default; the machine readout opts in via font-mono */
+    font-family: var(--font-fraunces), Georgia, serif;
+    /* faint graph-paper grid — the analysis sheet beneath everything */
+    background-color: hsl(var(--paper));
+    background-image:
+      linear-gradient(hsl(var(--line) / 0.4) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--line) / 0.4) 1px, transparent 1px);
+    background-size: 28px 28px;
+    background-position: -1px -1px;
+    background-attachment: fixed;
+  }
+
+  /* tighter, more deliberate display setting for the human voice */
+  h1,
+  h2,
+  h3 {
+    font-feature-settings: "ss01";
+    letter-spacing: -0.015em;
+  }
+
+  /* honest data should always align; the machine readout is tabular */
+  .font-mono {
+    font-feature-settings: "zero" 1;
+  }
+
+  ::selection {
+    background-color: hsl(var(--evergreen) / 0.22);
+  }
+}
+
+@layer components {
+  /* The eyebrow — a small mono label that names a section like a notation header. */
+  .eyebrow {
+    @apply text-graphite font-mono text-[0.7rem] font-medium uppercase;
+    letter-spacing: 0.18em;
+  }
+
+  /*
+    The eval-gutter — the recurring structural device. A thin vertical bar on the leading
+    edge of a card, tinted by the item's evidence grade, like the engine eval bar beside an
+    analysis line. Structure encodes evidence (VISION §2).
+  */
+  .eval-gutter {
+    position: relative;
+    overflow: hidden;
+  }
+  .eval-gutter::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 3px;
+    background: var(--gutter, hsl(var(--line)));
+    transition: width 160ms ease;
+  }
+  .eval-gutter:hover::before {
+    width: 5px;
+  }
+  .eval-gutter[data-grade="A"] {
+    --gutter: hsl(var(--grade-a));
+  }
+  .eval-gutter[data-grade="B"] {
+    --gutter: hsl(var(--grade-b));
+  }
+  .eval-gutter[data-grade="C"] {
+    --gutter: hsl(var(--grade-c));
+  }
+  .eval-gutter[data-grade="D"] {
+    --gutter: hsl(var(--grade-d));
+  }
+  .eval-gutter[data-provisional="true"]::before {
+    /* placeholder / thin evidence reads as a dashed, unresolved bar — never solid fact */
+    background: repeating-linear-gradient(
+      hsl(var(--grade-c)) 0 5px,
+      transparent 5px 9px
+    );
+  }
+}
+
+@layer utilities {
+  /* page-load "reach depth" — the instrument settling, used once and quietly */
+  @keyframes settle-in {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  .settle {
+    animation: settle-in 0.5s cubic-bezier(0.2, 0.6, 0.2, 1) both;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .settle {
+      animation: none;
+    }
+    .eval-gutter::before,
+    .eval-gutter:hover::before {
+      transition: none;
+    }
   }
 }
