@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { trpc } from "@/lib/trpc/react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -175,7 +176,16 @@ export function Today() {
                 </p>
               )}
 
-              {item.externalUrl && (
+              {item.delivery === "internal" && item.url && (
+                <Link
+                  href={item.url}
+                  className={buttonVariants({ variant: "default", size: "sm" })}
+                >
+                  Start training
+                </Link>
+              )}
+
+              {item.externalUrl && item.delivery === "external" && (
                 <a
                   href={item.externalUrl}
                   target="_blank"
@@ -202,6 +212,9 @@ export function Today() {
                   <span className="text-graphite font-mono text-xs">
                     {done ? "✓ Logged" : "Skipped"}
                   </span>
+                ) : item.delivery === "internal" ? (
+                  // Internal activities are auto-logged in-app; only allow Skip here
+                  null
                 ) : isPuzzle(item) ? (
                   <>
                     <Button

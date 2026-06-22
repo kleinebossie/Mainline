@@ -1,11 +1,16 @@
 "use client";
 
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 
 import { trpc } from "@/lib/trpc/react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GradeMark } from "@/components/evidence";
+import { InteractiveBoard } from "@/components/interactive-board";
+import { stepSolve, type SolveState } from "@/engine/interactive/session";
+import { systemClock } from "@/lib/clock";
+import { cn } from "@/lib/utils";
 
 // Adaptive calibration UI. Difficulty for each item is produced by the methodology
 // (config-driven ladder); we present it as a strength target and record only the
@@ -37,6 +42,72 @@ export function Calibration() {
     onSuccess: () => void utils.assessment.state.invalidate(),
   });
 
+  const [solveState, setSolveState] = useState<SolveState | null>(null);
+  const [solveStatus, setSolveStatus] = useState<
+    "pending" | "correct" | "wrong" | "solved"
+  >("pending");
+
+  const activePuzzle = state.data?.activePuzzle;
+  const activeTrack = state.data?.activeTrack;
+  const pending = submit.isPending || reset.isPending;
+
+  useEffect(() => {
+    if (activePuzzle) {
+      const solutionMoves = activePuzzle.moves.split(" ");
+      setSolveState({
+        position: activePuzzle.fen,
+        solutionLine: solutionMoves,
+        cursor: 0,
+        startedMs: systemClock.now(),
+        attempts: 0,
+      });
+      setSolveStatus("pending");
+    } else {
+      setSolveState(null);
+      setSolveStatus("pending");
+    }
+  }, [activePuzzle]);
+
+  const handleMove = (move: { san: string }) => {
+    if (!solveState || !activePuzzle || !activeTrack || pending) return;
+
+    const result = stepSolve(solveState, {
+      san: move.san,
+      atMs: systemClock.now(),
+    });
+    setSolveState(result.state);
+
+    if (result.step === "solved") {
+      setSolveStatus("solved");
+      submit.mutate({
+        ratingShown: activeTrack.next.ratingTarget,
+        correct: true,
+        puzzleId: activePuzzle.puzzleId,
+      });
+    } else if (result.step === "wrong") {
+      setSolveStatus("wrong");
+      submit.mutate({
+        ratingShown: activeTrack.next.ratingTarget,
+        correct: false,
+        puzzleId: activePuzzle.puzzleId,
+      });
+    } else if (result.step === "correct" || result.step === "continue") {
+      setSolveStatus("correct");
+      setTimeout(() => {
+        setSolveStatus((prev) => (prev === "correct" ? "pending" : prev));
+      }, 1000);
+    }
+  };
+
+  const handleSkip = () => {
+    if (!activePuzzle || !activeTrack || pending) return;
+    submit.mutate({
+      ratingShown: activeTrack.next.ratingTarget,
+      correct: false,
+      puzzleId: activePuzzle.puzzleId,
+    });
+  };
+
   if (state.isLoading || !state.data) {
     return <p className="text-graphite font-mono text-sm">Loading…</p>;
   }
@@ -47,10 +118,8 @@ export function Calibration() {
     timeBudgetMin,
     trackCount,
     activeTrackIndex,
-    activeTrack,
     tracks,
   } = state.data;
-  const pending = submit.isPending || reset.isPending;
 
   // --- Completed: the multi-dimensional baseline -----------------------------
   if (completed || !activeTrack) {
@@ -130,7 +199,7 @@ export function Calibration() {
   }
 
   // --- In progress: the active track's next item -----------------------------
-  const record = (correct: boolean) =>
+  const recordFallback = (correct: boolean) =>
     submit.mutate({ ratingShown: activeTrack.next.ratingTarget, correct });
 
   return (
@@ -172,37 +241,99 @@ export function Calibration() {
           ))}
         </div>
 
-        <div className="bg-paper/60 rounded-md border p-5 text-center">
-          <p className="eyebrow !text-[0.65rem] mb-1">Puzzle strength target</p>
-          <p className="text-4xl font-mono font-bold tracking-tight text-ink tabular-nums">
-            {activeTrack.next.ratingTarget}
-          </p>
-        </div>
-        <div className="flex gap-3">
-          <Button
-            type="button"
-            className="flex-1"
-            disabled={pending}
-            onClick={() => record(true)}
-          >
-            I solved it
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            className="flex-1"
-            disabled={pending}
-            onClick={() => record(false)}
-          >
-            I missed it
-          </Button>
-        </div>
+        {activePuzzle && solveState ? (
+          <div className="grid gap-6 md:grid-cols-[1.1fr_0.9fr] items-start mt-2">
+            {/* Chessboard View */}
+            <div className="flex flex-col items-center gap-3">
+              <InteractiveBoard
+                fen={solveState.position}
+                onMove={handleMove}
+                orientation={activePuzzle.fen.split(" ")[1] === "b" ? "black" : "white"}
+                disabled={pending || solveStatus === "solved" || solveStatus === "wrong"}
+                className="w-full max-w-sm sm:max-w-md"
+              />
+              <div className="flex justify-between w-full max-w-sm sm:max-w-md px-1">
+                <span className="text-graphite font-mono text-xs">
+                  Attempts: {solveState.attempts}
+                </span>
+                <span className="text-graphite font-mono text-xs">
+                  Target Rating: {activeTrack.next.ratingTarget}
+                </span>
+              </div>
+            </div>
+
+            {/* Info Sidebar */}
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-2 rounded-md border border-line bg-paper/50 p-4">
+                <span className="text-ink font-mono text-xs font-semibold uppercase tracking-wider">
+                  Solve State:
+                </span>
+                <span
+                  className={cn(
+                    "font-serif text-lg font-semibold",
+                    solveStatus === "solved" && "text-evergreen-bright",
+                    solveStatus === "wrong" && "text-destructive",
+                    solveStatus === "correct" && "text-evergreen",
+                    solveStatus === "pending" && "text-graphite",
+                  )}
+                >
+                  {solveStatus === "solved" && "✓ Correct!"}
+                  {solveStatus === "wrong" && "✗ Incorrect!"}
+                  {solveStatus === "correct" && "✓ Correct Move!"}
+                  {solveStatus === "pending" && "Solve the puzzle..."}
+                </span>
+              </div>
+
+              <div className="flex flex-col gap-2 border-t border-line/80 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={handleSkip}
+                  disabled={pending}
+                >
+                  Skip / Give Up
+                </Button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="bg-paper/60 rounded-md border p-5 text-center">
+              <p className="eyebrow !text-[0.65rem] mb-1">Puzzle strength target</p>
+              <p className="text-4xl font-mono font-bold tracking-tight text-ink tabular-nums">
+                {activeTrack.next.ratingTarget}
+              </p>
+              <p className="text-xs text-graphite mt-2">
+                (Chessboard not available; fallback self-logging active)
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <Button
+                type="button"
+                className="flex-1"
+                disabled={pending}
+                onClick={() => recordFallback(true)}
+              >
+                I solved it
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
+                disabled={pending}
+                onClick={() => recordFallback(false)}
+              >
+                I missed it
+              </Button>
+            </div>
+          </>
+        )}
+
         {(activeTrackIndex > 0 || activeTrack.responseCount > 0) && (
           <Button
             type="button"
             variant="ghost"
             size="sm"
-            className="self-start text-xs"
+            className="self-start text-xs mt-2"
             disabled={pending}
             onClick={() => reset.mutate()}
           >
