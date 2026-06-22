@@ -370,6 +370,65 @@ const anchorSourceSchema = z.object({
   grade: z.enum(["A", "B", "C", "D"]),
 });
 
+const tiltTriggerConfigSchema = z.object({
+  kind: z.enum(["losses_in_time", "losses_in_row", "performance_decline", "none"]),
+  count: z.number().int().optional(),
+  timeWindowMs: z.number().int().optional(),
+  declineThreshold: z.number().optional(),
+});
+
+export type TiltTriggerConfig = z.infer<typeof tiltTriggerConfigSchema>;
+
+const emotionalCalibrationBandSchema = z.object({
+  reflectionPrompt: gradedValue(z.string()),
+  analysisUnlockDelayMs: gradedValue(z.number()),
+  tiltTrigger: gradedValue(tiltTriggerConfigSchema),
+});
+
+const activeReproductionBandSchema = z.object({
+  taskDescription: gradedValue(z.string()),
+  maxCriticalMoments: gradedValue(z.number()),
+  timeLimitPerMomentMs: gradedValue(z.number().nullable()),
+});
+
+const rplFilteringBandSchema = z.object({
+  visibleErrorThresholdCp: gradedValue(z.number()),
+  entropyFilter: gradedValue(z.string()),
+  learningFocus: gradedValue(z.string()),
+});
+
+const gameSelectionBandSchema = z.object({
+  winRatio: gradedValue(z.number().min(0).max(1)),
+  lossRatio: gradedValue(z.number().min(0).max(1)),
+  focusDescription: gradedValue(z.string()),
+});
+
+const gameAnalysisSchema = z.object({
+  emotionalCalibration: z.object({
+    enabled: gradedValue(z.boolean()),
+    perBand: z.record(emotionalCalibrationBandSchema),
+  }),
+  activeReproduction: z.object({
+    perBand: z.record(activeReproductionBandSchema),
+  }),
+  rplFiltering: z.object({
+    enabled: gradedValue(z.boolean()),
+    perBand: z.record(rplFilteringBandSchema),
+  }),
+  srsIntegration: z.object({
+    enabled: gradedValue(z.boolean()),
+    onFail: gradedValue(z.enum(["lapse"])),
+    onCorrectCritical: gradedValue(z.number().int().positive()),
+  }),
+  gameSelection: z.object({
+    enabled: gradedValue(z.boolean()),
+    perBand: z.record(gameSelectionBandSchema),
+  }),
+  engineDelayRequired: gradedValue(z.boolean()),
+  tiltPreventionEnabled: gradedValue(z.boolean()),
+  physicalBoardRecommendation: gradedValue(z.string()),
+});
+
 /** Recursively collect every citationKey appearing on a GradedValue in the config. */
 function collectCitationKeys(node: unknown, into: Set<string>): void {
   if (Array.isArray(node)) {
@@ -398,6 +457,7 @@ export const methodologyConfigSchema = z
     measurement: measurementSchema,
     rationale: z.array(rationaleEntrySchema).min(1),
     evidenceLedger: z.array(anchorSourceSchema).min(1),
+    gameAnalysis: gameAnalysisSchema,
   })
   .superRefine((cfg, ctx) => {
     // L3 — every citationKey must resolve to a ledger anchor (fail-closed, §2.6).
@@ -414,6 +474,7 @@ export const methodologyConfigSchema = z
       cfg.engagement,
       cfg.measurement,
       cfg.rationale,
+      cfg.gameAnalysis,
     ]) {
       collectCitationKeys(section, usedCitations);
     }
@@ -469,6 +530,26 @@ export const methodologyConfigSchema = z
     cfg.activities.forEach((a, i) =>
       requireBands(a.priorityByBand, ["activities", i, "priorityByBand"]),
     );
+    requireBands(cfg.gameAnalysis.emotionalCalibration.perBand, [
+      "gameAnalysis",
+      "emotionalCalibration",
+      "perBand",
+    ]);
+    requireBands(cfg.gameAnalysis.activeReproduction.perBand, [
+      "gameAnalysis",
+      "activeReproduction",
+      "perBand",
+    ]);
+    requireBands(cfg.gameAnalysis.rplFiltering.perBand, [
+      "gameAnalysis",
+      "rplFiltering",
+      "perBand",
+    ]);
+    requireBands(cfg.gameAnalysis.gameSelection.perBand, [
+      "gameAnalysis",
+      "gameSelection",
+      "perBand",
+    ]);
 
     // Referential integrity: dimension/activity/rationale ids must all resolve, so a
     // signal or program item can never point at a non-existent leaf.
@@ -577,3 +658,9 @@ export type EngagementTrigger = (typeof ENGAGEMENT_TRIGGERS)[number];
 export type MeasurementConfig = MethodologyConfig["measurement"];
 export type RationaleEntry = MethodologyConfig["rationale"][number];
 export type AnchorSource = MethodologyConfig["evidenceLedger"][number];
+export type GameAnalysisConfig = MethodologyConfig["gameAnalysis"];
+export type EmotionalCalibrationConfig = GameAnalysisConfig["emotionalCalibration"];
+export type ActiveReproductionConfig = GameAnalysisConfig["activeReproduction"];
+export type RplFilteringConfig = GameAnalysisConfig["rplFiltering"];
+export type SrsIntegrationConfig = GameAnalysisConfig["srsIntegration"];
+export type GameSelectionConfig = GameAnalysisConfig["gameSelection"];

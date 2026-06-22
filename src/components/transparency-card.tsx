@@ -9,6 +9,7 @@ import {
   ConfidenceBar,
   PlaceholderTag,
 } from "@/components/evidence";
+import { cn } from "@/lib/utils";
 
 export interface TransparencyCardProps {
   rationaleText: string;
@@ -19,6 +20,7 @@ export interface TransparencyCardProps {
   confidence: string;
   soften: boolean;
   flag?: string;
+  className?: string;
 }
 
 export function TransparencyCard({
@@ -30,12 +32,13 @@ export function TransparencyCard({
   confidence,
   soften,
   flag,
+  className,
 }: TransparencyCardProps) {
   const isPlaceholder = flag === "stub" || flag === "best-guess";
 
   return (
     <div
-      className="bg-paper/60 rounded-md border border-dashed p-4"
+      className={cn("bg-paper/60 rounded-md border border-dashed p-4", className)}
       role="note"
     >
       <div className="flex flex-wrap items-center justify-between gap-2">

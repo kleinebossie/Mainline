@@ -47,6 +47,7 @@ describe("L3: methodology config integrity", () => {
       walkCitationKeys(cfg.engagement, used);
       walkCitationKeys(cfg.measurement, used);
       walkCitationKeys(cfg.rationale, used);
+      walkCitationKeys(cfg.gameAnalysis, used);
       expect(used.size).toBeGreaterThan(0);
       for (const key of used) expect(ledger).toContain(key);
     },

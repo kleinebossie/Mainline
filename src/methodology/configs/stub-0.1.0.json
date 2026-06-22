@@ -1205,6 +1205,617 @@
       }
     }
   },
+  "gameAnalysis": {
+    "emotionalCalibration": {
+      "enabled": {
+        "value": true,
+        "grade": "B",
+        "tier": 2,
+        "citationKey": "srivastava2025"
+      },
+      "perBand": {
+        "u800": {
+          "reflectionPrompt": {
+            "value": "Did you get in trouble because of the clock or a blunder?",
+            "grade": "B",
+            "tier": 2,
+            "citationKey": "srivastava2025"
+          },
+          "analysisUnlockDelayMs": {
+            "value": 0,
+            "grade": "B",
+            "tier": 2,
+            "citationKey": "srivastava2025",
+            "flag": "best-guess"
+          },
+          "tiltTrigger": {
+            "value": {
+              "kind": "losses_in_time",
+              "count": 3,
+              "timeWindowMs": 3600000
+            },
+            "grade": "B",
+            "tier": 2,
+            "citationKey": "srivastava2025"
+          }
+        },
+        "b800_1200": {
+          "reflectionPrompt": {
+            "value": "Where in the game did you feel you lost control?",
+            "grade": "B",
+            "tier": 2,
+            "citationKey": "srivastava2025"
+          },
+          "analysisUnlockDelayMs": {
+            "value": 120000,
+            "grade": "B",
+            "tier": 2,
+            "citationKey": "srivastava2025",
+            "flag": "best-guess"
+          },
+          "tiltTrigger": {
+            "value": {
+              "kind": "losses_in_row",
+              "count": 3
+            },
+            "grade": "B",
+            "tier": 2,
+            "citationKey": "srivastava2025"
+          }
+        },
+        "b1200_1600": {
+          "reflectionPrompt": {
+            "value": "What was your plan in the middlegame?",
+            "grade": "B",
+            "tier": 2,
+            "citationKey": "srivastava2025"
+          },
+          "analysisUnlockDelayMs": {
+            "value": 300000,
+            "grade": "B",
+            "tier": 2,
+            "citationKey": "srivastava2025",
+            "flag": "best-guess"
+          },
+          "tiltTrigger": {
+            "value": {
+              "kind": "losses_in_row",
+              "count": 2
+            },
+            "grade": "B",
+            "tier": 2,
+            "citationKey": "srivastava2025"
+          }
+        },
+        "b1600_2000": {
+          "reflectionPrompt": {
+            "value": "Detailed tagging (e.g. \"time trouble\", \"bad in the opening\")",
+            "grade": "B",
+            "tier": 2,
+            "citationKey": "srivastava2025"
+          },
+          "analysisUnlockDelayMs": {
+            "value": 300000,
+            "grade": "B",
+            "tier": 2,
+            "citationKey": "srivastava2025",
+            "flag": "best-guess"
+          },
+          "tiltTrigger": {
+            "value": {
+              "kind": "performance_decline",
+              "declineThreshold": 0.15
+            },
+            "grade": "B",
+            "tier": 2,
+            "citationKey": "srivastava2025"
+          }
+        },
+        "b2000_2200": {
+          "reflectionPrompt": {
+            "value": "Free-text metacognitive notes",
+            "grade": "B",
+            "tier": 2,
+            "citationKey": "srivastava2025"
+          },
+          "analysisUnlockDelayMs": {
+            "value": 0,
+            "grade": "B",
+            "tier": 2,
+            "citationKey": "srivastava2025",
+            "flag": "best-guess"
+          },
+          "tiltTrigger": {
+            "value": {
+              "kind": "none"
+            },
+            "grade": "B",
+            "tier": 2,
+            "citationKey": "srivastava2025"
+          }
+        },
+        "b2200plus": {
+          "reflectionPrompt": {
+            "value": "Free-text metacognitive notes",
+            "grade": "B",
+            "tier": 2,
+            "citationKey": "srivastava2025"
+          },
+          "analysisUnlockDelayMs": {
+            "value": 0,
+            "grade": "B",
+            "tier": 2,
+            "citationKey": "srivastava2025",
+            "flag": "best-guess"
+          },
+          "tiltTrigger": {
+            "value": {
+              "kind": "none"
+            },
+            "grade": "B",
+            "tier": 2,
+            "citationKey": "srivastava2025"
+          }
+        }
+      }
+    },
+    "activeReproduction": {
+      "perBand": {
+        "u800": {
+          "taskDescription": {
+            "value": "Click on the piece that was given away for free (one-move blunder)",
+            "grade": "A",
+            "tier": 2,
+            "citationKey": "metcalfe_kornell2009"
+          },
+          "maxCriticalMoments": {
+            "value": 1,
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "stub_open_question",
+            "flag": "best-guess"
+          },
+          "timeLimitPerMomentMs": {
+            "value": null,
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "stub_open_question",
+            "flag": "best-guess"
+          }
+        },
+        "b800_1200": {
+          "taskDescription": {
+            "value": "Enter an alternative move at the turning point of the game",
+            "grade": "A",
+            "tier": 2,
+            "citationKey": "metcalfe_kornell2009"
+          },
+          "maxCriticalMoments": {
+            "value": 2,
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "stub_open_question",
+            "flag": "best-guess"
+          },
+          "timeLimitPerMomentMs": {
+            "value": 120000,
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "stub_open_question",
+            "flag": "best-guess"
+          }
+        },
+        "b1200_1600": {
+          "taskDescription": {
+            "value": "Enter an alternative main line (up to 2 moves deep) with text annotation",
+            "grade": "A",
+            "tier": 2,
+            "citationKey": "metcalfe_kornell2009"
+          },
+          "maxCriticalMoments": {
+            "value": 2,
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "stub_open_question",
+            "flag": "best-guess"
+          },
+          "timeLimitPerMomentMs": {
+            "value": 180000,
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "stub_open_question",
+            "flag": "best-guess"
+          }
+        },
+        "b1600_2000": {
+          "taskDescription": {
+            "value": "Identify the point of no return; enter 2 candidate moves with evaluation",
+            "grade": "A",
+            "tier": 2,
+            "citationKey": "metcalfe_kornell2009"
+          },
+          "maxCriticalMoments": {
+            "value": 3,
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "stub_open_question",
+            "flag": "best-guess"
+          },
+          "timeLimitPerMomentMs": {
+            "value": null,
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "stub_open_question",
+            "flag": "best-guess"
+          }
+        },
+        "b2000_2200": {
+          "taskDescription": {
+            "value": "Write out the variations calculated during the game",
+            "grade": "A",
+            "tier": 2,
+            "citationKey": "metcalfe_kornell2009"
+          },
+          "maxCriticalMoments": {
+            "value": 5,
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "stub_open_question",
+            "flag": "best-guess"
+          },
+          "timeLimitPerMomentMs": {
+            "value": null,
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "stub_open_question",
+            "flag": "best-guess"
+          }
+        },
+        "b2200plus": {
+          "taskDescription": {
+            "value": "Write out the variations calculated during the game",
+            "grade": "A",
+            "tier": 2,
+            "citationKey": "metcalfe_kornell2009"
+          },
+          "maxCriticalMoments": {
+            "value": 5,
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "stub_open_question",
+            "flag": "best-guess"
+          },
+          "timeLimitPerMomentMs": {
+            "value": null,
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "stub_open_question",
+            "flag": "best-guess"
+          }
+        }
+      }
+    },
+    "rplFiltering": {
+      "enabled": {
+        "value": true,
+        "grade": "A",
+        "tier": 2,
+        "citationKey": "metcalfe2002"
+      },
+      "perBand": {
+        "u800": {
+          "visibleErrorThresholdCp": {
+            "value": 300,
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "stub_open_question",
+            "flag": "best-guess"
+          },
+          "entropyFilter": {
+            "value": "Hide all advantages requiring >2-ply depth and no mate/material win",
+            "grade": "B",
+            "tier": 1,
+            "citationKey": "luu2025"
+          },
+          "learningFocus": {
+            "value": "Board safety (not giving pieces away)",
+            "grade": "A",
+            "tier": 2,
+            "citationKey": "metcalfe2002"
+          }
+        },
+        "b800_1200": {
+          "visibleErrorThresholdCp": {
+            "value": 200,
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "stub_open_question",
+            "flag": "best-guess"
+          },
+          "entropyFilter": {
+            "value": "Hide pure positional manoeuvres",
+            "grade": "B",
+            "tier": 1,
+            "citationKey": "luu2025"
+          },
+          "learningFocus": {
+            "value": "Direct tactical sequences and one-move threats",
+            "grade": "A",
+            "tier": 2,
+            "citationKey": "metcalfe2002"
+          }
+        },
+        "b1200_1600": {
+          "visibleErrorThresholdCp": {
+            "value": 100,
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "stub_open_question",
+            "flag": "best-guess"
+          },
+          "entropyFilter": {
+            "value": "Hide complex engine sacrifices for long-term initiative; show 2nd line if more human",
+            "grade": "B",
+            "tier": 1,
+            "citationKey": "luu2025"
+          },
+          "learningFocus": {
+            "value": "Structural errors (doubled pawns) and 3-ply tactics",
+            "grade": "A",
+            "tier": 2,
+            "citationKey": "metcalfe2002"
+          }
+        },
+        "b1600_2000": {
+          "visibleErrorThresholdCp": {
+            "value": 50,
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "stub_open_question",
+            "flag": "best-guess"
+          },
+          "entropyFilter": {
+            "value": "No hard filters; warn that position is \"high-entropy\" (chaotic)",
+            "grade": "B",
+            "tier": 1,
+            "citationKey": "luu2025"
+          },
+          "learningFocus": {
+            "value": "Opening nuances, prophylaxis, candidate-move ranking",
+            "grade": "A",
+            "tier": 2,
+            "citationKey": "metcalfe2002"
+          }
+        },
+        "b2000_2200": {
+          "visibleErrorThresholdCp": {
+            "value": 0,
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "stub_open_question",
+            "flag": "best-guess"
+          },
+          "entropyFilter": {
+            "value": "No suppression; show full evaluation trees",
+            "grade": "B",
+            "tier": 1,
+            "citationKey": "luu2025"
+          },
+          "learningFocus": {
+            "value": "Subtle theory, deep macro-strategy",
+            "grade": "A",
+            "tier": 2,
+            "citationKey": "metcalfe2002"
+          }
+        },
+        "b2200plus": {
+          "visibleErrorThresholdCp": {
+            "value": 0,
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "stub_open_question",
+            "flag": "best-guess"
+          },
+          "entropyFilter": {
+            "value": "No suppression; show full evaluation trees",
+            "grade": "B",
+            "tier": 1,
+            "citationKey": "luu2025"
+          },
+          "learningFocus": {
+            "value": "Subtle theory, deep macro-strategy",
+            "grade": "A",
+            "tier": 2,
+            "citationKey": "metcalfe2002"
+          }
+        }
+      }
+    },
+    "srsIntegration": {
+      "enabled": {
+        "value": true,
+        "grade": "A",
+        "tier": 2,
+        "citationKey": "cepeda2006"
+      },
+      "onFail": {
+        "value": "lapse",
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "stub_open_question",
+        "flag": "best-guess"
+      },
+      "onCorrectCritical": {
+        "value": 3,
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "stub_open_question",
+        "flag": "best-guess"
+      }
+    },
+    "gameSelection": {
+      "enabled": {
+        "value": true,
+        "grade": "B",
+        "tier": 1,
+        "citationKey": "yiannakoulias2026"
+      },
+      "perBand": {
+        "u800": {
+          "winRatio": {
+            "value": 0.8,
+            "grade": "B",
+            "tier": 1,
+            "citationKey": "yiannakoulias2026",
+            "flag": "best-guess"
+          },
+          "lossRatio": {
+            "value": 0.2,
+            "grade": "B",
+            "tier": 1,
+            "citationKey": "yiannakoulias2026",
+            "flag": "best-guess"
+          },
+          "focusDescription": {
+            "value": "Positive reinforcement. Where did you play well? Missed a faster mate?",
+            "grade": "B",
+            "tier": 1,
+            "citationKey": "yiannakoulias2026"
+          }
+        },
+        "b800_1200": {
+          "winRatio": {
+            "value": 0.7,
+            "grade": "B",
+            "tier": 1,
+            "citationKey": "yiannakoulias2026",
+            "flag": "best-guess"
+          },
+          "lossRatio": {
+            "value": 0.3,
+            "grade": "B",
+            "tier": 1,
+            "citationKey": "yiannakoulias2026",
+            "flag": "best-guess"
+          },
+          "focusDescription": {
+            "value": "Identify missed tactical opportunities while ahead",
+            "grade": "B",
+            "tier": 1,
+            "citationKey": "yiannakoulias2026"
+          }
+        },
+        "b1200_1600": {
+          "winRatio": {
+            "value": 0.6,
+            "grade": "B",
+            "tier": 1,
+            "citationKey": "yiannakoulias2026",
+            "flag": "best-guess"
+          },
+          "lossRatio": {
+            "value": 0.4,
+            "grade": "B",
+            "tier": 1,
+            "citationKey": "yiannakoulias2026",
+            "flag": "best-guess"
+          },
+          "focusDescription": {
+            "value": "Analyse how initiative was built and consolidated",
+            "grade": "B",
+            "tier": 1,
+            "citationKey": "yiannakoulias2026"
+          }
+        },
+        "b1600_2000": {
+          "winRatio": {
+            "value": 0.5,
+            "grade": "B",
+            "tier": 1,
+            "citationKey": "yiannakoulias2026",
+            "flag": "best-guess"
+          },
+          "lossRatio": {
+            "value": 0.5,
+            "grade": "B",
+            "tier": 1,
+            "citationKey": "yiannakoulias2026",
+            "flag": "best-guess"
+          },
+          "focusDescription": {
+            "value": "Balance: conversion efficiency (wins) vs opening errors (losses)",
+            "grade": "B",
+            "tier": 1,
+            "citationKey": "yiannakoulias2026"
+          }
+        },
+        "b2000_2200": {
+          "winRatio": {
+            "value": 0.3,
+            "grade": "B",
+            "tier": 1,
+            "citationKey": "yiannakoulias2026",
+            "flag": "best-guess"
+          },
+          "lossRatio": {
+            "value": 0.7,
+            "grade": "B",
+            "tier": 1,
+            "citationKey": "yiannakoulias2026",
+            "flag": "best-guess"
+          },
+          "focusDescription": {
+            "value": "Strict dissection of microscopic inaccuracies; losses are gold here",
+            "grade": "B",
+            "tier": 1,
+            "citationKey": "yiannakoulias2026"
+          }
+        },
+        "b2200plus": {
+          "winRatio": {
+            "value": 0.3,
+            "grade": "B",
+            "tier": 1,
+            "citationKey": "yiannakoulias2026",
+            "flag": "best-guess"
+          },
+          "lossRatio": {
+            "value": 0.7,
+            "grade": "B",
+            "tier": 1,
+            "citationKey": "yiannakoulias2026",
+            "flag": "best-guess"
+          },
+          "focusDescription": {
+            "value": "Strict dissection of microscopic inaccuracies; losses are gold here",
+            "grade": "B",
+            "tier": 1,
+            "citationKey": "yiannakoulias2026"
+          }
+        }
+      }
+    },
+    "engineDelayRequired": {
+      "value": true,
+      "grade": "A",
+      "tier": 2,
+      "citationKey": "bjork2011"
+    },
+    "tiltPreventionEnabled": {
+      "value": true,
+      "grade": "B",
+      "tier": 2,
+      "citationKey": "srivastava2025",
+      "flag": "semi-evidenced"
+    },
+    "physicalBoardRecommendation": {
+      "value": "advise for bands >1200 preparing for OTB",
+      "grade": "C",
+      "tier": 1,
+      "citationKey": "stub_open_question",
+      "flag": "best-guess"
+    }
+  },
   "rationale": [
     {
       "key": "blunder_focus",
@@ -1244,12 +1855,12 @@
     },
     {
       "key": "analyse_own_games",
-      "whenShown": "an analyse-own-games item",
-      "value": "Reviewing your own losses finds your specific leaks — generic advice can't. Coaching consensus, not formally proven.",
-      "grade": "C",
+      "whenShown": "analysis module entry",
+      "value": "Analysing your own games is the single strongest vehicle for building pattern recognition — but how you analyse matters enormously. We guide you through a science-backed process: think first, engine second.",
+      "grade": "B",
       "tier": 1,
-      "citationKey": "stub_open_question",
-      "soften": true
+      "citationKey": "yiannakoulias2026",
+      "soften": false
     },
     {
       "key": "endgame_focus",
@@ -1366,6 +1977,60 @@
       "grade": "B",
       "tier": 2,
       "citationKey": "lally2010",
+      "soften": false
+    },
+    {
+      "key": "analysis_engine_delay",
+      "whenShown": "engine hidden during Step 2",
+      "value": "The engine is off on purpose. Turning it on first is like reading the answer key before trying the problem — you recognise the answer but don't learn the method. By thinking first, you train the exact brain pathways you need during your next game.",
+      "grade": "A",
+      "tier": 2,
+      "citationKey": "bjork2011",
+      "soften": false
+    },
+    {
+      "key": "analysis_rpl_filter",
+      "whenShown": "RPL-filtered engine output",
+      "value": "We filter the computer's suggestions. A move that only makes sense 15 moves deep doesn't help your game now. We focus on the mistakes you can understand and avoid next time.",
+      "grade": "A",
+      "tier": 2,
+      "citationKey": "metcalfe2002",
+      "soften": false
+    },
+    {
+      "key": "analysis_success_bias",
+      "whenShown": "win suggested for analysis",
+      "value": "People learn more easily and with more enjoyment from their successes. Analysis of millions of online games shows that sharpening games you played well produces more rating improvement than constantly staring at painful losses.",
+      "grade": "B",
+      "tier": 1,
+      "citationKey": "yiannakoulias2026",
+      "soften": false
+    },
+    {
+      "key": "analysis_tilt_pause",
+      "whenShown": "post-game cooldown",
+      "value": "Emotions cloud your judgement after a game. By pausing briefly, you prevent yourself from ignoring mistakes out of frustration. Research shows that players who tilt process their own errors worse neurologically.",
+      "grade": "B",
+      "tier": 2,
+      "citationKey": "srivastava2025",
+      "soften": false
+    },
+    {
+      "key": "analysis_srs_puzzle",
+      "whenShown": "mistake-puzzle generated",
+      "value": "Tomorrow you'll have forgotten 40% of what you learned today. By replaying your own mistakes as puzzles just before you'd forget them, we move the pattern permanently into long-term memory. This is how intuition is built.",
+      "grade": "C",
+      "tier": 2,
+      "citationKey": "cepeda2006",
+      "soften": true
+    },
+    {
+      "key": "analysis_entropy",
+      "whenShown": "high-entropy position shown",
+      "value": "This position is chaotic — even the engine gives several nearly-equal options. We're flagging it so you know: this isn't a clear mistake, it's a genuinely complex situation where multiple moves were reasonable.",
+      "grade": "B",
+      "tier": 1,
+      "citationKey": "luu2025",
       "soften": false
     }
   ],
@@ -1506,6 +2171,54 @@
       "key": "hanus_fox2015",
       "source": "Hanus & Fox 2015 (longitudinal)",
       "anchors": "Competitive gamification / global leaderboards cut motivation (downward social comparison)",
+      "grade": "A"
+    },
+    {
+      "key": "yiannakoulias2026",
+      "source": "Yiannakoulias 2026, ~2M online speed-chess games",
+      "anchors": "analysing wins > losses for rating gain (sub-expert)",
+      "grade": "B"
+    },
+    {
+      "key": "eskreis_winkler2022",
+      "source": "Eskreis-Winkler & Fishbach 2022, Psych. Sci. (N=1,674)",
+      "anchors": "ego-threat from failure blocks learning / cognitive engagement",
+      "grade": "A"
+    },
+    {
+      "key": "metcalfe2002",
+      "source": "Metcalfe 2002 (Region of Proximal Learning)",
+      "anchors": "learn most from just-beyond-competence; filter too-hard items",
+      "grade": "A"
+    },
+    {
+      "key": "luu2025",
+      "source": "Luu et al. 2025, arXiv (chess entropy/move complexity)",
+      "anchors": "high-entropy engine lines confuse sub-master players",
+      "grade": "B"
+    },
+    {
+      "key": "srivastava2025",
+      "source": "Srivastava et al. 2025 (metacognitive appraisal of quitting)",
+      "anchors": "tilt / metacognitive pauses improve subsequent decisions",
+      "grade": "B"
+    },
+    {
+      "key": "balas2024",
+      "source": "Balas 2024 (Science of Chess: when to think)",
+      "anchors": "knowing when to engage deliberate thought vs pattern match",
+      "grade": "B"
+    },
+    {
+      "key": "bjork2011",
+      "source": "Bjork & Bjork 2011",
+      "anchors": "desirable difficulties; plateau-breaking",
+      "grade": "A"
+    },
+    {
+      "key": "metcalfe_kornell2009",
+      "source": "Metcalfe & Kornell 2009",
+      "anchors": "desirable difficulties & generation effect",
       "grade": "A"
     }
   ]

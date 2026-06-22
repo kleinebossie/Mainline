@@ -32,6 +32,11 @@ export {
   isStableBaseline,
   // Measurement seam (M8): per-band expectation copy for the transparency dashboard.
   expectationForBand,
+  // Seam 4 §4.1: structured game analysis protocol functions
+  gameAnalysisProtocol,
+  filterEngineLines,
+  selectGamesForAnalysis,
+  detectTilt,
   type GradedExpectation,
   type EngagementStateChange,
   type EngagementEvent,
@@ -54,6 +59,15 @@ export {
   type FsrsState,
   type RatingPoint,
   type PlateauResult,
+  // Seam 4 §4.1: structured game analysis protocol types
+  type CriticalMoment,
+  type FilteredLine,
+  type SRSPuzzle,
+  type SuggestedGame,
+  type TiltState,
+  type EngineLine,
+  type RecentGame,
+  type RecentResult,
 } from "@/methodology/provider";
 
 export type {
@@ -74,6 +88,13 @@ export type {
   MeasurementConfig,
   RationaleEntry,
   AnchorSource,
+  GameAnalysisConfig,
+  EmotionalCalibrationConfig,
+  ActiveReproductionConfig,
+  RplFilteringConfig,
+  SrsIntegrationConfig,
+  GameSelectionConfig,
+  TiltTriggerConfig,
 } from "@/methodology/schema/config";
 
 export type {

@@ -121,6 +121,12 @@ _(M = the cross-cutting Measurement & expectations section, after Seam 9.)_
 | S20 | **Feedback must target the task/process, never the self.** "You missed a deflection" helps; "you're talented" harms resilience.                                                                                                                               | A / 2                                      | Wisniewski et al. 2020 (435 studies)           | 6, 9    |
 | S21 | **Engagement dark patterns backfire.** Infinite streaks (loss-aversion → "quit moment") and global leaderboards (downward social comparison) cut long-term motivation; use capped/forgiving streaks, a consistency grid, and same-level peer comparison only. | A / 2                                      | Hanus & Fox 2015; Silverman & Barasch 2023     | 9       |
 | S22 | **Online↔FIDE conversion is invalid post-2024.** FIDE's March-2024 reform (floor→1400, sub-2000 one-time bump, 400-pt rule) voided pre-2024 tables; never show OTB below ~1200 online.                                                                        | A (math) / 1                               | FIDE Mar-2024 reform (Sonas)                   | M, 8    |
+| S23 | **Delayed engine feedback (Desirable Difficulties).** Immediate engine eval creates a "fluency trap" (illusion of competence). Withholding engine lines until the player has attempted manual annotation is required for deep cognitive encoding.              | A / 2                                      | Metcalfe & Kornell 2009; Bjork & Bjork 2011    | 3, 4    |
+| S24 | **Success-biased game selection.** Analysing _wins_ correlates more strongly with rating improvement than analysing losses for sub-expert players. Failure triggers "ego-threat" that neurologically blocks pattern encoding.                                  | B / 1+2                                    | Yiannakoulias 2026 (~2M games); Eskreis-Winkler & Fishbach 2022 (N=1,674) | 4       |
+| S25 | **Region of Proximal Learning (RPL) engine filtering.** Engine lines outside the player's comprehension zone have zero educational value and cause alienation. Filter by CP threshold + variation depth + entropy per band.                                    | A / 2                                      | Metcalfe 2002; Luu et al. 2025                 | 3, 4    |
+| S26 | **Emotional/metacognitive calibration pre-analysis.** Post-game tilt degrades analytical accuracy. A forced micro-reflection pause + loss-chasing prevention improves subsequent analysis quality.                                                             | B / 2                                      | Srivastava et al. 2025; Balas 2024             | 4, 9    |
+| S27 | **High-entropy variation filtering.** When multiple engine candidate moves evaluate within a few centipawns, presenting the full tree to sub-master players causes confusion; suppress volatile/chaotic evaluations.                                            | B / 1                                      | Luu et al. 2025                                | 3, 4    |
+| S28 | **Generation Effect via pre-testing.** Forcing players to guess a move before revealing the engine line improves retention, even when the initial guess is wrong.                                                                                              | A / 2                                      | Pretesting literature (2025 meta); Bjork 2011  | 4       |
 
 ### 1.3 Contradictions across reports — reconciled (the no-BS core)
 
@@ -238,7 +244,8 @@ hallucinate). Calibration estimates **tactical vision only**; everything else co
 ### Seam 3 — Game-feature → weakness interpretation
 
 _Feeds: turning raw analysis features into graded weakness signals. Sources: `WEAKNESS_DIAGNOSIS.md`
-§1, `SKILL_TAXONOMY.md`._
+§1, `SKILL_TAXONOMY.md`, `GAME_ANALYSIS.md` (RPL filtering, high-entropy suppression, per-band CP
+thresholds)._
 
 This is the diagnostic heart. The engine's analysis module produces **raw features only**; this seam is
 the interpretation. **Every emitted signal carries a confidence and a sample size**, and an explicit
@@ -284,26 +291,48 @@ correlates in aggregate; the specific baselines are B/`contested`.)
 | Endgame leak          | conversion/save below band table                                                                    | tablebase eval    | B/1              | **Syzygy integration = stub**       |
 | Opening leak          | **only if ≥194 games/ECO**; else early-opening CPL>100 (moves 1–10) or >30% clock in first 10 moves | game stats        | A (math) / 1     | —                                   |
 
-**(d) Sample-size / confidence gates** (the honesty engine): emit `insufficient-data` rather than a
+**(d) RPL engine-line filtering** (from `GAME_ANALYSIS.md` — applies when the engine presents analysis
+lines to the user). Not all engine output is pedagogically useful; lines outside the player's
+comprehension zone have **zero educational value** and cause alienation (Metcalfe 2002, Grade A/2). The
+engine must **suppress** lines that exceed the player's RPL, and **prefer a slightly inferior but
+human-readable engine move** over the absolute top engine move when the top move is incomprehensible
+(Luu et al. 2025, Grade B/1).
+
+| band      | visible error threshold (CP) | high-entropy filter (hidden lines)                                                    | learning focus                                       |
+| --------- | ---------------------------- | ------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| <800      | ≥300 cp                      | Hide all advantages requiring >2-ply depth and no mate/material win                   | Board safety (not giving pieces away)                |
+| 800–1200  | ≥200 cp                      | Hide pure positional manoeuvres (e.g. rook centralisation for +1.5)                   | Direct tactical sequences and one-move threats       |
+| 1200–1600 | ≥100 cp                      | Hide complex engine sacrifices for long-term initiative; show 2nd line if more human  | Structural errors (doubled pawns) and 3-ply tactics  |
+| 1600–2000 | ≥50 cp                       | No hard filters; warn that position is "high-entropy" (chaotic)                       | Opening nuances, prophylaxis, candidate-move ranking |
+| 2000+     | all fluctuations             | No suppression; show full evaluation trees                                            | Subtle theory, deep macro-strategy                   |
+
+Grade: A/2 (RPL model, Metcalfe 2002) + B/1 (entropy heuristic, Luu et al. 2025). The specific CP
+thresholds are `best-guess` and should calibrate from telemetry.
+
+**(e) Sample-size / confidence gates** (the honesty engine): emit `insufficient-data` rather than a
 fabricated diagnosis whenever `n` is below the gate. Opening win-rate gate = **194 games/ECO**
 (suppress <50 outright). Blunder-rate gate = **≥20 games**. (Grade A/1, binomial power.)
 
 **Pure functions.**
 `interpretGameFeatures(rawFeatures, band, config) → WeaknessSignal[]` where each
 `WeaknessSignal = { dimension, severity, confidence, sampleSize, evidenceGrade, rationaleKey }`;
-`confidenceFromSampleSize(n, signalType, config) → 'insufficient'|'low'|'medium'|'high'`.
+`confidenceFromSampleSize(n, signalType, config) → 'insufficient'|'low'|'medium'|'high'`;
+`filterEngineLines(lines, band, config) → FilteredLine[]` (applies RPL thresholds and entropy
+suppression; each filtered line carries `{ visible, reason, humanAlternative? }`).
 
 **STUB.** Regan IPR Consistency/Sensitivity (depth-18+ server cost) → proxy with blunder rate + STDCPL;
 VOC multi-depth → proxy; Syzygy-accurate endgame eval (engines misjudge fortresses) → flag; **semantic
 strategic weakness** (no reliable method exists — report says human review required); the contested ACPL
-baselines.
+baselines; the entropy heuristic for high-entropy detection (approximate as eval-volatility across
+increasing search depth).
 
 ---
 
 ### Seam 4 — Weakness/level → resource + params mapping
 
 _Feeds: which external activity, at what params, for which weakness/band. Sources:
-`WHAT_RAISES_RATING.md`, `SKILL_TAXONOMY.md`._
+`WHAT_RAISES_RATING.md`, `SKILL_TAXONOMY.md`, `GAME_ANALYSIS.md` (the 5-step structured analysis
+protocol and success-biased game selection)._
 
 **Decision.** A data-driven catalog of **activities** (each pointing only to _external_ resources) plus
 **rules** mapping weakness signals + band → candidate activities, ordered by the report's
@@ -318,12 +347,139 @@ evidence-graded ROI ranking. **Carry the causal-evidence grade on every activity
 | Blunder-check habit                   | board_vision | 3     | 3        | 2         | 1         | 1         | 1     | C (B desc)                             |
 | Themed tactics (reflective)           | tactics      | 3     | 3        | 3         | 2         | 2         | 1     | C (B corr)                             |
 | Spaced review of failed tactics       | tactics      | 2     | 3        | 3         | 2         | 2         | 1     | C chess / A gen                        |
-| Analyse own games                     | all          | 2     | 2        | 3         | 3         | 3         | 3     | C/1                                    |
+| **Analyse own games (structured)**    | all          | 2     | 2        | 3         | 3         | 3         | 3     | B/1+2 (protocol A; causal C)           |
 | Calculation / visualisation           | calculation  | 1     | 1        | 2         | 3         | 3         | 3     | C/1                                    |
 | Endgame study                         | endgames     | 1     | 1        | 2         | 2         | 3         | 3     | C/1                                    |
 | Master / annotated games              | positional   | 1     | 1        | 2         | 2         | 3         | 3     | C/1                                    |
 | Coaching analogue (targeted feedback) | all          | 2     | 2        | 2         | 3         | 3         | 3     | B/C/1                                  |
 | Opening study                         | openings     | **D** | 1        | 1         | 2         | 3         | 3     | C/1; **D if heavy memorisation <1600** |
+
+#### 4.1 Structured game-analysis protocol (expanded from `GAME_ANALYSIS.md`)
+
+The single most powerful training vehicle for building chess chunks is **analysing your own games** —
+but only when done correctly. The conventional method (click through an engine eval bar) destroys the
+learning effect by activating short-term recognition rather than the retrieval paths needed during a
+real game (Charness et al. 2005; Bjork & Bjork 2011, Grade A/2). `GAME_ANALYSIS.md` synthesises
+cognitive science, behavioural psychology, and large-scale chess-database analysis into a **5-step
+protocol** that the app must enforce. Each step is config-driven and per-band.
+
+**Step 1 — Emotional & metacognitive calibration (immediately post-game)**
+
+Starting analysis or a new game immediately after a loss creates cognitive blind spots and tilt. The
+first step forces a metacognitive pause.
+
+_Rule:_ The app **refuses** immediate analysis after completing a game. The player must fill in a
+micro-reflection prompt before analysis unlocks. If the player has lost multiple games in a row, the
+app blocks new play suggestions ("loss-chasing prevention") and enforces a cooldown.
+
+**Config — `gameAnalysis.emotionalCalibration`**
+
+| band      | reflection prompt                                               | analysis-unlock delay | tilt-prevention trigger                |
+| --------- | --------------------------------------------------------------- | --------------------- | -------------------------------------- |
+| <800      | "Did you get in trouble because of the clock or a blunder?"     | immediate (retain attention) | after 3 losses in <1 hour        |
+| 800–1200  | "Where in the game did you feel you lost control?"              | 2 min wait            | after 3 losses in a row                |
+| 1200–1600 | "What was your plan in the middlegame?"                         | 5 min wait            | after 2 losses in a row (heavy-tilt band) |
+| 1600–2000 | Detailed tagging (e.g. "time trouble", "bad in the opening")    | 5 min wait            | warning on >15% performance decline    |
+| 2000+     | Free-text metacognitive notes                                   | user-determined       | no hard lock, show data trend only     |
+
+Grade: B/2 (self-regulation theory + tilt effects from esports/decision-making data; Srivastava et al.
+2025, Balas 2024). UX must not feel _punitive_ — frame as preparation for better analysis.
+
+**Step 2 — Active reproduction & error detection WITHOUT engine**
+
+The most critical pedagogical step. The engine stays **strictly off**. The app identifies the critical
+moment(s) (the move(s) with the largest centipawn shift, filtered by RPL — see Seam 3 §(d)). The
+player is shown the position and must **self-identify the error and propose an improvement** via board
+and/or text input. This forces _retrieval practice_ — the exact neural pathways needed during a real
+game.
+
+**Config — `gameAnalysis.activeReproduction`**
+
+| band      | task without engine                                                              | # critical moments | time limit per moment |
+| --------- | -------------------------------------------------------------------------------- | ------------------ | --------------------- |
+| <800      | Click on the piece that was given away for free (one-move blunder)               | 1 (biggest blunder) | none                 |
+| 800–1200  | Enter an alternative move at the turning point of the game                       | 2                  | max 2 min each        |
+| 1200–1600 | Enter an alternative main line (up to 2 moves deep) with text annotation ("Plan was X") | 2–3           | max 3 min each        |
+| 1600–2000 | Identify the point of no return; enter 2 candidate moves with evaluation         | 3 (tactical + positional) | none            |
+| 2000+     | Write out the variations calculated during the game (to find calculation gaps)   | all errors >50 CP  | none                  |
+
+Grade: A/2 ("Desirable Difficulties" + "Generation Effect", robustly replicated; Metcalfe & Kornell
+2009; Bjork & Bjork 2011). The required effort level scales with chess vocabulary — beginners (<800)
+lack words for positional judgements, so focus on eliminating board blindness.
+
+**Step 3 — RPL-filtered engine feedback release**
+
+After the player's manual evaluation, engine analysis is released — but **not all of it**. Lines
+outside the player's Region of Proximal Learning are suppressed (see Seam 3 §(d) RPL filtering
+table). The app prefers a slightly inferior but _human-comprehensible_ engine suggestion over the
+absolute top engine move when the top move is incomprehensible to the player's band.
+
+Grade: A/2 (Metcalfe 2002 RPL model) + B/1 (Luu et al. 2025 entropy). See Seam 3 §(d) for the full
+per-band CP-threshold and entropy-filter tables.
+
+**Step 4 — Integration of critical moments into the SRS**
+
+Analysing an error is encoding; preventing the same error requires _retention_. The app automatically
+generates a custom "mistake puzzle" from each critical moment identified in Steps 2–3 and feeds it
+into the Seam 6 FSRS scheduler. The player will encounter this exact position again at spaced
+intervals, just before the pattern would decay from memory.
+
+The SRS intervals and redo-failed flow are specified in Seam 6. The specific integration rule:
+
+- On fail (Steps 2–3): generate a mistake puzzle → enter FSRS as a **new lapse** (initial interval
+  ~1 day).
+- On correct (but flagged as a critical moment): generate a mistake puzzle → enter FSRS as **Grade 3
+  (Good)** (standard initial interval).
+
+Grade: A/2 (spacing effect — one of the most replicated findings in learning science; Cepeda et al.
+2006). The application of FSRS specifically to _entire game positions_ (vs flashcards) is B–C chess.
+
+**Step 5 — Success-biased game selection**
+
+Contrary to the widespread coaching dogma "you learn the most from your most painful losses",
+large-scale data (Yiannakoulias 2026, ~2M online speed-chess games) shows that analysing **wins**
+correlates more strongly with rating improvement for sub-expert players. Failure triggers _ego-threat_
+that neurologically blocks cognitive engagement and pattern encoding (Eskreis-Winkler & Fishbach 2022,
+N=1,674, Grade A/2). Only at expert level, where ego is decoupled from single mistakes, does
+loss-analysis become dominantly effective.
+
+The app proactively suggests games to analyse with a **win:loss ratio that scales inversely with
+rating**, focusing on moments where a won position was inaccurately converted.
+
+**Config — `gameAnalysis.gameSelection`**
+
+| band      | suggested analysis ratio (win : loss) | primary focus during analysis                                         |
+| --------- | ------------------------------------- | --------------------------------------------------------------------- |
+| <800      | 80% win : 20% loss                   | Positive reinforcement. Where did you play well? Missed a faster mate? |
+| 800–1200  | 70% win : 30% loss                   | Identify missed tactical opportunities while ahead                    |
+| 1200–1600 | 60% win : 40% loss                   | Analyse how initiative was built and consolidated                     |
+| 1600–2000 | 50% win : 50% loss                   | Balance: conversion efficiency (wins) vs opening errors (losses)      |
+| 2000+     | 30% win : 70% loss                   | Strict dissection of microscopic inaccuracies; losses are gold here   |
+
+Grade: B/1+2 (very strong general-psychology results + large-scale chess-specific data; needs more
+experimental replication on the chess-board interface specifically). The app must still isolate
+_structural blunders in won games_ and feed them to the SRS (Step 4) — winning doesn't mean the game
+was clean.
+
+**Config — `gameAnalysis` (aggregate parameters)**
+
+| param                           | value                                                      | grade | flag                                   |
+| ------------------------------- | ---------------------------------------------------------- | ----- | -------------------------------------- |
+| `engineDelayRequired`           | `true` (engine hidden until manual annotation attempted)   | A/2   | Desirable Difficulties (Bjork)         |
+| `emotionalCalibration.enabled`  | `true`                                                     | B/2   | self-regulation theory                 |
+| `rplFiltering.enabled`          | `true`                                                     | A/2   | Metcalfe 2002 RPL model                |
+| `successBias.enabled`           | `true`                                                     | B/1+2 | Yiannakoulias 2026; Eskreis-Winkler 2022 |
+| `srsIntegration.enabled`        | `true`                                                     | A/2   | spacing effect                         |
+| `maxCriticalMomentsPerGame`     | per-band table (Step 2)                                    | C     | `best-guess`                           |
+| `tiltPreventionEnabled`         | `true`                                                     | B/2   | `semi-evidenced`                       |
+| `physicalBoardRecommendation`   | advise for bands >1200 preparing for OTB                   | C     | `best-guess` (anecdotal + state-dependent recall theory) |
+
+**Pure function.**
+`gameAnalysisProtocol(game, band, config) → AnalysisSession` (orchestrates the 5 steps;
+`AnalysisSession = { calibrationPrompt, criticalMoments[], rplFilteredLines[], srsPuzzles[],
+gameSelectionRatio }`).
+
+---
 
 **Config — `weaknessResourceRules: Rule[]`** (condition → external resource template + params):
 
@@ -348,7 +504,9 @@ carries `dimensionsTargeted`, `evidenceGrade`, `rationaleKey`, and a concrete ex
 
 **STUB.** Exact per-band study-mix percentages (e.g. the folkloric 50/30/10/10) — coaching opinion,
 **Grade C/D**, expose as tunable; the causal claim that any given resource raises rating (**C** — say so
-in copy); resource-quality ratings for books.
+in copy); resource-quality ratings for books; the exact analysis-unlock delay times (B/`best-guess`);
+the critical-moment count per band (C/`best-guess`); the precise win:loss ratios for game selection
+(B/`best-guess` — calibrate from telemetry).
 
 ---
 
@@ -552,7 +710,13 @@ numbers it explains (change a number → review its copy).
 | ----------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------- |
 | `puzzle_difficulty`     | on a puzzle set             | "You learn fastest at ~85% success — hard enough to think, easy enough to encode the pattern."                                                                                                                                                                           | B/2              |
 | `redo_failed`           | on a redo item              | "Re-solving misses, spaced over days, is the most science-backed way to make patterns stick — proven mostly on flashcards, not chess yet."                                                                                                                               | A gen / C chess  |
-| `analyse_own_games`     | after a loss                | "Reviewing your own losses finds _your_ specific leaks — generic advice can't. (Coaching consensus; not formally proven.)"                                                                                                                                               | C                |
+| `analyse_own_games`     | analysis module entry       | "Analysing your own games is the single strongest vehicle for building pattern recognition — but _how_ you analyse matters enormously. We guide you through a science-backed process: think first, engine second."                                                       | B/1+2            |
+| `analysis_engine_delay` | engine hidden during Step 2 | "The engine is off on purpose. Turning it on first is like reading the answer key before trying the problem — you recognise the answer but don't learn the method. By thinking first, you train the exact brain pathways you need during your next game."                 | A/2              |
+| `analysis_rpl_filter`   | RPL-filtered engine output  | "We filter the computer's suggestions. A move that only makes sense 15 moves deep doesn't help your game _now_. We focus on the mistakes you can understand and avoid next time."                                                                                        | A/2              |
+| `analysis_success_bias` | win suggested for analysis  | "People learn more easily and with more enjoyment from their successes. Analysis of millions of online games shows that sharpening games you played well produces more rating improvement than constantly staring at painful losses."                                     | B/1+2            |
+| `analysis_tilt_pause`   | post-game cooldown          | "Emotions cloud your judgement after a game. By pausing briefly, you prevent yourself from ignoring mistakes out of frustration. Research shows that players who tilt process their own errors worse neurologically."                                                     | B/2              |
+| `analysis_srs_puzzle`   | mistake-puzzle generated    | "Tomorrow you'll have forgotten 40% of what you learned today. By replaying your own mistakes as puzzles just before you'd forget them, we move the pattern permanently into long-term memory. This is how intuition is built."                                          | A gen / C chess  |
+| `analysis_entropy`      | high-entropy position shown | "This position is chaotic — even the engine gives several nearly-equal options. We're flagging it so you know: this isn't a clear mistake, it's a genuinely complex situation where multiple moves were reasonable."                                                      | B/1              |
 | `blunder_focus`         | high blunder rate           | "Below master level, games are won by whoever blunders second-to-last. Today targets board safety."                                                                                                                                                                      | A desc / C train |
 | `endgame_focus`         | low conversion              | "You reached winning endgames and didn't convert. A few key positions turn draws into wins."                                                                                                                                                                             | C                |
 | `opening_suppressed`    | <194 games/ECO              | "We won't judge your opening on 14 games — that's noise. We're reviewing core ideas instead."                                                                                                                                                                            | A/1              |
@@ -804,6 +968,9 @@ positioned to generate the dose-response and plateau evidence the literature lac
 | 13  | **Process-goal framing unproven in chess**                                                                                                | Strong sport-psych meta-analysis (Williamson 2022), extrapolated                         | Surface process goals, hide ELO ("cognitive firewall")                                   | A/B test process- vs outcome-goal cohorts on retention                     |
 | 14  | **Plateau-detection window (90 days)**                                                                                                    | The CI-crossing _rule_ is evidenced (Glicko-2); the window is not                        | 90 active days as labelled `best-guess`                                                  | Tune window against observed real (CI-clearing) gains                      |
 | 15  | **Worked-example & motif-mastery cutoffs (~80%)**                                                                                         | Theory-based (CLT), not chess-tuned                                                      | Ship the thresholds as `best-guess`                                                      | Tune cutoff against measured transfer                                      |
+| 16  | **Success-biased game selection ratios (win:loss per band)**                                                                              | Strong general-psych ego-threat data (A/2); large chess dataset (B/1); not experimentally replicated on chess-board interface | Ship per-band ratios from `GAME_ANALYSIS.md` as `best-guess`              | Correlate analysis-type (win vs loss) with subsequent per-skill improvement |
+| 17  | **RPL engine-filtering CP thresholds per band**                                                                                           | RPL theory is A/2 (Metcalfe 2002); the specific per-band CP cutoffs are extrapolated     | Per-band thresholds from `GAME_ANALYSIS.md` as `best-guess`                              | Recalibrate from user-reported comprehension vs engine-line depth          |
+| 18  | **Entropy heuristic for "high-entropy" variation detection**                                                                              | Concept well-supported (Luu et al. 2025 B/1); no standardised implementation algorithm   | Approximate as eval-volatility across increasing search depth                            | Evaluate correlation of flagged positions vs user confusion signals        |
 
 **Two honesty notes for the build:**
 
@@ -859,6 +1026,12 @@ corresponding `research/` reports; this table is the `evidenceLedger` the UI cit
 | `lichess_etl`                  | Lichess ETL / jcw024 (2.3M players, 450M games)           | diminishing-returns timeline by band                          | A (observational, chess) |
 | `glickman2012`                 | Glickman 2012 (Glicko-2 example)                          | rating noise / 95% CI math                                    | A (ratings math)         |
 | `vaci2019`                     | Vaci et al. 2019, _PNAS_ (longitudinal, N=90)             | intelligence × practice non-linear; numeric ability strongest | A (chess)                |
+| `yiannakoulias2026`            | Yiannakoulias 2026, ~2M online speed-chess games           | analysing wins > losses for rating gain (sub-expert)          | B (chess, large-scale)   |
+| `eskreis_winkler2022`          | Eskreis-Winkler & Fishbach 2022, _Psych. Sci._ (N=1,674)  | ego-threat from failure blocks learning / cognitive engagement | A (general)              |
+| `metcalfe2002`                 | Metcalfe 2002 (Region of Proximal Learning)                | learn most from just-beyond-competence; filter too-hard items | A (general)              |
+| `luu2025`                      | Luu et al. 2025, arXiv (chess entropy/move complexity)     | high-entropy engine lines confuse sub-master players          | B (chess)                |
+| `srivastava2025`               | Srivastava et al. 2025 (metacognitive appraisal of quitting) | tilt / metacognitive pauses improve subsequent decisions    | B (cognitive science)    |
+| `balas2024`                    | Balas 2024 (Science of Chess: when to think)               | knowing when to engage deliberate thought vs pattern match    | B (chess)                |
 
 ---
 

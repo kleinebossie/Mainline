@@ -15,7 +15,7 @@ import { servoOffset } from "@/engine/math/servo";
 import { stableSortByScoreDesc } from "@/engine/math/weighted-sort";
 import { fsrsStep, type FsrsGrade, type FsrsState } from "@/engine/math/fsrs";
 import { glickoConfidenceInterval } from "@/engine/math/glicko";
-import { DAY_MS } from "@/lib/clock";
+import { DAY_MS, type Clock } from "@/lib/clock";
 
 export type { FsrsGrade, FsrsState };
 
@@ -867,5 +867,504 @@ export function expectationForBand(
     evidenceTier: ex.tier,
     citationKey: ex.citationKey,
     flag: ex.flag,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Seam 4.1 — Structured game-analysis protocol (GAME_ANALYSIS; Seam 4 §4.1)
+// ---------------------------------------------------------------------------
+
+export interface GameInput {
+  id: string;
+  pgn: string;
+  playedAt: Date | string | number;
+  result: "win" | "loss" | "draw" | string | null;
+  color: "w" | "b" | string | null;
+  userRatingAtGame?: number | null;
+  rawFeatures?: RawGameFeatures | null;
+}
+
+export interface CriticalMoment {
+  ply: number;
+  cpBefore: number;
+  cpAfter: number;
+  cpLoss: number;
+  fen?: string;
+}
+
+export interface EngineLine {
+  pv: string[];
+  depth: number;
+  evaluation: number;
+  mate: boolean;
+}
+
+export interface FilteredLine extends EngineLine {
+  visible: boolean;
+  reason: string;
+  humanAlternative?: EngineLine;
+}
+
+export interface SRSPuzzle {
+  ply: number;
+  fen: string;
+  cpLoss: number;
+  movePlayed?: string;
+  alternativeMove?: string;
+}
+
+export interface AnalysisSession {
+  calibrationPrompt: string;
+  analysisUnlockDelay: number;
+  tiltBlocked: boolean;
+  criticalMoments: CriticalMoment[];
+  rplFilteredLines: FilteredLine[];
+  srsPuzzles: SRSPuzzle[];
+  gameSelectionRatio: { win: number; loss: number };
+}
+
+export interface RecentGame {
+  id: string;
+  result: "win" | "loss" | "draw" | string | null;
+  color: "w" | "b" | string | null;
+  playedAt: Date | string | number;
+  rawFeatures?: RawGameFeatures | null;
+}
+
+export interface SuggestedGame {
+  gameId: string;
+  score: number;
+  suggestedReason: string;
+  isWinRatioMatch: boolean;
+  result: "win" | "loss" | "draw" | string | null;
+}
+
+export interface RecentResult {
+  playedAt: Date | string | number;
+  result: "win" | "loss" | "draw" | string | null;
+}
+
+export interface TiltState {
+  tilted: boolean;
+  reason?: string;
+}
+
+/**
+ * Seam 4.1 — detect tilt based on per-band rules (losses in time, losses in row, rating decline).
+ * Pure and deterministic (L2).
+ */
+export function detectTilt(
+  recentResults: readonly RecentResult[],
+  band: Band,
+  clock: Clock,
+  cfg: MethodologyConfig,
+): TiltState {
+  const emotional = cfg.gameAnalysis.emotionalCalibration;
+  if (!emotional.enabled.value || !cfg.gameAnalysis.tiltPreventionEnabled.value) {
+    return { tilted: false };
+  }
+
+  const bandCfg = emotional.perBand[band];
+  if (!bandCfg) {
+    return { tilted: false };
+  }
+
+  const trigger = bandCfg.tiltTrigger.value;
+  if (trigger.kind === "none") {
+    return { tilted: false };
+  }
+
+  // Sort descending: most recent game first
+  const sorted = [...recentResults].sort((a, b) => {
+    const tA = new Date(a.playedAt).getTime();
+    const tB = new Date(b.playedAt).getTime();
+    return tB - tA;
+  });
+
+  if (trigger.kind === "losses_in_row") {
+    const countNeeded = trigger.count ?? 3;
+    if (sorted.length < countNeeded) {
+      return { tilted: false };
+    }
+    // Check if the most recent N games are all losses
+    const consecutiveLosses = sorted.slice(0, countNeeded).filter((r) => r.result === "loss");
+    if (consecutiveLosses.length === countNeeded) {
+      return {
+        tilted: true,
+        reason: `Loss-chasing cooldown active after ${countNeeded} consecutive losses. Take a break!`,
+      };
+    }
+  } else if (trigger.kind === "losses_in_time") {
+    const countNeeded = trigger.count ?? 3;
+    const windowMs = trigger.timeWindowMs ?? 3600000;
+    const now = clock.now();
+    const cutoff = now - windowMs;
+
+    const recentLosses = sorted.filter((r) => {
+      const t = new Date(r.playedAt).getTime();
+      return t >= cutoff && r.result === "loss";
+    });
+
+    if (recentLosses.length >= countNeeded) {
+      return {
+        tilted: true,
+        reason: `Loss-chasing cooldown active after ${recentLosses.length} losses in the last hour. Take a break!`,
+      };
+    }
+  } else if (trigger.kind === "performance_decline") {
+    const threshold = trigger.declineThreshold ?? 0.15;
+    const recentWindowSize = 10;
+    const baselineWindowSize = 20;
+
+    const recentGames = sorted.slice(0, recentWindowSize);
+    const baselineGames = sorted.slice(recentWindowSize, recentWindowSize + baselineWindowSize);
+
+    // Only assess if we have enough games in both groups to be statistically sound
+    if (recentGames.length >= 5 && baselineGames.length >= 5) {
+      const winRate = (games: readonly RecentResult[]): number => {
+        const wins = games.filter((g) => g.result === "win").length;
+        const draws = games.filter((g) => g.result === "draw").length;
+        return (wins + 0.5 * draws) / games.length;
+      };
+
+      const recentWinRate = winRate(recentGames);
+      const baselineWinRate = winRate(baselineGames);
+
+      if (baselineWinRate - recentWinRate >= threshold) {
+        return {
+          tilted: true,
+          reason: `Performance decline detected. Win rate dropped by ${Math.round((baselineWinRate - recentWinRate) * 100)}%. Take a break!`,
+        };
+      }
+    }
+  }
+
+  return { tilted: false };
+}
+
+/** Helper function to score a game based on learning opportunities. */
+function scoreGameForAnalysis(
+  game: RecentGame,
+): number {
+  if (!game.rawFeatures) return 0;
+  const isUserPly = (ply: number): boolean => {
+    return game.color === "w" ? ply % 2 === 1 : ply % 2 === 0;
+  };
+
+  const evals = game.rawFeatures.moveEvals || [];
+  let score = 0;
+
+  if (game.result === "win") {
+    // Look for conversion opportunities: won, but had mistakes/blunders
+    for (const m of evals) {
+      if (isUserPly(m.ply) && m.cpLoss >= 100) {
+        score += m.cpLoss;
+      }
+    }
+    if (game.rawFeatures.conversion?.reachedWinningPlus) {
+      score += 200; // base score for conversion phase
+    }
+  } else if (game.result === "loss") {
+    // Look for clear learning moments: critical blunders
+    for (const m of evals) {
+      if (isUserPly(m.ply) && m.cpLoss >= 150) {
+        score += m.cpLoss;
+      }
+    }
+  } else {
+    // Draw: check for blunders or failed conversion
+    for (const m of evals) {
+      if (isUserPly(m.ply) && m.cpLoss >= 100) {
+        score += m.cpLoss;
+      }
+    }
+    if (
+      game.rawFeatures.conversion?.reachedWinningPlus &&
+      !game.rawFeatures.conversion?.converted
+    ) {
+      score += 300; // failed conversion
+    }
+  }
+
+  return score;
+}
+
+/**
+ * Seam 4.1 — select and suggest recent games for analysis, enforcing the per-band win:loss ratios.
+ * Pure and deterministic (L2).
+ */
+export function selectGamesForAnalysis(
+  recentGames: readonly RecentGame[],
+  band: Band,
+  cfg: MethodologyConfig,
+): SuggestedGame[] {
+  const selection = cfg.gameAnalysis.gameSelection;
+  if (!selection.enabled.value) {
+    return [];
+  }
+
+  const bandCfg = selection.perBand[band];
+  if (!bandCfg) {
+    return [];
+  }
+
+  const winRatio = bandCfg.winRatio.value;
+
+  const wins = recentGames.filter((g) => g.result === "win");
+  // Non-wins (losses and draws) are grouped for success-biased selection
+  const nonWins = recentGames.filter((g) => g.result !== "win");
+
+  const scoredWins = wins
+    .map((g) => ({ game: g, score: scoreGameForAnalysis(g) }))
+    .sort((a, b) => b.score - a.score);
+
+  const scoredNonWins = nonWins
+    .map((g) => ({ game: g, score: scoreGameForAnalysis(g) }))
+    .sort((a, b) => b.score - a.score);
+
+  const maxSuggestions = 5;
+  const targetWinsCount = Math.round(maxSuggestions * winRatio);
+  const targetLossesCount = maxSuggestions - targetWinsCount;
+
+  const selected: SuggestedGame[] = [];
+  let winIdx = 0;
+  let lossIdx = 0;
+
+  // 1. Fill up to target counts with the best available games
+  while (
+    selected.length < maxSuggestions &&
+    winIdx < scoredWins.length &&
+    selected.filter((g) => g.result === "win").length < targetWinsCount
+  ) {
+    const item = scoredWins[winIdx]!;
+    selected.push({
+      gameId: item.game.id,
+      score: item.score,
+      suggestedReason: `Success reinforcement: ${bandCfg.focusDescription.value}`,
+      isWinRatioMatch: true,
+      result: "win",
+    });
+    winIdx++;
+  }
+
+  while (
+    selected.length < maxSuggestions &&
+    lossIdx < scoredNonWins.length &&
+    selected.filter((g) => g.result !== "win").length < targetLossesCount
+  ) {
+    const item = scoredNonWins[lossIdx]!;
+    selected.push({
+      gameId: item.game.id,
+      score: item.score,
+      suggestedReason: `Learning moment: ${bandCfg.focusDescription.value}`,
+      isWinRatioMatch: true,
+      result: item.game.result,
+    });
+    lossIdx++;
+  }
+
+  // 2. Backfill with wins if we have slots left
+  while (selected.length < maxSuggestions && winIdx < scoredWins.length) {
+    const item = scoredWins[winIdx]!;
+    selected.push({
+      gameId: item.game.id,
+      score: item.score,
+      suggestedReason: `Additional won game for conversion review`,
+      isWinRatioMatch: false,
+      result: "win",
+    });
+    winIdx++;
+  }
+
+  // 3. Backfill with non-wins if we have slots left
+  while (selected.length < maxSuggestions && lossIdx < scoredNonWins.length) {
+    const item = scoredNonWins[lossIdx]!;
+    selected.push({
+      gameId: item.game.id,
+      score: item.score,
+      suggestedReason: `Additional game for error review`,
+      isWinRatioMatch: false,
+      result: item.game.result,
+    });
+    lossIdx++;
+  }
+
+  return selected;
+}
+
+/**
+ * Seam 3 §(d) — Applies RPL thresholds and entropy suppression on engine lines.
+ * Pure and deterministic (L2).
+ */
+export function filterEngineLines(
+  lines: readonly EngineLine[],
+  band: Band,
+  cfg: MethodologyConfig,
+): FilteredLine[] {
+  const rpl = cfg.gameAnalysis.rplFiltering;
+  if (!rpl.enabled.value) {
+    return lines.map((l) => ({ ...l, visible: true, reason: "" }));
+  }
+
+  const bandCfg = rpl.perBand[band];
+  if (!bandCfg) {
+    return lines.map((l) => ({ ...l, visible: true, reason: "" }));
+  }
+
+  const out: FilteredLine[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]!;
+    let visible = true;
+    let reason = "";
+
+    if (band === "u800") {
+      // Hide all advantages requiring >2-ply depth and no mate/material win
+      const isAdvantage = line.evaluation > 0;
+      const isDeep = line.pv.length > 2;
+      const isMateOrMaterial = line.mate || line.evaluation >= 300;
+      if (isAdvantage && isDeep && !isMateOrMaterial) {
+        visible = false;
+        reason = "Line requires deep calculation beyond Region of Proximal Learning (RPL)";
+      }
+    } else if (band === "b800_1200") {
+      // Hide pure positional manoeuvres (e.g. rook centralisation for +1.5)
+      const isPositional = line.evaluation > 0 && line.evaluation < 200 && !line.mate;
+      if (isPositional) {
+        visible = false;
+        reason = "Pure positional manoeuvre beyond RPL";
+      }
+    } else if (band === "b1200_1600") {
+      // Hide complex engine sacrifices for long-term initiative
+      const isComplex = line.pv.length > 4 && line.evaluation > 0 && !line.mate;
+      if (isComplex) {
+        visible = false;
+        reason = "Complex engine sacrifice for long-term initiative beyond RPL";
+      }
+    } else if (band === "b1600_2000") {
+      // No hard filters; warn that position is "high-entropy" (chaotic)
+      visible = true;
+      reason = "Position is high-entropy (chaotic)";
+    } else {
+      // 2000+
+      visible = true;
+      reason = "";
+    }
+
+    out.push({
+      pv: [...line.pv],
+      depth: line.depth,
+      evaluation: line.evaluation,
+      mate: line.mate,
+      visible,
+      reason,
+    });
+  }
+
+  // If the first line is filtered (hidden), try to point to a visible alternative
+  if (out.length > 0 && !out[0]!.visible) {
+    const alternative = out.find((l) => l.visible);
+    if (alternative) {
+      out[0]!.humanAlternative = {
+        pv: alternative.pv,
+        depth: alternative.depth,
+        evaluation: alternative.evaluation,
+        mate: alternative.mate,
+      };
+    }
+  }
+
+  return out;
+}
+
+/**
+ * Seam 4.1 — Orchestrates the 5 steps of the game analysis protocol.
+ * Pure and deterministic (L2).
+ */
+export function gameAnalysisProtocol(
+  game: GameInput,
+  band: Band,
+  cfg: MethodologyConfig,
+  options?: {
+    recentResults?: readonly RecentResult[];
+    clock?: Clock;
+  },
+): AnalysisSession {
+  // Step 1: Calibration
+  const calibration = cfg.gameAnalysis.emotionalCalibration;
+  const calibrationPrompt = calibration.enabled.value && calibration.perBand[band]
+    ? calibration.perBand[band]!.reflectionPrompt.value
+    : "";
+  const analysisUnlockDelay = calibration.enabled.value && calibration.perBand[band]
+    ? calibration.perBand[band]!.analysisUnlockDelayMs.value
+    : 0;
+
+  // Tilt Detection
+  let tiltBlocked = false;
+  if (options?.recentResults && options?.clock) {
+    tiltBlocked = detectTilt(options.recentResults, band, options.clock, cfg).tilted;
+  }
+
+  // Step 2 & 3: Active Reproduction & RPL Filtering
+  const criticalMoments: CriticalMoment[] = [];
+  const srsPuzzles: SRSPuzzle[] = [];
+
+  const rpl = cfg.gameAnalysis.rplFiltering;
+  const reproduction = cfg.gameAnalysis.activeReproduction.perBand[band];
+
+  if (game.rawFeatures && reproduction) {
+    const threshold = rpl.perBand[band]?.visibleErrorThresholdCp.value ?? 100;
+    const maxMoments = reproduction.maxCriticalMoments.value;
+    const userColor = game.color;
+
+    const isUserPly = (ply: number): boolean => {
+      return userColor === "w" ? ply % 2 === 1 : ply % 2 === 0;
+    };
+
+    // Find candidate critical moments on user plies
+    const candidates = (game.rawFeatures.moveEvals || [])
+      .filter((m) => isUserPly(m.ply) && m.cpLoss >= threshold)
+      .sort((a, b) => b.cpLoss - a.cpLoss);
+
+    const selectedMoments = candidates.slice(0, maxMoments);
+
+    for (const moment of selectedMoments) {
+      // Find matching FEN from blunder features if available
+      const blunder = game.rawFeatures.blunders?.find((b) => b.ply === moment.ply);
+      const fen = blunder?.fen || "";
+
+      criticalMoments.push({
+        ply: moment.ply,
+        cpBefore: moment.cpBefore,
+        cpAfter: moment.cpAfter,
+        cpLoss: moment.cpLoss,
+        fen,
+      });
+
+      // Step 4: SRS Puzzles
+      if (cfg.gameAnalysis.srsIntegration.enabled.value && fen) {
+        srsPuzzles.push({
+          ply: moment.ply,
+          fen,
+          cpLoss: moment.cpLoss,
+        });
+      }
+    }
+  }
+
+  // Step 5: Game Selection
+  const selection = cfg.gameAnalysis.gameSelection.perBand[band];
+  const gameSelectionRatio = selection
+    ? { win: selection.winRatio.value, loss: selection.lossRatio.value }
+    : { win: 0.5, loss: 0.5 };
+
+  return {
+    calibrationPrompt,
+    analysisUnlockDelay,
+    tiltBlocked,
+    criticalMoments,
+    rplFilteredLines: [], // Release engine lines when evaluated client-side
+    srsPuzzles,
+    gameSelectionRatio,
   };
 }
