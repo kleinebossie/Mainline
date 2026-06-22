@@ -238,7 +238,22 @@
         "flag": "best-guess",
         "note": "Stop the ladder early once SE drops below this (and minItems met)."
       }
-    }
+    },
+    "tracks": [
+      { "id": "tactics", "dimension": "tactics", "label": "Tactics", "theme": "mix" },
+      {
+        "id": "calculation",
+        "dimension": "calculation",
+        "label": "Calculation",
+        "theme": "calculation"
+      },
+      {
+        "id": "endgames",
+        "dimension": "endgames",
+        "label": "Endgames",
+        "theme": "endgame"
+      }
+    ]
   },
   "interpretation": {
     "thresholds": {
@@ -982,6 +997,40 @@
         "tier": 2,
         "citationKey": "rohrer2010",
         "flag": "best-guess"
+      }
+    },
+    "preferences": {
+      "formatMismatchPenalty": {
+        "value": 2,
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "stub_open_question",
+        "flag": "best-guess",
+        "note": "Down-weight a format-specific activity the user never plays; magnitude best-guess."
+      },
+      "ownedResourceBonus": {
+        "value": 1,
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "stub_open_question",
+        "flag": "best-guess",
+        "note": "Prefer a resource the user already owns; magnitude best-guess."
+      },
+      "depthWeaknessBonus": {
+        "value": 0.5,
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "stub_open_question",
+        "flag": "best-guess",
+        "note": "Depth preference concentrates on the biggest weakness; magnitude best-guess."
+      },
+      "breadthRoiBonus": {
+        "value": 0.5,
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "stub_open_question",
+        "flag": "best-guess",
+        "note": "Breadth preference spreads across high-ROI activities; magnitude best-guess."
       }
     },
     "volume": {

@@ -8,10 +8,29 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   CHESS_FORMATS,
+  DEPTH_VS_BREADTH,
   EMPTY_CONSTRAINTS,
+  OWNED_RESOURCE_KINDS,
   type ConstraintsInput,
   type Goal,
+  type OwnedResource,
+  type SessionStyle,
 } from "@/lib/constraints";
+
+// Labels for the owned-resource kinds (UI copy; the schema stores the kind enum).
+const RESOURCE_KIND_LABELS: Record<OwnedResource["kind"], string> = {
+  book: "Book",
+  course: "Course",
+  membership: "Membership",
+  trainer: "Trainer / app",
+  other: "Other",
+};
+
+const DEPTH_LABELS: Record<SessionStyle["depthVsBreadth"], string> = {
+  depth: "Go deep — fewer topics, harder",
+  balanced: "Balanced",
+  breadth: "Go broad — more variety",
+};
 
 // Goal kinds offered as checkboxes (label is UI copy; the schema stores { kind, label }).
 // These are aspirations/constraints — never a skill self-rating (Seam 2 boundary).
@@ -24,7 +43,15 @@ const GOAL_OPTIONS: ReadonlyArray<{ kind: Goal["kind"]; label: string }> = [
   { kind: "fun", label: "Enjoy the game more" },
 ];
 
-export function ConstraintsForm() {
+// Reused in onboarding (continue → reveal) and in Settings (continue → today). The
+// continuation is the only thing that differs between the two contexts.
+export function ConstraintsForm({
+  continueHref = "/onboarding/reveal",
+  continueLabel = "Continue →",
+}: {
+  continueHref?: string;
+  continueLabel?: string;
+} = {}) {
   const current = trpc.constraints.getCurrent.useQuery();
   if (current.isLoading) {
     return <p className="text-graphite font-mono text-sm">Loading…</p>;
@@ -34,11 +61,21 @@ export function ConstraintsForm() {
     <Form
       key={current.data?.id ?? "new"}
       initial={current.data ?? EMPTY_CONSTRAINTS}
+      continueHref={continueHref}
+      continueLabel={continueLabel}
     />
   );
 }
 
-function Form({ initial }: { initial: ConstraintsInput }) {
+function Form({
+  initial,
+  continueHref,
+  continueLabel,
+}: {
+  initial: ConstraintsInput;
+  continueHref: string;
+  continueLabel: string;
+}) {
   const utils = trpc.useUtils();
   const save = trpc.constraints.save.useMutation({
     onSuccess: () => {
@@ -62,6 +99,16 @@ function Form({ initial }: { initial: ConstraintsInput }) {
   const [preferredVariety, setVariety] = useState(
     initial.formatPrefs.preferredVariety,
   );
+  const [ownedResources, setOwnedResources] = useState<OwnedResource[]>(
+    initial.ownedResources,
+  );
+  const [newResourceKind, setNewResourceKind] =
+    useState<OwnedResource["kind"]>("book");
+  const [newResourceLabel, setNewResourceLabel] = useState("");
+  const [depthVsBreadth, setDepth] = useState<SessionStyle["depthVsBreadth"]>(
+    initial.sessionStyle.depthVsBreadth,
+  );
+  const [interleave, setInterleave] = useState(initial.sessionStyle.interleave);
   const [cue, setCue] = useState(initial.ifThenPlan?.cue ?? "");
   const [plan, setPlan] = useState(initial.ifThenPlan?.plan ?? "");
   const [saved, setSaved] = useState(false);
@@ -73,6 +120,15 @@ function Form({ initial }: { initial: ConstraintsInput }) {
     else nextSet.add(value);
     return nextSet;
   };
+
+  const addResource = () => {
+    const label = newResourceLabel.trim();
+    if (!label || ownedResources.length >= 100) return;
+    setOwnedResources((rs) => [...rs, { kind: newResourceKind, label }]);
+    setNewResourceLabel("");
+  };
+  const removeResource = (index: number) =>
+    setOwnedResources((rs) => rs.filter((_, i) => i !== index));
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,11 +149,12 @@ function Form({ initial }: { initial: ConstraintsInput }) {
       minutesPerDay,
       daysPerWeek,
       goals,
-      ownedResources: initial.ownedResources,
+      ownedResources,
       formatPrefs: {
         formats: CHESS_FORMATS.filter((f) => formats.has(f)),
         preferredVariety,
       },
+      sessionStyle: { depthVsBreadth, interleave },
       ifThenPlan: cueT && planT ? { cue: cueT, plan: planT } : null,
     });
   };
@@ -194,6 +251,111 @@ function Form({ initial }: { initial: ConstraintsInput }) {
       </fieldset>
 
       <fieldset className="flex flex-col gap-4">
+        <legend className="eyebrow border-b border-line/80 pb-2 w-full mb-2">
+          What do you already own?
+        </legend>
+        <p className="text-graphite font-serif text-sm leading-relaxed -mt-1 mb-1">
+          Books, courses, memberships or trainers you have. We&apos;ll prefer
+          what you can already use and avoid sending you to buy things.
+        </p>
+        {ownedResources.length > 0 && (
+          <ul className="flex flex-col gap-2">
+            {ownedResources.map((r, i) => (
+              <li
+                key={`${r.kind}-${r.label}-${i}`}
+                className="bg-paper/40 flex items-center justify-between gap-3 rounded-md border border-line px-3 py-2"
+              >
+                <span className="font-serif text-sm text-ink">
+                  <span className="text-graphite font-mono text-[0.7rem] uppercase tracking-wider mr-2">
+                    {RESOURCE_KIND_LABELS[r.kind]}
+                  </span>
+                  {r.label}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => removeResource(i)}
+                  aria-label={`Remove ${r.label}`}
+                  className="text-graphite hover:text-clay font-mono text-xs transition-colors"
+                >
+                  Remove
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <select
+            value={newResourceKind}
+            onChange={(e) =>
+              setNewResourceKind(e.target.value as OwnedResource["kind"])
+            }
+            aria-label="Resource type"
+            className="border-input bg-paper-raised text-ink h-10 rounded-md border px-3 font-mono text-sm focus:ring-evergreen focus:outline-none focus:ring-2"
+          >
+            {OWNED_RESOURCE_KINDS.map((k) => (
+              <option key={k} value={k}>
+                {RESOURCE_KIND_LABELS[k]}
+              </option>
+            ))}
+          </select>
+          <Input
+            value={newResourceLabel}
+            onChange={(e) => setNewResourceLabel(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                addResource();
+              }
+            }}
+            placeholder="e.g. Dvoretsky's Endgame Manual"
+            aria-label="Resource name"
+            maxLength={160}
+            className="flex-1"
+          />
+          <Button
+            type="button"
+            variant="outline"
+            onClick={addResource}
+            disabled={!newResourceLabel.trim()}
+          >
+            Add
+          </Button>
+        </div>
+      </fieldset>
+
+      <fieldset className="flex flex-col gap-4">
+        <legend className="eyebrow border-b border-line/80 pb-2 w-full mb-2">
+          How do you like to train?
+        </legend>
+        <div className="flex flex-col gap-2.5">
+          {DEPTH_VS_BREADTH.map((d) => (
+            <label
+              key={d}
+              className="flex items-center gap-3 font-serif text-sm text-ink cursor-pointer"
+            >
+              <input
+                type="radio"
+                name="depthVsBreadth"
+                checked={depthVsBreadth === d}
+                onChange={() => setDepth(d)}
+                className="border-input text-evergreen focus:ring-evergreen h-4 w-4 bg-paper-raised"
+              />
+              {DEPTH_LABELS[d]}
+            </label>
+          ))}
+        </div>
+        <label className="mt-1 flex items-center gap-3 font-serif text-sm text-ink cursor-pointer">
+          <input
+            type="checkbox"
+            checked={interleave}
+            onChange={(e) => setInterleave(e.target.checked)}
+            className="rounded border-input text-evergreen focus:ring-evergreen h-4 w-4 bg-paper-raised"
+          />
+          Mix different topics within a session (interleaving)
+        </label>
+      </fieldset>
+
+      <fieldset className="flex flex-col gap-4">
         <legend className="eyebrow border-b border-line/80 pb-2 w-full mb-1">
           Your if-then plan
         </legend>
@@ -241,10 +403,10 @@ function Form({ initial }: { initial: ConstraintsInput }) {
               Saved ✓
             </span>
             <Link
-              href="/onboarding/reveal"
+              href={continueHref}
               className={buttonVariants({ variant: "outline", size: "sm" })}
             >
-              Continue →
+              {continueLabel}
             </Link>
           </>
         )}

@@ -247,6 +247,7 @@ describe("prioritizeDailyMix", () => {
     track: null,
     estMinutes: 10,
     priority,
+    formats: null,
     rationaleKey: "play_games",
     drivingSignal,
   });
@@ -295,6 +296,108 @@ describe("prioritizeDailyMix", () => {
     // themed_tactics: 1×3 + 3×1 = 6 vs play_games 3.
     expect(ordered[0]!.activityId).toBe("themed_tactics");
     expect(ordered[0]!.score).toBe(6);
+  });
+});
+
+describe("prioritizeDailyMix — preferences (Seam 7 personalisation)", () => {
+  const candidate = (
+    activityId: string,
+    activityType: string,
+    priority: number,
+    drivingSignal: WeaknessSignal | null = null,
+  ): CandidateActivity => ({
+    activityId,
+    activityType,
+    label: activityId,
+    resourceTheme: null,
+    dimensionsTargeted: [],
+    track: null,
+    estMinutes: 10,
+    priority,
+    formats: null,
+    rationaleKey: "play_games",
+    drivingSignal,
+  });
+
+  const signal: WeaknessSignal = {
+    dimension: "board_vision",
+    severity: 1,
+    confidence: "medium",
+    sampleSize: 40,
+    evidenceGrade: "C",
+    evidenceTier: 1,
+    citationKey: "smith_tikkanen2018",
+    rationaleKey: "blunder_focus",
+  };
+
+  it("no preferences ⇒ identical score to the un-personalised path (back-compat)", () => {
+    const base = prioritizeDailyMix(
+      { candidates: [candidate("play_games", "play_game", 3)], dueItems: [] },
+      cfg,
+    );
+    const withEmpty = prioritizeDailyMix(
+      {
+        candidates: [candidate("play_games", "play_game", 3)],
+        dueItems: [],
+        preferences: {},
+      },
+      cfg,
+    );
+    expect(base[0]!.score).toBe(3);
+    expect(withEmpty[0]!.score).toBe(3);
+  });
+
+  it("depth amplifies the weakness term (3 + 3×1×1.5 = 7.5)", () => {
+    const ordered = prioritizeDailyMix(
+      {
+        candidates: [candidate("themed_tactics", "puzzle_theme", 3, signal)],
+        dueItems: [],
+        preferences: { depthVsBreadth: "depth" },
+      },
+      cfg,
+    );
+    expect(ordered[0]!.score).toBeCloseTo(7.5);
+  });
+
+  it("breadth amplifies the ROI term (3×1.5 = 4.5)", () => {
+    const ordered = prioritizeDailyMix(
+      {
+        candidates: [candidate("play_games", "play_game", 3)],
+        dueItems: [],
+        preferences: { depthVsBreadth: "breadth" },
+      },
+      cfg,
+    );
+    expect(ordered[0]!.score).toBeCloseTo(4.5);
+  });
+
+  it("penalises a format-specific activity the user never plays", () => {
+    const cand = { ...candidate("themed_tactics", "puzzle_theme", 3), formats: ["bullet"] };
+    const mismatch = prioritizeDailyMix(
+      { candidates: [cand], dueItems: [], preferences: { formats: ["classical"] } },
+      cfg,
+    );
+    // ROI 3 − formatMismatchPenalty 2 = 1.
+    expect(mismatch[0]!.score).toBe(1);
+    // When the user does play that format, no penalty.
+    const match = prioritizeDailyMix(
+      { candidates: [cand], dueItems: [], preferences: { formats: ["bullet"] } },
+      cfg,
+    );
+    expect(match[0]!.score).toBe(3);
+  });
+
+  it("rewards an activity whose resource the user owns", () => {
+    const ordered = prioritizeDailyMix(
+      {
+        candidates: [candidate("endgame_study", "study", 2)],
+        dueItems: [],
+        preferences: { ownedRefs: ["endgame_study"] },
+      },
+      cfg,
+    );
+    // ROI 2 + ownedResourceBonus 1 = 3.
+    expect(ordered[0]!.score).toBe(3);
   });
 });
 

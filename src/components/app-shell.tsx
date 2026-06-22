@@ -4,17 +4,22 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
+import { AccountMenu } from "@/components/account-menu";
 import { cn } from "@/lib/utils";
 
 // The app shell — one slim mono top bar across every signed-in surface, so the product
 // reads as a single instrument instead of a stack of pages. The wordmark carries the
 // annotation mark (·!) that is the brand's whole idea: a graded, honest line.
+//
+// IA: the primary bar holds the three things you DO — Today (train), Progress (the honest
+// read-out), Setup (the resumable onboarding). Everything that is account/data rather than
+// training (Settings, Connections, export, sign out) lives in the AccountMenu (⚙), so the
+// bar never grows a new tab every time a setting appears.
 
 const NAV = [
   { href: "/today", label: "Today" },
-  { href: "/dashboard", label: "Dashboard" },
+  { href: "/progress", label: "Progress" },
   { href: "/onboarding", label: "Setup" },
-  { href: "/connections", label: "Connections" },
 ];
 
 export function Wordmark({ className }: { className?: string }) {
@@ -40,30 +45,34 @@ function TopBar() {
     <header className="bg-paper/80 sticky top-0 z-30 border-b border-line/80 backdrop-blur-sm">
       <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-4 px-6">
         <Wordmark />
-        <nav className="flex items-center gap-1 sm:gap-2">
-          {NAV.map((item) => {
-            const active =
-              pathname === item.href || pathname.startsWith(item.href + "/");
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  "relative rounded-sm px-2 py-1.5 font-mono text-xs tracking-tight transition-colors sm:text-[0.8rem]",
-                  active
-                    ? "text-ink"
-                    : "text-graphite hover:text-ink hover:bg-ink/[0.04]",
-                )}
-              >
-                {item.label}
-                {active && (
-                  <span className="bg-evergreen absolute inset-x-2 -bottom-px h-0.5 rounded-full" />
-                )}
-              </Link>
-            );
-          })}
-        </nav>
+        <div className="flex items-center gap-1 sm:gap-2">
+          <nav className="flex items-center gap-1 sm:gap-2">
+            {NAV.map((item) => {
+              const active =
+                pathname === item.href || pathname.startsWith(item.href + "/");
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "relative rounded-sm px-2 py-1.5 font-mono text-xs tracking-tight transition-colors sm:text-[0.8rem]",
+                    active
+                      ? "text-ink"
+                      : "text-graphite hover:text-ink hover:bg-ink/[0.04]",
+                  )}
+                >
+                  {item.label}
+                  {active && (
+                    <span className="bg-evergreen absolute inset-x-2 -bottom-px h-0.5 rounded-full" />
+                  )}
+                </Link>
+              );
+            })}
+          </nav>
+          <span className="ml-1 h-5 w-px bg-line/80" aria-hidden />
+          <AccountMenu />
+        </div>
       </div>
     </header>
   );

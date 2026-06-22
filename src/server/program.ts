@@ -140,6 +140,14 @@ export async function generateAndSaveProgram(
   const constraints = await getCurrentConstraints(db, userId);
   const minutesPerDay =
     constraints?.minutesPerDay ?? EMPTY_CONSTRAINTS.minutesPerDay;
+  // Stated preferences that reshape the daily mix (Seam 7). The generator passes these to
+  // the methodology; absent ones leave the un-personalised order untouched.
+  const formats = constraints?.formatPrefs.formats ?? [];
+  const ownedRefs =
+    constraints?.ownedResources.flatMap((r) =>
+      r.externalRef ? [r.externalRef, r.label] : [r.label],
+    ) ?? [];
+  const depthVsBreadth = constraints?.sessionStyle.depthVsBreadth;
 
   // M7: the loop's feedback — spaced reviews due now + the rolling success that nudges
   // difficulty. Reading these here is what makes a regenerated session reflect adaptation.
@@ -159,7 +167,7 @@ export async function generateAndSaveProgram(
     tacticalRating,
     weaknessSignals,
     dueItems,
-    constraints: { minutesPerDay },
+    constraints: { minutesPerDay, formats, ownedRefs, depthVsBreadth },
     recentSuccessByTrack,
     clock,
     config: cfg,
@@ -187,6 +195,10 @@ export async function generateAndSaveProgram(
     band,
     tacticalRating,
     minutesPerDay,
+    daysPerWeek: constraints?.daysPerWeek ?? null,
+    formats,
+    ownedRefs,
+    depthVsBreadth: depthVsBreadth ?? null,
     weaknessSignals,
     dueItems,
     recentSuccessByTrack,
@@ -290,6 +302,64 @@ function toTodayItem(
     confidence: item.confidence,
     soften: item.soften,
     status: item.status,
+  };
+}
+
+// --- Read side: the honest "reveal" — what the user's games actually show -----------
+
+export interface GameSignal {
+  dimension: string;
+  dimensionLabel: string;
+  /** 0..1 — how far the measured rate exceeds the band threshold. */
+  severity: number;
+  confidence: string;
+  sampleSize: number;
+  evidenceGrade: string;
+  evidenceTier: number;
+  citationKey: string;
+  citationSource: string | null;
+  rationaleText: string;
+  soften: boolean;
+}
+
+export interface GameSignalsResult {
+  gamesAnalysed: number;
+  signals: GameSignal[];
+}
+
+/** The graded weakness signals from the user's analysed games (Seam 3), shaped for the
+ *  reveal. Pure decisions stay in interpretGameFeatures; this only gathers + maps (L1). */
+export async function getGameSignals(
+  db: Db,
+  userId: string,
+): Promise<GameSignalsResult> {
+  const cfg = loadMethodology();
+  const tacticalRating = await resolveTacticalRating(db, userId, cfg);
+  const band = bandForRating(tacticalRating, cfg);
+  const features = await gatherFeatures(db, userId);
+  const signals = interpretGameFeatures({ features, band }, cfg);
+
+  const dimLabels = new Map(cfg.dimensions.map((d) => [d.id, d.label]));
+  const ledger = new Map(cfg.evidenceLedger.map((a) => [a.key, a.source]));
+
+  return {
+    gamesAnalysed: features.length,
+    signals: signals.map((s): GameSignal => {
+      const r = rationaleFor(s.rationaleKey, cfg);
+      return {
+        dimension: s.dimension,
+        dimensionLabel: dimLabels.get(s.dimension) ?? s.dimension,
+        severity: s.severity,
+        confidence: s.confidence,
+        sampleSize: s.sampleSize,
+        evidenceGrade: s.evidenceGrade,
+        evidenceTier: s.evidenceTier,
+        citationKey: s.citationKey,
+        citationSource: ledger.get(s.citationKey) ?? null,
+        rationaleText: r.value,
+        soften: r.soften,
+      };
+    }),
   };
 }
 

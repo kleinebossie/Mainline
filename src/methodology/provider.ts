@@ -311,9 +311,23 @@ export interface CandidateActivity {
   estMinutes: number;
   /** The band ROI prior (config). The weakness weight is added in prioritizeDailyMix. */
   priority: number;
+  /** Time controls this activity is specific to, or null when format-agnostic (Seam 7). */
+  formats: string[] | null;
   rationaleKey: string;
   /** Set when a weakness signal elevated this activity (else null). */
   drivingSignal: WeaknessSignal | null;
+}
+
+/** The user's stated PREFERENCES that reshape the daily mix (Seam 7). All optional — absent
+ *  means "no preference expressed", and scoring falls back to the un-personalised order
+ *  (so existing callers/goldens are unaffected). Never carries a skill claim (Seam 2). */
+export interface MixPreferences {
+  /** Formats the user actually plays (e.g. ["rapid","classical"]). */
+  formats?: readonly string[];
+  /** Identifiers of resources the user owns (externalRef / theme / activity id to match). */
+  ownedRefs?: readonly string[];
+  /** Depth-vs-breadth lever; "balanced" (or absent) is neutral. */
+  depthVsBreadth?: "depth" | "balanced" | "breadth";
 }
 
 /** A candidate with its daily-mix score attached (Seam 7). */
@@ -474,6 +488,7 @@ export function mapWeaknessToActivities(
     track: def.track,
     estMinutes: def.estMinutes.value,
     priority: def.priorityByBand[input.band]?.value ?? 0,
+    formats: def.formats ?? null,
     rationaleKey: def.rationaleKey,
     drivingSignal: null,
   });
@@ -597,32 +612,82 @@ export function useWorkedExample(
  * (M7+) so it contributes 0 here. Spaced-review candidates are dropped when nothing is due
  * (no point reviewing an empty queue). Ordering is a stable score-desc sort with an
  * activity-id tiebreak (the generic engine sort) — fully deterministic (L2).
+ *
+ * PERSONALISATION (Seam 7 preferences): when the caller passes the user's `preferences`,
+ * the score is reshaped by their stated reality — a format-mismatch penalty, an owned-
+ * resource bonus, and a depth-vs-breadth tilt (depth amplifies weakness focus, breadth
+ * amplifies ROI spread). Absent preferences ⇒ the un-personalised score (back-compatible).
  */
 export function prioritizeDailyMix(
   input: {
     candidates: readonly CandidateActivity[];
     dueItems: readonly DueItem[];
+    preferences?: MixPreferences;
   },
   cfg: MethodologyConfig,
 ): ScoredCandidate[] {
   const w = cfg.prioritization.weights;
+  const p = cfg.prioritization.preferences;
+  const prefs = input.preferences;
   const hasDue = input.dueItems.length > 0;
+
+  // Depth/breadth multipliers (1 = neutral) — only one side is ever > 1.
+  const depthMul =
+    prefs?.depthVsBreadth === "depth" ? 1 + p.depthWeaknessBonus.value : 1;
+  const breadthMul =
+    prefs?.depthVsBreadth === "breadth" ? 1 + p.breadthRoiBonus.value : 1;
+
+  const userFormats = prefs?.formats ?? null;
+  const ownedRefs = prefs?.ownedRefs ?? null;
+
   const scored = input.candidates
     .filter((c) => !(c.activityType === "spaced_review" && !hasDue))
     .map((c) => {
-      const roiTerm = w.activityRoiPrior.value * c.priority;
+      const roiTerm = w.activityRoiPrior.value * c.priority * breadthMul;
       const weaknessTerm = c.drivingSignal
-        ? w.weaknessSeverity.value * c.drivingSignal.severity
+        ? w.weaknessSeverity.value * c.drivingSignal.severity * depthMul
         : 0;
       const dueTerm =
         c.activityType === "spaced_review" && hasDue ? w.dueReviews.value : 0;
-      return { ...c, score: roiTerm + weaknessTerm + dueTerm };
+
+      // Format fit: penalise an activity that declares formats none of which the user plays.
+      const formatPenalty =
+        userFormats &&
+        userFormats.length > 0 &&
+        c.formats &&
+        c.formats.length > 0 &&
+        !c.formats.some((f) => userFormats.includes(f))
+          ? p.formatMismatchPenalty.value
+          : 0;
+
+      // Owned-resource bonus: reward an activity whose resource the user already owns.
+      const ownedBonus =
+        ownedRefs && ownedRefs.length > 0 && candidateIsOwned(c, ownedRefs)
+          ? p.ownedResourceBonus.value
+          : 0;
+
+      return {
+        ...c,
+        score: roiTerm + weaknessTerm + dueTerm + ownedBonus - formatPenalty,
+      };
     });
   return stableSortByScoreDesc(
     scored,
     (c) => c.score,
     (c) => c.activityId,
   );
+}
+
+/** Match a candidate to the user's owned-resource identifiers (theme / activity id). Loose
+ *  by design — the research catalog will add precise resource keys to match against. */
+function candidateIsOwned(
+  c: CandidateActivity,
+  ownedRefs: readonly string[],
+): boolean {
+  const refs = new Set(ownedRefs.map((r) => r.toLowerCase()));
+  if (refs.has(c.activityId.toLowerCase())) return true;
+  if (c.resourceTheme && refs.has(c.resourceTheme.toLowerCase())) return true;
+  return false;
 }
 
 // ---------------------------------------------------------------------------

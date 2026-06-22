@@ -23,6 +23,7 @@ import {
   type DueItem,
   type Grade,
   type MethodologyConfig,
+  type MixPreferences,
   type PracticeStructureKind,
   type Tier,
   type Track,
@@ -39,6 +40,8 @@ export interface ProgramItemParams {
   count?: number;
   structure?: PracticeStructureKind;
   workedExample?: boolean;
+  /** For a play_game item: the formats the user actually plays (personalisation, Seam 7). */
+  formats?: string[];
   /** For a spaced-review item: the due item refs to redo (Seam 6 / the redo flow, M7). */
   dueItemRefs?: string[];
 }
@@ -73,7 +76,14 @@ export interface GenerateProgramInput {
   weaknessSignals: readonly WeaknessSignal[];
   /** Spaced-review items due today (Seam 6, M7); M6 passes none. */
   dueItems: readonly DueItem[];
-  constraints: { minutesPerDay: number };
+  /** The user's reality: the minute budget the Engine packs to, plus the stated preferences
+   *  that reshape the mix (Seam 7). Preferences are optional — absent ⇒ un-personalised. */
+  constraints: {
+    minutesPerDay: number;
+    formats?: readonly string[];
+    ownedRefs?: readonly string[];
+    depthVsBreadth?: MixPreferences["depthVsBreadth"];
+  };
   /** Rolling success rate per track for the servo (M7+); absent → seed offset only. */
   recentSuccessByTrack?: { pattern?: number; calculation?: number };
   clock: Clock;
@@ -103,7 +113,15 @@ export function generateProgram(
     cfg,
   );
   const ordered = prioritizeDailyMix(
-    { candidates, dueItems: input.dueItems },
+    {
+      candidates,
+      dueItems: input.dueItems,
+      preferences: {
+        formats: input.constraints.formats,
+        ownedRefs: input.constraints.ownedRefs,
+        depthVsBreadth: input.constraints.depthVsBreadth,
+      },
+    },
     cfg,
   );
 
@@ -143,7 +161,15 @@ export function generateProgram(
         workedExample: useWorkedExample({ band }, cfg),
       };
     } else {
-      params = { theme: candidate.resourceTheme, track: null };
+      // Non-puzzle activity. A "play games" item is told which formats the user actually
+      // plays (Seam-7 personalisation), so the recommendation fits their real games.
+      const formats =
+        candidate.activityType === "play_game" &&
+        input.constraints.formats &&
+        input.constraints.formats.length > 0
+          ? [...input.constraints.formats]
+          : undefined;
+      params = { theme: candidate.resourceTheme, track: null, formats };
     }
 
     // Seam 8: attach the graded "why" and snapshot it (L3). Confidence comes from the

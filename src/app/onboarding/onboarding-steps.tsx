@@ -24,14 +24,16 @@ export function OnboardingSteps() {
     },
     {
       href: "/onboarding/calibration",
-      title: "Tactical calibration",
-      detail: "A short, adaptive check that estimates your tactical level.",
+      title: "Skill calibration",
+      detail:
+        "A short, adaptive check across tactics, calculation and endgames.",
       done: calibration.data?.completed ?? false,
     },
     {
       href: "/onboarding/constraints",
-      title: "Your time & goals",
-      detail: "How much you can train, what you want, and an if-then plan.",
+      title: "Your time, goals & resources",
+      detail:
+        "Time, goals, formats, what you own, how you like to train, an if-then plan.",
       done: constraints.data != null,
     },
     {

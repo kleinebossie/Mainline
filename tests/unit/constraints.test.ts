@@ -15,8 +15,12 @@ const valid: ConstraintsInput = {
     { kind: "rating", label: "Raise my rating" },
     { kind: "other", label: "Beat my rival" },
   ],
-  ownedResources: ["lichess_theme_fork"],
+  ownedResources: [
+    { kind: "book", label: "Dvoretsky's Endgame Manual" },
+    { kind: "membership", label: "Lichess", externalRef: "lichess.org" },
+  ],
   formatPrefs: { formats: ["rapid", "blitz"], preferredVariety: true },
+  sessionStyle: { depthVsBreadth: "depth", interleave: false },
   ifThenPlan: { cue: "my morning coffee", plan: "open today's session" },
 };
 
@@ -68,6 +72,24 @@ describe("constraintsInputSchema", () => {
       constraintsInputSchema.safeParse({
         ...valid,
         goals: [{ kind: "tactics", label: "" }],
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejects an owned resource with an unknown kind", () => {
+    expect(
+      constraintsInputSchema.safeParse({
+        ...valid,
+        ownedResources: [{ kind: "dvd", label: "Old VHS course" }],
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejects an unknown session style", () => {
+    expect(
+      constraintsInputSchema.safeParse({
+        ...valid,
+        sessionStyle: { depthVsBreadth: "sideways", interleave: true },
       }).success,
     ).toBe(false);
   });

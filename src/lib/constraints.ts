@@ -26,6 +26,41 @@ export const goalSchema = z.object({
 });
 export type Goal = z.infer<typeof goalSchema>;
 
+/** A resource the user already owns — so the generator can prefer what they can access
+ *  (Seam 7 input) rather than recommend a book/course they'd have to buy. Self-report of
+ *  RESOURCES, never of skill (Seam 2 boundary). */
+export const OWNED_RESOURCE_KINDS = [
+  "book",
+  "course",
+  "membership",
+  "trainer",
+  "other",
+] as const;
+export const ownedResourceSchema = z.object({
+  kind: z.enum(OWNED_RESOURCE_KINDS),
+  label: z.string().trim().min(1).max(160),
+  /** Optional pointer to a catalog ResourceRef id / external URL the generator can match. */
+  externalRef: z.string().trim().min(1).max(200).optional(),
+});
+export type OwnedResource = z.infer<typeof ownedResourceSchema>;
+
+/** Depth-vs-breadth and interleave preference — a PREFERENCE (autonomy, SDT), not a skill
+ *  claim. Feeds the daily-mix weighting (Seam 7); the science of how it weights lives in
+ *  config, not here. */
+export const DEPTH_VS_BREADTH = ["depth", "balanced", "breadth"] as const;
+export const sessionStyleSchema = z.object({
+  depthVsBreadth: z.enum(DEPTH_VS_BREADTH),
+  interleave: z.boolean(),
+});
+export type SessionStyle = z.infer<typeof sessionStyleSchema>;
+
+/** The default session style for a fresh user — balanced, interleaved (the config decides
+ *  what those mean for the mix). */
+export const DEFAULT_SESSION_STYLE: SessionStyle = {
+  depthVsBreadth: "balanced",
+  interleave: true,
+};
+
 /** Seam-9 implementation intention: anchor training to an existing daily cue. */
 export const ifThenPlanSchema = z.object({
   cue: z.string().trim().min(1).max(160),
@@ -45,8 +80,9 @@ export const constraintsInputSchema = z.object({
   minutesPerDay: z.number().int().min(5).max(600),
   daysPerWeek: z.number().int().min(1).max(7),
   goals: z.array(goalSchema).max(10),
-  ownedResources: z.array(z.string().min(1)).max(100),
+  ownedResources: z.array(ownedResourceSchema).max(100),
   formatPrefs: formatPrefsSchema,
+  sessionStyle: sessionStyleSchema,
   ifThenPlan: ifThenPlanSchema.nullable(),
 });
 export type ConstraintsInput = z.infer<typeof constraintsInputSchema>;
@@ -58,5 +94,6 @@ export const EMPTY_CONSTRAINTS: ConstraintsInput = {
   goals: [],
   ownedResources: [],
   formatPrefs: { formats: [], preferredVariety: false },
+  sessionStyle: DEFAULT_SESSION_STYLE,
   ifThenPlan: null,
 };

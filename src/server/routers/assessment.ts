@@ -19,7 +19,7 @@ export const assessmentRouter = router({
   submit: protectedProcedure
     .input(z.object({ ratingShown: z.number().int(), correct: z.boolean() }))
     .mutation(({ ctx, input }) =>
-      applyCalibrationResponse(ctx.prisma, ctx.userId, input),
+      applyCalibrationResponse(ctx.prisma, ctx.userId, input, new Date()),
     ),
 
   reset: protectedProcedure.mutation(async ({ ctx }) => {

@@ -165,6 +165,16 @@ export function Today() {
                 </div>
               )}
 
+              {item.params.formats && item.params.formats.length > 0 && (
+                <p className="text-graphite font-serif text-sm">
+                  In the formats you play:{" "}
+                  <span className="text-ink font-medium capitalize">
+                    {item.params.formats.join(", ")}
+                  </span>
+                  .
+                </p>
+              )}
+
               {item.externalUrl && (
                 <a
                   href={item.externalUrl}

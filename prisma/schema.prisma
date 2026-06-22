@@ -287,8 +287,12 @@ model ConstraintSet {
   minutesPerDay  Int
   daysPerWeek    Int
   goals          Json
-  ownedResources String[]
+  // Structured owned resources `{ kind, label, externalRef? }[]` (lib/constraints Zod).
+  // Was String[]; widened to Json so the generator can match what a user actually owns.
+  ownedResources Json     @default("[]")
   formatPrefs    Json
+  // Depth-vs-breadth + interleave preference `{ depthVsBreadth, interleave }` (Seam 7 input).
+  sessionStyle   Json?
   ifThenPlan     Json?
   isCurrent      Boolean  @default(true)
   version        Int      @default(1)

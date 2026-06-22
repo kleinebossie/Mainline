@@ -83,6 +83,18 @@ const calibrationSchema = z.object({
   stopUncertainty: gradedValue(z.number().positive()),
 });
 
+// A behavioural calibration track — one adaptive ladder per skill dimension we probe
+// (tactics, calculation, endgames…). Structural data (ids/label/theme), like a band id:
+// WHICH dimensions get a behavioural probe is methodology, but the values are identifiers,
+// not graded numbers. `dimension` must resolve in `dimensions`; `theme` is the external
+// puzzle-pointer (a Lichess theme tag). The shared ladder PARAMETERS live in `calibration`.
+const calibrationTrackSchema = z.object({
+  id: z.string().min(1),
+  dimension: z.string().min(1),
+  label: z.string().min(1),
+  theme: z.string().min(1),
+});
+
 const assessmentSchema = z.object({
   // Dunning-Kruger: self-report is INVALID for skill diagnosis, VALID for
   // constraints/goals (heck2025, G8). These two flags encode exactly that split.
@@ -90,6 +102,9 @@ const assessmentSchema = z.object({
   selfReportForConstraints: gradedValue(z.boolean()),
   instantEvalGames: gradedValue(z.number().int().positive()),
   calibration: calibrationSchema,
+  // The dimensions probed behaviourally, in order (each a reused ladder run). The first
+  // track is the primary tactical estimate that seeds the band (Seam 2 startRating rule).
+  tracks: z.array(calibrationTrackSchema).min(1),
 });
 
 // Seam 3 — game-feature → weakness interpretation (WEAKNESS_DIAGNOSIS §1). The analysis
@@ -155,6 +170,9 @@ const activityDefinitionSchema = z.object({
   priorityByBand: z.record(gradedValue(z.number().min(0))),
   // Seam-5 difficulty track for puzzle activities; null for non-puzzle activities.
   track: z.enum(["pattern", "calculation"]).nullable(),
+  // Time controls this activity is specific to (structural ref — like a theme). null/absent =
+  // format-agnostic (most puzzles). Used by the Seam-7 format-fit penalty; never a graded number.
+  formats: z.array(z.string().min(1)).nullable().optional(),
   rationaleKey: z.string().min(1),
 });
 
@@ -212,6 +230,21 @@ const prioritizationSchema = z.object({
     activityRoiPrior: gradedValue(z.number().min(0)),
     dueReviews: gradedValue(z.number().min(0)),
     varietyRecency: gradedValue(z.number().min(0)),
+  }),
+  // Personalisation levers (Seam 7): how the user's stated PREFERENCES (formats they play,
+  // resources they own, depth-vs-breadth) reshape the daily mix. All best-guess magnitudes
+  // (no dose-response literature, METHODOLOGY §4 gap #2) — the mechanism is wired, the
+  // numbers carry their honest grade.
+  preferences: z.object({
+    // Subtracted from an activity's score when it declares formats and none overlap the
+    // formats the user actually plays (a format-specific drill for a format they never play).
+    formatMismatchPenalty: gradedValue(z.number().min(0)),
+    // Added when an activity's resource is one the user already owns (prefer what they can use).
+    ownedResourceBonus: gradedValue(z.number().min(0)),
+    // "Go deep": multiply the weakness term by (1 + this) to concentrate on the biggest leak.
+    depthWeaknessBonus: gradedValue(z.number().min(0)),
+    // "Go broad": multiply the ROI term by (1 + this) to spread across high-value activities.
+    breadthRoiBonus: gradedValue(z.number().min(0)),
   }),
   volume: z.object({
     dailyPuzzleDose: gradedValue(z.number().int().positive()),
@@ -460,6 +493,9 @@ export const methodologyConfigSchema = z
         });
       }
     };
+    cfg.assessment.tracks.forEach((t, i) =>
+      requireDim(t.dimension, ["assessment", "tracks", i, "dimension"]),
+    );
     requireDim(cfg.interpretation.blunderRate.dimension, [
       "interpretation",
       "blunderRate",
@@ -524,6 +560,7 @@ export const methodologyConfigSchema = z
 export type MethodologyConfig = z.infer<typeof methodologyConfigSchema>;
 export type AssessmentConfig = MethodologyConfig["assessment"];
 export type CalibrationConfig = AssessmentConfig["calibration"];
+export type CalibrationTrack = AssessmentConfig["tracks"][number];
 export type BandDefinition = MethodologyConfig["bands"][number];
 export type SkillDimension = MethodologyConfig["dimensions"][number];
 export type InterpretationConfig = MethodologyConfig["interpretation"];

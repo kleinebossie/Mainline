@@ -4,6 +4,7 @@
 
 import {
   generateAndSaveProgram,
+  getGameSignals,
   getTodayProgram,
   resolveTacticalRating,
 } from "@/server/program";
@@ -17,6 +18,10 @@ import {
 export const programRouter = router({
   getToday: protectedProcedure.query(({ ctx }) =>
     getTodayProgram(ctx.prisma, ctx.userId),
+  ),
+
+  gameSignals: protectedProcedure.query(({ ctx }) =>
+    getGameSignals(ctx.prisma, ctx.userId),
   ),
 
   generate: protectedProcedure.mutation(async ({ ctx }) => {

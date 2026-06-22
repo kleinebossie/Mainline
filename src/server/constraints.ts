@@ -12,24 +12,33 @@ import {
   formatPrefsSchema,
   goalSchema,
   ifThenPlanSchema,
+  ownedResourceSchema,
+  sessionStyleSchema,
+  DEFAULT_SESSION_STYLE,
   type ConstraintsInput,
 } from "@/lib/constraints";
 
 type Db = Pick<PrismaClient, "constraintSet" | "$transaction">;
 
-/** Re-parse the stored JSON columns into typed values (defensive; falls back to empty). */
+/** Re-parse the stored JSON columns into typed values (defensive; falls back to empty).
+ *  Tolerant of rows written before sessionStyle/structured ownedResources existed. */
 export function decodeConstraintSet(row: {
   id: string;
   minutesPerDay: number;
   daysPerWeek: number;
   goals: unknown;
-  ownedResources: string[];
+  ownedResources: unknown;
   formatPrefs: unknown;
+  sessionStyle: unknown;
   ifThenPlan: unknown;
   version: number;
 }): ConstraintsInput & { id: string; version: number } {
   const goals = z.array(goalSchema).safeParse(row.goals);
+  const ownedResources = z.array(ownedResourceSchema).safeParse(
+    row.ownedResources,
+  );
   const formatPrefs = formatPrefsSchema.safeParse(row.formatPrefs);
+  const sessionStyle = sessionStyleSchema.safeParse(row.sessionStyle);
   const ifThenPlan = ifThenPlanSchema.safeParse(row.ifThenPlan);
   return {
     id: row.id,
@@ -37,10 +46,11 @@ export function decodeConstraintSet(row: {
     minutesPerDay: row.minutesPerDay,
     daysPerWeek: row.daysPerWeek,
     goals: goals.success ? goals.data : [],
-    ownedResources: row.ownedResources,
+    ownedResources: ownedResources.success ? ownedResources.data : [],
     formatPrefs: formatPrefs.success
       ? formatPrefs.data
       : { formats: [], preferredVariety: false },
+    sessionStyle: sessionStyle.success ? sessionStyle.data : DEFAULT_SESSION_STYLE,
     ifThenPlan: ifThenPlan.success ? ifThenPlan.data : null,
   };
 }
@@ -88,8 +98,10 @@ export async function saveConstraints(
         minutesPerDay: input.minutesPerDay,
         daysPerWeek: input.daysPerWeek,
         goals: input.goals as unknown as Prisma.InputJsonValue,
-        ownedResources: input.ownedResources,
+        ownedResources:
+          input.ownedResources as unknown as Prisma.InputJsonValue,
         formatPrefs: input.formatPrefs as unknown as Prisma.InputJsonValue,
+        sessionStyle: input.sessionStyle as unknown as Prisma.InputJsonValue,
         ifThenPlan: ifThenPlan
           ? (ifThenPlan as unknown as Prisma.InputJsonValue)
           : Prisma.DbNull,

@@ -72,6 +72,7 @@ function fakeDb(opts: FakeOpts) {
               goals: [],
               ownedResources: [],
               formatPrefs: { formats: [], preferredVariety: false },
+              sessionStyle: null,
               ifThenPlan: null,
             }
           : null,
