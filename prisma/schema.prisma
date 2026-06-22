@@ -32,6 +32,9 @@ model User {
   locale        String    @default("en")
   role          String    @default("user") // user | admin
   patronStatus  String    @default("none") // none | patron
+  // The platform the user treats as their "home" account — defaults the game picker and
+  // analysis surfaces. Nullable: when unset we infer it from the most recent imported game.
+  primaryPlatform String? // lichess | chesscom
   deletedAt     DateTime? // soft-delete for GDPR export/erase
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt

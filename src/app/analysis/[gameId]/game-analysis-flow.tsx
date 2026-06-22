@@ -2,37 +2,20 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Chess, type Square } from "chess.js";
+import { Chess } from "chess.js";
 import { trpc } from "@/lib/trpc/react";
 import { PageShell } from "@/components/app-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { InteractiveBoard } from "@/components/interactive-board";
 import { TransparencyCard } from "@/components/transparency-card";
 import { type EngineLine } from "@/methodology";
 import { cn } from "@/lib/utils";
-
-// Unicode piece representation
-const PIECE_SYMBOLS: Record<string, Record<string, string>> = {
-  w: {
-    p: "♙",
-    n: "♘",
-    b: "♗",
-    r: "♖",
-    q: "♕",
-    k: "♔",
-  },
-  b: {
-    p: "♟",
-    n: "♞",
-    b: "♝",
-    r: "♜",
-    q: "♛",
-    k: "♚",
-  },
-};
-
-const FILES = ["a", "b", "c", "d", "e", "f", "g", "h"];
-const RANKS = ["8", "7", "6", "5", "4", "3", "2", "1"];
+import {
+  resultLabel,
+  platformLabel,
+  formatGameDate,
+} from "@/lib/format-game";
 
 export function GameAnalysisFlow() {
   const params = useParams();
@@ -52,10 +35,10 @@ export function GameAnalysisFlow() {
   const [currentComment, setCurrentComment] = useState("");
   const [momentTimer, setMomentTimer] = useState<number | null>(null);
 
-  // Chess board state
-  const [chess, setChess] = useState<Chess | null>(null);
-  const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
-  const [validDestinations, setValidDestinations] = useState<string[]>([]);
+  // Chess board state — the position the player faced just before the blunder, plus the live
+  // board, which advances once they enter their alternative move (and can be reset to retry).
+  const [momentBaseFen, setMomentBaseFen] = useState<string | null>(null);
+  const [boardFen, setBoardFen] = useState<string | null>(null);
 
   // Engine evaluation states (Step 3)
   const [analyzingPosition, setAnalyzingPosition] = useState(false);
@@ -104,9 +87,9 @@ export function GameAnalysisFlow() {
           const histMove = history[i];
           if (histMove) targetChess.move(histMove.san);
         }
-        setChess(targetChess);
-        setSelectedSquare(null);
-        setValidDestinations([]);
+        const baseFen = targetChess.fen();
+        setMomentBaseFen(baseFen);
+        setBoardFen(baseFen);
         setCurrentComment("");
 
         // Setup timer limit (e.g. 180 seconds = 3 minutes)
@@ -210,51 +193,32 @@ export function GameAnalysisFlow() {
     );
   }
 
-  // Handle Chess Board square clicks
-  const handleSquareClick = (square: string) => {
-    if (!chess || step === 3) return; // Board read-only during Step 3
-
-    if (selectedSquare === square) {
-      setSelectedSquare(null);
-      setValidDestinations([]);
-      return;
-    }
-
-    if (validDestinations.includes(square) && selectedSquare) {
+  // Record the player's alternative move (their guess at a better move than the one they
+  // played) and advance the board to show it.
+  const handleGuessMove = (move: { san: string; uci: string }) => {
+    setGuesses(prev => ({
+      ...prev,
+      [currentMomentIdx]: { uciMove: move.uci, comment: currentComment },
+    }));
+    if (boardFen) {
       try {
-        const move = chess.move({
-          from: selectedSquare,
-          to: square,
-          promotion: "q",
-        });
-
-        // Record the move guess
-        setGuesses(prev => ({
-          ...prev,
-          [currentMomentIdx]: {
-            uciMove: move.lan || `${selectedSquare}${square}`,
-            comment: currentComment,
-          },
-        }));
-
-        setChess(new Chess(chess.fen())); // force re-render
-        setSelectedSquare(null);
-        setValidDestinations([]);
+        const c = new Chess(boardFen);
+        c.move(move.san);
+        setBoardFen(c.fen());
       } catch (e) {
         console.error("Invalid move attempted", e);
       }
-      return;
     }
+  };
 
-    const piece = chess.get(square as Square);
-    if (piece && piece.color === chess.turn()) {
-      setSelectedSquare(square);
-      const moves = chess.moves({ square: square as Square, verbose: true });
-      setValidDestinations(moves.map(m => m.to));
-    } else {
-      setSelectedSquare(null);
-      setValidDestinations([]);
-    }
+  // Reset the board so the player can try a different alternative.
+  const resetGuess = () => {
+    setBoardFen(momentBaseFen);
+    setGuesses(prev => {
+      const next = { ...prev };
+      delete next[currentMomentIdx];
+      return next;
+    });
   };
 
   const handleStep3Next = () => {
@@ -282,6 +246,11 @@ export function GameAnalysisFlow() {
     router.push("/analysis");
   };
 
+  const currentGuess = guesses[currentMomentIdx];
+  const guessSquares = currentGuess?.uciMove
+    ? [currentGuess.uciMove.slice(0, 2), currentGuess.uciMove.slice(2, 4)]
+    : [];
+
   return (
     <PageShell
       eyebrow={`Step ${step} of 4 · Analysis`}
@@ -297,6 +266,73 @@ export function GameAnalysisFlow() {
       width="default"
     >
       <div className="flex flex-col gap-6">
+        {/* Game identity — always say *which* game is on screen. */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border border-line bg-card px-5 py-3.5 shadow-sheet settle">
+          <div className="flex items-center gap-2">
+            <span
+              className={cn(
+                "inline-block h-3 w-3 rounded-full border border-ink",
+                game.color === "w"
+                  ? "bg-paper"
+                  : game.color === "b"
+                    ? "bg-ink"
+                    : "border-line bg-line",
+              )}
+              aria-hidden
+            />
+            <span className="font-serif text-base font-semibold text-ink">
+              {game.you ?? "You"}
+            </span>
+            {game.userRating != null && (
+              <span className="text-graphite font-mono text-xs">
+                {game.userRating}
+              </span>
+            )}
+          </div>
+          <span className="text-graphite font-mono text-[0.65rem] uppercase tracking-wider">
+            vs
+          </span>
+          <div className="flex items-center gap-2">
+            <span className="font-serif text-base font-semibold text-ink">
+              {game.opponent ?? "Opponent"}
+            </span>
+            {game.opponentRating != null && (
+              <span className="text-graphite font-mono text-xs">
+                {game.opponentRating}
+              </span>
+            )}
+          </div>
+          <span
+            className={cn(
+              "rounded px-2 py-0.5 font-mono text-[0.65rem] font-bold uppercase tracking-wide",
+              game.result === "win"
+                ? "bg-grade-a/10 text-grade-a"
+                : game.result === "loss"
+                  ? "bg-grade-d/10 text-grade-d"
+                  : "bg-grade-c/10 text-grade-c",
+            )}
+          >
+            {resultLabel(game.result)}
+          </span>
+          <div className="ml-auto flex flex-wrap items-center gap-x-2 text-graphite font-mono text-xs">
+            <span>{platformLabel(game.platform)}</span>
+            {game.timeControl && (
+              <>
+                <span aria-hidden>·</span>
+                <span>{game.timeControl}</span>
+              </>
+            )}
+            <span aria-hidden>·</span>
+            <span>{formatGameDate(game.playedAt)}</span>
+          </div>
+          {game.opening && (
+            <p className="basis-full border-t border-line/60 pt-2 font-serif text-xs text-graphite">
+              {game.eco ? `${game.eco} · ` : ""}
+              {game.opening}
+            </p>
+          )}
+        </div>
+
         {/* Step 1: Calibration View */}
         {step === 1 && (
           <Card>
@@ -367,48 +403,41 @@ export function GameAnalysisFlow() {
         )}
 
         {/* Steps 2 & 3: Interactive Board View */}
-        {(step === 2 || step === 3) && chess && (
+        {(step === 2 || step === 3) && boardFen && (
           <div className="grid gap-6 md:grid-cols-[1.2fr_0.8fr]">
             {/* Chessboard Card */}
             <div className="flex flex-col gap-3">
-              <div className="relative aspect-square w-full max-w-md rounded-lg overflow-hidden border-2 border-ink shadow-sheet bg-ink">
-                <div className="grid grid-cols-8 grid-rows-8 gap-0 h-full w-full">
-                  {RANKS.map((rank, rIdx) =>
-                    FILES.map((file, cIdx) => {
-                      const square = `${file}${rank}`;
-                      const isDark = (rIdx + cIdx) % 2 === 1;
-                      const piece = chess.get(square as Square);
-                      const isSelected = selectedSquare === square;
-                      const isValidDest = validDestinations.includes(square);
-                      const colorSymbols = piece ? PIECE_SYMBOLS[piece.color] : null;
+              <InteractiveBoard
+                fen={boardFen}
+                onMove={handleGuessMove}
+                orientation={boardFen.split(" ")[1] === "b" ? "black" : "white"}
+                disabled={step === 3 || !!currentGuess}
+                highlightedSquares={guessSquares}
+                className="max-w-md"
+              />
 
-                      return (
-                        <div
-                          key={square}
-                          onClick={() => handleSquareClick(square)}
-                          className={cn(
-                            "relative flex items-center justify-center select-none cursor-pointer text-4xl sm:text-5xl",
-                            isDark ? "bg-[#4b7399]" : "bg-[#eae9d2]",
-                            isSelected && "ring-4 ring-inset ring-evergreen-bright/60",
-                            isValidDest && "after:absolute after:h-4 after:w-4 after:rounded-full after:bg-evergreen-bright/40"
-                          )}
-                        >
-                          {piece && colorSymbols && (
-                            <span
-                              className={cn(
-                                "z-10",
-                                piece.color === "w" ? "text-paper" : "text-black"
-                              )}
-                            >
-                              {colorSymbols[piece.type] || ""}
-                            </span>
-                          )}
-                        </div>
-                      );
-                    })
+              {step === 2 && (
+                <div className="flex min-h-[1.75rem] items-center gap-3 max-w-md">
+                  {currentGuess ? (
+                    <>
+                      <span className="text-graphite font-mono text-xs">
+                        Your move:{" "}
+                        <span className="text-ink font-semibold uppercase">
+                          {currentGuess.uciMove}
+                        </span>
+                      </span>
+                      <Button variant="ghost" size="sm" onClick={resetGuess}>
+                        Try a different move
+                      </Button>
+                    </>
+                  ) : (
+                    <span className="text-graphite font-serif text-xs italic">
+                      Drag or tap a piece to enter a better move than the one you
+                      played.
+                    </span>
                   )}
                 </div>
-              </div>
+              )}
 
               {step === 2 && momentTimer !== null && (
                 <div className="flex items-center justify-between max-w-md px-1">

@@ -20,8 +20,11 @@ import {
   type FsrsState,
 } from "@/methodology";
 import { resolveTacticalRating } from "@/server/program";
+import { gameIdentity } from "@/server/game-identity";
 import { systemClock } from "@/lib/clock";
 import { protectedProcedure, router } from "@/server/trpc";
+
+const PLATFORMS = ["lichess", "chesscom"] as const;
 
 export const analysisRouter = router({
   // The instant-eval work queue: the most-recent unanalysed games, capped at the Seam-2
@@ -88,6 +91,41 @@ export const analysisRouter = router({
 
     const suggestions = selectGamesForAnalysis(recentGames, band, cfg);
 
+    // Attach human-facing identity (opponent/date/platform) so a suggestion card names the
+    // actual game, not just a result + reason.
+    const detailsById = new Map(
+      dbGames.map((g) => {
+        const id = gameIdentity(g.pgn, g.color);
+        return [
+          g.id,
+          {
+            playedAt: g.playedAt as Date | null,
+            platform: g.platform as string | null,
+            opponent: (id.opponent ?? id.black ?? id.white ?? null) as
+              | string
+              | null,
+            opponentRating: g.opponentRating,
+            opening: g.opening,
+            timeControl: g.timeControl,
+          },
+        ];
+      }),
+    );
+    // Stable fallback so every suggestion carries the same identity keys (no union-typed
+    // access on the client).
+    const emptyDetails = {
+      playedAt: null as Date | null,
+      platform: null as string | null,
+      opponent: null as string | null,
+      opponentRating: null as number | null,
+      opening: null as string | null,
+      timeControl: null as string | null,
+    };
+    const enrichedSuggestions = suggestions.map((s) => ({
+      ...s,
+      ...(detailsById.get(s.gameId) ?? emptyDetails),
+    }));
+
     // Fetch recent games (analysed or not) for tilt detection
     const recentAllGames = await ctx.prisma.importedGame.findMany({
       where: { userId: ctx.userId },
@@ -103,12 +141,84 @@ export const analysisRouter = router({
     const tilt = detectTilt(recentResults, band, systemClock, cfg);
 
     return {
-      suggestions,
+      suggestions: enrichedSuggestions,
       tilt,
       rationale: rationaleFor("analysis_success_bias", cfg),
       tilt_rationale: rationaleFor("analysis_tilt_pause", cfg),
     };
   }),
+
+  // The game library: the user's recent games (most-recent-first) for self-directed pick-a-
+  // game analysis, plus the resolved primary platform that defaults the picker.
+  library: protectedProcedure.query(async ({ ctx }) => {
+    const [user, games] = await Promise.all([
+      ctx.prisma.user.findUnique({
+        where: { id: ctx.userId },
+        select: { primaryPlatform: true },
+      }),
+      ctx.prisma.importedGame.findMany({
+        where: { userId: ctx.userId },
+        orderBy: { playedAt: "desc" },
+        take: 60,
+        select: {
+          id: true,
+          platform: true,
+          playedAt: true,
+          color: true,
+          result: true,
+          timeControl: true,
+          opening: true,
+          opponentRating: true,
+          userRatingAtGame: true,
+          pgn: true,
+          analysis: { select: { id: true } },
+        },
+      }),
+    ]);
+
+    const platforms = [...new Set(games.map((g) => g.platform))];
+    const primaryPlatform = user?.primaryPlatform ?? null;
+    // Prefer the explicit choice (if it still has games); otherwise fall back to the platform
+    // of the most recent game so the picker is useful before any preference is set.
+    const effectivePlatform =
+      primaryPlatform && platforms.includes(primaryPlatform)
+        ? primaryPlatform
+        : (games[0]?.platform ?? primaryPlatform ?? null);
+
+    return {
+      primaryPlatform,
+      effectivePlatform,
+      platforms,
+      games: games.map((g) => {
+        const id = gameIdentity(g.pgn, g.color);
+        return {
+          id: g.id,
+          platform: g.platform,
+          playedAt: g.playedAt,
+          color: g.color,
+          result: g.result,
+          timeControl: g.timeControl,
+          opening: g.opening,
+          opponent: id.opponent ?? id.black ?? id.white ?? null,
+          opponentRating: g.opponentRating,
+          you: id.you ?? null,
+          userRating: g.userRatingAtGame,
+          analyzed: g.analysis !== null,
+        };
+      }),
+    };
+  }),
+
+  // Set the user's home platform (defaults the game picker + analysis surfaces).
+  setPrimaryPlatform: protectedProcedure
+    .input(z.object({ platform: z.enum(PLATFORMS) }))
+    .mutation(async ({ ctx, input }) => {
+      await ctx.prisma.user.update({
+        where: { id: ctx.userId },
+        data: { primaryPlatform: input.platform },
+      });
+      return { primaryPlatform: input.platform };
+    }),
 
   // Retrieve/setup analysis session for a specific game
   session: protectedProcedure
@@ -163,6 +273,12 @@ export const analysisRouter = router({
           result: game.result,
           color: game.color,
           platform: game.platform,
+          timeControl: game.timeControl,
+          opening: game.opening,
+          eco: game.eco,
+          opponentRating: game.opponentRating,
+          userRating: game.userRatingAtGame,
+          ...gameIdentity(game.pgn, game.color),
         },
         rationales: {
           analyse_own_games: rationaleFor("analyse_own_games", cfg),
