@@ -156,30 +156,28 @@ export function GameAnalysisFlow() {
           const engine = new StockfishAnalysisEngine();
           await engine.init();
           
-          const result = await engine.analyzePosition(moment.fen, { depth: 12 });
+          const evalLines = await engine.analyzeLines(moment.fen, {
+            depth: 12,
+            multiPv: 3,
+          });
           engine.dispose();
 
-          // Only ever surface the engine's REAL evaluation — never fabricate
-          // alternative lines or evals (radical-honesty brand, VISION §2). Multi-line
-          // (MultiPV) output is a future engine-adapter enhancement; until then we show
-          // the single best line and let the RPL filter decide its visibility.
-          const lines: EngineLine[] = result.bestMove
-            ? [
-                {
-                  pv: [result.bestMove],
-                  depth: result.depth,
-                  evaluation: result.scoreCp,
-                  mate: result.mate !== null,
-                },
-              ]
-            : [];
-
+          // Map the engine's REAL MultiPV output to display lines. We never fabricate
+          // moves or evals (radical-honesty brand, VISION §2); the RPL filter (server)
+          // decides which of these genuine lines are within the player's band.
+          const lines: EngineLine[] = evalLines.map((l) => ({
+            pv: l.pv,
+            depth: l.depth,
+            evaluation: l.scoreCp,
+            mate: l.mate !== null,
+          }));
           setRawEngineLines(lines);
 
-          // Grade user's move
+          // Grade the user's guess against the engine's best move (rank 1).
+          const bestMove = evalLines[0]?.pv[0];
           setGuesses(prev => {
             const userMove = prev[currentMomentIdx]?.uciMove;
-            const isCorrect = userMove === result.bestMove;
+            const isCorrect = !!bestMove && userMove === bestMove;
             return {
               ...prev,
               [currentMomentIdx]: { ...prev[currentMomentIdx]!, correct: isCorrect },
@@ -529,7 +527,8 @@ export function GameAnalysisFlow() {
                             >
                               <div className="flex items-center justify-between">
                                 <span className="font-bold font-mono">
-                                  {idx + 1}. {line.pv.join(" ")}
+                                  {idx + 1}. {line.pv.slice(0, 8).join(" ")}
+                                  {line.pv.length > 8 ? " …" : ""}
                                 </span>
                                 <span className="font-mono text-graphite">
                                   {line.mate

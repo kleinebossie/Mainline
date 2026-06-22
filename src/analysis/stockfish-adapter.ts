@@ -22,6 +22,7 @@ import type {
   AnalysisEngineAdapter,
   AnalysisLimit,
   AnalyzeGameContext,
+  EvalLine,
   EvalResult,
 } from "@/analysis/engine-adapter";
 import { extractFeatures, type PositionEval } from "@/analysis/features";
@@ -127,6 +128,50 @@ export class StockfishAnalysisEngine implements AnalysisEngineAdapter {
         });
       }
     });
+  }
+
+  async analyzeLines(
+    fen: string,
+    limit: AnalysisLimit = {},
+  ): Promise<EvalLine[]> {
+    await this.ensureReady();
+    const multiPv = Math.max(1, Math.floor(limit.multiPv ?? 1));
+    this.post(`setoption name MultiPV value ${multiPv}`);
+    this.post(`position fen ${fen}`);
+    const go = limit.movetimeMs
+      ? `go movetime ${limit.movetimeMs}`
+      : `go depth ${limit.depth ?? DEFAULT_DEPTH}`;
+
+    // Keep the deepest info line seen for each MultiPV rank; resolve on `bestmove`.
+    const byRank = new Map<number, EvalLine>();
+    try {
+      return await this.run<EvalLine[]>(go, (line, resolve) => {
+        if (
+          line.startsWith("info") &&
+          line.includes(" score ") &&
+          line.includes(" pv ")
+        ) {
+          const rankM = line.match(/ multipv (\d+)/);
+          const rank = rankM ? Number(rankM[1]) : 1;
+          const dM = line.match(/ depth (\d+)/);
+          const mM = line.match(/ score mate (-?\d+)/);
+          const cM = line.match(/ score cp (-?\d+)/);
+          const pvM = line.match(/ pv (.+)$/);
+          byRank.set(rank, {
+            rank,
+            depth: dM ? Number(dM[1]) : 0,
+            scoreCp: cM ? Number(cM[1]) : 0,
+            mate: mM ? Number(mM[1]) : null,
+            pv: pvM ? pvM[1]!.trim().split(/\s+/) : [],
+          });
+        } else if (line.startsWith("bestmove")) {
+          resolve([...byRank.values()].sort((a, b) => a.rank - b.rank));
+        }
+      });
+    } finally {
+      // Restore single-line search so later analyzePosition() calls are unaffected.
+      this.post(`setoption name MultiPV value 1`);
+    }
   }
 
   async analyzeGame(

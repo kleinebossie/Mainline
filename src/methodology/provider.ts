@@ -1193,8 +1193,20 @@ export function selectGamesForAnalysis(
 }
 
 /**
- * Seam 3 §(d) — Applies RPL thresholds and entropy suppression on engine lines.
- * Pure and deterministic (L2).
+ * Code-level entropy heuristic (Luu et al. 2025): a position is "high-entropy" (chaotic)
+ * when several candidate moves are nearly equal. This window is an engine heuristic, NOT a
+ * graded science value, so it lives in code rather than config (it compares evaluations, so
+ * it is robust to real, long PVs — unlike a PV-length proxy). Kept deliberately small.
+ */
+const ENTROPY_WINDOW_CP = 30;
+
+/**
+ * Seam 3 §(d) — Applies RPL filtering to engine lines. The per-band visible-error threshold
+ * is read from config (`visibleErrorThresholdCp`, a graded leaf): a line is shown only when
+ * it is a forced mate or its swing clears the band's threshold — sub-threshold swings are
+ * noise/positional subtleties beyond that band's Region of Proximal Learning. A threshold of
+ * 0 (top bands) shows everything. The entropy heuristic (above) flags chaotic positions in
+ * the `reason`. Pure and deterministic (L2); no hardcoded band logic or thresholds.
  */
 export function filterEngineLines(
   lines: readonly EngineLine[],
@@ -1202,71 +1214,54 @@ export function filterEngineLines(
   cfg: MethodologyConfig,
 ): FilteredLine[] {
   const rpl = cfg.gameAnalysis.rplFiltering;
-  if (!rpl.enabled.value) {
-    return lines.map((l) => ({ ...l, visible: true, reason: "" }));
-  }
+  const bandCfg = rpl.enabled.value ? rpl.perBand[band] : undefined;
 
-  const bandCfg = rpl.perBand[band];
+  // Filtering disabled or band unknown → surface every line untouched.
   if (!bandCfg) {
-    return lines.map((l) => ({ ...l, visible: true, reason: "" }));
+    return lines.map((l) => ({
+      pv: [...l.pv],
+      depth: l.depth,
+      evaluation: l.evaluation,
+      mate: l.mate,
+      visible: true,
+      reason: "",
+    }));
   }
 
-  const out: FilteredLine[] = [];
+  const thresholdCp = bandCfg.visibleErrorThresholdCp.value;
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i]!;
-    let visible = true;
+  // Chaotic if ≥2 non-mate lines fall within the entropy window of the best non-mate line.
+  const nonMate = lines.filter((l) => !l.mate);
+  const top = nonMate[0];
+  const chaotic =
+    top !== undefined &&
+    nonMate.filter((l) => Math.abs(l.evaluation - top.evaluation) <= ENTROPY_WINDOW_CP)
+      .length >= 2;
+
+  const out: FilteredLine[] = lines.map((line) => {
+    const visible = line.mate || Math.abs(line.evaluation) >= thresholdCp;
     let reason = "";
-
-    if (band === "u800") {
-      // Hide all advantages requiring >2-ply depth and no mate/material win
-      const isAdvantage = line.evaluation > 0;
-      const isDeep = line.pv.length > 2;
-      const isMateOrMaterial = line.mate || line.evaluation >= 300;
-      if (isAdvantage && isDeep && !isMateOrMaterial) {
-        visible = false;
-        reason = "Line requires deep calculation beyond Region of Proximal Learning (RPL)";
-      }
-    } else if (band === "b800_1200") {
-      // Hide pure positional manoeuvres (e.g. rook centralisation for +1.5)
-      const isPositional = line.evaluation > 0 && line.evaluation < 200 && !line.mate;
-      if (isPositional) {
-        visible = false;
-        reason = "Pure positional manoeuvre beyond RPL";
-      }
-    } else if (band === "b1200_1600") {
-      // Hide complex engine sacrifices for long-term initiative
-      const isComplex = line.pv.length > 4 && line.evaluation > 0 && !line.mate;
-      if (isComplex) {
-        visible = false;
-        reason = "Complex engine sacrifice for long-term initiative beyond RPL";
-      }
-    } else if (band === "b1600_2000") {
-      // No hard filters; warn that position is "high-entropy" (chaotic)
-      visible = true;
-      reason = "Position is high-entropy (chaotic)";
-    } else {
-      // 2000+
-      visible = true;
-      reason = "";
+    if (!visible) {
+      reason = `Below the ${thresholdCp}cp visibility threshold for this level — beyond your Region of Proximal Learning.`;
+    } else if (chaotic) {
+      reason = "Position is high-entropy (chaotic): several moves are nearly equal.";
     }
-
-    out.push({
+    return {
       pv: [...line.pv],
       depth: line.depth,
       evaluation: line.evaluation,
       mate: line.mate,
       visible,
       reason,
-    });
-  }
+    };
+  });
 
-  // If the first line is filtered (hidden), try to point to a visible alternative
+  // If the engine's top line is hidden, point to the best visible line as a human alternative.
   if (out.length > 0 && !out[0]!.visible) {
     const alternative = out.find((l) => l.visible);
     if (alternative) {
       out[0]!.humanAlternative = {
-        pv: alternative.pv,
+        pv: [...alternative.pv],
         depth: alternative.depth,
         evaluation: alternative.evaluation,
         mate: alternative.mate,

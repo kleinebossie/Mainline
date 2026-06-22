@@ -6,6 +6,7 @@ export type {
   AnalysisEngineAdapter,
   AnalysisLimit,
   AnalyzeGameContext,
+  EvalLine,
   EvalResult,
   Color,
 } from "@/analysis/engine-adapter";

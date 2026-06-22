@@ -25,11 +25,28 @@ export interface EvalResult {
   depth: number;
 }
 
+/** One line of a multi-PV search: a principal variation with its eval, same perspective
+ *  conventions as EvalResult. `rank` is the 1-based MultiPV index (1 = engine's best). */
+export interface EvalLine {
+  /** Principal variation as UCI long-algebraic moves, best first. */
+  pv: string[];
+  /** Centipawns from the side-to-move's view (0 when `mate` is set). */
+  scoreCp: number;
+  /** Moves-to-mate from the side-to-move's view (+ mating, − being mated), else null. */
+  mate: number | null;
+  /** Search depth reached for this line. */
+  depth: number;
+  /** 1-based MultiPV rank (1 = engine's best line). */
+  rank: number;
+}
+
 /** Search bound for one position/game. At least one of depth/movetime should be set; the
- *  adapter applies an infrastructure default if neither is (keeps the UI responsive, §6.5). */
+ *  adapter applies an infrastructure default if neither is (keeps the UI responsive, §6.5).
+ *  `multiPv` (≥1) asks for that many ranked lines from `analyzeLines` (ignored elsewhere). */
 export interface AnalysisLimit {
   depth?: number;
   movetimeMs?: number;
+  multiPv?: number;
 }
 
 /** Extra context analyzeGame needs that the PGN alone doesn't carry: which side is the
@@ -45,6 +62,9 @@ export interface AnalysisEngineAdapter {
   init(opts: { threads: number; hashMb: number }): Promise<void>;
   /** Evaluate one FEN to the given bound; resolves with a side-to-move-relative eval. */
   analyzePosition(fen: string, limit: AnalysisLimit): Promise<EvalResult>;
+  /** Evaluate one FEN with MultiPV, returning up to `limit.multiPv` ranked real lines
+   *  (best first). Never fabricates lines: returns only what the engine reports. */
+  analyzeLines(fen: string, limit: AnalysisLimit): Promise<EvalLine[]>;
   /** Walk a PGN, evaluate each position, and assemble RAW features (L1). */
   analyzeGame(
     pgn: string,

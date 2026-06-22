@@ -53,41 +53,58 @@ describe("gameAnalysisProtocol", () => {
 });
 
 describe("filterEngineLines", () => {
+  // Config visible-error thresholds: u800 300 · b800_1200 200 · b1200_1600 100 ·
+  // b1600_2000 50 · 2000+ 0. A line shows only if it is mate or |eval| ≥ threshold.
   const lines: EngineLine[] = [
     { pv: ["e2e4", "e7e5"], depth: 10, evaluation: 150, mate: false },
     { pv: ["d2d4", "d7d5", "c2c4"], depth: 10, evaluation: 350, mate: false },
     { pv: ["g1f3"], depth: 10, evaluation: 20, mate: false },
   ];
 
-  it("filters engine lines for u800 (hides deep advantages that aren't mate/material)", () => {
-    // A shallow line (≤2 ply) and a clear material win (≥300cp) stay visible; only a
-    // deep, non-material positional advantage is hidden as beyond the band's RPL.
-    const shallow = filterEngineLines(lines, "u800", cfg);
-    expect(shallow[0]!.visible).toBe(true); // 2-ply line stays visible
-    expect(shallow[1]!.visible).toBe(true); // 350cp material win stays visible
-
-    const deepAdvantageLine: EngineLine = { pv: ["Nf3", "d5", "d4"], depth: 10, evaluation: 150, mate: false };
-    const filteredU800 = filterEngineLines([deepAdvantageLine], "u800", cfg);
-    expect(filteredU800[0]!.visible).toBe(false);
+  it("hides sub-threshold lines for u800 (300cp) and points to a visible alternative", () => {
+    const filtered = filterEngineLines(lines, "u800", cfg);
+    expect(filtered[0]!.visible).toBe(false); // 150 < 300
+    expect(filtered[1]!.visible).toBe(true); // 350 ≥ 300 (decisive/material)
+    expect(filtered[2]!.visible).toBe(false); // 20 < 300
+    expect(filtered[0]!.reason).toContain("300cp");
+    // hidden top line surfaces the best visible line as a human alternative
+    expect(filtered[0]!.humanAlternative?.evaluation).toBe(350);
   });
 
-  it("filters engine lines for b800_1200 (hides pure positional manoeuvres)", () => {
+  it("always shows a forced mate regardless of threshold", () => {
+    const mateLine: EngineLine = { pv: ["d8h4"], depth: 6, evaluation: 0, mate: true };
+    const filtered = filterEngineLines([mateLine], "u800", cfg);
+    expect(filtered[0]!.visible).toBe(true);
+  });
+
+  it("hides sub-threshold lines for b800_1200 (200cp)", () => {
     const positionalLine: EngineLine = { pv: ["Re1"], depth: 10, evaluation: 120, mate: false };
     const filtered = filterEngineLines([positionalLine], "b800_1200", cfg);
     expect(filtered[0]!.visible).toBe(false);
-    expect(filtered[0]!.reason).toBe("Pure positional manoeuvre beyond RPL");
+    expect(filtered[0]!.reason).toContain("200cp");
   });
 
-  it("filters engine lines for b1200_1600 (hides complex engine sacrifices)", () => {
-    const complexLine: EngineLine = { pv: ["e4", "e5", "Nf3", "Nc6", "Bc4"], depth: 10, evaluation: 150, mate: false };
-    const filtered = filterEngineLines([complexLine], "b1200_1600", cfg);
-    expect(filtered[0]!.visible).toBe(false);
+  it("applies the 100cp threshold for b1200_1600", () => {
+    const above: EngineLine = { pv: ["e4", "e5", "Nf3"], depth: 10, evaluation: 150, mate: false };
+    const below: EngineLine = { pv: ["a2a3"], depth: 10, evaluation: 80, mate: false };
+    const filtered = filterEngineLines([above, below], "b1200_1600", cfg);
+    expect(filtered[0]!.visible).toBe(true); // 150 ≥ 100
+    expect(filtered[1]!.visible).toBe(false); // 80 < 100
   });
 
-  it("does not suppress but warns for b1600_2000", () => {
-    const filtered = filterEngineLines(lines, "b1600_2000", cfg);
+  it("flags high-entropy positions when candidate moves are nearly equal", () => {
+    const nearEqual: EngineLine[] = [
+      { pv: ["e2e4"], depth: 12, evaluation: 60, mate: false },
+      { pv: ["d2d4"], depth: 12, evaluation: 50, mate: false },
+    ];
+    const filtered = filterEngineLines(nearEqual, "b1600_2000", cfg);
+    expect(filtered.every((l) => l.visible)).toBe(true); // both ≥ 50
+    expect(filtered[0]!.reason).toContain("high-entropy");
+  });
+
+  it("suppresses nothing for the top band (threshold 0)", () => {
+    const filtered = filterEngineLines(lines, "b2200plus", cfg);
     expect(filtered.every((l) => l.visible)).toBe(true);
-    expect(filtered[0]!.reason).toBe("Position is high-entropy (chaotic)");
   });
 });
 
