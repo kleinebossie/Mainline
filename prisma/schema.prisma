@@ -6,8 +6,9 @@
 // (§5.2); M6 adds Program + ProgramItem — the generated daily session with its
 // denormalised transparency snapshot (§5.5); M7 closes the loop with the tracker +
 // adaptation state — ActivityEvent (append-only), SkillState, ScheduleState (FSRS),
-// and AdaptationLog (§5.5/§5.6). The rest of the data model (§5) lands milestone by
-// milestone.
+// and AdaptationLog (§5.5/§5.6); M9 adds the engagement plumbing — RewardEvent
+// (append-only) + NotificationPref (capped reminders) (§5.7). The rest of the data
+// model (§5) lands milestone by milestone.
 
 generator client {
   provider = "prisma-client-js"
@@ -47,6 +48,8 @@ model User {
   skillStates           SkillState[]
   scheduleStates        ScheduleState[]
   adaptationLogs        AdaptationLog[]
+  rewardEvents          RewardEvent[]
+  notificationPref      NotificationPref?
 }
 
 model Account {
@@ -440,4 +443,45 @@ model AdaptationLog {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, runAt])
+}
+
+// --- Engagement plumbing (BUILD.md §5.7, §9, M9) ---
+
+// A fired engagement event (Seam 9 decides which/when/copy; the Engine fires/persists).
+// Append-only like the tracker. `type` is the ALLOWED reward-event taxonomy (streak_tick |
+// competence_milestone | consistency_grid | recovery_prompt) — forbidden mechanics (global
+// leaderboards, infinite streaks, tangible/contingent rewards) are not representable, so the
+// forbid list is structural, not a runtime check. `copyKey` resolves to a Seam-8 rationale
+// entry at render time, so the evidence grade travels with the copy (L3). `payload` carries
+// the capped streak position / milestone the UI shows; `seen` lets the UI dismiss a nudge.
+model RewardEvent {
+  id         String   @id @default(cuid())
+  userId     String
+  type       String
+  copyKey    String
+  occurredAt DateTime
+  payload    Json
+  seen       Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, occurredAt])
+}
+
+// Capped, user-configurable reminders (anti-nag, Seam 9). One row per user. `cadenceCap` is
+// clamped to the Seam-9 config ceiling (reminderCadenceCapPerDay) by the Engine before write
+// — the cap is methodology, enforced in code, and can never be exceeded by a client. Default
+// disabled / no channel (reminders are off until the user opts in).
+model NotificationPref {
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  channel    String   @default("none") // none | email | push
+  cadenceCap Int      @default(0) // reminders/day, ≤ config cap
+  enabled    Boolean  @default(false)
+  quietHours String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

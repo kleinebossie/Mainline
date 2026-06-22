@@ -14,6 +14,7 @@ interface Recorder {
   scheduleUpserts: { itemRef: string; due: Date; lastGrade: number }[];
   skillUpserts: { dimension: string; estimate: number; sampleSize: number }[];
   logs: { trigger: string; decisions: unknown }[];
+  rewardCreates: { type: string; copyKey: string }[];
 }
 
 function fakeDb(
@@ -25,6 +26,7 @@ function fakeDb(
     scheduleUpserts: [],
     skillUpserts: [],
     logs: [],
+    rewardCreates: [],
   };
 
   const db = {
@@ -53,6 +55,20 @@ function fakeDb(
           programItemId: data.programItemId,
         });
         return { id: `e${rec.events.length}` };
+      },
+      // Engagement rollup reads (M9): the appended events are "today" at the fixed clock.
+      findMany: async () => rec.events.map(() => ({ occurredAt: new Date(T) })),
+      count: async () => rec.events.length,
+    },
+    rewardEvent: {
+      createMany: async ({
+        data,
+      }: {
+        data: { type: string; copyKey: string }[];
+      }) => {
+        for (const d of data)
+          rec.rewardCreates.push({ type: d.type, copyKey: d.copyKey });
+        return { count: data.length };
       },
     },
     skillState: {
@@ -138,6 +154,11 @@ describe("logOutcome (applyEvent)", () => {
     ]);
     expect(rec.logs).toHaveLength(1);
     expect(res.scheduledReviews).toBe(1);
+
+    // M9: completing an activity fires a Seam-9 engagement event (a capped streak tick).
+    expect(rec.rewardCreates).toHaveLength(1);
+    expect(rec.rewardCreates[0]!.type).toBe("streak_tick");
+    expect(res.rewardEvents[0]!.payload.streakDay).toBe(1);
   });
 
   it("the event log is append-only — logging twice writes two rows, never overwrites", async () => {

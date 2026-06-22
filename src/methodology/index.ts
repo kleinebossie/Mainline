@@ -12,6 +12,8 @@ export {
   nextCalibrationItem,
   scoreCalibration,
   buildImplementationIntention,
+  // Seam 9 (engagement, M9): the reward-event policy reader the engine event bus calls.
+  engagementEventsFor,
   // Program-engine seams (M6): Seams 1/3/4/5/7/8 pure reader functions.
   bandForRating,
   interpretGameFeatures,
@@ -31,6 +33,9 @@ export {
   // Measurement seam (M8): per-band expectation copy for the transparency dashboard.
   expectationForBand,
   type GradedExpectation,
+  type EngagementStateChange,
+  type EngagementEvent,
+  type RewardEventType,
   type CalibrationResponse,
   type NextCalibrationItem,
   type CalibrationEstimate,
@@ -62,6 +67,8 @@ export type {
   DifficultyConfig,
   SchedulingConfig,
   PrioritizationConfig,
+  EngagementConfig,
+  EngagementEventRule,
   MeasurementConfig,
   RationaleEntry,
   AnchorSource,

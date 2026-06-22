@@ -8,6 +8,7 @@ import type { Grade, GradedFlag, Tier } from "@/methodology/schema/graded";
 import type {
   MethodologyConfig,
   RationaleEntry,
+  RewardEventType,
 } from "@/methodology/schema/config";
 import type { RawGameFeatures } from "@/lib/raw-features";
 import { servoOffset } from "@/engine/math/servo";
@@ -173,6 +174,97 @@ export function buildImplementationIntention(
   module: string,
 ): IfThenPlan {
   return { cue: cue.trim(), plan: module.trim() };
+}
+
+export type { RewardEventType };
+
+/** A state change the engagement bus reacts to. The Engine computes these plumbing facts
+ *  (distinct active days, completed count) and passes them in; this seam decides which
+ *  events fire and with what copy. Pure data — no clock, no I/O (L2). */
+export interface EngagementStateChange {
+  /** True when the user completed ≥1 non-skip activity in this change. */
+  activityCompleted: boolean;
+  /** Consecutive active-day streak AFTER this change (the Engine counts distinct days). */
+  activeDayStreak: number;
+  /** Cumulative count of completed activities after this change (for milestones), or null. */
+  completedCount: number | null;
+  /** True only on a missed-day sweep — a forgiving recovery prompt, never a fail-state. */
+  dayMissed: boolean;
+}
+
+/** One graded engagement event (the which/when/copy). The grade/tier/citation/soften travel
+ *  from the `copyKey`'s Seam-8 rationale entry, so a weak-evidence nudge can never render as
+ *  fact (L3). `payload` carries the capped streak position / milestone the UI shows. */
+export interface EngagementEvent {
+  type: RewardEventType;
+  copyKey: string;
+  payload: { streakDay?: number; streak?: number; milestone?: number };
+  evidenceGrade: Grade;
+  evidenceTier: Tier;
+  citationKey: string;
+  soften: boolean;
+}
+
+/**
+ * Seam 9 — turn a state change into the reward events to fire (the which/when/copy; the
+ * Engine persists them). Iterates the config's event-policy table: a completion ticks a
+ * CAPPED streak (the displayed number cycles 1..streakCapDays and never grows unbounded — an
+ * infinite streak weaponising loss-aversion is a forbidden dark pattern, §9), crossing a
+ * configured milestone fires a competence badge, and a missed day fires a forgiving recovery
+ * prompt. Forbidden mechanics are structurally impossible: the event `type` is enum-bounded,
+ * so no leaderboard / tangible reward can be emitted. Pure (L2): reads config + change only.
+ */
+export function engagementEventsFor(
+  change: EngagementStateChange,
+  cfg: MethodologyConfig,
+): EngagementEvent[] {
+  const e = cfg.engagement;
+  const cap = e.streakCapDays.value;
+  const milestones = new Set(e.competenceMilestones.value);
+  const out: EngagementEvent[] = [];
+
+  const emit = (
+    rule: MethodologyConfig["engagement"]["events"][number],
+    payload: EngagementEvent["payload"],
+  ): void => {
+    const r = rationaleFor(rule.copyKey, cfg);
+    out.push({
+      type: rule.type,
+      copyKey: rule.copyKey,
+      payload,
+      evidenceGrade: r.grade,
+      evidenceTier: r.tier,
+      citationKey: r.citationKey,
+      soften: r.soften,
+    });
+  };
+
+  for (const rule of e.events) {
+    switch (rule.trigger) {
+      case "activity_completed":
+        if (change.activityCompleted) emit(rule, {});
+        break;
+      case "streak_advanced":
+        if (change.activityCompleted && change.activeDayStreak > 0) {
+          // Capped/forgiving: the headline number stays in [1, cap], never unbounded.
+          const streakDay = ((change.activeDayStreak - 1) % cap) + 1;
+          emit(rule, { streakDay, streak: change.activeDayStreak });
+        }
+        break;
+      case "milestone_reached":
+        if (
+          change.completedCount !== null &&
+          milestones.has(change.completedCount)
+        ) {
+          emit(rule, { milestone: change.completedCount });
+        }
+        break;
+      case "day_missed":
+        if (change.dayMissed) emit(rule, {});
+        break;
+    }
+  }
+  return out;
 }
 
 // ===========================================================================

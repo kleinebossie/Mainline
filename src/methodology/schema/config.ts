@@ -15,9 +15,9 @@
 //   • difficulty            (Seam 5 — servo-controlled puzzle-rating targets)
 //   • prioritization        (Seam 7 — the daily-mix scoring weights + volume)
 //   • rationale             (Seam 8 — the "why this / why now" copy table)
-// Forthcoming (added by their slices, never invented early — that would inject ungraded
-// science): scheduling (6, M7), engagement (9, M9), measurement (M7/M8). Parsing is
-// non-strict, so a future config may carry them before their schema lands.
+// M7 added scheduling (Seam 6) + measurement (CI/baseline/plateau). M9 adds engagement
+// (Seam 9 — the motivation event policy + ethical guardrails). Parsing is non-strict, so a
+// future config may carry a not-yet-coded seam before its schema lands.
 
 import { z } from "zod";
 
@@ -272,6 +272,63 @@ const rationaleEntrySchema = z.object({
   soften: z.boolean(),
 });
 
+// Seam 9 — engagement mechanics + ethical guardrails (MOTIVATION). The Engine owns the
+// event plumbing; this seam supplies the allow/forbid lists, thresholds, and copy. The
+// FORBID LIST IS STRUCTURAL, not a runtime check: the reward-event taxonomy is a fixed enum
+// (there is no "global_leaderboard" or "tangible_reward" member), the streak is capped (never
+// infinite — anti-loss-aversion), and `globalLeaderboards` must be false (enforced in
+// superRefine). Each event rule maps a state-change trigger → an allowed event type + a
+// Seam-8 `copyKey` (its grade/soften travel with the copy, L3). Mechanisms are well-evidenced
+// (Grade A/B); the exact numbers are best-guess (METHODOLOGY Seam 9 STUB).
+export const REWARD_EVENT_TYPES = [
+  "streak_tick",
+  "competence_milestone",
+  "consistency_grid",
+  "recovery_prompt",
+] as const;
+
+export const ENGAGEMENT_TRIGGERS = [
+  "activity_completed",
+  "streak_advanced",
+  "milestone_reached",
+  "day_missed",
+] as const;
+
+const engagementEventRuleSchema = z.object({
+  // The state-change trigger this rule fires on (structural selector, like a band id).
+  trigger: z.enum(ENGAGEMENT_TRIGGERS),
+  // The reward-event type to emit — only the allowed taxonomy (forbidden mechanics are not
+  // members of the enum, so they are unrepresentable, not merely discouraged).
+  type: z.enum(REWARD_EVENT_TYPES),
+  // The Seam-8 rationale entry carrying the user-facing copy + its grade (resolves in
+  // `rationale`; checked in superRefine) — engagement copy is graded like everything else.
+  copyKey: z.string().min(1),
+});
+
+const engagementSchema = z.object({
+  // (a) SDT bounded-choice autonomy: a few science-backed paths/day; free skips, no penalty.
+  dailyChoiceCount: gradedValue(z.number().int().positive()),
+  freeSkipsPerWeek: gradedValue(z.number().int().nonnegative()),
+  // (c) forgiving habit design: a CAPPED streak (never infinite) cycling over this many days,
+  // an asymptotic consistency window, and the habit-formation expectation we communicate.
+  streakCapDays: gradedValue(z.number().int().positive()),
+  consistencyWindowDays: gradedValue(z.number().int().positive()),
+  habitExpectationDays: gradedValue(z.number().int().positive()),
+  // Competence-milestone thresholds (badges only for genuine work) — one graded leaf vector.
+  competenceMilestones: gradedValue(
+    z.array(z.number().int().positive()).min(1),
+  ),
+  // (d) guardrails: peer comparison opt-in (off in the stub); global leaderboards are a dark
+  // pattern and must be FALSE; reminders capped per day (anti-nag); tilt cooldown is a
+  // thin-evidence stub (forgiving default only).
+  peerComparison: gradedValue(z.boolean()),
+  globalLeaderboards: gradedValue(z.boolean()),
+  reminderCadenceCapPerDay: gradedValue(z.number().int().nonnegative()),
+  tiltCooldownLossStreak: gradedValue(z.number().int().positive()),
+  // The state-change → reward-event policy table (the which/when/copy the engine fires).
+  events: z.array(engagementEventRuleSchema).min(1),
+});
+
 // §5 — the evidence ledger the UI cites. Mirrors the METHODOLOGY §5 columns.
 const anchorSourceSchema = z.object({
   key: z.string().min(1),
@@ -304,6 +361,7 @@ export const methodologyConfigSchema = z
     difficulty: difficultySchema,
     scheduling: schedulingSchema,
     prioritization: prioritizationSchema,
+    engagement: engagementSchema,
     measurement: measurementSchema,
     rationale: z.array(rationaleEntrySchema).min(1),
     evidenceLedger: z.array(anchorSourceSchema).min(1),
@@ -320,6 +378,7 @@ export const methodologyConfigSchema = z
       cfg.difficulty,
       cfg.scheduling,
       cfg.prioritization,
+      cfg.engagement,
       cfg.measurement,
       cfg.rationale,
     ]) {
@@ -443,6 +502,23 @@ export const methodologyConfigSchema = z
         });
       }
     });
+
+    // Seam 9 — every engagement event copyKey must resolve to a rationale entry (so its
+    // graded copy exists); the event TYPE is enum-bounded already (forbidden mechanics excluded).
+    cfg.engagement.events.forEach((ev, i) => {
+      requireRat(ev.copyKey, ["engagement", "events", i, "copyKey"]);
+    });
+    // The forbid list is enforced by CONFIG, not the engine: global leaderboards are a
+    // dark pattern (downward social comparison; Hanus & Fox 2015) and must be off. (An
+    // infinite streak is excluded structurally — the cap is a positive int, always finite.)
+    if (cfg.engagement.globalLeaderboards.value !== false) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          "engagement.globalLeaderboards must be false (forbidden dark pattern, Seam 9)",
+        path: ["engagement", "globalLeaderboards", "value"],
+      });
+    }
   });
 
 export type MethodologyConfig = z.infer<typeof methodologyConfigSchema>;
@@ -457,6 +533,10 @@ export type WeaknessResourceRule =
 export type DifficultyConfig = MethodologyConfig["difficulty"];
 export type SchedulingConfig = MethodologyConfig["scheduling"];
 export type PrioritizationConfig = MethodologyConfig["prioritization"];
+export type EngagementConfig = MethodologyConfig["engagement"];
+export type EngagementEventRule = EngagementConfig["events"][number];
+export type RewardEventType = (typeof REWARD_EVENT_TYPES)[number];
+export type EngagementTrigger = (typeof ENGAGEMENT_TRIGGERS)[number];
 export type MeasurementConfig = MethodologyConfig["measurement"];
 export type RationaleEntry = MethodologyConfig["rationale"][number];
 export type AnchorSource = MethodologyConfig["evidenceLedger"][number];

@@ -131,7 +131,11 @@ The app is built as vertical slices **M0–M10** (`BUILD.md` §10). Shipped so f
 assessment, **M5** client-side Stockfish analysis → raw features, **M6** program engine v0 (generator +
 Seams 1/3/4/5/7/8 stub config → a graded, budget-fitted `/today`), **M7** tracker + adaptation v0 — the
 loop closes: logging an outcome (Seam 6 FSRS + Seam 7/Measurement) reschedules, updates skill, and
-regenerates a changed `/today`, all in a graded `AdaptationLog`. **Next: M8** — Transparency UI.
+regenerates a changed `/today`, all in a graded `AdaptationLog`. **M8** transparency UI — the honesty
+brand made visible (graded "why" cards + state/expectations dashboards). **M9** engagement framework —
+Seam-9 event plumbing (`onStateChange` → `RewardEvent`) with a forgiving capped streak, consistency
+grid, competence recognition, and capped reminders; the forbid list (no infinite streaks/leaderboards/
+tangible rewards) is enforced _by config_, not the Engine. **Next: M10** — beta hardening.
 `planning/BUILD.md` is the source of truth these notes summarize; the `build-slice`
 skill drives a milestone end-to-end.
 

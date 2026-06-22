@@ -5,6 +5,7 @@ import { analysisRouter } from "@/server/routers/analysis";
 import { assessmentRouter } from "@/server/routers/assessment";
 import { connectionsRouter } from "@/server/routers/connections";
 import { constraintsRouter } from "@/server/routers/constraints";
+import { engagementRouter } from "@/server/routers/engagement";
 import { importRouter } from "@/server/routers/import";
 import { programRouter } from "@/server/routers/program";
 import { trackerRouter } from "@/server/routers/tracker";
@@ -18,6 +19,7 @@ export const appRouter = router({
   analysis: analysisRouter,
   program: programRouter,
   tracker: trackerRouter,
+  engagement: engagementRouter,
 });
 
 export type AppRouter = typeof appRouter;

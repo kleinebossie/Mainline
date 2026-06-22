@@ -44,6 +44,7 @@ describe("L3: methodology config integrity", () => {
       walkCitationKeys(cfg.difficulty, used);
       walkCitationKeys(cfg.scheduling, used);
       walkCitationKeys(cfg.prioritization, used);
+      walkCitationKeys(cfg.engagement, used);
       walkCitationKeys(cfg.measurement, used);
       walkCitationKeys(cfg.rationale, used);
       expect(used.size).toBeGreaterThan(0);
@@ -102,6 +103,24 @@ describe("L3: methodology config integrity", () => {
     },
   );
 
+  it.each(SHIPPED)(
+    "%s: the M9 engagement seam loads graded, forbid-list enforced, copyKeys resolve",
+    (version) => {
+      const cfg = loadMethodology(version);
+      const e = cfg.engagement;
+      // Mechanism numbers are graded leaves.
+      expect(e.streakCapDays.value).toBeGreaterThan(0);
+      expect(e.competenceMilestones.value.length).toBeGreaterThan(0);
+      expect(e.reminderCadenceCapPerDay.grade).toBeDefined();
+      // Forbid list enforced BY CONFIG, not the engine: leaderboards off, streak capped.
+      expect(e.globalLeaderboards.value).toBe(false);
+      // Every event rule maps to an allowed type + a copyKey that resolves in rationale.
+      const ratKeys = new Set(cfg.rationale.map((r) => r.key));
+      expect(e.events.length).toBeGreaterThan(0);
+      for (const ev of e.events) expect(ratKeys).toContain(ev.copyKey);
+    },
+  );
+
   it("the loaded config is deeply frozen (immutability, §2.6)", () => {
     const cfg = loadMethodology("stub-0.1.0");
     expect(Object.isFrozen(cfg)).toBe(true);
@@ -154,6 +173,25 @@ describe("L3: methodology config integrity", () => {
       blunderRate: { baselineByBand: Record<string, unknown> };
     };
     delete interp.blunderRate.baselineByBand.u800;
+    expect(methodologyConfigSchema.safeParse(broken).success).toBe(false);
+  });
+
+  it("rejects globalLeaderboards = true (forbidden dark pattern, Seam 9)", () => {
+    const broken = structuredClone(stub010) as MethodologyConfig;
+    broken.engagement.globalLeaderboards.value = true;
+    expect(methodologyConfigSchema.safeParse(broken).success).toBe(false);
+  });
+
+  it("rejects a dangling engagement event copyKey", () => {
+    const broken = structuredClone(stub010) as MethodologyConfig;
+    broken.engagement.events[0]!.copyKey = "no_such_copy";
+    expect(methodologyConfigSchema.safeParse(broken).success).toBe(false);
+  });
+
+  it("rejects a forbidden reward-event type (taxonomy is enum-bounded)", () => {
+    const broken = structuredClone(stub010) as Record<string, unknown>;
+    const eng = broken.engagement as { events: { type: string }[] };
+    eng.events[0]!.type = "global_leaderboard";
     expect(methodologyConfigSchema.safeParse(broken).success).toBe(false);
   });
 });

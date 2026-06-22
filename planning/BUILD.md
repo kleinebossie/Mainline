@@ -1039,8 +1039,40 @@ DoD checklist._
 - **Tests:** unit — forbidden mechanics never emitted (no global leaderboard, no infinite streak, no
   tangible reward) from stub config; reminder cap respected; e2e — completing a session emits a
   competence event.
-- **DoD:** ☐ events fire from state changes ☐ forbid-list enforced by config (not engine) ☐ reminders
+- **DoD:** [x] events fire from state changes [x] forbid-list enforced by config (not engine) [x] reminders
   capped & user-configurable.
+  **Status (2026-06-22): code-complete & locally green.** The engagement loop is wired: completing a
+  (non-skip) activity on `/today` now fires Seam-9 reward events through the engine bus, and the dashboard
+  surfaces a forgiving, capped consistency streak, a GitHub-style consistency grid, genuine competence
+  recognition (each carrying its evidence grade), and capped, user-configurable reminders. New methodology
+  seam lands in `stub-0.1.0` (extended in place, no version bump — as M6/M7): **engagement** (Seam 9 — SDT
+  bounded-choice + forgiving habit numbers + the ethical guardrails) with +4 ledger anchors
+  (`deci1999`/`lally2010`/`silverman_barasch2023`/`hanus_fox2015`) and +4 rationale entries
+  (`streak_tick`/`competence_milestone`/`recovery_prompt`/`consistency_grid`) — every leaf graded, every
+  citation resolving. The **forbid list is structural, not a runtime check**: the reward-event taxonomy is
+  an enum (no `global_leaderboard`/`tangible_reward` member), the streak is a finite cap, and
+  `globalLeaderboards` must be `false` (all enforced in the config schema + L3 guard). Pure provider fn
+  `engagementEventsFor` (Seam 9) reads config only (L1), no clock/random (L2). Generic Engine plumbing:
+  `engine/events.ts` (`onStateChange` + `clampReminderCadence`, the anti-nag cap) and
+  `engine/math/consistency.ts` (day-bucketing for the streak + grid — pure epoch arithmetic). Data model:
+  `RewardEvent` (append-only) + `NotificationPref` (capped, one-per-user) (§5.7) + migration
+  `20260622000000_m9_engagement` (hand-written offline). Server: `db/engagement.ts` helpers,
+  `server/engagement.ts` orchestration (streak/milestone rollup → `onStateChange` → persist; clamped
+  reminder save), `engagement` tRPC router (`summary`/`markSeen`/`saveNotificationPref`); `logOutcome` now
+  fires engagement after persisting adaptation. Tests: **180 unit + guards green** (24 new: the Seam-9 fn
+  goldens, `onStateChange`/`clampReminderCadence`/consistency math, the `server/engagement` round-trip,
+  the extended L3 guard incl. forbid-list negatives; the tracker round-trip now asserts a completion fires
+  a capped streak tick), **`next build` green** (12 routes), **10 e2e green** (dashboard/today auth-gates;
+  the signed-in completion→recognition flow is verified manually per §13.5, as in M1/M2/M4–M8).
+  **Deviations (deliberate, documented in code):** (a) the **`day_missed` recovery trigger** ships as
+  policy + a unit-tested pure path, but the _automatic_ daily sweep that fires it needs the M10 cron, so
+  only the **completion path** is wired now (the e2e criterion). (b) `RewardEvent` stores its `copyKey`
+  (not a denormalised grade snapshot, per §5.7); the grade is resolved from the copyKey at render — still
+  graded/honest (L3). (c) the SDT **bounded-choice paths** (`dailyChoiceCount`/`freeSkipsPerWeek`) and
+  **peer comparison** ship as graded config for the swap but their UI is not built in Phase-1 (consumed
+  later). (d) `tiltCooldownLossStreak` ships flagged `stub` (thin chess evidence — METHODOLOGY Seam 9),
+  not yet consumed. **Remaining user step (infra): apply migration `20260622000000_m9_engagement` to
+  Supabase (`npm run prisma:deploy`).**
 
 ### M10 — Beta hardening
 

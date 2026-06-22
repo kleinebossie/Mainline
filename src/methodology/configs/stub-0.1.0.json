@@ -995,6 +995,104 @@
       }
     }
   },
+  "engagement": {
+    "dailyChoiceCount": {
+      "value": 3,
+      "grade": "B",
+      "tier": 2,
+      "citationKey": "deci1999",
+      "flag": "best-guess",
+      "note": "SDT autonomy: offer a few science-backed paths/day; the count is best-guess."
+    },
+    "freeSkipsPerWeek": {
+      "value": 1,
+      "grade": "B",
+      "tier": 2,
+      "citationKey": "deci1999",
+      "flag": "best-guess",
+      "note": "Allow skipping one module/week with no penalty (autonomy support)."
+    },
+    "streakCapDays": {
+      "value": 7,
+      "grade": "B",
+      "tier": 2,
+      "citationKey": "silverman_barasch2023",
+      "flag": "best-guess",
+      "note": "Streak resets to a fresh cycle each week — capped, never infinite (anti-loss-aversion); the number is best-guess."
+    },
+    "consistencyWindowDays": {
+      "value": 90,
+      "grade": "B",
+      "tier": 2,
+      "citationKey": "lally2010",
+      "flag": "best-guess",
+      "note": "Track consistency asymptotically over ~90 days, not as an unbroken streak."
+    },
+    "habitExpectationDays": {
+      "value": 66,
+      "grade": "B",
+      "tier": 2,
+      "citationKey": "lally2010",
+      "flag": "best-guess",
+      "note": "Median time to automate a habit (range 18–254); communicate honestly, don't promise."
+    },
+    "competenceMilestones": {
+      "value": [10, 50, 100, 250, 500],
+      "grade": "C",
+      "tier": 2,
+      "citationKey": "stub_open_question",
+      "flag": "best-guess",
+      "note": "Badge thresholds for genuine work (e.g. 'completed 100 reviews'); the exact counts are arbitrary."
+    },
+    "peerComparison": {
+      "value": false,
+      "grade": "B",
+      "tier": 2,
+      "citationKey": "hanus_fox2015",
+      "flag": "best-guess",
+      "note": "Same-level anonymised peer comparison is opt-in; shipped OFF in the stub (conservative)."
+    },
+    "globalLeaderboards": {
+      "value": false,
+      "grade": "A",
+      "tier": 2,
+      "citationKey": "hanus_fox2015",
+      "note": "FORBIDDEN: global leaderboards drive downward social comparison and backfire (dark pattern)."
+    },
+    "reminderCadenceCapPerDay": {
+      "value": 1,
+      "grade": "C",
+      "tier": 2,
+      "citationKey": "stub_open_question",
+      "flag": "best-guess",
+      "note": "Anti-nag ceiling: at most one reminder/day, user-configurable; the number is best-guess."
+    },
+    "tiltCooldownLossStreak": {
+      "value": 3,
+      "grade": "C",
+      "tier": 1,
+      "citationKey": "stub_open_question",
+      "flag": "stub",
+      "note": "Suggest a break after this many consecutive losses; thin chess evidence — forgiving default only."
+    },
+    "events": [
+      {
+        "trigger": "streak_advanced",
+        "type": "streak_tick",
+        "copyKey": "streak_tick"
+      },
+      {
+        "trigger": "milestone_reached",
+        "type": "competence_milestone",
+        "copyKey": "competence_milestone"
+      },
+      {
+        "trigger": "day_missed",
+        "type": "recovery_prompt",
+        "copyKey": "recovery_prompt"
+      }
+    ]
+  },
   "measurement": {
     "ciMultiplier": {
       "value": 1.96,
@@ -1184,6 +1282,42 @@
       "tier": 1,
       "citationKey": "lichess_etl",
       "soften": false
+    },
+    {
+      "key": "streak_tick",
+      "whenShown": "after a day's training",
+      "value": "You've trained another day. We cap the streak at a week on purpose and reset it gently — consistency over weeks is what counts, and one missed day never wipes your progress.",
+      "grade": "B",
+      "tier": 2,
+      "citationKey": "silverman_barasch2023",
+      "soften": false
+    },
+    {
+      "key": "competence_milestone",
+      "whenShown": "crossing a work milestone",
+      "value": "Milestone reached. These badges mark genuine work you've put in — never just time spent or money paid — because rewards tied to an already-interesting task can quietly sap the motivation to do it.",
+      "grade": "B",
+      "tier": 2,
+      "citationKey": "deci1999",
+      "soften": false
+    },
+    {
+      "key": "recovery_prompt",
+      "whenShown": "after a missed day",
+      "value": "You didn't lose your progress for missing a day. A habit takes on the order of two months to automate, and one skipped day barely dents that — punitive streak-resets mostly just make people quit. Pick it back up today.",
+      "grade": "B",
+      "tier": 2,
+      "citationKey": "lally2010",
+      "soften": false
+    },
+    {
+      "key": "consistency_grid",
+      "whenShown": "the consistency grid",
+      "value": "This grid shows your effort over time, not a fragile streak. Aim to fill in most days — perfect attendance isn't the goal, and the long view is what builds a habit.",
+      "grade": "B",
+      "tier": 2,
+      "citationKey": "lally2010",
+      "soften": false
     }
   ],
   "evidenceLedger": [
@@ -1299,6 +1433,30 @@
       "key": "glickman2012",
       "source": "Glickman 2012 (Glicko-2)",
       "anchors": "Rating as a distribution; 95% CI = R ± 1.96·RD; real change only on non-overlapping CIs; RD baseline gate",
+      "grade": "A"
+    },
+    {
+      "key": "deci1999",
+      "source": "Deci, Koestner & Ryan 1999 (128-experiment meta-analysis)",
+      "anchors": "SDT: contingent/tangible rewards undermine intrinsic motivation; support autonomy + competence instead",
+      "grade": "B"
+    },
+    {
+      "key": "lally2010",
+      "source": "Lally et al. 2010, Eur. J. Soc. Psychol. 40:998",
+      "anchors": "Habit automaticity forms over a median 66 days (range 18–254); a missed day doesn't derail formation",
+      "grade": "B"
+    },
+    {
+      "key": "silverman_barasch2023",
+      "source": "Silverman & Barasch 2023",
+      "anchors": "Broken infinite streaks weaponise loss-aversion → a 'quit moment'; use capped/forgiving streaks",
+      "grade": "B"
+    },
+    {
+      "key": "hanus_fox2015",
+      "source": "Hanus & Fox 2015 (longitudinal)",
+      "anchors": "Competitive gamification / global leaderboards cut motivation (downward social comparison)",
       "grade": "A"
     }
   ]

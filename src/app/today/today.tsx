@@ -266,6 +266,22 @@ export function Today() {
         </p>
       )}
 
+      {/* Seam-9 engagement nudge: a forgiving, capped streak / genuine milestone — never a
+          rating promise. Copy + grade come from the methodology. */}
+      {log.data?.rewardEvents.map((e, i) => (
+        <p
+          key={`${e.type}-${i}`}
+          className="text-ink border-l-2 border-evergreen/40 pl-3 font-serif text-sm leading-relaxed"
+        >
+          {e.payload.streakDay != null && (
+            <span className="text-evergreen font-mono text-xs">
+              Day {e.payload.streakDay} ·{" "}
+            </span>
+          )}
+          {e.text}
+        </p>
+      ))}
+
       <div className="mt-2 flex flex-wrap items-center gap-3 border-t border-line/80 pt-5">
         <Button
           type="button"

@@ -21,6 +21,10 @@ import {
   type ScheduleStateValue,
   type SkillStateValue,
 } from "@/engine/adaptation";
+import {
+  recordEngagementForCompletion,
+  type RewardEventView,
+} from "@/server/engagement";
 import { systemClock, type Clock } from "@/lib/clock";
 import {
   fsrsStateSchema,
@@ -46,6 +50,8 @@ type Db = Pick<
   | "adaptationLog"
   | "chessProfileSnapshot"
   | "programItem"
+  | "rewardEvent"
+  | "notificationPref"
   | "$transaction"
 >;
 
@@ -161,6 +167,8 @@ export interface LogOutcomeResult {
   decisions: number;
   /** Total reviews now due (so the UI can nudge "N due"). */
   dueReviews: number;
+  /** Engagement events fired by this completion (Seam 9) — for an immediate, honest nudge. */
+  rewardEvents: RewardEventView[];
 }
 
 /**
@@ -274,10 +282,18 @@ export async function logOutcome(
   } as unknown as Prisma.InputJsonValue;
   await persistAdaptation(db, userId, result, inputsSnapshot, cfg.version);
 
+  // 6. Fire engagement events for the completion (Seam 9 plumbing) — a skip is not a
+  //    completion, so it never ticks the streak or earns a badge (the forgiving design).
+  const rewardEvents =
+    input.type === "skip"
+      ? []
+      : (await recordEngagementForCompletion(db, userId, now)).rewardEvents;
+
   const dueReviews = await countDueScheduleStates(db, userId, occurredAt);
   return {
     scheduledReviews: result.scheduleUpdates.length,
     decisions: result.adaptationLog.decisions.length,
     dueReviews,
+    rewardEvents,
   };
 }
