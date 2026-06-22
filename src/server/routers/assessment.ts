@@ -17,7 +17,13 @@ export const assessmentRouter = router({
   ),
 
   submit: protectedProcedure
-    .input(z.object({ ratingShown: z.number().int(), correct: z.boolean() }))
+    .input(
+      z.object({
+        ratingShown: z.number().int(),
+        correct: z.boolean(),
+        puzzleId: z.string().optional(),
+      }),
+    )
     .mutation(({ ctx, input }) =>
       applyCalibrationResponse(ctx.prisma, ctx.userId, input, new Date()),
     ),

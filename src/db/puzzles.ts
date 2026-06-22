@@ -45,12 +45,20 @@ export interface PuzzleQuery {
  */
 export function buildPuzzleQuery(c: PuzzleSelectionCriteria): PuzzleQuery {
   const where: Prisma.LichessPuzzleWhereInput = {
-    themes: { has: c.theme },
     rating: {
       gte: c.ratingTarget - c.ratingWindow,
       lte: c.ratingTarget + c.ratingWindow,
     },
   };
+  if (c.theme !== "mix") {
+    if (c.theme === "calculation") {
+      where.themes = {
+        hasSome: ["long", "veryLong", "mateIn3", "mateIn4", "mateIn5"],
+      };
+    } else {
+      where.themes = { has: c.theme };
+    }
+  }
   if (c.minPopularity != null) where.popularity = { gte: c.minPopularity };
   if (c.excludePuzzleIds && c.excludePuzzleIds.length > 0) {
     where.puzzleId = { notIn: c.excludePuzzleIds };

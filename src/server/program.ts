@@ -275,7 +275,7 @@ function paramsOf(raw: unknown): ProgramItemParams & { estMinutes?: number } {
   return { theme: null, track: null };
 }
 
-function toTodayItem(
+export function toTodayItem(
   item: ActiveProgram["items"][number],
   cfg: MethodologyConfig,
   dimLabels: Map<string, string>,

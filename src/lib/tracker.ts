@@ -14,6 +14,7 @@ export const activityEventPayloadSchema = z
     solveTimeMs: z.number().int().nonnegative().max(86_400_000).optional(),
     durationMin: z.number().nonnegative().max(600).optional(),
     externalRef: z.string().min(1).max(200).optional(),
+    puzzleId: z.string().min(1).max(100).optional(),
   })
   .strict();
 export type ActivityEventPayload = z.infer<typeof activityEventPayloadSchema>;
@@ -35,6 +36,7 @@ export const logOutcomeInputSchema = z.object({
   solveTimeMs: z.number().int().nonnegative().max(86_400_000).optional(),
   durationMin: z.number().nonnegative().max(600).optional(),
   externalRef: z.string().min(1).max(200).optional(),
+  puzzleId: z.string().min(1).max(100).optional(),
 });
 export type LogOutcomeInput = z.infer<typeof logOutcomeInputSchema>;
 

@@ -10,7 +10,7 @@
 // complete when every track's stop rule has fired. The first track is the primary tactical
 // estimate that seeds the band (resolveTacticalRating).
 
-import type { Prisma, PrismaClient } from "@prisma/client";
+import type { Prisma, PrismaClient, LichessPuzzle } from "@prisma/client";
 import { z } from "zod";
 
 import {
@@ -23,8 +23,9 @@ import {
   type MethodologyConfig,
   type NextCalibrationItem,
 } from "@/methodology";
+import { selectPuzzles } from "@/db/puzzles";
 
-type Db = Pick<PrismaClient, "assessment" | "chessProfileSnapshot">;
+type Db = Pick<PrismaClient, "assessment" | "chessProfileSnapshot" | "lichessPuzzle">;
 
 // A stored response is a behavioural outcome tagged with its track (track optional for
 // back-compat with single-track rows written before multi-track; those default to track 0).
@@ -32,6 +33,7 @@ export const calibrationResponseSchema = z.object({
   track: z.string().min(1).optional(),
   ratingShown: z.number().int(),
   correct: z.boolean(),
+  puzzleId: z.string().optional(),
 });
 type StoredResponse = z.infer<typeof calibrationResponseSchema>;
 
@@ -95,6 +97,7 @@ export interface CalibrationTrackState {
   id: string;
   dimension: string;
   label: string;
+  theme: string;
   /** True once this track's own ladder stop rule has fired. */
   completed: boolean;
   responseCount: number;
@@ -118,6 +121,7 @@ export interface CalibrationState {
   activeTrackIndex: number;
   activeTrack: CalibrationTrackState | null;
   tracks: CalibrationTrackState[];
+  activePuzzle: LichessPuzzle | null;
 }
 
 /** Build the per-track states from the stored responses + config (pure given inputs). */
@@ -135,6 +139,7 @@ function buildTrackStates(
       id: t.id,
       dimension: t.dimension,
       label: t.label,
+      theme: t.theme,
       completed: next.done,
       responseCount: responses.length,
       next,
@@ -159,6 +164,32 @@ export async function getCalibrationState(
   const activeTrack =
     activeTrackIndex >= 0 ? trackStates[activeTrackIndex]! : null;
 
+  let activePuzzle: LichessPuzzle | null = null;
+  if (activeTrack && !activeTrack.completed) {
+    const excludePuzzleIds = all
+      .map((r) => r.puzzleId)
+      .filter((id): id is string => !!id);
+
+    const puzzles = await selectPuzzles(db, {
+      theme: activeTrack.theme,
+      ratingTarget: activeTrack.next.ratingTarget,
+      ratingWindow: 150,
+      count: 10,
+      excludePuzzleIds,
+    });
+
+    if (puzzles.length > 0) {
+      // Pick a puzzle deterministically based on the userId + track + itemNumber
+      const seedStr = userId + activeTrack.id + activeTrack.next.itemNumber;
+      let hash = 0;
+      for (let i = 0; i < seedStr.length; i++) {
+        hash = seedStr.charCodeAt(i) + ((hash << 5) - hash);
+      }
+      const idx = Math.abs(hash) % puzzles.length;
+      activePuzzle = puzzles[idx] ?? null;
+    }
+  }
+
   return {
     completed: Boolean(row?.completedAt),
     responseCount: activeTrack?.responseCount ?? primary.responseCount,
@@ -170,6 +201,7 @@ export async function getCalibrationState(
     activeTrackIndex,
     activeTrack,
     tracks: trackStates,
+    activePuzzle,
   };
 }
 
@@ -182,7 +214,7 @@ export async function getCalibrationState(
 export async function applyCalibrationResponse(
   db: Db,
   userId: string,
-  response: { ratingShown: number; correct: boolean },
+  response: { ratingShown: number; correct: boolean; puzzleId?: string },
   now: Date,
 ): Promise<CalibrationState> {
   const cfg = loadMethodology();
@@ -208,6 +240,7 @@ export async function applyCalibrationResponse(
             track: active.id,
             ratingShown: response.ratingShown,
             correct: response.correct,
+            puzzleId: response.puzzleId,
           } satisfies StoredResponse,
         ];
 

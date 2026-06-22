@@ -203,11 +203,16 @@ export async function logOutcome(
       track =
         p.track === "pattern" || p.track === "calculation" ? p.track : null;
       const theme = typeof p.theme === "string" ? p.theme : null;
-      // v0: a puzzle MISS schedules a spaced redo of its theme — the puzzle DB isn't
-      // ingested yet, so theme selection (Seam 4/5) is the schedulable unit, not a puzzle id.
-      if (input.type === "puzzle_attempt" && theme) {
-        itemRef = theme;
-        itemType = "puzzle_theme";
+      // M11: a puzzle attempt schedules a spaced review of that specific puzzle ID (itemType: "puzzle").
+      // We fall back to the M7 theme-based schedule (itemType: "puzzle_theme") if no puzzleId is provided.
+      if (input.type === "puzzle_attempt") {
+        if (input.puzzleId) {
+          itemRef = input.puzzleId;
+          itemType = "puzzle";
+        } else if (theme) {
+          itemRef = theme;
+          itemType = "puzzle_theme";
+        }
       }
     }
   }
@@ -221,6 +226,8 @@ export async function logOutcome(
     payloadObj.durationMin = input.durationMin;
   if (input.externalRef !== undefined)
     payloadObj.externalRef = input.externalRef;
+  if (input.puzzleId !== undefined)
+    payloadObj.puzzleId = input.puzzleId;
   await appendActivityEvent(db, {
     userId,
     programItemId: input.programItemId ?? null,
