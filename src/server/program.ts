@@ -247,6 +247,8 @@ export interface TodayItem {
   estMinutes: number | null;
   params: ProgramItemParams;
   externalUrl: string | null;
+  url: string | null;
+  delivery: "internal" | "external";
   rationaleText: string;
   evidenceGrade: string;
   evidenceTier: number;
@@ -284,6 +286,9 @@ function toTodayItem(
   const theme = params.theme ?? null;
   const externalUrl =
     item.resourceRef?.externalUrl ?? (theme ? lichessThemeUrl(theme) : null);
+  const delivery =
+    def?.delivery?.value === "internal" ? "internal" : "external";
+  const url = delivery === "internal" ? `/train/${item.id}` : externalUrl;
   return {
     id: item.id,
     orderIndex: item.orderIndex,
@@ -294,6 +299,8 @@ function toTodayItem(
       typeof params.estMinutes === "number" ? params.estMinutes : null,
     params: { ...params, theme },
     externalUrl,
+    url,
+    delivery,
     rationaleText: item.rationaleText,
     evidenceGrade: item.evidenceGrade,
     evidenceTier: item.evidenceTier,

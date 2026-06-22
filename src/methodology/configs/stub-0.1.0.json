@@ -371,6 +371,13 @@
         "note": "Time-budget estimate for packing; not a chess value."
       },
       "track": null,
+      "delivery": {
+        "value": "external",
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "stub_open_question",
+        "flag": "best-guess"
+      },
       "rationaleKey": "play_games",
       "priorityByBand": {
         "u800": {
@@ -425,6 +432,13 @@
         "flag": "best-guess"
       },
       "track": "pattern",
+      "delivery": {
+        "value": "internal",
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "stub_open_question",
+        "flag": "best-guess"
+      },
       "rationaleKey": "puzzle_difficulty",
       "priorityByBand": {
         "u800": {
@@ -485,6 +499,13 @@
         "flag": "best-guess"
       },
       "track": "pattern",
+      "delivery": {
+        "value": "internal",
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "stub_open_question",
+        "flag": "best-guess"
+      },
       "rationaleKey": "redo_failed",
       "priorityByBand": {
         "u800": {
@@ -545,6 +566,13 @@
         "flag": "best-guess"
       },
       "track": null,
+      "delivery": {
+        "value": "internal",
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "stub_open_question",
+        "flag": "best-guess"
+      },
       "rationaleKey": "analyse_own_games",
       "priorityByBand": {
         "u800": {
@@ -605,6 +633,13 @@
         "flag": "best-guess"
       },
       "track": null,
+      "delivery": {
+        "value": "internal",
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "stub_open_question",
+        "flag": "best-guess"
+      },
       "rationaleKey": "endgame_focus",
       "priorityByBand": {
         "u800": {
@@ -665,6 +700,13 @@
         "flag": "best-guess"
       },
       "track": "calculation",
+      "delivery": {
+        "value": "internal",
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "stub_open_question",
+        "flag": "best-guess"
+      },
       "rationaleKey": "calculation_focus",
       "priorityByBand": {
         "u800": {

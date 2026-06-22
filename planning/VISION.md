@@ -35,9 +35,14 @@ Three things make it different:
    accounts. The program is built around _their_ reality, not a generic curriculum.
 2. **It's alive.** After generation the program is **super dynamic**: a tracker records every
    outcome, and the program re-prioritizes itself over time. There is no fixed syllabus.
-3. **It hosts no content.** Every activity is a **reference to an external resource** (Lichess
-   puzzles, books, courses, etc.). The app orchestrates; it does not host exercises, run games, or
-   use any LLM/AI inside the product.
+3. **It internalises what it can, references what it can't.** Wherever a training activity can be
+   done well _inside the app_ from **open data and a client-side chess engine** — solving puzzles,
+   drilling your own blunders, reviewing your games, practising endgames — the app does it in-app and
+   **tracks the outcome precisely** (no lossy self-report). Where an activity **can't or shouldn't**
+   be internalised — playing real games (Lichess and Chess.com already do that better), or
+   copyrighted books and courses — it stays a **reference to an external resource**, and the app helps
+   you choose it and log your progress. The app **hosts no copyrighted content, runs no competing
+   game-play platform, and uses no LLM/AI inside the product.**
 
 ---
 
@@ -107,9 +112,12 @@ later without a rewrite.
 1. **Sign in** with an existing account (e.g. Google or Lichess).
 2. **Connect** chess accounts (Lichess, Chess.com) so the app can see real games and ratings.
 3. **Assess** — a short calibration plus capturing the user's constraints and goals.
-4. **Get a program** — a daily training session made of external-resource activities that fit the
-   user's time budget and current priorities, each with a visible rationale.
-5. **Train and track** — the user does the activities and logs outcomes.
+4. **Get a program** — a daily training session that fits the user's time budget and current
+   priorities, each activity with a visible rationale — mostly **in-app activities** (puzzles, drills,
+   game review, endgames), plus external references where they're genuinely better (real games,
+   books, courses).
+5. **Train and track** — the user trains; in-app activities are **tracked automatically**, external
+   ones are logged.
 6. **Watch it adapt** — new results and freshly imported games reshape what comes next.
 
 ---
@@ -126,7 +134,7 @@ later without a rewrite.
   tight budget. This shapes every technical choice toward simplicity, type-safety, and tooling that
   AI agents handle reliably — detailed in `BUILD.md`.
 - **Built on external platforms.** The product depends on Lichess and Chess.com (their APIs, data,
-  and goodwill) and on open data like the Lichess puzzle database. This is a real dependency — their
+  and goodwill) and on open data like the Lichess puzzle database and tablebase. This is a real dependency — their
   APIs or terms can change and break features — and the app names it honestly. It treats those
   platforms as **partners to respect, not resources to exploit**: it caches aggressively, honors
   rate limits, and never hammers them, and keeps a clean adapter boundary so platforms can be added
@@ -218,7 +226,11 @@ Principles:
 
 - **No social or multiplayer.** Not in the beta, not after it. It isn't the goal of the app.
 - **No LLM/AI in the product** — AI plays chess poorly and invites cost and abuse.
-- **No hosted content or in-app play** — everything points outward to external resources.
+- **No competing game-play platform and no hosted content.** Playing real games stays on
+  Lichess/Chess.com; books, courses, and videos are recommended and logged, never hosted. But
+  training that can be done well in-app from **open data + the chess engine** (puzzles, blunder
+  drills, game review, endgames) _is_ done in-app — the app is **internal-first, external only where
+  it must be.** (Sparring the engine for a drill is training, not multiplayer.)
 - **No payments, no native apps, no opening-repertoire trainers** in Phase 1 (payments come later;
   the architecture stays billing-capable).
 
@@ -247,8 +259,9 @@ The precise list and interfaces are documented in `BUILD.md`; the answers come f
 ## 10. Definition of success for Phase 1
 
 A working end-to-end loop that is good enough to train the builder **and** generalizes beyond him:
-a user can sign in, connect their chess accounts, get a personalized program of external activities
-with honest rationales, log their training, and see the next session genuinely adapt — all running
+a user can sign in, connect their chess accounts, get a personalized program of in-app and external
+activities with honest rationales, train (in-app outcomes tracked automatically), and see the next
+session genuinely adapt — all running
 on free infrastructure, with the science cleanly swappable as research arrives, and nothing
 personal hardcoded. In other words: a foundation that can expand into a shippable, monetizable
 product without re-architecting.

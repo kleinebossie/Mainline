@@ -11,7 +11,7 @@ This is the source code repository for a chess training app. It contains the Nex
 - `prisma/` — Prisma schema for the database.
 - `planning/` — product intent. `VISION.md` is the authoritative source (read it first).
   `SHIPPING.md` (Phase 2) and `GROWTH.md` (Phase 3) are placeholders/empty. `BUILD.md` is the
-  technical plan (stack, data model, repository layout, build order M0–M10, and the 9 "research
+  technical plan (stack, data model, repository layout, build order M0–M15, and the 9 "research
   seams"); it defines the generic **Engine** and the **`MethodologyConfig`** schema/loader.
   `METHODOLOGY.md` is the science that fills those seams (values, grades, citations, copy).
 - `research/` — the evidence base (the _onderzoek_ phase). Long, citation-heavy reports that become
@@ -41,10 +41,14 @@ breaks `npm ci`). Run `nvm use` first. Copy `.env.example` → `.env.local` and 
 ## The product in one paragraph
 
 A web app that generates and continuously adapts a **personalized, science-based, no-BS chess
-training program**. It hosts no content and runs no games — every activity is a **reference to an
-external resource** (Lichess puzzles by theme+rating, books, endgame trainers) and the app tracks
-outcomes to re-prioritize the next session. It must work across **all rating bands** and is
-multi-user from day one (personal-first, public-ready).
+training program**. It is **internal-first, external where it must be** (VISION §1/§8): training that
+can be done well from **open data + a client-side chess engine** is done **in-app** with precise
+auto-tracked outcomes (puzzles, blunder drills, game review, endgames — M10–M14), while activities
+that can't or shouldn't be internalised stay **references to external resources** (playing real
+games, copyrighted books/courses — recommended + logged). It **hosts no copyrighted content, runs no
+competing game-play platform, and uses no LLM/AI at runtime**, and tracks outcomes to re-prioritize
+the next session. It must work across **all rating bands** and is multi-user from day one
+(personal-first, public-ready).
 
 ## The architectural idea that governs everything
 
@@ -112,8 +116,11 @@ One Next.js App Router app under `src/`. Request flow: **`app/` (server + client
 These come from `VISION.md` and the research brief; honor them in any code or recommendation:
 
 - **No LLM/AI inside the product.** (AI agents build it; the running product uses none.)
-- **No hosted content, no in-app play, no social/multiplayer, no payments/native apps in Phase 1.**
-  Stay multi-user and billing-_capable_, but don't build billing yet.
+- **No competing game-play platform, no hosted copyrighted content, no social/multiplayer, no
+  payments/native apps in Phase 1.** In-app **training** surfaces (puzzles, drills, game review,
+  endgames vs the engine, over open data) _are_ in scope (M10–M14); human-vs-human/rated play stays
+  external, and books/courses are recommended + logged, never hosted. Stay multi-user and
+  billing-_capable_, but don't build billing yet.
 - **Radical honesty is a feature, not copy.** Every recommendation carries an **evidence grade**
   (A = strong/replicated, B = suggestive/limited, C = theory/expert opinion, D = popular but
   unsupported myth) and a user-facing "why this / why now" rationale. Do not overstate evidence or
@@ -126,7 +133,7 @@ These come from `VISION.md` and the research brief; honor them in any code or re
 CI (`.github/workflows/ci.yml`) runs, in order: **`typecheck → lint → unit → guards → build → e2e`**.
 "Done" means all green — that's the contract for every change.
 
-The app is built as vertical slices **M0–M10** (`BUILD.md` §10). Shipped so far: **M0** scaffold,
+The app is built as vertical slices **M0–M15** (`BUILD.md` §10). Shipped so far: **M0** scaffold,
 **M1** identity & connections, **M2** import & profile, **M3** resource catalog, **M4** constraints &
 assessment, **M5** client-side Stockfish analysis → raw features, **M6** program engine v0 (generator +
 Seams 1/3/4/5/7/8 stub config → a graded, budget-fitted `/today`), **M7** tracker + adaptation v0 — the
@@ -135,7 +142,17 @@ regenerates a changed `/today`, all in a graded `AdaptationLog`. **M8** transpar
 brand made visible (graded "why" cards + state/expectations dashboards). **M9** engagement framework —
 Seam-9 event plumbing (`onStateChange` → `RewardEvent`) with a forgiving capped streak, consistency
 grid, competence recognition, and capped reminders; the forbid list (no infinite streaks/leaderboards/
-tangible rewards) is enforced _by config_, not the Engine. **Next: M10** — beta hardening.
+tangible rewards) is enforced _by config_, not the Engine. **M10** interactive board substrate — the
+generic, science-free in-app board (`InteractiveBoard` + the pure `stepSolve` solve-session state
+machine + an injected-adapter `engine-play` Stockfish opponent), with `ProgramItem` resolving internal
+(`/train/...`) vs external by the graded Seam-4 `delivery` flag (data, not an engine branch); demoed at
+`/train`. **Next: the internal-first arc continues M11–M14** — internalise what we can (VISION §1/§8):
+**M11** in-app puzzles + internalised tactical assessment (+ the §7.5 redo hint/retest), **M12**
+interactive game review + personalised blunder drills, **M13** in-app endgame drills (vs the engine, +
+Lichess tablebase), **M14** recommended resources + in-app logging (books/courses/real games stay
+external). These add **no new seam** — only generic Engine surfaces + graded Seam-4
+`ActivityDefinition`s with a `delivery: 'internal' | 'external'` flag — and **no LLM**. **M15** — beta
+hardening (was M10).
 `planning/BUILD.md` is the source of truth these notes summarize; the `build-slice`
 skill drives a milestone end-to-end.
 

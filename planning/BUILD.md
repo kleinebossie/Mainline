@@ -70,11 +70,13 @@ number. This is L1 expressed at the documentation level.
 The app is an **orchestration layer**. From a user's **constraints** (time/day, days/week, goals,
 owned resources, preferences), their **connected-account data** (Lichess + Chess.com games and
 ratings), and a short **behavioural assessment**, it deterministically **generates a daily training
-session** composed entirely of **references to external resources** (Lichess puzzles selected by
-theme + rating, the "redo failed puzzles" flow, books, endgame trainers, master-game collections). It
-**logs every outcome** in an append-only tracker, and **adapts** the next session via deterministic
-algorithms parameterised by the methodology. It **hosts no exercises, runs no games, and uses no
-LLM/AI at runtime.** Every recommendation carries a **"why this / why now"** rationale and an
+session** that mixes **in-app activities** — puzzles, personalised blunder drills, interactive game
+review, endgame drills, all rendered on a client-side board and judged by the client-side chess engine,
+from **open data** — with **references to external resources** for what can't or shouldn't be
+internalised (playing real games, books, courses). It **logs every outcome** — in-app activities are
+**auto-tracked**, external ones are logged — in an append-only tracker, and **adapts** the next session
+via deterministic algorithms parameterised by the methodology. It **hosts no copyrighted content, runs
+no competing game-play platform, and uses no LLM/AI at runtime.** Every recommendation carries a **"why this / why now"** rationale and an
 **evidence grade** (the framework is built now; the content is the methodology). It is **multi-user and
 billing-capable from day one** (no billing built), runs on **free infrastructure**, is **web-first**
 (responsive PWA), and makes **no hardcoded assumptions about rating** — a beginner and an expert both
@@ -129,6 +131,10 @@ The Engine comprises (each maps to a directory in §4 and a milestone in §10):
    the `AdaptationLog`.
 10. **Engagement event bus** — emits `RewardEvent`s and (capped) notifications from state changes (§9).
 11. **Beta & ops** — allowlist, rate limiting, error tracking, analytics, PWA.
+12. **Interactive activity surfaces** — the in-app board, the pure solve-session state machine, and the
+    engine-play opponent (M10–M14). All **generic and science-free**: chess _rules_ (`chess.js`) and the
+    client-side chess engine are mechanical, not chess _knowledge_ — they render, validate, and time the
+    activities the methodology selects, and never judge chess merit themselves.
 
 **The rule (L1):** none of the above contains a chess/learning constant. Where a decision is graded,
 the module calls a **MethodologyProvider** function (§2.8). Generic _math_ that is not a chess decision
@@ -351,7 +357,7 @@ chess/
 │  ├─ db/                    # Prisma client singleton + typed query helpers (NO business logic)
 │  ├─ integrations/          # PlatformAdapter interface + implementations
 │  │  ├─ adapter.ts          #   PlatformAdapter interface (§6)
-│  │  ├─ lichess/            #   OAuth2 PKCE, account, game export, puzzle activity
+│  │  ├─ lichess/            #   OAuth2 PKCE, account, game export, puzzle activity, tablebase (M13)
 │  │  └─ chesscom/           #   read-only PubAPI by username (NOT a login provider)
 │  ├─ analysis/              # AnalysisEngineAdapter (Stockfish WASM) → RAW FEATURES ONLY (L1)
 │  │  ├─ engine-adapter.ts   #   AnalysisEngineAdapter interface
@@ -362,13 +368,14 @@ chess/
 │  │  ├─ adaptation.ts       #   adaptation loop + redo-failed-puzzles orchestration (§7)
 │  │  ├─ tracker.ts          #   append-only event application
 │  │  ├─ math/               #   GENERIC math utils: fsrsStep, glickoConfidenceInterval, servo, packing
-│  │  └─ events.ts           #   engagement event bus (plumbing only, §9)
+│  │  ├─ events.ts           #   engagement event bus (plumbing only, §9)
+│  │  └─ interactive/        #   PURE solve-session state machine + engine-play opponent (M10; science-free)
 │  ├─ methodology/           # THE METHODOLOGY — the ONE place science enters (§2)
 │  │  ├─ schema/             #   Zod schemas for MethodologyConfig + GradedValue (L3)
 │  │  ├─ loader.ts           #   loadMethodology() (§2.6)
 │  │  ├─ provider.ts         #   the ~18 pure reader functions (§2.8)
 │  │  └─ configs/            #   stub-<semver>.json now; research-<semver>.json later (§2.7)
-│  ├─ components/            # shadcn UI; ChessBoard; TransparencyCard (rationale/evidence/confidence)
+│  ├─ components/            # shadcn UI; InteractiveBoard + ReviewBoard (M10/M12); TransparencyCard
 │  └─ lib/                   # shared types, Zod schemas, Clock, utils (no domain logic)
 ├─ tests/
 │  ├─ unit/                  # Vitest golden tests for engine + methodology pure fns (§13.1)
@@ -460,13 +467,25 @@ interface RawGameFeatures {
 ### 5.3 Resource catalog
 
 - **ResourceRef** — an **external** resource (never hosted content). `type`
-  (`lichess_puzzle_theme|book|endgame_trainer|study|master_game_collection|video`), `title`,
-  `externalUrl?`, `provider`, `metadata` JSON, `methodologyKey?` (links a catalog entry to a Seam-4
-  `ActivityDefinition`). 1—\* `ProgramItem`.
+  (`lichess_puzzle_theme|book|course|endgame_trainer|study|master_game_collection|video|play_games`),
+  `title`, `externalUrl?`, `provider`, `metadata` JSON, `methodologyKey?` (links a catalog entry to a
+  Seam-4 `ActivityDefinition`). 1—\* `ProgramItem`. **Internal** activities (in-app puzzles, drills,
+  endgames — M10–M13) carry **no** `ResourceRef`; they reference **open data** (`LichessPuzzle` /
+  `PracticeItem`) by id in `ProgramItem.params` and resolve to an internal route via the
+  `ActivityDefinition.delivery` flag (Seam 4).
 - **LichessPuzzle** — ingested open puzzle DB (CC0). PK `puzzleId`; `fen`, `moves`, `rating`,
   `ratingDeviation`, `popularity`, `nbPlays`, `themes` (string[], **GIN-indexed**), `gameUrl`,
   `openingTags` (string[]). Index on `(rating)` and `themes` for theme+rating selection. (Free-tier
-  size constraint and mitigation: §12.)
+  size constraint and mitigation: §12.) Rendered **in-app** for both training and calibration (M11).
+- **PracticeItem** — a generated/curated **in-app** practice position (M12/M13). `userId?` (null =
+  shared/curated; set = personal, e.g. a blunder drill), `kind` (`blunder_drill|endgame|…`), `fen`,
+  `solutionLine` (San[]), `sourceRef?` (e.g. `blunder:<gameId>:<ply>`, or a Seam-4
+  endgame-curriculum key), `methodologyKey?`, `createdAt`. Scheduled via `ScheduleState`
+  (`itemRef = PracticeItem.id`). Holds **no graded merit** — _which_ position to drill is the
+  methodology's call (Seam 4); this row is only the position + its known solution line.
+- **TablebaseCache** — cached Lichess **tablebase** lookups (M13) so endgame ground truth is fetched
+  once and reused. `fen` (unique), `result` JSON (WDL/DTZ/best move), `fetchedAt`.
+  (Respect-the-platform caching, §6.6/§12.)
 
 ### 5.4 Assessment & constraints
 
@@ -484,16 +503,20 @@ interface RawGameFeatures {
 - **Program** — a generated plan instance. `userId`, `methodologyVersion`, `status`
   (`active|superseded`), `generationInput` JSON (snapshot of the inputs → reproducibility, L2),
   `createdAt`. 1—\* `ProgramItem`.
-- **ProgramItem** — one activity in a day. `programId`, `date`, `orderIndex`, `activityType`,
-  `resourceRefId?`, `params` JSON (e.g. `{ theme, targetRating, count, track }`), **transparency
+- **ProgramItem** — one activity in a day. `programId`, `date`, `orderIndex`, `activityType`
+  (internal: `in_app_puzzle|blunder_drill|endgame_drill|game_review`; external:
+  `book|course|play_games|study|video|…`), `resourceRefId?` (external only), `params` JSON (e.g.
+  `{ theme, targetRating, count, track, puzzleIds, practiceItemIds }`), **transparency
   snapshot** (`rationaleKey`, `rationaleText`, `evidenceGrade`, `evidenceTier`, `citationKey`,
   `confidence`, `soften`), `dimensionsTargeted` (string[]), `status` (`pending|done|skipped`). The transparency
   fields are **denormalised at generation time** (L3) so history is immune to later config bumps. 1—\*
   `ActivityEvent`.
 - **ActivityEvent** — **append-only** tracker log (never updated/deleted). `userId`, `programItemId?`,
-  `type` (`puzzle_attempt|game_played|drill_done|skip|self_report|…`), `occurredAt`, `payload` JSON
-  (`{ correct?, solveTimeMs?, durationMin?, selfReport?, externalRef? }`), `source`. Index `(userId,
-occurredAt)`. This is the immutable substrate the adaptation loop reads.
+  `type` (`puzzle_attempt|game_played|drill_done|book_session|skip|self_report|…`), `occurredAt`,
+  `payload` JSON (`{ correct?, solveTimeMs?, durationMin?, selfReport?, externalRef?, position? }`),
+  `source`. Index `(userId, occurredAt)`. This is the immutable substrate the adaptation loop reads.
+  **In-app** activities (M11–M13) write these **automatically** with precise `{ correct, solveTimeMs }`;
+  **external** activities (M14) are logged (`book_session`, `game_played`) — both feed the same loop.
 - **SkillState** — per-dimension estimate. `userId`, `dimension` (Seam 1 id), `estimate`,
   `uncertainty`, `sampleSize`, `updatedAt`. Unique `(userId, dimension)`. Updated by the adaptation
   loop via methodology functions; never written with a hardcoded threshold.
@@ -501,6 +524,11 @@ occurredAt)`. This is the immutable substrate the adaptation loop reads.
   drill key), `itemType`, **`fsrsState`** JSON (`{ stability, difficulty, due, reps, lapses,
 lastReview }`), `lastGrade?`, `source`. Index `(userId, due)` for "what's due today." Math is the
   generic Engine `fsrsStep`; **all parameters from Seam 6 config**.
+- **ResourceProgress** — current position in an owned **external** resource (book/course — M14).
+  `userId`, `resourceRefId`, `position` JSON (`{ chapter?, page?, exercise?, percent? }`),
+  `updatedAt`. Unique `(userId, resourceRefId)`. Rolled up from `book_session` `ActivityEvent`s; feeds
+  the tracker/adaptation like any other outcome (external content stays external; only progress is
+  internal).
 
 ### 5.6 Methodology & adaptation
 
@@ -533,9 +561,11 @@ User 1─1 Assessment (current)        User 1─* ConstraintSet (one isCurrent)
 User 1─* Program 1─* ProgramItem 1─* ActivityEvent
 User 1─* SkillState     User 1─* ScheduleState     User 1─* AdaptationLog
 User 1─* RewardEvent · NotificationPref · ApiCallBudget
+User 1─* ResourceProgress *─1 ResourceRef            User 0..1─* PracticeItem
 ProgramItem *─1 ResourceRef        ResourceRef *─0..1 ActivityDefinition(methodologyKey)
-LichessPuzzle  (global, ingested)  AllowlistEntry (global, beta gate)
-MethodologyVersionPointer (per env)
+ScheduleState *─0..1 (LichessPuzzle | PracticeItem) via itemRef
+LichessPuzzle (global, ingested)   PracticeItem (personal|curated)   TablebaseCache (global, cached)
+AllowlistEntry (global, beta gate)  MethodologyVersionPointer (per env)
 ```
 
 ---
@@ -630,6 +660,16 @@ interface AnalysisEngineAdapter {
   responsive and battery use sane. Heavy backfill analysis is **incremental and optional** (analyse ~5
   recent games instantly at onboarding, queue the rest — Seam 2).
 
+### 6.6 Lichess tablebase (read-only, M13)
+
+- **Endgame ground truth** for in-app endgame drills (≤7-piece positions): the public Lichess
+  tablebase API returns WDL/DTZ + the best move for a FEN. **Read-only, no auth.**
+- **Hard constraints (respect the platform — VISION §6):** **cache every lookup** in `TablebaseCache`
+  (results are immutable for a given FEN — fetch once, reuse forever), send a descriptive
+  `User-Agent`, fetch serially with back-off on 429 (the shared `politeFetch`, §6.2/§6.3). Engine
+  sparring uses the **client-side Stockfish** adapter (no extra server compute); the tablebase is only
+  the correctness oracle where it applies, with a graceful engine-only fallback otherwise.
+
 ---
 
 ## 7. Program engine mechanics (generic; no science specifics)
@@ -713,7 +753,10 @@ Glicko-2 CIs. Everything is logged to `AdaptationLog` (§5.6).
 On a `puzzle_attempt` failure event, the Engine plumbs the **3-phase** flow whose _timing, grades, and
 hint copy come from Seam 6_ (the Engine supplies no numbers): scaffolded hint (no passive
 solution-reveal) → delayed intra-session retest → next-day FSRS load. The Engine owns the state
-machine and persistence; Seam 6 owns the intervals and the outcome→grade mapping.
+machine and persistence; Seam 6 owns the intervals and the outcome→grade mapping. Phases 1–2
+(scaffolded hint, intra-session retest) require the **in-app board** and land in **M10/M11**; the
+external-resource era shipped only the next-day (inter-session) phase, against the same `stepSolve`
+session.
 
 ### 7.6 Transparency
 
@@ -737,9 +780,9 @@ A linear, resumable flow; each step writes typed state and is independently test
 | 2. Connect platforms     | `onboarding` — Lichess OAuth / Chess.com username      | `PlatformConnection`                                | —                                                   | built                     |
 | 3. Background import     | `api/cron` job via `PlatformAdapter.fetchGames`        | `ImportedGame` (idempotent), `ChessProfileSnapshot` | —                                                   | built                     |
 | 4. Instant analysis      | analyse ~5 most-recent games client-side; queue rest   | `AnalysisResult` (raw features)                     | — (raw only, L1)                                    | built                     |
-| 5. Tactical calibration  | adaptive ladder over Lichess puzzles                   | `Assessment`                                        | `nextCalibrationItem` / `scoreCalibration` (Seam 2) | shell built, content stub |
+| 5. Tactical calibration  | adaptive ladder over puzzles, solved **in-app** (M11)  | `Assessment`                                        | `nextCalibrationItem` / `scoreCalibration` (Seam 2) | shell built, content stub |
 | 6. Constraints + if-then | `onboarding` form                                      | `ConstraintSet` (incl. `ifThenPlan`)                | `buildImplementationIntention` (Seam 9)             | built                     |
-| 7. The "reveal"          | data-driven dashboard contrasting signals vs self-bias | —                                                   | `interpretGameFeatures` (Seam 3)                    | framework built           |
+| 7. The "reveal"          | interactive game review contrasting signals vs self-bias (M12) | —                                                   | `interpretGameFeatures` (Seam 3)                    | framework built           |
 | 8. First program         | `generateProgram(...)` → land on `/today`              | `Program`, `ProgramItem`, `SkillState` seed         | Seams 3→4→5→7→8                                     | built (stub config)       |
 
 Self-report is captured for **constraints/goals/owned resources only** — never for skill diagnosis
@@ -774,11 +817,13 @@ function onStateChange(
 
 ---
 
-## 10. Build order — vertical slices M0–M10
+## 10. Build order — vertical slices M0–M15
 
 Each milestone is a **vertical slice**: an agent-executable unit with a **typed contract**, **tests**,
 and a **Definition of Done** (DoD). Slices ship a runnable increment. Dependency order is linear
-(M0→M10); the loop is end-to-end and demoable by **M7**, polished by **M10**.
+(M0→M15); the loop is end-to-end and demoable by **M7**, fully transparent and engaging by **M9**,
+**internal-first** (in-app training surfaces) across **M10–M14**, and hardened for closed beta by
+**M15**.
 
 **Slice template:** _Goal · Depends on · Typed contract (key interfaces introduced) · Tasks · Tests ·
 DoD checklist._
@@ -1065,7 +1110,7 @@ DoD checklist._
   a capped streak tick), **`next build` green** (12 routes), **10 e2e green** (dashboard/today auth-gates;
   the signed-in completion→recognition flow is verified manually per §13.5, as in M1/M2/M4–M8).
   **Deviations (deliberate, documented in code):** (a) the **`day_missed` recovery trigger** ships as
-  policy + a unit-tested pure path, but the _automatic_ daily sweep that fires it needs the M10 cron, so
+  policy + a unit-tested pure path, but the _automatic_ daily sweep that fires it needs the M15 cron, so
   only the **completion path** is wired now (the e2e criterion). (b) `RewardEvent` stores its `copyKey`
   (not a denormalised grade snapshot, per §5.7); the grade is resolved from the copyKey at render — still
   graded/honest (L3). (c) the SDT **bounded-choice paths** (`dailyChoiceCount`/`freeSkipsPerWeek`) and
@@ -1074,7 +1119,152 @@ DoD checklist._
   not yet consumed. **Remaining user step (infra): apply migration `20260622000000_m9_engagement` to
   Supabase (`npm run prisma:deploy`).**
 
-### M10 — Beta hardening
+> **M10–M14 — the internal-first arc.** VISION §1/§8 now reads: _internalise what we can, reference
+> what we can't._ These five slices add **in-app training surfaces** (an interactive board, puzzles,
+> game review, blunder drills, endgames) and make the deliberately-external activities (real games,
+> books, courses) first-class via **recommendation + logging**. **The architecture does not move:**
+> every new surface is **generic, science-free Engine machinery** — chess _rules_ (`chess.js`) and the
+> client-side chess engine are mechanical, not chess _knowledge_ (§0.2 glossary). _Which_ position,
+> difficulty, and schedule to use stays a **methodology decision** through the **existing seams**.
+> Internalising therefore adds **no new seam** — only new **graded `ActivityDefinition`s in Seam 4**,
+> each carrying a `delivery: 'internal' | 'external'` flag (data, not an engine branch), plus new
+> Engine UI. **No LLM enters the product** (L-rule 4); in-app activities run **client-side** (~zero
+> server compute, §12). M10–M14 also retire two M7 deviations: the §7.5 redo-flow phases 1–2 and
+> per-puzzle (not per-theme) scheduling, both of which were blocked only by the absence of an in-app
+> board.
+
+### M10 — Interactive board substrate
+
+- **Goal:** a generic, science-free in-app chessboard the internal activities build on — render a
+  position, accept user moves, validate them locally, time the solve, and (optionally) spar against
+  the client-side chess engine. The reusable foundation for M11–M14 (precedent: M4 landed the
+  methodology layer as its first consumer's foundation).
+- **Depends on:** M5 (`AnalysisEngineAdapter` / Stockfish WASM), M6 (`ProgramItem` / activity types).
+- **Contract:** a new **`src/engine/interactive/`** module (Engine-side, pure, science-free — L1/L2):
+
+```ts
+// Contract (specification). src/engine/interactive/session.ts — PURE state machine (L2), science-free (L1).
+function stepSolve(
+  state: SolveState, // { position, solutionLine: San[], cursor, startedMs, attempts }
+  move: { san: San; atMs: EpochMs }, // atMs from the injected Clock (L2) — no Date.now()
+): { state: SolveState; step: "correct" | "wrong" | "solved" | "continue"; solveMs: number };
+//  Matches `move` against the SUPPLIED solutionLine (puzzle.moves / drill bestLine); it never
+//  judges chess MERIT (that came from methodology/data upstream) — only line-match + timing.
+
+// src/engine/interactive/engine-play.ts — wraps an INJECTED AnalysisEngineAdapter as a move-making
+//  opponent (endgames, M13). Pure given the adapter + Clock; the adapter type lives in analysis/lib.
+```
+
+  Plus an **activity-resolution** change: a `ProgramItem` resolves to an **internal route**
+  (`/train/...`) or an external `ResourceRef.externalUrl`, decided by the `ActivityDefinition`'s
+  graded **`delivery`** field (Seam 4 — data, not a code branch).
+
+- **Tasks:** an `InteractiveBoard` component (`chess.js` legality + `react-chessboard`/chessground)
+  under `src/components/`; the pure `stepSolve` state machine (line-match, solve-timing, retry); the
+  `engine-play` opponent harness over the existing client-side Stockfish adapter (dependency-injected
+  to stay pure); internal-vs-external resolution for `ProgramItem`; a demo `/train` route exercising
+  the board end-to-end.
+- **Tests:** unit (golden) — `stepSolve` over a fixed line (correct / wrong / solved transitions,
+  deterministic `solveMs` from an injected Clock); board legality on a known FEN; **L1 guard** (no
+  chess/learning constant in `engine/interactive/`); **L2** (Clock injected, no `Date.now()`). e2e —
+  open `/train`, make a move, see it validated locally.
+- **DoD:** ☐ interactive board renders & validates moves locally ☐ `stepSolve` golden-green &
+  deterministic (Clock injected) ☐ `ProgramItem` resolves internal vs external by config `delivery`
+  ☐ zero server compute (board + engine client-side) ☐ L1/L2 guards green.
+
+### M11 — In-app tactical training & assessment
+
+- **Goal:** solve selected puzzles **in-app** with auto-tracked outcomes, and run the onboarding
+  **tactical calibration in-app** — replacing the external-link / self-report path with precise local
+  outcomes (the user-requested internalisation of both puzzles and the assessment).
+- **Depends on:** M3 (ingested `LichessPuzzle`), M4 (Seam-2 calibration provider fns), M7 (FSRS
+  scheduling + redo flow), M10 (board substrate).
+- **Contract:** an `in_app_puzzle` activity (`delivery: internal`) + the internalised Seam-2
+  calibration; **per-puzzle** `ScheduleState` (`itemRef = puzzleId`, `itemType = 'puzzle'`); the
+  **§7.5 redo flow's two deferred phases** (scaffolded hint, intra-session retest) now in scope.
+- **Tasks:** render a `selectPuzzles(...)` result on the board; validate the (possibly multi-move)
+  solution line locally via `stepSolve`; **auto-append** a `puzzle_attempt` `ActivityEvent`
+  (`{ correct, solveTimeMs }`) → the existing M7 adaptation/FSRS loop, **unchanged**; **internalise
+  calibration** — the onboarding ladder renders `nextCalibrationItem` items on the board and scores via
+  `scoreCalibration` from **real local outcomes** (no Lichess round-trip, no self-report); **complete
+  §7.5** — scaffolded hint then delayed intra-session retest (timing/copy from Seam 6), now possible
+  with an in-app board; per-puzzle FSRS keyed by `puzzleId`.
+- **Tests:** unit (golden) — multi-move solution-line validation; `puzzle_attempt` event shape;
+  **calibration scoring from in-app outcomes equals the M4 golden** (same `scoreCalibration`, new
+  source); redo state machine (hint → retest → next-day FSRS). e2e — solve a puzzle in-app → outcome
+  logged → next session adapts; **complete calibration fully in-app → graded estimate**; fail a puzzle
+  → hint → intra-session retest → it reappears spaced.
+- **DoD:** ☐ puzzles solved in-app with **auto-tracked** outcomes (no self-report) ☐ tactical
+  calibration runs fully in-app ☐ difficulty stays **servo-driven** — **no competing puzzle-rating
+  ladder or leaderboard**; progress stays tied to real game rating + `SkillState` ☐ §7.5 redo hint +
+  intra-session retest work ☐ per-puzzle FSRS ☐ outcomes feed the **existing** adaptation loop with no
+  engine change (resolves M7 deviations a & b).
+
+### M12 — Interactive game review & personalised blunder drills
+
+- **Goal:** see your own analysed games in-app (eval graph, blunders, "find the better move"), and
+  train your **actual mistakes** as spaced in-app drills.
+- **Depends on:** M5 (`AnalysisResult` / `RawGameFeatures`), M10 (board), M11 (solve / auto-log / FSRS).
+- **Contract:** an interactive review over `RawGameFeatures` (`moveEvals`, `blunders`); a
+  `blunder_drill` activity (`delivery: internal`); generated `PracticeItem`s (§5.3) scheduled via
+  `ScheduleState`.
+- **Tasks:** an annotated `ReviewBoard` — step through the game, eval graph projected from
+  `moveEvals`, blunder markers, **on-demand "best line"** via the existing client-side Stockfish
+  adapter; **make the onboarding "reveal" (step 7) this interactive review**; derive `blunder_drill`
+  `PracticeItem`s from `RawGameFeatures.blunders[]` ("you played X here — find the better move"),
+  validated against the engine line via `stepSolve`, **auto-logged** (`drill_done`) and spaced via
+  FSRS; a Seam-4 `blunder_drill` `ActivityDefinition` + the weakness→drill mapping rule (**graded
+  data**, research config later — never an engine constant).
+- **Tests:** unit (golden) — eval-graph projection from fixed `moveEvals`; **deterministic**
+  blunder→`PracticeItem` derivation; drill validation + scheduling. e2e — open a game review, step
+  through, reveal the best line; a blunder drill surfaces in `/today`, solve it, it logs + reschedules.
+- **DoD:** ☐ analysed games reviewable in-app (eval graph + blunders + best line) ☐ the onboarding
+  reveal **is** the interactive review ☐ personal blunder drills generated, trained, auto-logged &
+  spaced ☐ no science constant in the review/drill Engine code (L1) — drill **selection/mapping** is
+  Seam-4 config.
+
+### M13 — In-app endgame drills
+
+- **Goal:** train endgame technique **in-app against the chess engine**, with optional tablebase
+  ground truth — internalising the former `endgame_trainer` external activity.
+- **Depends on:** M10 (board + `engine-play` harness), M11 (auto-log / FSRS).
+- **Contract:** an `endgame_drill` activity (`delivery: internal`); `PracticeItem` (kind `endgame`);
+  an optional Lichess **tablebase** adapter (§6.6) + cache (§5.3).
+- **Tasks:** render curated/generated endgame positions (the **per-band endgame curriculum is Seam-4
+  config** — graded data, research later); play them out vs the client-side Stockfish opponent
+  (`engine-play`); judge technique against the engine and, where available, the **Lichess tablebase
+  API** (read-only, **rate-limited, cached, polite** — §6.6/§12); **auto-log** (`drill_done`) + FSRS
+  scheduling; Seam-4 `endgame_drill` `ActivityDefinition`s.
+- **Tests:** unit — tablebase adapter parse + **cache hit (no refetch)** + back-off on 429; endgame
+  position scoring golden; the curriculum is read from config (L1 guard). e2e — play a known endgame
+  drill in-app to a correct result, outcome logged + scheduled.
+- **DoD:** ☐ endgame positions trained in-app vs the engine ☐ tablebase ground truth used where
+  available, **rate-limited & cached** (respect the platform, §12) ☐ outcomes auto-logged & spaced
+  ☐ endgame curriculum is Seam-4 config, not engine code (L1).
+
+### M14 — Recommended resources & in-app logging (the deliberately-external layer)
+
+- **Goal:** make the genuinely-external activities (books, courses, playing real games) **first-class**
+  — recommend the right ones and let users log progress — **without hosting anything**.
+- **Depends on:** M3 (`ResourceRef` catalog), M6/M7 (program + tracker).
+- **Contract:** Seam-4 `book` / `course` `ActivityDefinition`s (`delivery: external`) + per-band
+  recommendations (**graded data**, research source `RESOURCES.md` later); `ResourceProgress` (§5.5,
+  per-owned-resource position); an external `play_games` activity = deep-link out + rely on the
+  existing import to capture the result.
+- **Tasks:** band-appropriate book/course recommendations surfaced as `ResourceRef`s with a graded
+  "why this" (Seams 4/8); an in-app **logging surface** — track chapters / exercises / time through an
+  owned book or course → an `ActivityEvent` (`book_session`) + a rolled-up `ResourceProgress`, feeding
+  the **same** tracker/adaptation loop; keep **game-play external** — a "go play _N_ games on
+  Lichess/Chess.com" activity that deep-links out and depends on M2 import to pick up the result.
+- **Tests:** unit — per-band recommendation lookup (graded); `book_session` event + `ResourceProgress`
+  roll-up; the `play_games` activity resolves to a **deep-link**, never an internal route. e2e — log a
+  book session → it appears in the tracker and influences the next session; a play-games activity links
+  out and the imported game is picked up by the loop.
+- **DoD:** ☐ books/courses recommended per band with **graded** rationale (content stays external)
+  ☐ users log progress through external resources in-app ☐ game-play stays **external** (deep-link +
+  import) ☐ logged external outcomes feed the **same** adaptation loop.
+
+### M15 — Beta hardening
 
 - **Goal:** safe closed-beta on free tiers.
 - **Contract:** allowlist gate; `ApiCallBudget` middleware; PWA manifest/SW.
@@ -1098,7 +1288,7 @@ later** (`METHODOLOGY.md`); **none change the architecture** (VISION §4, §9). 
 | 1   | Skill dimensions & taxonomy                | `dimensions`, `bands`                 | `dimensionsForBand`                                           | Seam 1                | `SKILL_TAXONOMY.md`                                                    | stub    |
 | 2   | Assessment content + scoring               | `assessment`                          | `nextCalibrationItem`, `scoreCalibration`                     | Seam 2                | `WEAKNESS_DIAGNOSIS.md`                                                | stub    |
 | 3   | Game-feature → weakness                    | `interpretation`                      | `interpretGameFeatures`, `confidenceFromSampleSize`           | Seam 3                | `WEAKNESS_DIAGNOSIS.md`, `SKILL_TAXONOMY.md`                           | stub    |
-| 4   | Weakness/level → resource + params         | `activities`, `weaknessResourceRules` | `mapWeaknessToActivities`                                     | Seam 4                | `WHAT_RAISES_RATING.md`                                                | stub    |
+| 4   | Weakness/level → resource + params         | `activities`, `weaknessResourceRules` | `mapWeaknessToActivities`                                     | Seam 4                | `WHAT_RAISES_RATING.md`, `RESOURCES.md` (recs + endgame curriculum)    | stub    |
 | 5   | Difficulty / calibration targets           | `difficulty`                          | `targetPuzzleRating`, `practiceStructure`, `useWorkedExample` | Seam 5                | `PRACTICE_DESIGN.md`                                                   | stub    |
 | 6   | Spacing / scheduling                       | `scheduling`                          | `gradeFromOutcome`, `scheduleReview`                          | Seam 6                | `SPACED_REPETITION.md`                                                 | stub    |
 | 7   | Periodisation / prioritisation (daily mix) | `prioritization`                      | `prioritizeDailyMix`, `detectPlateau`                         | Seam 7                | `TRAINING_PROGRAMMING.md`                                              | stub    |
@@ -1109,6 +1299,12 @@ later** (`METHODOLOGY.md`); **none change the architecture** (VISION §4, §9). 
 Updating any seam = a `MethodologyConfig` edit + a version bump. **The Engine, the data model, and the
 contracts above do not move.**
 
+**Internalising activities (M10–M14) added no new seam.** The new in-app surfaces (board, puzzles,
+review, drills, endgames) are **generic Engine machinery**; _which_ position, difficulty, and schedule
+to use stays a methodology call through the seams above. The only methodology change is **new graded
+`ActivityDefinition`s in Seam 4**, each carrying a `delivery: 'internal' | 'external'` flag — data, not
+an engine branch — so the internal-vs-external split is itself swappable config.
+
 ---
 
 ## 12. Cost & abuse guardrails
@@ -1117,6 +1313,11 @@ contracts above do not move.**
 - **OAuth-only** — no passwords to store or leak; Lichess PKCE has no client secret.
 - **Client-side chess engine** — Stockfish runs in the user's browser; **there is no server compute to
   abuse** and ~zero compute cost.
+- **In-app activity surfaces are client-side** (M10–M13) — the board, move validation, solve-timing,
+  and engine sparring all run in the browser over **open data** (the CC0 puzzle DB, the user's own
+  games, engine output). Internalising adds **no server compute and hosts no copyrighted content**. The
+  only new outbound call is the **Lichess tablebase** (M13), which is **cached per-FEN** in
+  `TablebaseCache` and rate-limited/backed-off like every platform call (§6.6).
 - **No LLM at runtime** — removes the single largest cost/abuse surface (VISION §8).
 - **Cache the puzzle DB locally** — query our own `LichessPuzzle` table, never hammer Lichess for
   selection. **Free-tier size constraint:** the full DB exceeds Supabase free (§6.4); ship a
@@ -1143,7 +1344,8 @@ config version** → an asserted exact output, **including the rationale keys an
 Because the functions are deterministic (L2), these are stable. Coverage targets: `generateProgram`,
 `runAdaptation`, `interpretGameFeatures`, `targetPuzzleRating` (servo), `scheduleReview` (FSRS),
 `gradeFromOutcome`, `prioritizeDailyMix`, `detectPlateau`, `isProgressReal`, `scoreCalibration`,
-`selectPuzzles`, feature extraction.
+`selectPuzzles`, feature extraction, and the in-app substrate `stepSolve` (solve-session state
+machine, M10) + the blunder-drill derivation from `RawGameFeatures.blunders[]` (M12).
 
 ### 13.2 Playwright e2e for the core loop
 
@@ -1188,8 +1390,16 @@ Deliberately excluded (VISION §8; Phases 2 _Shipping_ / 3 _Acquiring Users_ liv
   billing, no Stripe, no paywall (training quality is free forever, VISION §7).
 - **Native mobile/desktop apps** — web-first responsive PWA only.
 - **Social / multiplayer** — not in beta, not after (not the app's goal).
-- **In-app chess play / hosted exercises / any hosted content** — everything points outward.
-- **LLM / AI features in the product** — none at runtime.
+- **A competing game-play platform** — no in-app human-vs-human games, matchmaking, rated play, or
+  clocked live games. Playing real games stays on Lichess/Chess.com (we deep-link out and import the
+  result, M14). _(In-app **training** surfaces — puzzles, blunder drills, game review, endgames vs the
+  engine — are now **in scope**, M10–M14: sparring the engine for a drill is training, not competing
+  with the game platforms.)_
+- **Hosting copyrighted content** — books, courses, and videos are **recommended and logged, never
+  hosted** (M14). Only **open data** is rendered in-app: the CC0 puzzle DB, the user's own games, and
+  engine/tablebase output.
+- **LLM / AI features in the product** — none at runtime (internalising changes nothing here: the
+  in-app surfaces use the chess engine, not an LLM).
 - **Opening-repertoire trainers.**
 - **Server-side / large-scale engine analysis** — analysis stays client-side (§12).
 - **Chess.com OAuth login** — username-only read import (§6.3); revisit only if access is granted.

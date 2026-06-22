@@ -173,6 +173,7 @@ const activityDefinitionSchema = z.object({
   // Time controls this activity is specific to (structural ref — like a theme). null/absent =
   // format-agnostic (most puzzles). Used by the Seam-7 format-fit penalty; never a graded number.
   formats: z.array(z.string().min(1)).nullable().optional(),
+  delivery: gradedValue(z.enum(["internal", "external"])),
   rationaleKey: z.string().min(1),
 });
 
