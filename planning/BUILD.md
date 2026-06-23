@@ -494,9 +494,13 @@ interface RawGameFeatures {
   `methodologyVersion`. (Self-report is used for constraints/goals only, **never** for skill diagnosis
   — Seam 2.)
 - **ConstraintSet** — the user's reality (current + history). `userId`, `minutesPerDay`, `daysPerWeek`,
-  `goals` JSON, `ownedResources` (ResourceRef ids), `formatPrefs` JSON, **`ifThenPlan`** JSON
+  `goals` JSON, `ownedResources` (ResourceRef ids), `formatPrefs` JSON, **`targetFocus`**
+  (`online | otb | hybrid` — the user's primary play medium; **self-report is valid here** — it is a
+  goal/constraint, not a skill claim (Seam 2) — and it drives the Seam-4 2D/3D modality, OTB-prep, and
+  board interface-restriction recommendations, METHODOLOGY §4.4), **`ifThenPlan`** JSON
   (`{ cue, plan }` — Seam 9 implementation intention), `isCurrent` (bool), `version`. Latest current
-  row feeds the generator.
+  row feeds the generator. (`targetFocus` may ride in `formatPrefs` JSON until its consumers land in
+  M11/M14 — no migration needed before then.)
 
 ### 5.5 Program & tracking
 
@@ -781,13 +785,16 @@ A linear, resumable flow; each step writes typed state and is independently test
 | 3. Background import     | `api/cron` job via `PlatformAdapter.fetchGames`        | `ImportedGame` (idempotent), `ChessProfileSnapshot` | —                                                   | built                     |
 | 4. Instant analysis      | analyse ~5 most-recent games client-side; queue rest   | `AnalysisResult` (raw features)                     | — (raw only, L1)                                    | built                     |
 | 5. Tactical calibration  | adaptive ladder over puzzles, solved **in-app** (M11)  | `Assessment`                                        | `nextCalibrationItem` / `scoreCalibration` (Seam 2) | shell built, content stub |
-| 6. Constraints + if-then | `onboarding` form                                      | `ConstraintSet` (incl. `ifThenPlan`)                | `buildImplementationIntention` (Seam 9)             | built                     |
+| 6. Constraints + if-then | `onboarding` form                                      | `ConstraintSet` (incl. `ifThenPlan`, `targetFocus`) | `buildImplementationIntention` (Seam 9)             | built                     |
 | 7. The "reveal"          | interactive game review contrasting signals vs self-bias (M12) | —                                                   | `interpretGameFeatures` (Seam 3)                    | framework built           |
 | 8. First program         | `generateProgram(...)` → land on `/today`              | `Program`, `ProgramItem`, `SkillState` seed         | Seams 3→4→5→7→8                                     | built (stub config)       |
 
-Self-report is captured for **constraints/goals/owned resources only** — never for skill diagnosis
-(Seam 2). When game history is thin (`<800` / no games), step 5's calibration carries the diagnosis and
-a basic board-vision fallback applies (Seam 2 `noHistoryFallback`).
+Self-report is captured for **constraints/goals/owned resources/play-medium only** — never for skill
+diagnosis (Seam 2). The constraints step also records the user's **target focus** (`online | otb |
+hybrid`); this is a preference, not a skill claim, and feeds the Seam-4 visual-modality and OTB-prep
+recommendations (METHODOLOGY §4.4) — the field lands with its consumers in M11/M14. When game history
+is thin (`<800` / no games), step 5's calibration carries the diagnosis and a basic board-vision
+fallback applies (Seam 2 `noHistoryFallback`).
 
 ---
 
@@ -1128,7 +1135,12 @@ DoD checklist._
 > difficulty, and schedule to use stays a **methodology decision** through the **existing seams**.
 > Internalising therefore adds **no new seam** — only new **graded `ActivityDefinition`s in Seam 4**,
 > each carrying a `delivery: 'internal' | 'external'` flag (data, not an engine branch), plus new
-> Engine UI. **No LLM enters the product** (L-rule 4); in-app activities run **client-side** (~zero
+> Engine UI. The Seam-4 surface likewise now carries the **2D/3D visual-modality + OTB-calibration**
+> doctrine (METHODOLOGY §4.4) and the **book-study protocol + per-band book catalog** (§4.2–4.3) as
+> **graded config** — the anti-arrow / anti-hover / eval-bar / legal-move-dots **interface restrictions**
+> per band × `targetFocus`, the modality split, OTB tournament-simulation cadence, and book
+> recommendations. The interactive board exposes these as **affordance props** whose graded values come
+> from config (L1); still **no new seam**. **No LLM enters the product** (L-rule 4); in-app activities run **client-side** (~zero
 > server compute, §12). M10–M14 also retire two M7 deviations: the §7.5 redo-flow phases 1–2 and
 > per-puzzle (not per-theme) scheduling, both of which were blocked only by the absence of an in-app
 > board.
@@ -1163,7 +1175,11 @@ function stepSolve(
   under `src/components/`; the pure `stepSolve` state machine (line-match, solve-timing, retry); the
   `engine-play` opponent harness over the existing client-side Stockfish adapter (dependency-injected
   to stay pure); internal-vs-external resolution for `ProgramItem`; a demo `/train` route exercising
-  the board end-to-end.
+  the board end-to-end. The board also exposes **interface-affordance props** (`showEvalBar`,
+  `showLegalMoveDots`, `allowArrows`, `allowHover`) — science-free toggles with safe defaults; their
+  **graded per-band × `targetFocus` values are Seam-4 config** (METHODOLOGY §4.4(c), the anti-crutch
+  doctrine), carried on the activity's `params` and wired by the consuming activities in M11+. The
+  board itself hardcodes **no** affordance policy (L1).
 - **Tests:** unit (golden) — `stepSolve` over a fixed line (correct / wrong / solved transitions,
   deterministic `solveMs` from an injected Clock); board legality on a known FEN; **L1 guard** (no
   chess/learning constant in `engine/interactive/`); **L2** (Clock injected, no `Date.now()`). e2e —
@@ -1188,7 +1204,12 @@ function stepSolve(
   calibration** — the onboarding ladder renders `nextCalibrationItem` items on the board and scores via
   `scoreCalibration` from **real local outcomes** (no Lichess round-trip, no self-report); **complete
   §7.5** — scaffolded hint then delayed intra-session retest (timing/copy from Seam 6), now possible
-  with an in-app board; per-puzzle FSRS keyed by `puzzleId`.
+  with an in-app board; per-puzzle FSRS keyed by `puzzleId`; **apply the Seam-4 interface-restriction
+  doctrine** (METHODOLOGY §4.4(c)) on the solving board — eval bar and legal-move dots off across all
+  bands; right-click arrows and piece-hover gated by band × `targetFocus` — carried on the activity's
+  `params` (set by `mapWeaknessToActivities` from config) and rendered through the M10 affordance props;
+  never an engine constant (L1), with the `anti_arrow_hover` Seam-8 rationale shown to explain the
+  restriction.
 - **Tests:** unit (golden) — multi-move solution-line validation; `puzzle_attempt` event shape;
   **calibration scoring from in-app outcomes equals the M4 golden** (same `scoreCalibration`, new
   source); redo state machine (hint → retest → next-day FSRS). e2e — solve a puzzle in-app → outcome
@@ -1197,7 +1218,9 @@ function stepSolve(
 - **DoD:** ☐ puzzles solved in-app with **auto-tracked** outcomes (no self-report) ☐ tactical
   calibration runs fully in-app ☐ difficulty stays **servo-driven** — **no competing puzzle-rating
   ladder or leaderboard**; progress stays tied to real game rating + `SkillState` ☐ §7.5 redo hint +
-  intra-session retest work ☐ per-puzzle FSRS ☐ outcomes feed the **existing** adaptation loop with no
+  intra-session retest work ☐ per-puzzle FSRS ☐ solving board honors the Seam-4 interface-restriction
+  doctrine (eval bar / legal dots off; arrows/hover gated by band × `targetFocus`) — values from config,
+  not engine (L1) ☐ outcomes feed the **existing** adaptation loop with no
   engine change (resolves M7 deviations a & b).
 
 ### M12 — Interactive game review & personalised blunder drills
@@ -1214,7 +1237,9 @@ function stepSolve(
   `PracticeItem`s from `RawGameFeatures.blunders[]` ("you played X here — find the better move"),
   validated against the engine line via `stepSolve`, **auto-logged** (`drill_done`) and spaced via
   FSRS; a Seam-4 `blunder_drill` `ActivityDefinition` + the weakness→drill mapping rule (**graded
-  data**, research config later — never an engine constant).
+  data**, research config later — never an engine constant). The `ReviewBoard` honors the same Seam-4
+  interface-restriction affordances as M11 (METHODOLOGY §4.4(c) — eval bar / legal dots off; arrows /
+  hover gated by band × `targetFocus`), from config.
 - **Tests:** unit (golden) — eval-graph projection from fixed `moveEvals`; **deterministic**
   blunder→`PracticeItem` derivation; drill validation + scheduling. e2e — open a game review, step
   through, reveal the best line; a blunder drill surfaces in `/today`, solve it, it logs + reschedules.
@@ -1242,27 +1267,43 @@ function stepSolve(
   available, **rate-limited & cached** (respect the platform, §12) ☐ outcomes auto-logged & spaced
   ☐ endgame curriculum is Seam-4 config, not engine code (L1).
 
-### M14 — Recommended resources & in-app logging (the deliberately-external layer)
+### M14 — Recommended resources, book-study & OTB-calibration protocols (the deliberately-external layer)
 
 - **Goal:** make the genuinely-external activities (books, courses, playing real games) **first-class**
-  — recommend the right ones and let users log progress — **without hosting anything**.
-- **Depends on:** M3 (`ResourceRef` catalog), M6/M7 (program + tracker).
-- **Contract:** Seam-4 `book` / `course` `ActivityDefinition`s (`delivery: external`) + per-band
-  recommendations (**graded data**, research source `RESOURCES.md` later); `ResourceProgress` (§5.5,
-  per-owned-resource position); an external `play_games` activity = deep-link out + rely on the
-  existing import to capture the result.
+  — recommend the right ones, guide _how_ to study them, calibrate practice to the user's play medium
+  (online vs OTB), and let users log progress — **without hosting anything**.
+- **Depends on:** M3 (`ResourceRef` catalog), M4 (`ConstraintSet.targetFocus`), M6/M7 (program + tracker).
+- **Contract:** Seam-4 `book` / `course` `ActivityDefinition`s (`delivery: external`) + the **per-band
+  book catalog** and **book-study protocol** (active recall, 85% difficulty calibration, Woodpecker
+  cycle scheduling — METHODOLOGY §4.2–4.3) and the **2D/3D modality + OTB-calibration protocol**
+  (modality split, OTB tournament-simulation cadence, physical-board recommendation — §4.4 a/b), all
+  **graded data** (research source `BEST_BOOKS.md` / `2D_VS_3D.md`); `ResourceProgress` (§5.5) carries
+  **self-reported success rate** (for the 85% rule) + **Woodpecker cycle state** in its `position` JSON
+  and the `book_session` `selfReport` payload (**no schema change**); an external `play_games` activity
+  = deep-link out + rely on the existing import to capture the result.
 - **Tasks:** band-appropriate book/course recommendations surfaced as `ResourceRef`s with a graded
-  "why this" (Seams 4/8); an in-app **logging surface** — track chapters / exercises / time through an
-  owned book or course → an `ActivityEvent` (`book_session`) + a rolled-up `ResourceProgress`, feeding
-  the **same** tracker/adaptation loop; keep **game-play external** — a "go play _N_ games on
-  Lichess/Chess.com" activity that deep-links out and depends on M2 import to pick up the result.
-- **Tests:** unit — per-band recommendation lookup (graded); `book_session` event + `ResourceProgress`
-  roll-up; the `play_games` activity resolves to a **deep-link**, never an internal route. e2e — log a
-  book session → it appears in the tracker and influences the next session; a play-games activity links
-  out and the imported game is picked up by the loop.
-- **DoD:** ☐ books/courses recommended per band with **graded** rationale (content stays external)
-  ☐ users log progress through external resources in-app ☐ game-play stays **external** (deep-link +
-  import) ☐ logged external outcomes feed the **same** adaptation loop.
+  "why this" from the §4.3 catalog (Seams 4/8; lower-band strategy/opening books **blocked** per the
+  catalog's cognitive-load rule); a **book-study logging surface** — track chapters / exercises / time
+  → an `ActivityEvent` (`book_session`) capturing the user's **self-reported success rate** (drives the
+  85%-rule calibration nudge) + Woodpecker-cycle progress + a rolled-up `ResourceProgress`, feeding the
+  **same** tracker/adaptation loop; **OTB-calibration recommendations** gated by `targetFocus` —
+  physical-board setup advice, the per-band 2D/3D modality split, and OTB tournament-simulation cadence
+  (Zen mode, no arrows, notation, touch-move) surfaced as graded activities; wire the new Seam-8 copy
+  keys (`book_active_recall`, `book_difficulty_calibration`, `book_woodpecker_cycle`, `modality_2d_vs_3d`,
+  `otb_tournament_simulation`); keep **game-play external** — a "go play _N_ games on Lichess/Chess.com"
+  activity that deep-links out and depends on M2 import to pick up the result.
+- **Tests:** unit — per-band recommendation lookup (graded; low-band strategy/opening books suppressed);
+  `book_session` event with self-reported success rate + `ResourceProgress` roll-up; Woodpecker-cycle
+  interval derivation (golden); modality / OTB-prep recommendations gated by `targetFocus`; the
+  `play_games` activity resolves to a **deep-link**, never an internal route. e2e — log a book session
+  (with success rate) → it appears in the tracker and influences the next session; an OTB-focused user
+  sees physical-board / tournament-simulation guidance; a play-games activity links out and the imported
+  game is picked up by the loop.
+- **DoD:** ☐ books/courses recommended per band with **graded** rationale (content stays external;
+  low-band overload books blocked) ☐ book-study protocol (active recall, 85% calibration, Woodpecker
+  cycles) surfaced + logged ☐ 2D/3D modality + OTB-calibration recommendations driven by `targetFocus`
+  ☐ users log progress (incl. self-reported success rate) through external resources in-app ☐ game-play
+  stays **external** (deep-link + import) ☐ logged external outcomes feed the **same** adaptation loop.
 
 ### M15 — Beta hardening
 
@@ -1288,13 +1329,13 @@ later** (`METHODOLOGY.md`); **none change the architecture** (VISION §4, §9). 
 | 1   | Skill dimensions & taxonomy                | `dimensions`, `bands`                 | `dimensionsForBand`                                           | Seam 1                | `SKILL_TAXONOMY.md`                                                    | stub    |
 | 2   | Assessment content + scoring               | `assessment`                          | `nextCalibrationItem`, `scoreCalibration`                     | Seam 2                | `WEAKNESS_DIAGNOSIS.md`                                                | stub    |
 | 3   | Game-feature → weakness                    | `interpretation`                      | `interpretGameFeatures`, `confidenceFromSampleSize`           | Seam 3                | `WEAKNESS_DIAGNOSIS.md`, `SKILL_TAXONOMY.md`                           | stub    |
-| 4   | Weakness/level → resource + params         | `activities`, `weaknessResourceRules` | `mapWeaknessToActivities`                                     | Seam 4                | `WHAT_RAISES_RATING.md`, `RESOURCES.md` (recs + endgame curriculum)    | stub    |
+| 4   | Weakness/level → resource + params         | `activities`, `weaknessResourceRules`, `gameAnalysis`, `bookStudy`, `modality` | `mapWeaknessToActivities`                                     | Seam 4                | `WHAT_RAISES_RATING.md`, `GAME_ANALYSIS.md`, `BEST_BOOKS.md`, `2D_VS_3D.md` (recs, game-analysis protocol, book-study, 2D/3D + OTB calibration, endgame curriculum) | stub    |
 | 5   | Difficulty / calibration targets           | `difficulty`                          | `targetPuzzleRating`, `practiceStructure`, `useWorkedExample` | Seam 5                | `PRACTICE_DESIGN.md`                                                   | stub    |
 | 6   | Spacing / scheduling                       | `scheduling`                          | `gradeFromOutcome`, `scheduleReview`                          | Seam 6                | `SPACED_REPETITION.md`                                                 | stub    |
 | 7   | Periodisation / prioritisation (daily mix) | `prioritization`                      | `prioritizeDailyMix`, `detectPlateau`                         | Seam 7                | `TRAINING_PROGRAMMING.md`                                              | stub    |
 | 8   | Rationale & evidence copy                  | `rationale`, `evidenceLedger`         | `rationaleFor`                                                | Seam 8                | `USER_FACING.md` (multi-seam "why this?" synthesis), `EXPECTATIONS.md` | stub    |
 | 9   | Engagement mechanics + guardrails          | `engagement`                          | `engagementEventsFor`, `buildImplementationIntention`         | Seam 9                | `MOTIVATION.md`                                                        | stub    |
-| —   | Measurement & expectations (cross-cutting) | `measurement`                         | `isProgressReal`, `isStableBaseline`, `expectationForBand`    | Measurement           | `EXPECTATIONS.md`                                                      | stub    |
+| —   | Measurement & expectations (cross-cutting) | `measurement`                         | `isProgressReal`, `isStableBaseline`, `expectationForBand`    | Measurement           | `EXPECTATIONS.md`, `2D_VS_3D.md` (remote↔OTB performance gap)          | stub    |
 
 Updating any seam = a `MethodologyConfig` edit + a version bump. **The Engine, the data model, and the
 contracts above do not move.**
@@ -1345,7 +1386,9 @@ Because the functions are deterministic (L2), these are stable. Coverage targets
 `runAdaptation`, `interpretGameFeatures`, `targetPuzzleRating` (servo), `scheduleReview` (FSRS),
 `gradeFromOutcome`, `prioritizeDailyMix`, `detectPlateau`, `isProgressReal`, `scoreCalibration`,
 `selectPuzzles`, feature extraction, and the in-app substrate `stepSolve` (solve-session state
-machine, M10) + the blunder-drill derivation from `RawGameFeatures.blunders[]` (M12).
+machine, M10) + the blunder-drill derivation from `RawGameFeatures.blunders[]` (M12), the
+interface-restriction affordance params attached by `mapWeaknessToActivities` (band × `targetFocus`,
+M11), and the per-band book-recommendation + Woodpecker-cycle interval derivation (M14).
 
 ### 13.2 Playwright e2e for the core loop
 

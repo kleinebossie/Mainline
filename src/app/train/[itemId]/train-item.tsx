@@ -8,6 +8,10 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { InteractiveBoard } from "@/components/interactive-board";
 import { stepSolve, type SolveState } from "@/engine/interactive/session";
+import {
+  puzzleToSolveState,
+  type BoardOrientation,
+} from "@/engine/interactive/puzzle";
 import { systemClock } from "@/lib/clock";
 import { cn } from "@/lib/utils";
 import type { LichessPuzzle } from "@prisma/client";
@@ -37,6 +41,7 @@ export function TrainItem({ programItemId }: TrainItemProps) {
   const [puzzles, setPuzzles] = useState<LichessPuzzle[]>([]);
   const [currentIdx, setCurrentIdx] = useState<number>(0);
   const [solveState, setSolveState] = useState<SolveState | null>(null);
+  const [orientation, setOrientation] = useState<BoardOrientation>("white");
   const [solveStatus, setSolveStatus] = useState<
     "pending" | "correct" | "wrong" | "solved"
   >("pending");
@@ -89,15 +94,16 @@ export function TrainItem({ programItemId }: TrainItemProps) {
     if (timerRef.current) clearInterval(timerRef.current);
 
     const now = systemClock.now();
-    const solutionMoves = puzzle.moves.split(" ");
-    
-    setSolveState({
-      position: puzzle.fen,
-      solutionLine: solutionMoves,
-      cursor: 0,
-      startedMs: now,
-      attempts: 0,
-    });
+    // Apply the opponent's setup move so the board faces the real puzzle and the solution
+    // line starts with the player's move (fixes the off-by-one + wrong orientation).
+    const { solveState: setup, orientation: playerSide } = puzzleToSolveState(
+      puzzle.fen,
+      puzzle.moves,
+      now,
+    );
+
+    setSolveState(setup);
+    setOrientation(playerSide);
     setSolveStatus("pending");
     setElapsedMs(0);
     setFirstTryPassed(true);
@@ -356,18 +362,30 @@ export function TrainItem({ programItemId }: TrainItemProps) {
         </span>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-[1.1fr_0.9fr] items-start">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] items-start">
         {/* Chessboard View */}
         <div className="flex flex-col items-center gap-3">
+          <div className="flex w-full max-w-[36rem] items-center justify-between px-1">
+            <span className="eyebrow !text-[0.6rem]">
+              {orientation === "white" ? "White" : "Black"} to move
+            </span>
+            <span className="text-graphite font-mono text-xs">
+              You play {orientation}
+            </span>
+          </div>
           <InteractiveBoard
             fen={solveState.position}
             onMove={handleMove}
-            orientation={currentPuzzle.fen.split(" ")[1] === "b" ? "black" : "white"}
+            orientation={orientation}
             disabled={solveStatus === "solved"}
             highlightedSquares={highlightedSquares}
-            className="w-full max-w-sm sm:max-w-md"
+            showEvalBar={data.affordances.showEvalBar}
+            showLegalMoveDots={data.affordances.showLegalMoveDots}
+            allowArrows={data.affordances.allowArrows}
+            allowHover={data.affordances.allowHover}
+            className="w-full max-w-[36rem]"
           />
-          <div className="flex justify-between w-full max-w-sm sm:max-w-md px-1">
+          <div className="flex justify-between w-full max-w-[36rem] px-1">
             <span className="text-graphite font-mono text-xs">
               Elapsed: {(elapsedMs / 1000).toFixed(1)}s
             </span>
@@ -419,6 +437,22 @@ export function TrainItem({ programItemId }: TrainItemProps) {
                     </span>
                     .
                   </p>
+                </div>
+              )}
+
+              {/* Why the board hides crutches (Seam 8 anti_arrow_hover rationale) */}
+              {data.restrictionRationale && (
+                <div className="flex flex-col gap-1.5 rounded-md border border-line bg-paper/40 p-4">
+                  <span className="text-graphite font-mono text-[0.65rem] font-semibold uppercase tracking-wider">
+                    Why no arrows or eval bar?
+                  </span>
+                  <p className="text-sm font-serif text-ink leading-relaxed">
+                    {data.restrictionRationale.value}
+                  </p>
+                  <span className="text-graphite font-mono text-[0.6rem] uppercase tracking-wider">
+                    Evidence {data.restrictionRationale.grade} · tier{" "}
+                    {data.restrictionRationale.tier}
+                  </span>
                 </div>
               )}
 

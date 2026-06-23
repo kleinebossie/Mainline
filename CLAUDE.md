@@ -17,7 +17,9 @@ This is the source code repository for a chess training app. It contains the Nex
 - `research/` — the evidence base (the _onderzoek_ phase). Long, citation-heavy reports that become
   the app's **Methodology layer**. `RESEARCH_PROMPT.md` is the brief that generated them; the others
   (`SKILL_TAXONOMY.md`, `WEAKNESS_DIAGNOSIS.md`, `WHAT_RAISES_RATING.md`, `PRACTICE_DESIGN.md`,
-  `SPACED_REPETITION.md`) are the resulting reports, one per research question.
+  `SPACED_REPETITION.md`, `TRAINING_PROGRAMMING.md`, `GAME_ANALYSIS.md`, `USER_FACING.md`,
+  `MOTIVATION.md`, `EXPECTATIONS.md`, `2D_VS_3D.md` (2D/3D modality + OTB transfer), `BEST_BOOKS.md`
+  (evidence-based book study)) are the resulting reports, one per research question.
 
 ## Commands
 
@@ -147,12 +149,16 @@ generic, science-free in-app board (`InteractiveBoard` + the pure `stepSolve` so
 machine + an injected-adapter `engine-play` Stockfish opponent), with `ProgramItem` resolving internal
 (`/train/...`) vs external by the graded Seam-4 `delivery` flag (data, not an engine branch); demoed at
 `/train`. **Next: the internal-first arc continues M11–M14** — internalise what we can (VISION §1/§8):
-**M11** in-app puzzles + internalised tactical assessment (+ the §7.5 redo hint/retest), **M12**
-interactive game review + personalised blunder drills, **M13** in-app endgame drills (vs the engine, +
-Lichess tablebase), **M14** recommended resources + in-app logging (books/courses/real games stay
-external). These add **no new seam** — only generic Engine surfaces + graded Seam-4
-`ActivityDefinition`s with a `delivery: 'internal' | 'external'` flag — and **no LLM**. **M15** — beta
-hardening (was M10).
+**M11** in-app puzzles + internalised tactical assessment (+ the §7.5 redo hint/retest + the §4.4(c)
+anti-arrow/anti-hover/eval-bar board affordances), **M12** interactive game review + personalised
+blunder drills, **M13** in-app endgame drills (vs the engine, + Lichess tablebase), **M14** recommended
+resources + **book-study & 2D/3D-modality/OTB-calibration protocols** + in-app logging (books/courses/
+real games stay external; guidance from `BEST_BOOKS.md`/`2D_VS_3D.md`). These add **no new seam** — only
+generic Engine surfaces + graded Seam-4 `ActivityDefinition`s with a `delivery: 'internal' | 'external'`
+flag (now also the visual-modality / OTB-calibration / book-study config) — and **no LLM**. A new
+`ConstraintSet.targetFocus` (`online | otb | hybrid`, self-report) drives the modality/OTB
+recommendations and the board interface restrictions, landing with its consumers in M11/M14. **M15** —
+beta hardening (was M10).
 `planning/BUILD.md` is the source of truth these notes summarize; the `build-slice`
 skill drives a milestone end-to-end.
 

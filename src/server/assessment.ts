@@ -17,11 +17,17 @@ import {
   loadMethodology,
   nextCalibrationItem,
   scoreCalibration,
+  bandForRating,
+  interfaceAffordancesFor,
+  rationaleFor,
+  type BoardAffordances,
   type CalibrationEstimate,
   type CalibrationResponse,
   type CalibrationTrack,
   type MethodologyConfig,
   type NextCalibrationItem,
+  type RationaleEntry,
+  type TargetFocus,
 } from "@/methodology";
 import { selectPuzzles } from "@/db/puzzles";
 
@@ -122,6 +128,10 @@ export interface CalibrationState {
   activeTrack: CalibrationTrackState | null;
   tracks: CalibrationTrackState[];
   activePuzzle: LichessPuzzle | null;
+  /** Seam-4 §4.4(c) board interface affordances for the calibration board (from config). */
+  affordances: BoardAffordances;
+  /** Graded "why are these hidden?" copy, when any crutch is restricted. */
+  restrictionRationale: RationaleEntry | null;
 }
 
 /** Build the per-track states from the stored responses + config (pure given inputs). */
@@ -190,6 +200,18 @@ export async function getCalibrationState(
     }
   }
 
+  // Seam 4 §4.4(c) — the calibration board hides the same crutches as the training board,
+  // from config (L1). targetFocus defaults to "online" until the constraints form captures
+  // it (M14); the band derives from the seed rating.
+  const targetFocus: TargetFocus = "online";
+  const affordances = interfaceAffordancesFor(
+    { band: bandForRating(startRating, cfg), targetFocus },
+    cfg,
+  );
+  const restrictionRationale = affordances.restricted
+    ? rationaleFor(affordances.restrictionRationaleKey, cfg)
+    : null;
+
   return {
     completed: Boolean(row?.completedAt),
     responseCount: activeTrack?.responseCount ?? primary.responseCount,
@@ -202,6 +224,8 @@ export async function getCalibrationState(
     activeTrack,
     tracks: trackStates,
     activePuzzle,
+    affordances,
+    restrictionRationale,
   };
 }
 

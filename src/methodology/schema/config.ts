@@ -430,6 +430,31 @@ const gameAnalysisSchema = z.object({
   physicalBoardRecommendation: gradedValue(z.string()),
 });
 
+// Seam 4 §4.4(c) — the in-app board's interface-restriction doctrine (METHODOLOGY §4.4(c),
+// the "anti-crutch" rule). The Engine's board exposes science-free affordance toggles; this
+// config supplies their graded values so L1 holds (no affordance policy in the board itself).
+// Eval bar + legal-move dots are crutches absent from a real board, so they are off across
+// ALL bands; right-click arrows + piece-hover highlight are gated by the user's play medium
+// (`targetFocus`) — an OTB-bound trainer drills without them. Band refinement is deferred to
+// the research config; the stub keys arrows/hover by focus only.
+export const TARGET_FOCUSES = ["online", "otb", "hybrid"] as const;
+export const targetFocusSchema = z.enum(TARGET_FOCUSES);
+
+const byFocusSchema = z.object({
+  online: gradedValue(z.boolean()),
+  otb: gradedValue(z.boolean()),
+  hybrid: gradedValue(z.boolean()),
+});
+
+const boardSchema = z.object({
+  showEvalBar: gradedValue(z.boolean()),
+  showLegalMoveDots: gradedValue(z.boolean()),
+  allowArrowsByFocus: byFocusSchema,
+  allowHoverByFocus: byFocusSchema,
+  // Seam-8 rationale entry (resolves in `rationale`) explaining why a crutch is hidden.
+  restrictionRationaleKey: z.string().min(1),
+});
+
 /** Recursively collect every citationKey appearing on a GradedValue in the config. */
 function collectCitationKeys(node: unknown, into: Set<string>): void {
   if (Array.isArray(node)) {
@@ -459,6 +484,7 @@ export const methodologyConfigSchema = z
     rationale: z.array(rationaleEntrySchema).min(1),
     evidenceLedger: z.array(anchorSourceSchema).min(1),
     gameAnalysis: gameAnalysisSchema,
+    board: boardSchema,
   })
   .superRefine((cfg, ctx) => {
     // L3 — every citationKey must resolve to a ledger anchor (fail-closed, §2.6).
@@ -476,6 +502,7 @@ export const methodologyConfigSchema = z
       cfg.measurement,
       cfg.rationale,
       cfg.gameAnalysis,
+      cfg.board,
     ]) {
       collectCitationKeys(section, usedCitations);
     }
@@ -621,6 +648,13 @@ export const methodologyConfigSchema = z
       }
     });
 
+    // Seam 4 §4.4(c) — the board's restriction rationale must resolve to a real entry, so
+    // the "why is this hidden?" card always has graded copy to show.
+    requireRat(cfg.board.restrictionRationaleKey, [
+      "board",
+      "restrictionRationaleKey",
+    ]);
+
     // Seam 9 — every engagement event copyKey must resolve to a rationale entry (so its
     // graded copy exists); the event TYPE is enum-bounded already (forbidden mechanics excluded).
     cfg.engagement.events.forEach((ev, i) => {
@@ -647,6 +681,8 @@ export type BandDefinition = MethodologyConfig["bands"][number];
 export type SkillDimension = MethodologyConfig["dimensions"][number];
 export type InterpretationConfig = MethodologyConfig["interpretation"];
 export type ActivityDefinition = MethodologyConfig["activities"][number];
+export type BoardConfig = MethodologyConfig["board"];
+export type TargetFocus = (typeof TARGET_FOCUSES)[number];
 export type WeaknessResourceRule =
   MethodologyConfig["weaknessResourceRules"][number];
 export type DifficultyConfig = MethodologyConfig["difficulty"];

@@ -1,48 +1,68 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Chess, type Square, type Color, type PieceSymbol } from "chess.js";
+"use client";
+
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { Chess, type Square } from "chess.js";
+import { Chessboard } from "react-chessboard";
 import { cn } from "@/lib/utils";
-import { ChessPiece } from "@/components/chess-piece";
 
-const FILES = ["a", "b", "c", "d", "e", "f", "g", "h"] as const;
-const RANKS = ["8", "7", "6", "5", "4", "3", "2", "1"] as const;
+// The in-app board (M10 substrate). It is a thin, CONTROLLED wrapper around
+// `react-chessboard` (the mature, ubiquitous board named in BUILD.md §3): the displayed
+// position is always exactly the `fen` prop, so a rejected move snaps straight back to the
+// puzzle start instead of stranding the user on a wrong position. chess.js supplies move
+// legality + SAN/UCI; the board is generic and science-free (L1) — every affordance toggle
+// defaults to the permissive generic board and is overridden only by graded Seam-4 config
+// on the solving surfaces (METHODOLOGY §4.4(c)).
 
-// Board colours live on the analysis sheet: cool drafting paper light squares + a muted
-// evergreen dark square that echoes the app's single accent (not a stock blue board).
-const LIGHT_SQUARE = "#e8e9da";
+// Board palette — keep the app's drafting-paper + evergreen identity, not a stock blue board.
+const LIGHT_SQUARE = "#e9e7d8";
 const DARK_SQUARE = "#6f8a7d";
+const SELECT_FILL = "rgba(111, 138, 125, 0.45)";
+const SELECT_RING = "inset 0 0 0 3px rgba(47, 64, 57, 0.85)";
+const HINT_FILL = "rgba(214, 158, 46, 0.5)";
+const DEST_DOT =
+  "radial-gradient(circle, rgba(35, 48, 43, 0.32) 17%, transparent 19%)";
+const CAPTURE_RING = "inset 0 0 0 4px rgba(35, 48, 43, 0.32)";
+const HOVER_RING = "inset 0 0 0 3px rgba(111, 138, 125, 0.6)";
+const CHECK_FILL =
+  "radial-gradient(circle, rgba(176, 58, 46, 0.85) 0%, rgba(176, 58, 46, 0.3) 50%, transparent 72%)";
 
-// Movement past this many pixels turns a press into a drag (vs a click-to-move tap).
-const DRAG_THRESHOLD = 5;
-
-export interface InteractiveBoardProps {
-  /** The current position FEN. Changing this resets the board state. */
-  fen: string;
-  /** Callback fired when a legal move is played on the board. */
-  onMove?: (move: {
-    from: string;
-    to: string;
-    promotion?: string;
-    san: string;
-    uci: string;
-  }) => void;
-  /** Active board perspective: "white" or "black". Defaults to "white". */
-  orientation?: "white" | "black";
-  /** If true, makes the board read-only. */
-  disabled?: boolean;
-  /** Custom squares to highlight (e.g. a hint or last-move squares). */
-  highlightedSquares?: string[];
-  /** Optional custom className for the board container. */
-  className?: string;
+export interface BoardMove {
+  from: string;
+  to: string;
+  promotion?: string;
+  san: string;
+  uci: string;
 }
 
-interface DragState {
-  from: string;
-  type: PieceSymbol;
-  color: Color;
-  dests: string[];
-  xPct: number;
-  yPct: number;
-  over: string | null;
+export interface InteractiveBoardProps {
+  /** The current position FEN. The board renders exactly this — change it to move/reset. */
+  fen: string;
+  /** Fired when a legal move is played; the parent decides whether to accept it. */
+  onMove?: (move: BoardMove) => void;
+  /** Board perspective. Defaults to "white". */
+  orientation?: "white" | "black";
+  /** Read-only board (no selecting, dragging, or clicking). */
+  disabled?: boolean;
+  /** Squares to wash (e.g. a scaffolded hint or last-move). */
+  highlightedSquares?: string[];
+  /** Container className — controls the board SIZE (the board fills its container). */
+  className?: string;
+  /** Distinct id when several boards share a page. */
+  id?: string;
+
+  // --- M10/M11 interface-affordance props (science-free toggles; graded values are
+  // Seam-4 config — METHODOLOGY §4.4(c) "anti-crutch" doctrine). Safe defaults = the
+  // permissive generic board; the solving surfaces pass the config-derived values. ---
+  /** Show a Stockfish eval bar beside the board (needs `evalCp`). Default off. */
+  showEvalBar?: boolean;
+  /** Centipawn eval (White-positive) for the eval bar, when shown. */
+  evalCp?: number | null;
+  /** Show legal-destination dots when a piece is selected. Default on. */
+  showLegalMoveDots?: boolean;
+  /** Allow right-click arrow drawing. Default on. */
+  allowArrows?: boolean;
+  /** Highlight a movable piece on hover. Default on. */
+  allowHover?: boolean;
 }
 
 export function InteractiveBoard({
@@ -52,326 +72,229 @@ export function InteractiveBoard({
   disabled = false,
   highlightedSquares = [],
   className,
+  id = "interactive-board",
+  showEvalBar = false,
+  evalCp = null,
+  showLegalMoveDots = true,
+  allowArrows = true,
+  allowHover = true,
 }: InteractiveBoardProps) {
-  const [chess, setChess] = useState<Chess>(() => safeChess(fen));
-  const [selected, setSelected] = useState<string | null>(null);
-  const [legalDests, setLegalDests] = useState<string[]>([]);
-  const [drag, setDrag] = useState<DragState | null>(null);
+  // A fresh chess.js per position: cheap, and keeps legality/SAN derivation in sync with
+  // the controlled `fen`. We never mutate it — moves are tried on a throwaway clone.
+  const game = useMemo(() => safeChess(fen), [fen]);
+  const turn = game.turn();
 
-  const boardRef = useRef<HTMLDivElement>(null);
-  const pressRef = useRef<{ square: string; x: number; y: number } | null>(null);
-  const draggingRef = useRef(false);
-  const dragInfoRef = useRef<{ from: string; dests: string[] } | null>(null);
-  const suppressClickRef = useRef(false);
+  const [selected, setSelected] = useState<Square | null>(null);
+  const [hovered, setHovered] = useState<Square | null>(null);
+  // react-chessboard measures the DOM to size itself; only mount it on the client to
+  // avoid SSR/hydration mismatches. The aspect-square wrapper reserves the space meanwhile.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
-  // Re-sync whenever the incoming FEN changes (new puzzle, parent-driven move, reset).
+  // Reset transient UI whenever the position changes (new puzzle, accepted move, reset).
   useEffect(() => {
-    setChess(safeChess(fen));
     setSelected(null);
-    setLegalDests([]);
-    setDrag(null);
-    pressRef.current = null;
-    draggingRef.current = false;
-    dragInfoRef.current = null;
+    setHovered(null);
   }, [fen]);
 
-  const files = useMemo(
-    () => (orientation === "black" ? [...FILES].reverse() : [...FILES]),
-    [orientation],
-  );
-  const ranks = useMemo(
-    () => (orientation === "black" ? [...RANKS].reverse() : [...RANKS]),
-    [orientation],
-  );
+  const legalDests = useMemo(() => {
+    if (!selected) return [] as string[];
+    try {
+      return game
+        .moves({ square: selected, verbose: true })
+        .map((m) => m.to as string);
+    } catch {
+      return [];
+    }
+  }, [game, selected]);
 
-  const turn = chess.turn();
-  const inCheck = chess.isCheck();
-  const kingSquare = useMemo(
-    () => (inCheck ? findKing(chess, turn) : null),
-    [chess, inCheck, turn],
-  );
-
-  const destsFor = useCallback(
-    (square: string): string[] => {
+  // Try a move on a throwaway board; if legal, report it upward. We always leave the
+  // displayed board equal to `fen` — the parent re-points `fen` if it accepts the move.
+  const attemptMove = useCallback(
+    (from: string, to: string): boolean => {
+      if (disabled) return false;
+      const probe = safeChess(fen);
+      let legal;
       try {
-        return chess
-          .moves({ square: square as Square, verbose: true })
-          .map((m) => m.to);
+        legal = probe
+          .moves({ square: from as Square, verbose: true })
+          .find((m) => m.to === to);
       } catch {
-        return [];
+        legal = undefined;
       }
-    },
-    [chess],
-  );
-
-  const playMove = useCallback(
-    (from: string, to: string) => {
+      if (!legal) return false;
+      const promotion = legal.promotion ? "q" : undefined; // auto-queen
+      let made;
       try {
-        const next = safeChess(chess.fen());
-        const result = next.move({ from, to, promotion: "q" });
-        setChess(next);
-        setSelected(null);
-        setLegalDests([]);
-        onMove?.({
-          from,
-          to,
-          promotion: "q",
-          san: result.san,
-          uci: result.from + result.to + (result.promotion || ""),
-        });
+        made = probe.move({ from, to, promotion });
       } catch {
-        // Illegal move (e.g. dropped on a non-destination) — ignore.
+        return false;
       }
+      setSelected(null);
+      onMove?.({
+        from,
+        to,
+        promotion: made.promotion,
+        san: made.san,
+        uci: made.from + made.to + (made.promotion ?? ""),
+      });
+      return true;
     },
-    [chess, onMove],
+    [disabled, fen, onMove],
   );
 
-  const squareFromPoint = useCallback(
-    (clientX: number, clientY: number): string => {
-      const rect = boardRef.current?.getBoundingClientRect();
-      if (!rect) return "";
-      const col = clamp(Math.floor(((clientX - rect.left) / rect.width) * 8), 0, 7);
-      const row = clamp(Math.floor(((clientY - rect.top) / rect.height) * 8), 0, 7);
-      return `${files[col]}${ranks[row]}`;
+  const ownPieceAt = useCallback(
+    (square: string): boolean => {
+      const p = game.get(square as Square);
+      return !!p && p.color === turn;
     },
-    [files, ranks],
+    [game, turn],
   );
 
-  // Drag handling lives on `window` (not pointer capture): capture would re-target the
-  // synthesised click to the board, breaking per-square click-to-move (and keyboard/e2e).
-  // Click-to-move stays the authoritative path; a drag past the threshold takes over.
-  useEffect(() => {
-    const onPointerMove = (e: PointerEvent) => {
-      const press = pressRef.current;
-      if (!press) return;
-
-      if (!draggingRef.current) {
-        const moved =
-          Math.abs(e.clientX - press.x) + Math.abs(e.clientY - press.y);
-        if (moved < DRAG_THRESHOLD) return;
-        const piece = chess.get(press.square as Square);
-        if (!piece) {
-          pressRef.current = null;
+  const handleSquareClick = useCallback(
+    ({ square }: { square: string }) => {
+      if (disabled) return;
+      if (selected) {
+        if (square === selected) {
+          setSelected(null);
           return;
         }
-        draggingRef.current = true;
-        dragInfoRef.current = { from: press.square, dests: destsFor(press.square) };
-        setSelected(null);
-        setLegalDests([]);
-        setDrag({
-          from: press.square,
-          type: piece.type,
-          color: piece.color,
-          dests: dragInfoRef.current.dests,
-          ...pointPct(e.clientX, e.clientY, boardRef.current),
-          over: press.square,
-        });
-        return;
+        if (legalDests.includes(square)) {
+          attemptMove(selected, square);
+          return;
+        }
       }
+      setSelected(ownPieceAt(square) ? (square as Square) : null);
+    },
+    [disabled, selected, legalDests, attemptMove, ownPieceAt],
+  );
 
-      setDrag((d) =>
-        d
-          ? {
-              ...d,
-              ...pointPct(e.clientX, e.clientY, boardRef.current),
-              over: squareFromPoint(e.clientX, e.clientY),
-            }
-          : d,
-      );
-    };
+  const handlePieceDrop = useCallback(
+    ({
+      sourceSquare,
+      targetSquare,
+    }: {
+      sourceSquare: string;
+      targetSquare: string | null;
+    }): boolean => {
+      if (!targetSquare) return false;
+      attemptMove(sourceSquare, targetSquare);
+      // Always false: the board is controlled by `fen`, so it reverts the dragged piece and
+      // re-renders to whatever position the parent decides (unchanged on a rejected move).
+      return false;
+    },
+    [attemptMove],
+  );
 
-    const onPointerUp = (e: PointerEvent) => {
-      if (draggingRef.current) {
-        const info = dragInfoRef.current;
-        const target = squareFromPoint(e.clientX, e.clientY);
-        if (info && info.dests.includes(target)) playMove(info.from, target);
-        suppressClickRef.current = true; // swallow the trailing click after a drag
+  const squareStyles = useMemo(() => {
+    const styles: Record<string, React.CSSProperties> = {};
+    for (const sq of highlightedSquares) styles[sq] = { background: HINT_FILL };
+
+    if (allowHover && hovered && !selected && ownPieceAt(hovered)) {
+      styles[hovered] = { ...styles[hovered], boxShadow: HOVER_RING };
+    }
+
+    if (showLegalMoveDots) {
+      for (const dest of legalDests) {
+        const capture = !!game.get(dest as Square);
+        styles[dest] = {
+          ...styles[dest],
+          background: capture ? undefined : DEST_DOT,
+          boxShadow: capture ? CAPTURE_RING : styles[dest]?.boxShadow,
+        };
       }
-      pressRef.current = null;
-      draggingRef.current = false;
-      dragInfoRef.current = null;
-      setDrag(null);
-    };
-
-    window.addEventListener("pointermove", onPointerMove);
-    window.addEventListener("pointerup", onPointerUp);
-    return () => {
-      window.removeEventListener("pointermove", onPointerMove);
-      window.removeEventListener("pointerup", onPointerUp);
-    };
-  }, [chess, destsFor, playMove, squareFromPoint]);
-
-  const handlePointerDown = (e: React.PointerEvent, square: string) => {
-    if (disabled || e.button !== 0) return;
-    const piece = chess.get(square as Square);
-    // Only own pieces begin a press/drag; everything else is left to click-to-move.
-    if (!piece || piece.color !== turn) return;
-    pressRef.current = { square, x: e.clientX, y: e.clientY };
-  };
-
-  const handleClick = (square: string) => {
-    if (suppressClickRef.current) {
-      suppressClickRef.current = false;
-      return;
     }
-    if (disabled) return;
 
-    if (selected === square) {
-      setSelected(null);
-      setLegalDests([]);
-      return;
+    if (selected) {
+      styles[selected] = {
+        ...styles[selected],
+        background: SELECT_FILL,
+        boxShadow: SELECT_RING,
+      };
     }
-    if (selected && legalDests.includes(square)) {
-      playMove(selected, square);
-      return;
-    }
-    const piece = chess.get(square as Square);
-    if (piece && piece.color === turn) {
-      setSelected(square);
-      setLegalDests(destsFor(square));
-    } else {
-      setSelected(null);
-      setLegalDests([]);
-    }
-  };
 
-  const activeFrom = drag?.from ?? selected;
-  const activeDests = drag ? drag.dests : selected ? legalDests : [];
+    if (game.inCheck()) {
+      const king = findKing(game, turn);
+      if (king) styles[king] = { ...styles[king], background: CHECK_FILL };
+    }
+    return styles;
+  }, [
+    highlightedSquares,
+    allowHover,
+    hovered,
+    selected,
+    ownPieceAt,
+    showLegalMoveDots,
+    legalDests,
+    game,
+    turn,
+  ]);
+
+  const options = useMemo(
+    () => ({
+      id,
+      position: fen,
+      boardOrientation: orientation,
+      allowDragging: !disabled,
+      allowDrawingArrows: allowArrows && !disabled,
+      showAnimations: true,
+      animationDurationInMs: 180,
+      darkSquareStyle: { backgroundColor: DARK_SQUARE },
+      lightSquareStyle: { backgroundColor: LIGHT_SQUARE },
+      boardStyle: {
+        borderRadius: "0.5rem",
+        boxShadow: "0 1px 0 rgba(0,0,0,0.04)",
+      },
+      squareStyles,
+      onSquareClick: handleSquareClick,
+      onPieceDrop: handlePieceDrop,
+      canDragPiece: ({ piece }: { piece: { pieceType: string } }) =>
+        !disabled && piece.pieceType[0] === turn,
+      onMouseOverSquare: allowHover
+        ? ({ square }: { square: string }) => setHovered(square as Square)
+        : undefined,
+      onMouseOutSquare: allowHover ? () => setHovered(null) : undefined,
+    }),
+    [
+      id,
+      fen,
+      orientation,
+      disabled,
+      allowArrows,
+      allowHover,
+      squareStyles,
+      handleSquareClick,
+      handlePieceDrop,
+      turn,
+    ],
+  );
 
   return (
-    <div
-      className={cn(
-        "relative aspect-square w-full max-w-md select-none overflow-hidden rounded-lg border-2 border-ink shadow-sheet",
-        disabled && "opacity-95",
-        className,
-      )}
-    >
-      <div
-        ref={boardRef}
-        className="grid h-full w-full grid-cols-8 grid-rows-8 touch-none"
-      >
-        {ranks.map((rank, rIdx) =>
-          files.map((file, cIdx) => {
-            const square = `${file}${rank}`;
-            const isDark = (rIdx + cIdx) % 2 === 1;
-            const piece = chess.get(square as Square);
-            const isOwn = !!piece && piece.color === turn;
-            const isOrigin = activeFrom === square;
-            const isDragOrigin = drag?.from === square;
-            const isDest = activeDests.includes(square);
-            const isHighlighted = highlightedSquares.includes(square);
-            const isOver = drag?.over === square && isDest;
-            const isCheckSquare = kingSquare === square;
-
-            return (
-              <button
-                type="button"
-                key={square}
-                data-square={square}
-                aria-label={ariaLabel(square, piece)}
-                disabled={disabled}
-                onPointerDown={(e) => handlePointerDown(e, square)}
-                onClick={() => handleClick(square)}
-                style={{ backgroundColor: isDark ? DARK_SQUARE : LIGHT_SQUARE }}
-                className={cn(
-                  "relative flex items-center justify-center p-0",
-                  "focus:outline-none focus-visible:z-20 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-evergreen-bright",
-                  !disabled && isOwn && "cursor-grab",
-                  drag && "cursor-grabbing",
-                )}
-              >
-                {/* hint / last-move wash */}
-                {isHighlighted && (
-                  <span className="absolute inset-0 bg-amber/35" aria-hidden />
-                )}
-                {/* king-in-check glow */}
-                {isCheckSquare && (
-                  <span
-                    className="absolute inset-0"
-                    style={{
-                      background:
-                        "radial-gradient(circle, hsl(var(--clay) / 0.85) 0%, hsl(var(--clay) / 0.35) 45%, transparent 72%)",
-                    }}
-                    aria-hidden
-                  />
-                )}
-                {/* selected / drag origin */}
-                {isOrigin && (
-                  <span
-                    className="absolute inset-0 bg-evergreen/25 ring-[3px] ring-inset ring-evergreen-bright/80 transition-opacity motion-reduce:transition-none"
-                    aria-hidden
-                  />
-                )}
-                {/* drag hover target ring */}
-                {isOver && !isOrigin && (
-                  <span
-                    className="absolute inset-0 ring-[3px] ring-inset ring-evergreen-bright/70"
-                    aria-hidden
-                  />
-                )}
-
-                {/* piece (hidden on its own square while being dragged) */}
-                {piece && !isDragOrigin && (
-                  <ChessPiece
-                    type={piece.type}
-                    color={piece.color}
-                    className="relative z-10 h-[86%] w-[86%]"
-                  />
-                )}
-
-                {/* legal-move markers */}
-                {isDest &&
-                  (piece ? (
-                    <span
-                      className="absolute inset-[7%] z-[5] rounded-full border-[0.35rem] border-evergreen/45"
-                      aria-hidden
-                    />
-                  ) : (
-                    <span
-                      className="absolute z-[5] h-[30%] w-[30%] rounded-full bg-evergreen/45"
-                      aria-hidden
-                    />
-                  ))}
-
-                {/* coordinate labels along the inner edges */}
-                {cIdx === 0 && (
-                  <span
-                    className="pointer-events-none absolute left-[3px] top-[1px] font-mono text-[8px] font-semibold leading-none sm:text-[10px]"
-                    style={{ color: isDark ? LIGHT_SQUARE : DARK_SQUARE }}
-                    aria-hidden
-                  >
-                    {rank}
-                  </span>
-                )}
-                {rIdx === 7 && (
-                  <span
-                    className="pointer-events-none absolute bottom-[1px] right-[3px] font-mono text-[8px] font-semibold leading-none sm:text-[10px]"
-                    style={{ color: isDark ? LIGHT_SQUARE : DARK_SQUARE }}
-                    aria-hidden
-                  >
-                    {file}
-                  </span>
-                )}
-              </button>
-            );
-          }),
+    <div className={cn("flex items-stretch gap-2", className)}>
+      {showEvalBar && evalCp != null && <EvalBar cp={evalCp} />}
+      <div className="relative aspect-square min-w-0 flex-1 select-none overflow-hidden rounded-lg">
+        {mounted ? (
+          <Chessboard options={options} />
+        ) : (
+          <div className="h-full w-full rounded-lg border border-line bg-paper/40" />
         )}
       </div>
+    </div>
+  );
+}
 
-      {/* floating dragged piece */}
-      {drag && (
-        <div
-          className="pointer-events-none absolute z-30 flex h-[12.5%] w-[12.5%] -translate-x-1/2 -translate-y-1/2 items-center justify-center"
-          style={{ left: `${drag.xPct}%`, top: `${drag.yPct}%` }}
-          aria-hidden
-        >
-          <ChessPiece
-            type={drag.type}
-            color={drag.color}
-            className="h-[92%] w-[92%] drop-shadow-[0_6px_8px_rgba(0,0,0,0.35)]"
-          />
-        </div>
-      )}
+/** A slim Stockfish eval bar (White share grows from the bottom). Off by default. */
+function EvalBar({ cp }: { cp: number }) {
+  const whiteShare = 0.5 + 0.5 * Math.tanh(cp / 400); // smooth win-probability-ish map
+  return (
+    <div
+      className="relative w-2 shrink-0 overflow-hidden rounded-sm border border-ink/20 bg-ink"
+      aria-hidden
+    >
+      <div
+        className="absolute inset-x-0 bottom-0 bg-paper"
+        style={{ height: `${Math.round(whiteShare * 100)}%` }}
+      />
     </div>
   );
 }
@@ -379,51 +302,16 @@ export function InteractiveBoard({
 function safeChess(fen: string): Chess {
   try {
     return new Chess(fen);
-  } catch (e) {
-    console.error("InteractiveBoard: invalid FEN, falling back to start.", fen, e);
+  } catch {
     return new Chess();
   }
 }
 
-function findKing(chess: Chess, color: Color): string | null {
-  for (const row of chess.board()) {
+function findKing(game: Chess, color: "w" | "b"): string | null {
+  for (const row of game.board()) {
     for (const cell of row) {
       if (cell && cell.type === "k" && cell.color === color) return cell.square;
     }
   }
   return null;
-}
-
-function pointPct(
-  clientX: number,
-  clientY: number,
-  board: HTMLDivElement | null,
-): { xPct: number; yPct: number } {
-  const rect = board?.getBoundingClientRect();
-  if (!rect) return { xPct: 50, yPct: 50 };
-  return {
-    xPct: clamp(((clientX - rect.left) / rect.width) * 100, 0, 100),
-    yPct: clamp(((clientY - rect.top) / rect.height) * 100, 0, 100),
-  };
-}
-
-function clamp(n: number, lo: number, hi: number): number {
-  return Math.min(hi, Math.max(lo, n));
-}
-
-const PIECE_NAMES: Record<PieceSymbol, string> = {
-  p: "pawn",
-  n: "knight",
-  b: "bishop",
-  r: "rook",
-  q: "queen",
-  k: "king",
-};
-
-function ariaLabel(
-  square: string,
-  piece: { type: PieceSymbol; color: Color } | undefined | null,
-): string {
-  if (!piece) return `${square}, empty`;
-  return `${square}, ${piece.color === "w" ? "white" : "black"} ${PIECE_NAMES[piece.type]}`;
 }

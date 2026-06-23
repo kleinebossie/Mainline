@@ -1860,6 +1860,15 @@
   },
   "rationale": [
     {
+      "key": "anti_arrow_hover",
+      "whenShown": "a solving board with hidden interface crutches",
+      "value": "Over-the-board play doesn't let you hover pieces or draw arrows. Hiding these crutches makes you hold the variation in your head, which is what builds calculation and visualisation.",
+      "grade": "B",
+      "tier": 2,
+      "citationKey": "board_interface_restriction",
+      "soften": false
+    },
+    {
       "key": "blunder_focus",
       "whenShown": "high blunder rate detected",
       "value": "Below master level, games are usually decided by the last blunder. Today targets board safety.",
@@ -2262,6 +2271,83 @@
       "source": "Metcalfe & Kornell 2009",
       "anchors": "desirable difficulties & generation effect",
       "grade": "A"
+    },
+    {
+      "key": "board_interface_restriction",
+      "source": "research/2D_VS_3D.md (OTB transfer & visual-modality synthesis)",
+      "anchors": "hiding board crutches (arrows/hover/eval) to train internal visualisation",
+      "grade": "B"
     }
-  ]
+  ],
+  "board": {
+    "showEvalBar": {
+      "value": false,
+      "grade": "C",
+      "tier": 2,
+      "citationKey": "board_interface_restriction",
+      "flag": "best-guess",
+      "note": "Eval bar is a crutch absent OTB; off across all bands (METHODOLOGY §4.4c)."
+    },
+    "showLegalMoveDots": {
+      "value": false,
+      "grade": "C",
+      "tier": 2,
+      "citationKey": "board_interface_restriction",
+      "flag": "best-guess",
+      "note": "Legal-move dots are a crutch absent OTB; off across all bands (METHODOLOGY §4.4c)."
+    },
+    "allowArrowsByFocus": {
+      "online": {
+        "value": true,
+        "grade": "C",
+        "tier": 2,
+        "citationKey": "board_interface_restriction",
+        "flag": "best-guess",
+        "note": "Online-focused players keep familiar arrow tools (stub default)."
+      },
+      "otb": {
+        "value": false,
+        "grade": "C",
+        "tier": 2,
+        "citationKey": "board_interface_restriction",
+        "flag": "best-guess",
+        "note": "OTB-bound players drill without arrows (anti-crutch, METHODOLOGY §4.4c)."
+      },
+      "hybrid": {
+        "value": false,
+        "grade": "C",
+        "tier": 2,
+        "citationKey": "board_interface_restriction",
+        "flag": "best-guess",
+        "note": "Hybrid leans to OTB discipline: arrows off (stub default)."
+      }
+    },
+    "allowHoverByFocus": {
+      "online": {
+        "value": true,
+        "grade": "C",
+        "tier": 2,
+        "citationKey": "board_interface_restriction",
+        "flag": "best-guess",
+        "note": "Online-focused players keep hover highlighting (stub default)."
+      },
+      "otb": {
+        "value": false,
+        "grade": "C",
+        "tier": 2,
+        "citationKey": "board_interface_restriction",
+        "flag": "best-guess",
+        "note": "OTB-bound players drill without hover (anti-crutch, METHODOLOGY §4.4c)."
+      },
+      "hybrid": {
+        "value": true,
+        "grade": "C",
+        "tier": 2,
+        "citationKey": "board_interface_restriction",
+        "flag": "best-guess",
+        "note": "Hybrid keeps hover but drops arrows (partial restriction; stub default)."
+      }
+    },
+    "restrictionRationaleKey": "anti_arrow_hover"
+  }
 }

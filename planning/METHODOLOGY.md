@@ -127,6 +127,12 @@ _(M = the cross-cutting Measurement & expectations section, after Seam 9.)_
 | S26 | **Emotional/metacognitive calibration pre-analysis.** Post-game tilt degrades analytical accuracy. A forced micro-reflection pause + loss-chasing prevention improves subsequent analysis quality.                                                             | B / 2                                      | Srivastava et al. 2025; Balas 2024             | 4, 9    |
 | S27 | **High-entropy variation filtering.** When multiple engine candidate moves evaluate within a few centipawns, presenting the full tree to sub-master players causes confusion; suppress volatile/chaotic evaluations.                                            | B / 1                                      | Luu et al. 2025                                | 3, 4    |
 | S28 | **Generation Effect via pre-testing.** Forcing players to guess a move before revealing the engine line improves retention, even when the initial guess is wrong.                                                                                              | A / 2                                      | Pretesting literature (2025 meta); Bjork 2011  | 4       |
+| S29 | **2D vs 3D cognitive bottleneck is speed-dominated.** 2D presentation is processed significantly faster (explaining 70% of response time variance) due to vertical occlusion, perspective distortion, and lack of binocular depth cues in 3D. Accuracy is not significantly degraded, indicating OTB penalty is a processing latency, not a knowledge loss. | A / 1+2 | Schneider, Kunde & Klaffehn 2025 | 4, M |
+| S30 | **Context-dependent memory & OTB transfer.** Memory recall is optimized when the training context matches the performance context (Encoding Specificity Principle). 2D digital training lacks OTB 3D spatial cues, which is mitigated by integrating physical OTB boards during training. | A / 2 | Smith & Vela 2001 | 4 |
+| S31 | **Volume vs. depth modality optimization.** High-volume tactical pattern acquisition (<1200) should remain 2D-exclusive to maximize pattern exposure per hour (setting up physical boards is too slow). Deep calculation (>3–5 min, ≥1200) benefits from 3D board setup to prevent OTB "3D-blindness" caused by physical piece occlusion. | B / 2 | de Winter et al. 2021; Schneider et al. 2025 | 4 |
+| S32 | **Touch-move cognitive load.** Digital play allows cost-free motoric experimentation (piece hovering, drawing arrows). OTB requires full internal calculation prior to touch. Forbid visual arrows and piece hovering for intermediate/advanced players preparing for OTB. | A / 2 | Bjork 1994 (Desirable Difficulties); Baddeley 1992 | 4 |
+| S33 | **Peer presence/pressure online vs OTB.** Remote play/online tournaments show a 16.8% increase in error magnitude (centipawn loss) compared to physical OTB settings due to lower arousal and absence of peer presence. | A / 1 | Künn, Seel & Zegners 2021 | 4, M |
+| S34 | **Book study interaction determines ROI.** Serious isolated study explains ~26% of performance variance. Passive reading of grandmaster games yields zero transfer (fluency trap). Active recall (move guessing), difficulty calibration (Wilson's 85% rule), and cyclic repetition are required. | A / 1+2 | Macnamara 2014; Charness 2005; Wilson 2019; Bjork 2011 | 4 |
 
 ### 1.3 Contradictions across reports — reconciled (the no-BS core)
 
@@ -502,11 +508,69 @@ studies/endgame trainers, master-game collections matched to the user's pawn str
 `mapWeaknessToActivities(signals, band, constraints, config) → CandidateActivity[]` (each candidate
 carries `dimensionsTargeted`, `evidenceGrade`, `rationaleKey`, and a concrete external `resourceRef`).
 
+#### 4.2 Book Study Protocol
+How the player should interact with recommended books. To prevent the "fluency trap" of passive reading (Grade A/2, Bjork & Bjork 2011), the app enforces active study protocols.
+- **Active Recall**: The app instructs users to cover up the moves/explanations, set up the position on a board, and write down candidate moves and calculated variations before looking at the author's solution. (Time limit: 10–15 min for intermediate/advanced players).
+  - *Grade/Tier*: A / Tier 2 (Metcalfe & Kornell 2009; Bjork & Bjork 2011).
+  - *User-facing rationale key*: `book_active_recall`.
+- **Difficulty Calibration (85% Rule)**: Books must match the user's current capacity.
+  - *Grade/Tier*: B / Tier 2 (extrapolated from Wilson et al. 2019).
+  - *App implementation*: When completing a book session, the user logs their success rate (exercises solved correctly). If the rate is outside the 75–90% range, the app notes this and suggests adjusting book difficulty.
+  - *User-facing rationale key*: `book_difficulty_calibration`.
+- **Woodpecker Repetition**: Spaced cycles of tactical books.
+  - *Grade/Tier*: B / Tier 1+2 (Observational data, Smith & Tikkanen 2018).
+  - *App implementation*: For tactical workbooks, schedule review cycles where the user solves the same sets of positions with a shrinking time limit across 3 to 7 cycles (e.g., Cycle 1: 28 days, Cycle 2: 14 days, halving each time).
+  - *User-facing rationale key*: `book_woodpecker_cycle`.
+- **2D vs. 3D Modality Matching**: Spatially calibrate training based on the user's primary play medium.
+  - *Grade/Tier*: A / Tier 1+2 (Schneider et al. 2025; Kunde & Klaffehn 2021).
+  - *App implementation*: The user profile tracks target focus (Online-only vs. OTB tournaments). OTB focus triggers recommendations to set up positions on a physical board. Online-only focus defaults to 2D screens to maximize throughput.
+  - *User-facing rationale key*: `modality_2d_vs_3d`.
+
+#### 4.3 Recommended Chess Book Catalog
+Data table of books mapped by rating band. Causal grade is C (expert opinion / coaching consensus), underlying learning mechanisms (pattern recognition, chunking, templates) are Grade A (Chase & Simon 1973; Gobet & Simon 1996).
+
+| band | recommended books | focus | mapping in the app |
+| --- | --- | --- | --- |
+| **< 800** | *Everyone's First Chess Workbook* (Giannatos)<br>*Bobby Fischer Teaches Chess* (Fischer/Margulies)<br>*Chess Tactics for Students* (Bain) | Single-move tactics, fundamental checkmate patterns, and basic board vision. | Tactics-only workbooks. Strategy and opening books are **strictly blocked** to prevent cognitive overload. |
+| **800–1200** | *Chess: 5334 Problems, Combinations and Games* (Polgár)<br>*Silman's Complete Endgame Course* (Silman)<br>*Logical Chess: Move by Move* (Chernev) | Pattern automation (Mat-in-2 volume), essential mathematical endgames (Parts 1–3), and basic strategic heuristics. | Daily puzzle quota + Woodpecker cycles. Introduce structured endgame conversion and verbalized game annotations. |
+| **1200–1600** | *The Amateur's Mind* (Silman)<br>*Simple Chess* (Stean)<br>*100 Endgames You Must Know* (de la Villa) | Identifying and correcting amateur thinking errors, quiet-position planning (imbalances), and theoretical endgames. | Shift mix to 40% strategy / 60% tactics. Apply "productive struggle" (Active Recall) on diagrams with ~85% success target. |
+| **1600–2000** | *How to Reassess Your Chess (4th Ed.)* (Silman)<br>*Chess Structures: A Grandmaster Guide* (Flores Rios)<br>*The Woodpecker Method* (Smith/Tikkanen)<br>*The Art of Attack in Chess* (Vuković) | Positional imbalances, pawn structures, advanced tactical repetition, and attacking geometry. | Dynamic priority guided by weakness signals. Forbid visual aids during calculation. Shift to 3D board setup for deep studies. |
+| **2000–2200** | *Dvoretsky's Endgame Manual* (Dvoretsky)<br>*Grandmaster Preparation: Calculation* (Aagaard)<br>*Positional Decision Making in Chess* (Gelfand) | High-precision theoretical endgames, extreme calculation search-tree stress testing, and positional transformations. | High cognitive friction training. Solitary deep calculation studies (20–40 min per position). Stretch error target to 30–40%. |
+| **2200+** | *Perfect Your Chess* (Volokitin/Grabinsky)<br>*Zurich International Chess Tournament 1953* (Bronstein)<br>*Endgame Strategy* (Shereshevsky) | Elite calculation puzzles, tournament psychology/decision-making, and abstract endgame planning (restraint, etc.). | Tracking and facilitation only. Deep classical game annotations and micro-weakness optimization. |
+
+#### 4.4 2D vs. 3D Visual Modality & OTB Calibration Protocol
+Rules to manage the visual representation during training and play to optimize transfer to OTB (Grade A/1, Schneider et al. 2025; Künn et al. 2021).
+
+**(a) Modality Split (% Time Screen / % Time Physical)**
+Easy tactical volume stays on 2D to maximize exposure; deep calculation and positional studies shift to 3D.
+- `<800`: 90% Digital / 10% Physical
+- `800–1200`: 85% Digital / 15% Physical
+- `1200–1600`: 75% Digital / 25% Physical
+- `1600–2000`: 60% Digital / 40% Physical
+- `2000–2200`: 50% Digital / 50% Physical
+- `2200+`: 40% Digital / 60% Physical
+
+**(b) OTB Tournament Simulation Frequency**
+Play long online games (e.g. 15+10, 30+0, or 90+30) but mirror all moves on a physical OTB board, focusing attention on the wood to build 3D templates and combat OTB performance drop (Künn et al. 2021).
+- `<800`: Optional
+- `800–1200`: 1x per month (15+10)
+- `1200–1600`: 2x per month (30+0, Zen mode, no arrows)
+- `1600–2000`: 1x per week (45+45 league, Zen mode, no arrows, write notation)
+- `2000–2200`: 2x per week (90+30, write notation, strict touch-move)
+- `2200+`: 3x per week pre-event (90+30, write notation, strict touch-move)
+
+**(c) Interface Restrictions (Anti-Arrow & Anti-Hover Doctrine)**
+Disabling visual crutches prevents cognitive offloading and forces internal visualization (Grade B/2, Baddeley 1992; Bjork 1994).
+- *Real-time Eval Bar*: Disabled across all bands.
+- *Legal Move Dots*: Disabled across all bands.
+- *Right-click Arrows*: Allowed for `<800`, discouraged for `800-1200`, strictly forbidden above 1200.
+- *Piece Hovering*: Allowed for `<800`, discouraged for `800-1200`, forbidden above 1200.
+
 **STUB.** Exact per-band study-mix percentages (e.g. the folkloric 50/30/10/10) — coaching opinion,
 **Grade C/D**, expose as tunable; the causal claim that any given resource raises rating (**C** — say so
 in copy); resource-quality ratings for books; the exact analysis-unlock delay times (B/`best-guess`);
 the critical-moment count per band (C/`best-guess`); the precise win:loss ratios for game selection
-(B/`best-guess` — calibrate from telemetry).
+(B/`best-guess` — calibrate from telemetry); the optimal 2D/3D split ratios (B/C `best-guess`); the age-dependent neuroplasticity effect (C); the board-size saccade calibration (C).
 
 ---
 
@@ -733,6 +797,12 @@ numbers it explains (change a number → review its copy).
 | `if_then_plan`          | onboarding / weekly         | "Tell us exactly when and where you'll train ('after my morning coffee'). Tying practice to an existing habit roughly doubles the odds you actually do it."                                                                                                              | A/2              |
 | `woodpecker`            | on a re-solve / fluency set | "We sometimes re-show puzzles you already solved. Masters don't recalculate — they recognise patterns as whole 'chunks'; cycling a small core set a few times moves the answer from slow calculation to fast recognition. (Builds fluency; not proven to raise rating.)" | B/1              |
 | `streak_forgiveness`    | after a missed day          | "You didn't lose your progress for missing a day. A habit takes on the order of two months to automate and one skipped day barely dents that — punitive streak-resets mostly just make people quit. Consistency over weeks is what counts."                              | A/2              |
+| `book_active_recall`          | on book study scheduled     | "Cover the page and guess the moves. Passive reading feels smooth but builds no lasting memories; active retrieval trains the exact pathways you need during a game."                                                                                                  | A gen / C chess  |
+| `book_difficulty_calibration` | on book study feedback      | "We tune book choices to a 15% error rate. If a book is too simple or too complex, your brain stops learning efficiently. We adjust based on your self-reported success."                                                                                            | B / 2            |
+| `book_woodpecker_cycle`       | on tactical book repeat     | "Repeating the same puzzle set with shrinking time limits automates pattern recognition. We space these cycles out to move patterns from conscious calculation into rapid intuition."                                                                                  | B / 1            |
+| `modality_2d_vs_3d`           | on board modality selection | "If you play in-person tournaments, you need physical board practice. Online screens are faster for learning basic patterns, but physical boards train your 3D spatial vision and prevent OTB blind spots."                                                           | A / 1+2          |
+| `otb_tournament_simulation`   | on tournament simulation    | "Simulating tournament conditions (Zen mode, no arrows, move recording, physical board) inoculates you against OTB stress. Remote play without pressure increases errors by nearly 17%."                                                                               | A / 1            |
+| `anti_arrow_hover`            | on UI settings config       | "OTB play doesn't let you hover pieces or draw virtual arrows on the board. Disabling these visual crutches forces your mind to hold variations internally, boosting your visualization capacity."                                                                     | B / 2            |
 
 **Global honesty statements** (always-available copy block):
 
@@ -869,7 +939,9 @@ the data layer behind the process-goal "cognitive firewall" (Seam 9) and the exp
 Always compare a user to **their own baseline**, never to these population averages (cognitive ability ×
 practice interact non-linearly — Vaci et al. 2019; G6).
 
-**(c) Online ↔ FIDE (Grade A fact / C conversion).** FIDE's **March-2024 reform** (floor raised to 1400;
+**(c) Remote play vs OTB performance gap (Grade A/1).** Remote play/online tournaments show a 16.8% increase in error magnitude (centipawn loss) compared to physical OTB settings due to lower psychological arousal and absence of peer presence (Künn, Seel & Zegners 2021). This indicates online ratings can reflect lower focus levels; OTB preparation requires intentional arousal and environmental simulation.
+
+**(d) Online ↔ FIDE (Grade A fact / C conversion).** FIDE's **March-2024 reform** (floor raised to 1400;
 one-time bump for sub-2000 via Sonas's formula; 400-point rule reinstated) **invalidated all pre-2024
 conversion tables.** Therefore: do **not** offer precise conversions; **never show an OTB equivalent
 below ~1200 online** (no OTB data exists there); if shown at all, label as rough and post-2024 only
@@ -971,6 +1043,11 @@ positioned to generate the dose-response and plateau evidence the literature lac
 | 16  | **Success-biased game selection ratios (win:loss per band)**                                                                              | Strong general-psych ego-threat data (A/2); large chess dataset (B/1); not experimentally replicated on chess-board interface | Ship per-band ratios from `GAME_ANALYSIS.md` as `best-guess`              | Correlate analysis-type (win vs loss) with subsequent per-skill improvement |
 | 17  | **RPL engine-filtering CP thresholds per band**                                                                                           | RPL theory is A/2 (Metcalfe 2002); the specific per-band CP cutoffs are extrapolated     | Per-band thresholds from `GAME_ANALYSIS.md` as `best-guess`                              | Recalibrate from user-reported comprehension vs engine-line depth          |
 | 18  | **Entropy heuristic for "high-entropy" variation detection**                                                                              | Concept well-supported (Luu et al. 2025 B/1); no standardised implementation algorithm   | Approximate as eval-volatility across increasing search depth                            | Evaluate correlation of flagged positions vs user confusion signals        |
+| 19  | **Optimal 2D/3D training ratio by band**                                                                                                  | Theoretical sliding scale, not empirically tested in chess                               | 90/10 (<800) to 40/60 (2200+) ratio based on pattern volume vs. OTB context calibration   | Telemetry on OTB performance after different training ratio splits          |
+| 20  | **Age-dependent neuroplasticity in 2D-to-3D transfer**                                                                                    | General cognitive theory, unquantified in chess literature                               | Assume digital natives need stricter OTB calibration; no rating adjustments made         | Telemetry on OTB performance for different age cohorts                     |
+| 21  | **Board size impact on saccade amplitude**                                                                                                | Eye-tracking proves expert peripheral scanning, but size impact is unquantified           | Advise standard OTB tournament size (50x50 cm) for OTB prep; ignore travel board sizes    | Telemetry on OTB performance comparing travel boards vs. standard size     |
+| 22  | **No RCTs for specific books**                                                                                                            | Expert opinions only; no direct empirical comparison of book titles                      | Mapped book catalog based on cognitive load theory and coaching consensus                | User rating change and self-reported book chapter success rates            |
+| 23  | **Optimal spacing intervals for fluid strategic concepts**                                                                               | Spacing algorithms (FSRS) designed for binary facts; strategic concept decay is unstudied | Default to FSRS scheduler with 90% retention target                                       | Spaced strategic recall test accuracy over time                            |
 
 **Two honesty notes for the build:**
 
@@ -1032,6 +1109,12 @@ corresponding `research/` reports; this table is the `evidenceLedger` the UI cit
 | `luu2025`                      | Luu et al. 2025, arXiv (chess entropy/move complexity)     | high-entropy engine lines confuse sub-master players          | B (chess)                |
 | `srivastava2025`               | Srivastava et al. 2025 (metacognitive appraisal of quitting) | tilt / metacognitive pauses improve subsequent decisions    | B (cognitive science)    |
 | `balas2024`                    | Balas 2024 (Science of Chess: when to think)               | knowing when to engage deliberate thought vs pattern match    | B (chess)                |
+| `schneider2025`                | Schneider et al. 2025, _Acta Psychol._                    | 2D vs. 3D reaction time & accuracy PRP paradigm           | A (chess)                |
+| `kuenn2021`                    | Künn et al. 2021, _Econ. J._                              | Online remote play performance drop (16.8% CPL error increase) | A (chess data)           |
+| `de_winter2021`                | de Winter et al. 2021, _J. Expertise_                     | Eye-tracking, expert peripheral scanning & saccades       | A (chess)                |
+| `smith2001`                    | Smith & Vela 2001, _Psychol. Bull._                       | Encoding Specificity meta-analysis (context-dependent memory) | A (general)              |
+| `fuentes2019`                  | Fuentes-García et al. 2019, _Int. J. Environ. Res._       | EEG/HRV arousal levels in real vs. simulated chess games  | B (chess)                |
+| `nokes2009`                    | Nokes 2009, _Educ. Psychol. Rev._                         | Structural similarity & knowledge transfer mechanisms     | B (general)              |
 
 ---
 

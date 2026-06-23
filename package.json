@@ -37,6 +37,7 @@
     "next": "^15.1.0",
     "next-auth": "beta",
     "react": "^19.0.0",
+    "react-chessboard": "^5.10.0",
     "react-dom": "^19.0.0",
     "superjson": "^2.2.6",
     "tailwind-merge": "^2.6.0",

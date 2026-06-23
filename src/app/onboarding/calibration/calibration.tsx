@@ -9,6 +9,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GradeMark } from "@/components/evidence";
 import { InteractiveBoard } from "@/components/interactive-board";
 import { stepSolve, type SolveState } from "@/engine/interactive/session";
+import {
+  puzzleToSolveState,
+  type BoardOrientation,
+} from "@/engine/interactive/puzzle";
 import { systemClock } from "@/lib/clock";
 import { cn } from "@/lib/utils";
 
@@ -43,24 +47,27 @@ export function Calibration() {
   });
 
   const [solveState, setSolveState] = useState<SolveState | null>(null);
+  const [orientation, setOrientation] = useState<BoardOrientation>("white");
   const [solveStatus, setSolveStatus] = useState<
     "pending" | "correct" | "wrong" | "solved"
   >("pending");
 
   const activePuzzle = state.data?.activePuzzle;
   const activeTrack = state.data?.activeTrack;
+  const affordances = state.data?.affordances;
   const pending = submit.isPending || reset.isPending;
 
   useEffect(() => {
     if (activePuzzle) {
-      const solutionMoves = activePuzzle.moves.split(" ");
-      setSolveState({
-        position: activePuzzle.fen,
-        solutionLine: solutionMoves,
-        cursor: 0,
-        startedMs: systemClock.now(),
-        attempts: 0,
-      });
+      // Apply the opponent's setup move so the solver faces the real position from the
+      // correct side (fixes the off-by-one + flipped orientation).
+      const { solveState: setup, orientation: playerSide } = puzzleToSolveState(
+        activePuzzle.fen,
+        activePuzzle.moves,
+        systemClock.now(),
+      );
+      setSolveState(setup);
+      setOrientation(playerSide);
       setSolveStatus("pending");
     } else {
       setSolveState(null);
@@ -242,17 +249,29 @@ export function Calibration() {
         </div>
 
         {activePuzzle && solveState ? (
-          <div className="grid gap-6 md:grid-cols-[1.1fr_0.9fr] items-start mt-2">
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem] items-start mt-2">
             {/* Chessboard View */}
             <div className="flex flex-col items-center gap-3">
+              <div className="flex w-full max-w-[34rem] items-center justify-between px-1">
+                <span className="eyebrow !text-[0.6rem]">
+                  {orientation === "white" ? "White" : "Black"} to move
+                </span>
+                <span className="text-graphite font-mono text-xs">
+                  You play {orientation}
+                </span>
+              </div>
               <InteractiveBoard
                 fen={solveState.position}
                 onMove={handleMove}
-                orientation={activePuzzle.fen.split(" ")[1] === "b" ? "black" : "white"}
+                orientation={orientation}
                 disabled={pending || solveStatus === "solved" || solveStatus === "wrong"}
-                className="w-full max-w-sm sm:max-w-md"
+                showEvalBar={affordances?.showEvalBar ?? false}
+                showLegalMoveDots={affordances?.showLegalMoveDots ?? false}
+                allowArrows={affordances?.allowArrows ?? true}
+                allowHover={affordances?.allowHover ?? true}
+                className="w-full max-w-[34rem]"
               />
-              <div className="flex justify-between w-full max-w-sm sm:max-w-md px-1">
+              <div className="flex justify-between w-full max-w-[34rem] px-1">
                 <span className="text-graphite font-mono text-xs">
                   Attempts: {solveState.attempts}
                 </span>

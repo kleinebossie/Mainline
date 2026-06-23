@@ -229,7 +229,7 @@ export default function TrainPage() {
           </Button>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-[1.1fr_0.9fr]">
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
           {/* Chessboard View */}
           <div className="flex flex-col items-center gap-3">
             <InteractiveBoard
@@ -240,10 +240,10 @@ export default function TrainPage() {
                 (mode === "puzzle" && solveStatus === "solved") ||
                 (mode === "spar" && engineLoading)
               }
-              className="w-full max-w-sm sm:max-w-md"
+              className="w-full max-w-[36rem]"
             />
             {mode === "puzzle" && (
-              <div className="flex justify-between w-full max-w-sm sm:max-w-md px-1">
+              <div className="flex justify-between w-full max-w-[36rem] px-1">
                 <span className="text-graphite font-mono text-xs">
                   Elapsed: {(elapsedMs / 1000).toFixed(1)}s
                 </span>

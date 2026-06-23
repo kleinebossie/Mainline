@@ -9,6 +9,7 @@ import type {
   MethodologyConfig,
   RationaleEntry,
   RewardEventType,
+  TargetFocus,
 } from "@/methodology/schema/config";
 import type { RawGameFeatures } from "@/lib/raw-features";
 import { servoOffset } from "@/engine/math/servo";
@@ -520,6 +521,54 @@ export function mapWeaknessToActivities(
   }
 
   return [...candidates.values()];
+}
+
+export type { TargetFocus };
+
+/** The in-app board's interface affordances for a band × play medium (Seam 4 §4.4(c)).
+ *  Every value comes from config (L1); the board itself holds no affordance policy. */
+export interface BoardAffordances {
+  showEvalBar: boolean;
+  showLegalMoveDots: boolean;
+  allowArrows: boolean;
+  allowHover: boolean;
+  /** True when any crutch is hidden — the UI then shows the restriction rationale. */
+  restricted: boolean;
+  /** Seam-8 rationale key explaining the hidden crutches (graded copy in `rationale`). */
+  restrictionRationaleKey: string;
+  evidenceGrade: Grade;
+  evidenceTier: Tier;
+  citationKey: string;
+}
+
+/**
+ * Seam 4 §4.4(c) — resolve the board's interface-restriction affordances for a user from
+ * config. Eval bar + legal-move dots are off across all bands (crutches absent from a real
+ * board); arrows + hover are gated by the user's play medium (`targetFocus`). The `band`
+ * rides along for the research config's planned band×focus refinement; the stub keys
+ * arrows/hover by focus only. Pure (L2), config-only (L1).
+ */
+export function interfaceAffordancesFor(
+  input: { band: Band; targetFocus: TargetFocus },
+  cfg: MethodologyConfig,
+): BoardAffordances {
+  const b = cfg.board;
+  const arrows = b.allowArrowsByFocus[input.targetFocus];
+  const hover = b.allowHoverByFocus[input.targetFocus];
+  const showEvalBar = b.showEvalBar.value;
+  const showLegalMoveDots = b.showLegalMoveDots.value;
+  return {
+    showEvalBar,
+    showLegalMoveDots,
+    allowArrows: arrows.value,
+    allowHover: hover.value,
+    restricted:
+      !showEvalBar || !showLegalMoveDots || !arrows.value || !hover.value,
+    restrictionRationaleKey: b.restrictionRationaleKey,
+    evidenceGrade: arrows.grade,
+    evidenceTier: arrows.tier,
+    citationKey: arrows.citationKey,
+  };
 }
 
 // ---------------------------------------------------------------------------

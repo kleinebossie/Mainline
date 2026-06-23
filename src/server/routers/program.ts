@@ -17,6 +17,9 @@ import {
   loadMethodology,
   bandForRating,
   expectationForBand,
+  interfaceAffordancesFor,
+  rationaleFor,
+  type TargetFocus,
 } from "@/methodology";
 import { selectPuzzles } from "@/db/puzzles";
 
@@ -92,9 +95,26 @@ export const programRouter = router({
       const ledger = new Map(cfg.evidenceLedger.map((l) => [l.key, l.source]));
       const todayItem = toTodayItem(item, cfg, dimLabels, ledger);
 
+      // Seam 4 §4.4(c) — the board's interface-restriction affordances for this user, from
+      // config (L1). `targetFocus` defaults to "online" until the constraints form captures
+      // it (M14); the band×focus gating is already config-driven and ready.
+      const tacticalRating = await resolveTacticalRating(
+        ctx.prisma,
+        ctx.userId,
+        cfg,
+      );
+      const band = bandForRating(tacticalRating, cfg);
+      const targetFocus: TargetFocus = "online";
+      const affordances = interfaceAffordancesFor({ band, targetFocus }, cfg);
+      const restrictionRationale = affordances.restricted
+        ? rationaleFor(affordances.restrictionRationaleKey, cfg)
+        : null;
+
       return {
         item: todayItem,
         puzzles,
+        affordances,
+        restrictionRationale,
       };
     }),
 
