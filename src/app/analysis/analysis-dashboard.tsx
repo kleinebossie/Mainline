@@ -7,7 +7,6 @@ import { PageShell } from "@/components/app-shell";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { TransparencyCard } from "@/components/transparency-card";
-import { AnalysisRunner } from "@/app/settings/analysis-runner";
 import { cn } from "@/lib/utils";
 import {
   resultLabel,
@@ -21,6 +20,15 @@ function resultChipClass(result: string | null | undefined): string {
   if (result === "loss") return "bg-grade-d/10 text-grade-d";
   return "bg-grade-c/10 text-grade-c";
 }
+
+// Bounded analysis depth (infrastructure: responsive UI / sane battery — not science, mirrors
+// the same constant in settings/analysis-runner.tsx).
+const ANALYSIS_DEPTH = 12;
+
+type BatchStatus = "idle" | "running" | "error" | "partial";
+
+// The client-side Stockfish adapter type (imported lazily at call time, typed here).
+type AnalysisEngine = import("@/analysis").StockfishAnalysisEngine;
 
 export function AnalysisDashboard() {
   const utils = trpc.useUtils();
@@ -36,12 +44,19 @@ export function AnalysisDashboard() {
       void utils.analysis.suggestions.invalidate();
     },
   });
+  const saveAnalysis = trpc.analysis.save.useMutation();
 
   const [platformOverride, setPlatformOverride] = useState<string | null>(null);
+  const [batchStatus, setBatchStatus] = useState<BatchStatus>("idle");
+  const [batchProgress, setBatchProgress] = useState<{ done: number; total: number } | null>(
+    null,
+  );
+  const [batchError, setBatchError] = useState<string | null>(null);
+  // The id of the single game whose engine analysis is running (per-row "Engine analysis").
+  const [analyzingGameId, setAnalyzingGameId] = useState<string | null>(null);
 
-  const suggestions = suggestionsQuery.data?.suggestions ?? [];
-  const tilt = suggestionsQuery.data?.tilt;
   const successBiasRationale = suggestionsQuery.data?.rationale;
+  const ratio = suggestionsQuery.data?.ratio;
 
   const library = libraryQuery.data;
   const platforms = library?.platforms ?? [];
@@ -55,6 +70,108 @@ export function AnalysisDashboard() {
     if (p === "lichess" || p === "chesscom") setPrimary.mutate({ platform: p });
   };
 
+  // Analyse one game with an already-initialised engine and persist its raw features.
+  // Shared by the batch runner and the per-game "Engine analysis" button.
+  async function analyzeAndSave(
+    engine: AnalysisEngine,
+    game: { id: string; pgn: string; color: string | null },
+  ) {
+    const features = await engine.analyzeGame(
+      game.pgn,
+      { depth: ANALYSIS_DEPTH },
+      { userColor: game.color === "b" ? "b" : "w" },
+    );
+    await saveAnalysis.mutateAsync({
+      gameId: game.id,
+      engineVersion: engine.engineVersion,
+      depth: ANALYSIS_DEPTH,
+      rawFeatures: features,
+    });
+  }
+
+  // Per-game engine analysis: turn Stockfish on for ONE game (the row's "Engine analysis"
+  // button). Once its raw features are saved, the row flips to the "Analyze" review entry.
+  async function runSingleAnalysis(gameId: string) {
+    setAnalyzingGameId(gameId);
+    setBatchError(null);
+    try {
+      const game = await utils.analysis.gameSource.fetch({ gameId });
+      const { StockfishAnalysisEngine } = await import("@/analysis");
+      const engine = new StockfishAnalysisEngine();
+      await engine.init();
+      try {
+        await analyzeAndSave(engine, game);
+      } finally {
+        engine.dispose();
+      }
+      await Promise.all([
+        utils.analysis.library.invalidate(),
+        utils.analysis.summary.invalidate(),
+      ]);
+    } catch (e) {
+      setBatchError(e instanceof Error ? e.message : "Engine analysis failed.");
+    } finally {
+      setAnalyzingGameId(null);
+    }
+  }
+
+  // Runs Stockfish (browser WASM) over the unanalysed games in a window scoped to the
+  // selected primary platform. `limit` omitted = every unanalysed game currently in view;
+  // otherwise the `limit` most recent games on that platform ("Analyse last N games").
+  async function runBatchAnalysis(limit?: number) {
+    const platform = selectedPlatform === "lichess" || selectedPlatform === "chesscom"
+      ? selectedPlatform
+      : undefined;
+    setBatchStatus("running");
+    setBatchError(null);
+    try {
+      const pendingGames = await utils.analysis.pending.fetch(
+        limit != null ? { limit, platform } : platform ? { platform } : undefined,
+      );
+      if (pendingGames.length === 0) {
+        setBatchStatus("idle");
+        return;
+      }
+      setBatchProgress({ done: 0, total: pendingGames.length });
+
+      const { StockfishAnalysisEngine } = await import("@/analysis");
+      const engine = new StockfishAnalysisEngine();
+      await engine.init();
+      const failures: string[] = [];
+      try {
+        let done = 0;
+        for (const game of pendingGames) {
+          try {
+            await analyzeAndSave(engine, game);
+          } catch (e) {
+            failures.push(e instanceof Error ? e.message : "Analysis failed.");
+            continue;
+          }
+          done += 1;
+          setBatchProgress({ done, total: pendingGames.length });
+        }
+      } finally {
+        engine.dispose();
+      }
+
+      await Promise.all([
+        utils.analysis.library.invalidate(),
+        utils.analysis.summary.invalidate(),
+      ]);
+      if (failures.length > 0) {
+        setBatchError(
+          `${failures.length} game${failures.length === 1 ? "" : "s"} failed and were skipped: ${failures[0]}`,
+        );
+        setBatchStatus("partial");
+      } else {
+        setBatchStatus("idle");
+      }
+    } catch (e) {
+      setBatchError(e instanceof Error ? e.message : "Analysis failed.");
+      setBatchStatus("error");
+    }
+  }
+
   return (
     <PageShell
       eyebrow="Structured Game Analysis"
@@ -63,35 +180,6 @@ export function AnalysisDashboard() {
       width="default"
     >
       <div className="flex flex-col gap-8">
-        {/* Tilt Cooldown Banner */}
-        {tilt?.tilted && (
-          <div className="relative overflow-hidden rounded-lg border border-grade-d/30 bg-ink p-6 text-paper shadow-sheet settle animate-pulse">
-            <div className="flex items-center gap-3">
-              <span className="text-grade-d font-mono text-2xl font-bold">!!</span>
-              <div>
-                <h3 className="font-serif text-lg font-semibold tracking-tight">
-                  Tilt Prevention Cooldown Active
-                </h3>
-                <p className="text-paper/70 mt-1 text-sm">{tilt.reason}</p>
-              </div>
-            </div>
-            {suggestionsQuery.data?.tilt_rationale && (
-              <div className="mt-4 border-t border-paper/10 pt-4">
-                <TransparencyCard
-                  rationaleText={suggestionsQuery.data.tilt_rationale.value}
-                  evidenceGrade={suggestionsQuery.data.tilt_rationale.grade}
-                  evidenceTier={suggestionsQuery.data.tilt_rationale.tier}
-                  citationKey={suggestionsQuery.data.tilt_rationale.citationKey}
-                  confidence="medium"
-                  soften={suggestionsQuery.data.tilt_rationale.soften}
-                  flag={suggestionsQuery.data.tilt_rationale.flag}
-                  className="bg-paper/5 border-none text-paper"
-                />
-              </div>
-            )}
-          </div>
-        )}
-
         {/* Pick a game — the library, most recent first, filtered by primary platform. */}
         <section className="flex flex-col gap-4">
           <div className="flex flex-wrap items-end justify-between gap-3">
@@ -143,6 +231,40 @@ export function AnalysisDashboard() {
               Pick a platform tab to set it as your primary — we&apos;ll default
               here next time.
             </p>
+          )}
+
+          {selectedPlatform && games.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={batchStatus === "running" || analyzingGameId !== null}
+                onClick={() => void runBatchAnalysis()}
+              >
+                Engine analysis (all)
+              </Button>
+              {[5, 20, 50].map((n) => (
+                <Button
+                  key={n}
+                  size="sm"
+                  variant="outline"
+                  disabled={batchStatus === "running" || analyzingGameId !== null}
+                  onClick={() => void runBatchAnalysis(n)}
+                >
+                  Last {n} games
+                </Button>
+              ))}
+              {batchStatus === "running" && batchProgress && (
+                <span className="text-graphite font-mono text-xs">
+                  Analysing {batchProgress.done}/{batchProgress.total}…
+                </span>
+              )}
+              {(batchStatus === "error" || batchStatus === "partial") && batchError && (
+                <span className="text-grade-d font-mono text-xs" role="alert">
+                  {batchError}
+                </span>
+              )}
+            </div>
           )}
 
           {libraryQuery.isLoading ? (
@@ -226,131 +348,60 @@ export function AnalysisDashboard() {
                       )}
                     </div>
                   </div>
-                  <Link
-                    href={`/analysis/${g.id}`}
-                    className={cn(
-                      buttonVariants({
-                        size: "sm",
-                        variant: g.analyzed ? "outline" : "default",
-                      }),
-                      "shrink-0",
-                      tilt?.tilted && "pointer-events-none opacity-40",
-                    )}
-                  >
-                    {g.analyzed ? "Review" : "Analyse"}
-                  </Link>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* Suggested Games Section — methodology-curated picks, now named. */}
-        <section className="flex flex-col gap-4">
-          <div className="flex items-baseline justify-between">
-            <h2 className="eyebrow">Suggested for review</h2>
-            {suggestions.length > 0 && (
-              <span className="text-graphite font-mono text-xs">
-                Target ratio: {suggestions.filter((s) => s.result === "win").length}
-                /5 wins
-              </span>
-            )}
-          </div>
-
-          {suggestionsQuery.isLoading ? (
-            <p className="text-graphite font-mono text-sm">
-              Loading suggestions…
-            </p>
-          ) : suggestions.length === 0 ? (
-            <Card>
-              <CardContent className="py-6 text-center">
-                <p className="text-graphite font-serif text-sm">
-                  No analysed games yet. Pick any game above to run your first
-                  review — suggestions appear here once games are analysed.
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-4">
-              {suggestions.map((game) => (
-                <div
-                  key={game.gameId}
-                  className={cn(
-                    "flex flex-col justify-between gap-4 rounded-lg border p-5 shadow-sheet transition-all hover:translate-y-[-1px] sm:flex-row sm:items-center",
-                    game.result === "win"
-                      ? "border-l-4 border-l-grade-a bg-card"
-                      : "border-l-4 border-l-grade-c bg-card/50",
-                  )}
-                >
-                  <div className="flex flex-col gap-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span
-                        className={cn(
-                          "rounded px-1.5 py-0.5 font-mono text-[0.65rem] font-bold uppercase",
-                          resultChipClass(game.result),
-                        )}
-                      >
-                        {resultLabel(game.result)}
-                      </span>
-                      {game.opponent && (
-                        <span className="font-serif text-sm font-semibold text-ink">
-                          vs {game.opponent}
-                        </span>
+                  {g.analyzed ? (
+                    // Engine work is done — the primary action is the structured human
+                    // review. Filled evergreen, distinct from the neutral engine button.
+                    <Link
+                      href={`/analysis/${g.id}`}
+                      className={cn(
+                        buttonVariants({ size: "sm", variant: "default" }),
+                        "shrink-0",
                       )}
-                      <span className="text-graphite font-mono text-xs">
-                        {game.score > 200
-                          ? "Active moments to review"
-                          : "Standard review"}
-                      </span>
-                    </div>
-                    <h3 className="font-serif text-base font-semibold text-ink">
-                      {game.suggestedReason}
-                    </h3>
-                    <p className="text-graphite font-mono text-[0.7rem]">
-                      {[
-                        platformLabel(game.platform),
-                        game.playedAt ? formatGameDate(game.playedAt) : null,
-                      ]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    </p>
-                  </div>
-
-                  <Link
-                    href={`/analysis/${game.gameId}`}
-                    className={cn(
-                      buttonVariants({ size: "sm" }),
-                      "shrink-0",
-                      tilt?.tilted && "pointer-events-none opacity-40",
-                    )}
-                  >
-                    Start Analysis
-                  </Link>
+                    >
+                      Analyze
+                    </Link>
+                  ) : (
+                    // Not analysed yet — turn the engine on for just this game. Neutral
+                    // outline, so it never looks like the same control as "Analyze".
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="shrink-0"
+                      disabled={analyzingGameId !== null || batchStatus === "running"}
+                      onClick={() => void runSingleAnalysis(g.id)}
+                    >
+                      {analyzingGameId === g.id ? "Analysing…" : "Engine analysis"}
+                    </Button>
+                  )}
                 </div>
               ))}
             </div>
           )}
-
-          {successBiasRationale && (
-            <TransparencyCard
-              rationaleText={successBiasRationale.value}
-              evidenceGrade={successBiasRationale.grade}
-              evidenceTier={successBiasRationale.tier}
-              citationKey={successBiasRationale.citationKey}
-              confidence="medium"
-              soften={successBiasRationale.soften}
-              flag={successBiasRationale.flag}
-              className="mt-2"
-            />
-          )}
         </section>
 
-        {/* Stockfish WASM Runner Section */}
-        <Card className="border-line/80">
-          <CardContent className="pt-6">
-            <AnalysisRunner />
-          </CardContent>
-        </Card>
+        {/* Honest one-line recommendation (Seam 4.1 §Step5) — no curated list, since the
+            player can already pick any game above. */}
+        {ratio && (
+          <section className="flex flex-col gap-3 rounded-lg border border-line bg-card px-5 py-4 shadow-sheet">
+            <p className="text-ink font-serif text-sm leading-relaxed">
+              When picking a game above, aim for roughly{" "}
+              <span className="font-mono font-semibold">{ratio.winPct}% wins</span> to{" "}
+              <span className="font-mono font-semibold">{ratio.lossPct}% losses</span> —{" "}
+              {ratio.focusDescription}.
+            </p>
+            {successBiasRationale && (
+              <TransparencyCard
+                rationaleText={successBiasRationale.value}
+                evidenceGrade={successBiasRationale.grade}
+                evidenceTier={successBiasRationale.tier}
+                citationKey={successBiasRationale.citationKey}
+                confidence="medium"
+                soften={successBiasRationale.soften}
+                flag={successBiasRationale.flag}
+              />
+            )}
+          </section>
+        )}
       </div>
     </PageShell>
   );

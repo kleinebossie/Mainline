@@ -939,6 +939,11 @@ export interface CriticalMoment {
   cpAfter: number;
   cpLoss: number;
   fen?: string;
+  /** An alternative move is graded "correct" when its own cpLoss is at or below this
+   *  (Seam 4.1 §guessAcceptanceCpLossRatio combined with the RPL visible threshold) —
+   *  the player need not find the engine's literal #1 move (L1: the number is config,
+   *  the comparison is plain UI arithmetic). */
+  maxAcceptableCpLoss: number;
 }
 
 export interface EngineLine {
@@ -970,6 +975,9 @@ export interface AnalysisSession {
   rplFilteredLines: FilteredLine[];
   srsPuzzles: SRSPuzzle[];
   gameSelectionRatio: { win: number; loss: number };
+  /** Failed attempts allowed before the player may reveal the engine's moves (Seam 4 §Step
+   *  2/3 — the desirable-difficulty dosage; config-driven, L1). */
+  revealAfterMisses: number;
 }
 
 export interface RecentGame {
@@ -1322,6 +1330,26 @@ export function filterEngineLines(
 }
 
 /**
+ * Seam 4.1 §Step5 — the per-band suggested win:loss analysis ratio, as percentages, plus its
+ * focus copy. Lets a caller show the honest recommendation as a one-line statement instead of
+ * a curated game list, without hardcoding the ratio outside config (L1).
+ */
+export function gameSelectionRatioFor(
+  band: Band,
+  cfg: MethodologyConfig,
+): { winPct: number; lossPct: number; focusDescription: string } | null {
+  const selection = cfg.gameAnalysis.gameSelection;
+  if (!selection.enabled.value) return null;
+  const bandCfg = selection.perBand[band];
+  if (!bandCfg) return null;
+  return {
+    winPct: Math.round(bandCfg.winRatio.value * 100),
+    lossPct: Math.round(bandCfg.lossRatio.value * 100),
+    focusDescription: bandCfg.focusDescription.value,
+  };
+}
+
+/**
  * Seam 4.1 — Orchestrates the 5 steps of the game analysis protocol.
  * Pure and deterministic (L2).
  */
@@ -1365,12 +1393,18 @@ export function gameAnalysisProtocol(
       return userColor === "w" ? ply % 2 === 1 : ply % 2 === 0;
     };
 
-    // Find candidate critical moments on user plies
+    // Find candidate critical moments on user plies, selected by severity (highest
+    // cpLoss first) but re-sorted back to ply order — the player reproduces them in
+    // the order they happened in the game, not in error-severity order.
     const candidates = (game.rawFeatures.moveEvals || [])
       .filter((m) => isUserPly(m.ply) && m.cpLoss >= threshold)
       .sort((a, b) => b.cpLoss - a.cpLoss);
 
-    const selectedMoments = candidates.slice(0, maxMoments);
+    const selectedMoments = candidates
+      .slice(0, maxMoments)
+      .sort((a, b) => a.ply - b.ply);
+
+    const guessRatio = reproduction.guessAcceptanceCpLossRatio.value;
 
     for (const moment of selectedMoments) {
       // Find matching FEN from blunder features if available
@@ -1383,6 +1417,14 @@ export function gameAnalysisProtocol(
         cpAfter: moment.cpAfter,
         cpLoss: moment.cpLoss,
         fen,
+        // The player's alternative need not be the engine's literal #1 move: it's
+        // "correct" once its own cpLoss is at most `guessRatio` of the original
+        // blunder AND stays inside this band's RPL visibility threshold — whichever
+        // of those two caps is tighter.
+        maxAcceptableCpLoss: Math.max(
+          0,
+          Math.min(moment.cpLoss * guessRatio, threshold),
+        ),
       });
 
       // Step 4: SRS Puzzles
@@ -1410,5 +1452,7 @@ export function gameAnalysisProtocol(
     rplFilteredLines: [], // Release engine lines when evaluated client-side
     srsPuzzles,
     gameSelectionRatio,
+    revealAfterMisses:
+      cfg.gameAnalysis.activeReproduction.revealAfterMisses.value,
   };
 }

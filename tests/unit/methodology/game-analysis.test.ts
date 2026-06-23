@@ -45,10 +45,43 @@ describe("gameAnalysisProtocol", () => {
     expect(session.criticalMoments[0]!.ply).toBe(3);
     expect(session.criticalMoments[0]!.cpLoss).toBe(350);
     expect(session.criticalMoments[0]!.fen).toBe("r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3");
+    // u800 RPL threshold is 300cp and guessAcceptanceCpLossRatio is 0.5 → min(350*0.5, 300) = 175.
+    expect(session.criticalMoments[0]!.maxAcceptableCpLoss).toBe(175);
     expect(session.srsPuzzles.length).toBe(1);
     expect(session.srsPuzzles[0]!.ply).toBe(3);
     expect(session.gameSelectionRatio.win).toBe(0.8);
     expect(session.gameSelectionRatio.loss).toBe(0.2);
+  });
+
+  it("returns critical moments in chronological (ply) order even when selected by severity", () => {
+    // b800_1200 allows up to 2 critical moments. The worse blunder (500cp) happens
+    // later in the game (ply 7) than the milder one (210cp, ply 3) — severity-based
+    // selection would pick both, but the player must reproduce them in game order.
+    const game = {
+      id: "game2",
+      pgn: "1. e4 e5 2. Nf3 Nc6 3. Bc4 Nf6 4. Ng5 d5 5. exd5 Na5 6. Bb5+ c6 7. dxc6 bxc6",
+      playedAt: new Date(),
+      result: "loss",
+      color: "w",
+      rawFeatures: {
+        acplOverall: 60,
+        acplByPhase: { opening: 10, middlegame: 80, endgame: 0 },
+        phaseBoundaries: { openingEndsPly: 10, endgameStartsPly: 20 },
+        moveEvals: [
+          { ply: 1, cpBefore: 30, cpAfter: 30, cpLoss: 0 },
+          { ply: 3, cpBefore: 30, cpAfter: -180, cpLoss: 210 },
+          { ply: 7, cpBefore: -100, cpAfter: -600, cpLoss: 500 },
+        ],
+        blunders: [
+          { ply: 3, fen: "fen-ply3", cpLoss: 210 },
+          { ply: 7, fen: "fen-ply7", cpLoss: 500 },
+        ],
+        errorCounts: { inaccuracies: 0, mistakes: 0, blunders: 2, grossBlunders: 1 },
+      },
+    };
+
+    const session = gameAnalysisProtocol(game, "b800_1200", cfg);
+    expect(session.criticalMoments.map((m) => m.ply)).toEqual([3, 7]);
   });
 });
 

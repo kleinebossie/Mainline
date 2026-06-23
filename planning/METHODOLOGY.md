@@ -369,6 +369,17 @@ real game (Charness et al. 2005; Bjork & Bjork 2011, Grade A/2). `GAME_ANALYSIS.
 cognitive science, behavioural psychology, and large-scale chess-database analysis into a **5-step
 protocol** that the app must enforce. Each step is config-driven and per-band.
 
+> **Which rating picks the band (a deliberate split).** The game-analysis band — what counts as a
+> "bad move" worth reproducing (Step 2), the RPL visible-error threshold (Seam 3 §(d)), and the
+> reproduction task — derives from the player's **playing strength**: the rating they actually had in
+> _that_ game, falling back to a real-format rating (rapid → blitz → classical), and only then to the
+> tactical estimate. It must **not** use the puzzle rating. Lichess puzzle ratings run materially
+> higher than playing strength (§0.4), so keying the band off them over-promotes weaker players into a
+> stricter band — e.g. a 930-rapid player treated as 1600–2000 gets a 50cp "bad move" threshold
+> instead of the correct 200cp, flagging trivial inaccuracies as blunders. The puzzle/tactical rating
+> still seeds **puzzle difficulty** (Seam 5), where it is the right signal; only the analysis band
+> tracks playing strength. This is §0.4 in practice: the user's own (playing) data overrides the prior.
+
 **Step 1 — Emotional & metacognitive calibration (immediately post-game)**
 
 Starting analysis or a new game immediately after a loss creates cognitive blind spots and tilt. The
@@ -399,6 +410,14 @@ player is shown the position and must **self-identify the error and propose an i
 and/or text input. This forces _retrieval practice_ — the exact neural pathways needed during a real
 game.
 
+The attempt is a **retrieval loop, not a single shot**: the player proposes a move, the engine grades
+it _silently_ (acceptable when its own cpLoss is within `guessAcceptanceCpLossRatio` of the original
+blunder and inside the band's RPL threshold), and an unacceptable move is rejected **without showing
+any engine line** — the player simply tries again. Repeated retrieval attempts (even failed ones)
+strengthen encoding far more than a single guess followed by the answer (Generation Effect / pretesting,
+S28; Bjork & Bjork 2011). The engine is revealed only on success (as comparative feedback, Step 3) or
+after `activeReproduction.revealAfterMisses` failed attempts, so a struggling player is never trapped.
+
 **Config — `gameAnalysis.activeReproduction`**
 
 | band      | task without engine                                                              | # critical moments | time limit per moment |
@@ -413,15 +432,30 @@ Grade: A/2 ("Desirable Difficulties" + "Generation Effect", robustly replicated;
 2009; Bjork & Bjork 2011). The required effort level scales with chess vocabulary — beginners (<800)
 lack words for positional judgements, so focus on eliminating board blindness.
 
-**Step 3 — RPL-filtered engine feedback release**
+**Step 3 — Engine feedback: comparative on success, on-demand reveal after struggle**
 
-After the player's manual evaluation, engine analysis is released — but **not all of it**. Lines
-outside the player's Region of Proximal Learning are suppressed (see Seam 3 §(d) RPL filtering
-table). The app prefers a slightly inferior but _human-comprehensible_ engine suggestion over the
-absolute top engine move when the top move is incomprehensible to the player's band.
+Engine output is **never dumped as a standing list of filtered suggestions** (that re-creates the
+"fluency trap" the protocol exists to avoid). Instead it is released in one of two ways, both tied to
+the player's own attempt:
 
-Grade: A/2 (Metcalfe 2002 RPL model) + B/1 (Luu et al. 2025 entropy). See Seam 3 §(d) for the full
-per-band CP-threshold and entropy-filter tables.
+- **On success** — when the player finds an acceptable move, the app reports _how much better_ it was
+  than the move they actually played, as a single comparative number ("this move is **x% better** than
+  your game move", i.e. the reduction in centipawn loss). Feedback targets the move/process, never the
+  player (S20, Wisniewski 2020).
+- **On reveal** — only after `activeReproduction.revealAfterMisses` failed attempts may the player
+  reveal the engine's **top 3 moves**, each annotated with the same comparative "% better than your
+  game move" and its evaluation. This is the explicit "show me" escape hatch; the desirable-difficulty
+  cost has already been paid by the failed retrievals, so the full top-N is shown rather than hidden.
+
+RPL still governs _phrasing and emphasis_: the app prefers a slightly inferior but
+_human-comprehensible_ line over an incomprehensible top engine move when surfacing the "why", and
+flags high-entropy positions (Seam 3 §(d)). But suppression no longer _hides_ the reveal — once the
+player has earned it, withholding the moves would only frustrate.
+
+Grade: A/2 (Desirable Difficulties + Generation Effect; Bjork & Bjork 2011; Metcalfe & Kornell 2009)
++ A/2 (feedback-on-task; Wisniewski 2020) + A/2 (Metcalfe 2002 RPL) + B/1 (Luu et al. 2025 entropy).
+The `revealAfterMisses` count itself is a best-guess (C). See Seam 3 §(d) for the per-band CP-threshold
+and entropy-filter tables.
 
 **Step 4 — Integration of critical moments into the SRS**
 
@@ -477,13 +511,15 @@ was clean.
 | `successBias.enabled`           | `true`                                                     | B/1+2 | Yiannakoulias 2026; Eskreis-Winkler 2022 |
 | `srsIntegration.enabled`        | `true`                                                     | A/2   | spacing effect                         |
 | `maxCriticalMomentsPerGame`     | per-band table (Step 2)                                    | C     | `best-guess`                           |
+| `activeReproduction.revealAfterMisses` | `3` (failed attempts before the engine may be revealed) | C/2 | `best-guess` (Metcalfe & Kornell 2009)  |
 | `tiltPreventionEnabled`         | `true`                                                     | B/2   | `semi-evidenced`                       |
 | `physicalBoardRecommendation`   | advise for bands >1200 preparing for OTB                   | C     | `best-guess` (anecdotal + state-dependent recall theory) |
 
 **Pure function.**
 `gameAnalysisProtocol(game, band, config) → AnalysisSession` (orchestrates the 5 steps;
 `AnalysisSession = { calibrationPrompt, criticalMoments[], rplFilteredLines[], srsPuzzles[],
-gameSelectionRatio }`).
+gameSelectionRatio, revealAfterMisses }`). The `band` here is the player's **playing-strength** band
+(see §4.1 note), not their puzzle-rating band.
 
 ---
 

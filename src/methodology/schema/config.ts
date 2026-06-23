@@ -390,6 +390,11 @@ const activeReproductionBandSchema = z.object({
   taskDescription: gradedValue(z.string()),
   maxCriticalMoments: gradedValue(z.number()),
   timeLimitPerMomentMs: gradedValue(z.number().nullable()),
+  // Accept an alternative move whose own cpLoss is at most this fraction of the
+  // original blunder's cpLoss (combined with the RPL visible-error threshold in
+  // provider.ts) — there is no direct study on the tolerance fraction itself, so this
+  // is graded like the other per-band active-reproduction params (stub/best-guess).
+  guessAcceptanceCpLossRatio: gradedValue(z.number().min(0).max(1)),
 });
 
 const rplFilteringBandSchema = z.object({
@@ -410,6 +415,10 @@ const gameAnalysisSchema = z.object({
     perBand: z.record(emotionalCalibrationBandSchema),
   }),
   activeReproduction: z.object({
+    // How many failed attempts the player makes before they may reveal the engine's
+    // moves (the desirable-difficulty dosage — they retrieve first, the engine only
+    // bails them out after a genuine effort). A best-guess count, not a studied value.
+    revealAfterMisses: gradedValue(z.number().int().min(1)),
     perBand: z.record(activeReproductionBandSchema),
   }),
   rplFiltering: z.object({

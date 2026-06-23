@@ -62,11 +62,26 @@ function responsesForTrack(
     .map((r) => ({ ratingShown: r.ratingShown, correct: r.correct }));
 }
 
-/** Pull a tactical-ish rating (puzzle, else rapid) from a snapshot's ratings JSON. */
+/** Pull a tactical-ish rating (puzzle, else rapid) from a snapshot's ratings JSON. Used to
+ *  SEED puzzle difficulty (Seam 5) — where the puzzle ladder is the right signal. */
 export function ratingFromSnapshot(ratings: unknown): number | null {
+  return ratingForFormats(ratings, ["puzzle", "rapid"]);
+}
+
+/** Pull a PLAYING-strength rating from a snapshot — a real game format
+ *  (rapid → blitz → classical → bullet), never the puzzle rating. Lichess puzzle ratings
+ *  run far above playing strength, so they must NOT decide the game-analysis band (the
+ *  "bad move" / RPL cp thresholds): a 930-rapid player belongs in 800–1200 (200cp), not
+ *  1600–2000 (50cp). Returns null when the user has no rated games of any format. */
+export function playingRatingFromSnapshot(ratings: unknown): number | null {
+  return ratingForFormats(ratings, ["rapid", "blitz", "classical", "bullet"]);
+}
+
+/** First finite `ratings[fmt].rating` for the formats, in preference order, else null. */
+function ratingForFormats(ratings: unknown, formats: string[]): number | null {
   if (!ratings || typeof ratings !== "object") return null;
   const r = ratings as Record<string, unknown>;
-  for (const fmt of ["puzzle", "rapid"]) {
+  for (const fmt of formats) {
     const f = r[fmt];
     if (f && typeof f === "object") {
       const rating = (f as Record<string, unknown>).rating;

@@ -38,6 +38,7 @@ export {
   filterEngineLines,
   selectGamesForAnalysis,
   detectTilt,
+  gameSelectionRatioFor,
   type GradedExpectation,
   type EngagementStateChange,
   type EngagementEvent,

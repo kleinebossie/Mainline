@@ -20,7 +20,7 @@ import {
   type RawGameFeatures,
 } from "@/lib/raw-features";
 import { lichessThemeUrl } from "@/integrations/catalog";
-import { ratingFromSnapshot } from "@/server/assessment";
+import { ratingFromSnapshot, playingRatingFromSnapshot } from "@/server/assessment";
 import { getCurrentConstraints } from "@/server/constraints";
 import {
   getActiveProgram,
@@ -71,6 +71,30 @@ export async function resolveTacticalRating(
   return (
     ratingFromSnapshot(snap?.ratings) ??
     cfg.assessment.calibration.startRating.value
+  );
+}
+
+/** The rating that drives the GAME-ANALYSIS band (the "bad move" / RPL cp thresholds): the
+ *  user's PLAYING strength, NOT their puzzle rating. Prefers the rating they actually had in
+ *  THIS game (`gameRating`), then a recent playing-format snapshot, then falls back to the
+ *  tactical/calibration estimate. (`resolveTacticalRating`, which leans on the inflated
+ *  puzzle rating, still seeds Seam-5 puzzle DIFFICULTY — only the analysis band differs, so
+ *  a 930-rapid player lands in 800–1200 (200cp) instead of 1600–2000 (50cp).) */
+export async function resolvePlayingRating(
+  db: Db,
+  userId: string,
+  cfg: MethodologyConfig,
+  gameRating?: number | null,
+): Promise<number> {
+  if (gameRating != null && Number.isFinite(gameRating)) return gameRating;
+  const snap = await db.chessProfileSnapshot.findFirst({
+    where: { userId },
+    orderBy: { capturedAt: "desc" },
+    select: { ratings: true },
+  });
+  return (
+    playingRatingFromSnapshot(snap?.ratings) ??
+    (await resolveTacticalRating(db, userId, cfg))
   );
 }
 

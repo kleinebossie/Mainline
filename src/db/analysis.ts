@@ -13,12 +13,31 @@ export async function gamesNeedingAnalysis(
   db: Db,
   userId: string,
   limit: number,
+  platform?: string,
 ): Promise<ImportedGame[]> {
   return db.importedGame.findMany({
-    where: { userId, analysis: { is: null } },
+    where: { userId, analysis: { is: null }, ...(platform ? { platform } : {}) },
     orderBy: { playedAt: "desc" },
     take: Math.max(0, limit),
   });
+}
+
+/** The `windowSize` most recent games for this user (+ platform), filtered down to the ones
+ *  with no AnalysisResult yet — i.e. "analyse my last N games" rather than "analyse my next N
+ *  unanalysed games". */
+export async function gamesNeedingAnalysisInWindow(
+  db: Db,
+  userId: string,
+  windowSize: number,
+  platform?: string,
+): Promise<ImportedGame[]> {
+  const recent = await db.importedGame.findMany({
+    where: { userId, ...(platform ? { platform } : {}) },
+    orderBy: { playedAt: "desc" },
+    take: Math.max(0, windowSize),
+    include: { analysis: { select: { id: true } } },
+  });
+  return recent.filter((g) => g.analysis === null);
 }
 
 /** True iff the game exists and belongs to this user (authorisation for `save`). */

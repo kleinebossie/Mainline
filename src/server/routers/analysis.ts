@@ -4,6 +4,7 @@ import type { Prisma } from "@prisma/client";
 import {
   analysisCounts,
   gamesNeedingAnalysis,
+  gamesNeedingAnalysisInWindow,
   saveAnalysisResult,
   userOwnsGame,
 } from "@/db/analysis";
@@ -11,15 +12,13 @@ import { rawGameFeaturesSchema, type RawGameFeatures } from "@/lib/raw-features"
 import {
   loadMethodology,
   bandForRating,
-  selectGamesForAnalysis,
-  detectTilt,
   gameAnalysisProtocol,
-  filterEngineLines,
   rationaleFor,
+  gameSelectionRatioFor,
   scheduleReview,
   type FsrsState,
 } from "@/methodology";
-import { resolveTacticalRating } from "@/server/program";
+import { resolvePlayingRating } from "@/server/program";
 import { gameIdentity } from "@/server/game-identity";
 import { systemClock } from "@/lib/clock";
 import { protectedProcedure, router } from "@/server/trpc";
@@ -27,22 +26,46 @@ import { protectedProcedure, router } from "@/server/trpc";
 const PLATFORMS = ["lichess", "chesscom"] as const;
 
 export const analysisRouter = router({
-  // The instant-eval work queue: the most-recent unanalysed games, capped at the Seam-2
-  // instant-eval budget (config, M4's deferred `instantEvalGames`). The rest is backfill.
-  pending: protectedProcedure.query(async ({ ctx }) => {
-    const cfg = loadMethodology();
-    const limit = cfg.assessment.instantEvalGames.value;
-    const games = await gamesNeedingAnalysis(ctx.prisma, ctx.userId, limit);
-    return games.map((g) => ({
-      id: g.id,
-      pgn: g.pgn,
-      color: g.color, // "w" | "b" | null — the user's side, for user-centric aggregates
-      platform: g.platform,
-      playedAt: g.playedAt,
-      opening: g.opening,
-      result: g.result,
-    }));
-  }),
+  // The instant-eval work queue. With no input: the most-recent unanalysed games, capped at
+  // the Seam-2 instant-eval budget (config, M4's deferred `instantEvalGames`) — unchanged
+  // default used by the /settings maintenance runner. With `limit`: the `limit` most recent
+  // games (optionally platform-scoped) that aren't analysed yet — "analyse my last N games",
+  // used by the analysis dashboard's batch buttons.
+  pending: protectedProcedure
+    .input(
+      z
+        .object({
+          limit: z.number().int().min(1).max(200).optional(),
+          platform: z.enum(PLATFORMS).optional(),
+        })
+        .optional(),
+    )
+    .query(async ({ ctx, input }) => {
+      const cfg = loadMethodology();
+      const games =
+        input?.limit != null
+          ? await gamesNeedingAnalysisInWindow(
+              ctx.prisma,
+              ctx.userId,
+              input.limit,
+              input.platform,
+            )
+          : await gamesNeedingAnalysis(
+              ctx.prisma,
+              ctx.userId,
+              cfg.assessment.instantEvalGames.value,
+              input?.platform,
+            );
+      return games.map((g) => ({
+        id: g.id,
+        pgn: g.pgn,
+        color: g.color, // "w" | "b" | null — the user's side, for user-centric aggregates
+        platform: g.platform,
+        playedAt: g.playedAt,
+        opening: g.opening,
+        result: g.result,
+      }));
+    }),
 
   // Persist one game's raw features. The payload is fully validated (strict) and the game
   // is checked to belong to the caller before anything is written.
@@ -67,84 +90,18 @@ export const analysisRouter = router({
     analysisCounts(ctx.prisma, ctx.userId),
   ),
 
-  // Suggestions for games to analyze, incorporating success-biased ratio and tilt state
+  // The honest win:loss analysis-ratio recommendation (Seam 4.1 §Step5) for the dashboard. No
+  // curated game list — the player picks from their own recent games directly, with no lock
+  // or cooldown (tilt detection lives only in the per-game `session` flow's calibration step).
   suggestions: protectedProcedure.query(async ({ ctx }) => {
     const cfg = loadMethodology();
-    const tacticalRating = await resolveTacticalRating(ctx.prisma, ctx.userId, cfg);
-    const band = bandForRating(tacticalRating, cfg);
-
-    // Fetch analysed games
-    const dbGames = await ctx.prisma.importedGame.findMany({
-      where: { userId: ctx.userId, analysis: { isNot: null } },
-      orderBy: { playedAt: "desc" },
-      take: 20,
-      include: { analysis: true },
-    });
-
-    const recentGames = dbGames.map((g) => ({
-      id: g.id,
-      result: g.result,
-      color: g.color,
-      playedAt: g.playedAt,
-      rawFeatures: g.analysis?.rawFeatures as unknown as RawGameFeatures,
-    }));
-
-    const suggestions = selectGamesForAnalysis(recentGames, band, cfg);
-
-    // Attach human-facing identity (opponent/date/platform) so a suggestion card names the
-    // actual game, not just a result + reason.
-    const detailsById = new Map(
-      dbGames.map((g) => {
-        const id = gameIdentity(g.pgn, g.color);
-        return [
-          g.id,
-          {
-            playedAt: g.playedAt as Date | null,
-            platform: g.platform as string | null,
-            opponent: (id.opponent ?? id.black ?? id.white ?? null) as
-              | string
-              | null,
-            opponentRating: g.opponentRating,
-            opening: g.opening,
-            timeControl: g.timeControl,
-          },
-        ];
-      }),
-    );
-    // Stable fallback so every suggestion carries the same identity keys (no union-typed
-    // access on the client).
-    const emptyDetails = {
-      playedAt: null as Date | null,
-      platform: null as string | null,
-      opponent: null as string | null,
-      opponentRating: null as number | null,
-      opening: null as string | null,
-      timeControl: null as string | null,
-    };
-    const enrichedSuggestions = suggestions.map((s) => ({
-      ...s,
-      ...(detailsById.get(s.gameId) ?? emptyDetails),
-    }));
-
-    // Fetch recent games (analysed or not) for tilt detection
-    const recentAllGames = await ctx.prisma.importedGame.findMany({
-      where: { userId: ctx.userId },
-      orderBy: { playedAt: "desc" },
-      take: 20,
-    });
-
-    const recentResults = recentAllGames.map((g) => ({
-      playedAt: g.playedAt,
-      result: g.result,
-    }));
-
-    const tilt = detectTilt(recentResults, band, systemClock, cfg);
+    // The win:loss recommendation keys off PLAYING strength, not the inflated puzzle rating.
+    const playingRating = await resolvePlayingRating(ctx.prisma, ctx.userId, cfg);
+    const band = bandForRating(playingRating, cfg);
 
     return {
-      suggestions: enrichedSuggestions,
-      tilt,
+      ratio: gameSelectionRatioFor(band, cfg),
       rationale: rationaleFor("analysis_success_bias", cfg),
-      tilt_rationale: rationaleFor("analysis_tilt_pause", cfg),
     };
   }),
 
@@ -234,8 +191,16 @@ export const analysisRouter = router({
       if (!game) throw new Error("Game not found");
 
       const cfg = loadMethodology();
-      const tacticalRating = await resolveTacticalRating(ctx.prisma, ctx.userId, cfg);
-      const band = bandForRating(tacticalRating, cfg);
+      // The analysis band reflects how the user PLAYS — the rating they had in THIS game
+      // (falling back to a recent playing-format rating, then the calibration estimate) —
+      // not their puzzle rating, which would over-promote a beginner into a strict band.
+      const playingRating = await resolvePlayingRating(
+        ctx.prisma,
+        ctx.userId,
+        cfg,
+        game.userRatingAtGame,
+      );
+      const band = bandForRating(playingRating, cfg);
 
       // Fetch recent results for tilt detection
       const recentAllGames = await ctx.prisma.importedGame.findMany({
@@ -285,6 +250,7 @@ export const analysisRouter = router({
           analysis_tilt_pause: rationaleFor("analysis_tilt_pause", cfg),
           analysis_engine_delay: rationaleFor("analysis_engine_delay", cfg),
           analysis_rpl_filter: rationaleFor("analysis_rpl_filter", cfg),
+          analysis_guess_tolerance: rationaleFor("analysis_guess_tolerance", cfg),
           analysis_entropy: rationaleFor("analysis_entropy", cfg),
           analysis_srs_puzzle: rationaleFor("analysis_srs_puzzle", cfg),
         },
@@ -392,25 +358,17 @@ export const analysisRouter = router({
       return { success: true, scheduledCount };
     }),
 
-  // Procedure to filter engine lines dynamically on client request
-  filterLines: protectedProcedure
-    .input(
-      z.object({
-        lines: z.array(
-          z.object({
-            pv: z.array(z.string()),
-            depth: z.number().int(),
-            evaluation: z.number(),
-            mate: z.boolean(),
-          }),
-        ),
-      }),
-    )
+  // Source PGN + the user's side, for running the engine on ONE specific game (the per-game
+  // "Engine analysis" button). Ownership-scoped; returns only what the client needs to
+  // analyse the game with Stockfish and persist its raw features via `save`.
+  gameSource: protectedProcedure
+    .input(z.object({ gameId: z.string() }))
     .query(async ({ ctx, input }) => {
-      const cfg = loadMethodology();
-      const tacticalRating = await resolveTacticalRating(ctx.prisma, ctx.userId, cfg);
-      const band = bandForRating(tacticalRating, cfg);
-
-      return filterEngineLines(input.lines, band, cfg);
+      const game = await ctx.prisma.importedGame.findFirst({
+        where: { id: input.gameId, userId: ctx.userId },
+        select: { id: true, pgn: true, color: true },
+      });
+      if (!game) throw new Error("Game not found");
+      return game;
     }),
 });

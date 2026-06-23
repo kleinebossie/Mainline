@@ -190,16 +190,22 @@ export class StockfishAnalysisEngine implements AnalysisEngineAdapter {
 
     const evals: PositionEval[] = [];
     for (const fen of fens) {
-      const probe = new Chess(fen);
-      if (probe.isGameOver()) {
-        // Don't query a terminal position (engine returns "bestmove (none)"): synthesize.
-        evals.push(
-          probe.isCheckmate() ? { cp: null, mate: 0 } : { cp: 0, mate: null },
-        );
-        continue;
+      try {
+        const probe = new Chess(fen);
+        if (probe.isGameOver()) {
+          // Don't query a terminal position (engine returns "bestmove (none)"): synthesize.
+          evals.push(
+            probe.isCheckmate() ? { cp: null, mate: 0 } : { cp: 0, mate: null },
+          );
+          continue;
+        }
+        const r = await this.analyzePosition(fen, limit);
+        evals.push({ cp: r.mate !== null ? null : r.scoreCp, mate: r.mate });
+      } catch {
+        // A malformed FEN at one ply (e.g. an irregular PGN) shouldn't sink the whole game's
+        // analysis — degrade that single position to neutral and keep going.
+        evals.push({ cp: 0, mate: null });
       }
-      const r = await this.analyzePosition(fen, limit);
-      evals.push({ cp: r.mate !== null ? null : r.scoreCp, mate: r.mate });
     }
 
     return extractFeatures({ pgn, evals, userColor: ctx.userColor });

@@ -1402,6 +1402,14 @@
       }
     },
     "activeReproduction": {
+      "revealAfterMisses": {
+        "value": 3,
+        "grade": "C",
+        "tier": 2,
+        "citationKey": "metcalfe_kornell2009",
+        "flag": "best-guess",
+        "note": "Desirable-difficulty dosage: withhold the engine until this many failed attempts, then allow a reveal. The count itself is a best-guess, not a studied value."
+      },
       "perBand": {
         "u800": {
           "taskDescription": {
@@ -1419,6 +1427,13 @@
           },
           "timeLimitPerMomentMs": {
             "value": null,
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "stub_open_question",
+            "flag": "best-guess"
+          },
+          "guessAcceptanceCpLossRatio": {
+            "value": 0.5,
             "grade": "C",
             "tier": 1,
             "citationKey": "stub_open_question",
@@ -1445,6 +1460,13 @@
             "tier": 1,
             "citationKey": "stub_open_question",
             "flag": "best-guess"
+          },
+          "guessAcceptanceCpLossRatio": {
+            "value": 0.5,
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "stub_open_question",
+            "flag": "best-guess"
           }
         },
         "b1200_1600": {
@@ -1463,6 +1485,13 @@
           },
           "timeLimitPerMomentMs": {
             "value": 180000,
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "stub_open_question",
+            "flag": "best-guess"
+          },
+          "guessAcceptanceCpLossRatio": {
+            "value": 0.5,
             "grade": "C",
             "tier": 1,
             "citationKey": "stub_open_question",
@@ -1489,6 +1518,13 @@
             "tier": 1,
             "citationKey": "stub_open_question",
             "flag": "best-guess"
+          },
+          "guessAcceptanceCpLossRatio": {
+            "value": 0.5,
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "stub_open_question",
+            "flag": "best-guess"
           }
         },
         "b2000_2200": {
@@ -1511,6 +1547,13 @@
             "tier": 1,
             "citationKey": "stub_open_question",
             "flag": "best-guess"
+          },
+          "guessAcceptanceCpLossRatio": {
+            "value": 0.5,
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "stub_open_question",
+            "flag": "best-guess"
           }
         },
         "b2200plus": {
@@ -1529,6 +1572,13 @@
           },
           "timeLimitPerMomentMs": {
             "value": null,
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "stub_open_question",
+            "flag": "best-guess"
+          },
+          "guessAcceptanceCpLossRatio": {
+            "value": 0.5,
             "grade": "C",
             "tier": 1,
             "citationKey": "stub_open_question",
@@ -2047,6 +2097,16 @@
       "tier": 2,
       "citationKey": "metcalfe2002",
       "soften": false
+    },
+    {
+      "key": "analysis_guess_tolerance",
+      "whenShown": "alternative-move verdict in Step 3",
+      "value": "We don't require the engine's literal top move. Any alternative that recovers most of what you lost, and stays inside this level's visibility threshold, counts as correct — practical chess usually has more than one right answer.",
+      "grade": "C",
+      "tier": 1,
+      "citationKey": "stub_open_question",
+      "flag": "best-guess",
+      "soften": true
     },
     {
       "key": "analysis_success_bias",
