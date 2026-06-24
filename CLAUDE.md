@@ -148,10 +148,12 @@ tangible rewards) is enforced _by config_, not the Engine. **M10** interactive b
 generic, science-free in-app board (`InteractiveBoard` + the pure `stepSolve` solve-session state
 machine + an injected-adapter `engine-play` Stockfish opponent), with `ProgramItem` resolving internal
 (`/train/...`) vs external by the graded Seam-4 `delivery` flag (data, not an engine branch); demoed at
-`/train`. **Next: the internal-first arc continues M11–M14** — internalise what we can (VISION §1/§8):
-**M11** in-app puzzles + internalised tactical assessment (+ the §7.5 redo hint/retest + the §4.4(c)
-anti-arrow/anti-hover/eval-bar board affordances), **M12** interactive game review + personalised
-blunder drills, **M13** in-app endgame drills (vs the engine, + Lichess tablebase), **M14** recommended
+`/train`. **M11** in-app puzzles + internalised tactical assessment (+ the §7.5 redo hint/retest + the
+§4.4(c) anti-arrow/anti-hover/eval-bar board affordances) — done. **M12** interactive game review
+(`ReviewBoard`, the onboarding "reveal" now built on it) + personalised blunder drills derived from
+`RawGameFeatures.blunders[]`, auto-logged and FSRS-scheduled — done. **Next: the internal-first arc
+continues M13–M14** — internalise what we can (VISION §1/§8): **M13** in-app endgame drills (vs the
+engine, + Lichess tablebase), **M14** recommended
 resources + **book-study & 2D/3D-modality/OTB-calibration protocols** + in-app logging (books/courses/
 real games stay external; guidance from `BEST_BOOKS.md`/`2D_VS_3D.md`). These add **no new seam** — only
 generic Engine surfaces + graded Seam-4 `ActivityDefinition`s with a `delivery: 'internal' | 'external'`

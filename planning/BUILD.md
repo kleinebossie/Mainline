@@ -1215,13 +1215,14 @@ function stepSolve(
   source); redo state machine (hint → retest → next-day FSRS). e2e — solve a puzzle in-app → outcome
   logged → next session adapts; **complete calibration fully in-app → graded estimate**; fail a puzzle
   → hint → intra-session retest → it reappears spaced.
-- **DoD:** ☐ puzzles solved in-app with **auto-tracked** outcomes (no self-report) ☐ tactical
-  calibration runs fully in-app ☐ difficulty stays **servo-driven** — **no competing puzzle-rating
-  ladder or leaderboard**; progress stays tied to real game rating + `SkillState` ☐ §7.5 redo hint +
-  intra-session retest work ☐ per-puzzle FSRS ☐ solving board honors the Seam-4 interface-restriction
+- **DoD:** ✅ puzzles solved in-app with **auto-tracked** outcomes (no self-report) ✅ tactical
+  calibration runs fully in-app ✅ difficulty stays **servo-driven** — **no competing puzzle-rating
+  ladder or leaderboard**; progress stays tied to real game rating + `SkillState` ✅ §7.5 redo hint +
+  intra-session retest work ✅ per-puzzle FSRS ✅ solving board honors the Seam-4 interface-restriction
   doctrine (eval bar / legal dots off; arrows/hover gated by band × `targetFocus`) — values from config,
-  not engine (L1) ☐ outcomes feed the **existing** adaptation loop with no
+  not engine (L1) ✅ outcomes feed the **existing** adaptation loop with no
   engine change (resolves M7 deviations a & b).
+- **Status (2026-06-24): ✅ DONE.**
 
 ### M12 — Interactive game review & personalised blunder drills
 
@@ -1243,10 +1244,11 @@ function stepSolve(
 - **Tests:** unit (golden) — eval-graph projection from fixed `moveEvals`; **deterministic**
   blunder→`PracticeItem` derivation; drill validation + scheduling. e2e — open a game review, step
   through, reveal the best line; a blunder drill surfaces in `/today`, solve it, it logs + reschedules.
-- **DoD:** ☐ analysed games reviewable in-app (eval graph + blunders + best line) ☐ the onboarding
-  reveal **is** the interactive review ☐ personal blunder drills generated, trained, auto-logged &
-  spaced ☐ no science constant in the review/drill Engine code (L1) — drill **selection/mapping** is
+- **DoD:** ✅ analysed games reviewable in-app (eval graph + blunders + best line) ✅ the onboarding
+  reveal **is** the interactive review ✅ personal blunder drills generated, trained, auto-logged &
+  spaced ✅ no science constant in the review/drill Engine code (L1) — drill **selection/mapping** is
   Seam-4 config.
+- **Status (2026-06-24): ✅ DONE.**
 
 ### M13 — In-app endgame drills
 
