@@ -41,3 +41,6 @@ next-env.d.ts
 
 # vercel
 .vercel
+
+# Claude Code local plan transcripts
+.claude/plans/
