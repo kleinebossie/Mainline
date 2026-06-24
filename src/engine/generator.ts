@@ -29,7 +29,7 @@ import {
   type Track,
   type WeaknessSignal,
 } from "@/methodology";
-import { packToBudget } from "@/engine/math/packing";
+import { packToBudget, type Divisible } from "@/engine/math/packing";
 
 /** The params blob persisted on a ProgramItem (§5.5) — how to run the external resource. */
 export interface ProgramItemParams {
@@ -42,6 +42,8 @@ export interface ProgramItemParams {
   workedExample?: boolean;
   /** For a play_game item: the formats the user actually plays (personalisation, Seam 7). */
   formats?: string[];
+  /** For a play_game item: how many games fit the time budget (Goal 1, hard time limit). */
+  gameCount?: number;
   /** For a spaced-review item: the due item refs to redo (Seam 6 / the redo flow, M7). */
   dueItemRefs?: string[];
 }
@@ -97,6 +99,31 @@ export interface GenerateProgramResult {
   generatedAt: number;
 }
 
+/** Minutes per puzzle for a track, from config (Goal 1 — the hard-time-limit unit cost).
+ *  Null when unconfigured, so the packer falls back to the activity's whole estMinutes. */
+function puzzleMinutesFor(
+  track: string,
+  cfg: MethodologyConfig,
+): number | null {
+  const g = cfg.prioritization.volume.secondsPerPuzzleByTrack?.[track];
+  return g ? g.value / 60 : null;
+}
+
+/** Minutes per game for the user's formats, from config — the LONGEST format they play, so
+ *  the game count stays conservatively under the time budget. Null when unconfigured. */
+function gameMinutesFor(
+  formats: readonly string[],
+  cfg: MethodologyConfig,
+): number | null {
+  const map = cfg.prioritization.volume.minutesPerGameByFormat;
+  if (!map) return null;
+  const played = formats
+    .map((f) => map[f]?.value)
+    .filter((v): v is number => v != null);
+  if (played.length > 0) return Math.max(...played);
+  return map.rapid?.value ?? Object.values(map)[0]?.value ?? null;
+}
+
 /**
  * Generate today's ordered, time-budget-fitted session. Deterministic: same
  * (inputs, config) → same program, including the rationale keys and grades (golden-tested,
@@ -125,20 +152,50 @@ export function generateProgram(
     cfg,
   );
 
-  // Engine math: pack to the minute budget (the only place the Engine decides — fit only).
-  const packed = packToBudget(ordered, input.constraints.minutesPerDay);
+  // Goal 1 — hard time limit: tag each candidate with its time-divisibility so the packer
+  // sizes adjustable work (puzzles, games) to the remaining minute budget and keeps fixed
+  // work whole only if it fits. The per-unit costs/caps come from config (L1); the Engine
+  // only does the fit arithmetic (§7.1 step 5).
+  const vol = cfg.prioritization.volume;
+  const dose = vol.dailyPuzzleDose.value;
+  const enriched = ordered.map((c) => {
+    let divisible: Divisible | undefined;
+    if (c.activityType === "spaced_review") {
+      const per = puzzleMinutesFor(c.track ?? "pattern", cfg);
+      if (per != null && input.dueItems.length > 0) {
+        divisible = { perUnitMinutes: per, maxUnits: input.dueItems.length };
+      }
+    } else if (c.track) {
+      const per = puzzleMinutesFor(c.track, cfg);
+      if (per != null) divisible = { perUnitMinutes: per, maxUnits: dose };
+    } else if (c.activityType === "play_game") {
+      const per = gameMinutesFor(input.constraints.formats ?? [], cfg);
+      const maxGames = vol.maxGamesPerSession?.value;
+      if (per != null && maxGames != null) {
+        divisible = { perUnitMinutes: per, maxUnits: maxGames };
+      }
+    }
+    return divisible ? { ...c, divisible } : c;
+  });
 
-  const items = packed.map((candidate, index): ProgramItemDraft => {
+  const packed = packToBudget(enriched, input.constraints.minutesPerDay);
+
+  const items = packed.map((p, index): ProgramItemDraft => {
+    const candidate = p.item;
+    // Time the item is actually allotted (its packed contribution) — the binding metric.
+    const estMinutes = p.allocatedMinutes;
+
     // Seam 5: difficulty params for puzzle activities (track !== null).
     let params: ProgramItemParams;
     if (candidate.activityType === "spaced_review") {
-      // Seam 6 (M7): a spaced-review item carries the due misses to redo — no fresh servo
-      // target; these are prior items coming back spaced (the redo flow, §7.5).
+      // Seam 6 (M7): a spaced-review item carries the due misses to redo — as many as fit
+      // the budget (Goal 1), no fresh servo target (the redo flow, §7.5).
+      const count = p.units ?? input.dueItems.length;
       params = {
         theme: candidate.resourceTheme,
         track: candidate.track,
-        dueItemRefs: input.dueItems.map((d) => d.itemRef),
-        count: input.dueItems.length,
+        dueItemRefs: input.dueItems.slice(0, count).map((d) => d.itemRef),
+        count,
       };
     } else if (candidate.track) {
       const recentSuccess = input.recentSuccessByTrack?.[candidate.track];
@@ -156,20 +213,28 @@ export function generateProgram(
         track: candidate.track,
         targetRating: target.ratingTarget,
         successTarget: target.successTarget,
-        count: cfg.prioritization.volume.dailyPuzzleDose.value,
+        // Count derived from the time that fit (Goal 1); falls back to the dose cap when
+        // per-puzzle timing is unconfigured.
+        count: p.units ?? dose,
         structure: practiceStructure({ band }, cfg),
         workedExample: useWorkedExample({ band }, cfg),
       };
     } else {
       // Non-puzzle activity. A "play games" item is told which formats the user actually
-      // plays (Seam-7 personalisation), so the recommendation fits their real games.
+      // plays (Seam-7 personalisation) and how many games fit the budget (Goal 1).
+      const isPlayGame = candidate.activityType === "play_game";
       const formats =
-        candidate.activityType === "play_game" &&
+        isPlayGame &&
         input.constraints.formats &&
         input.constraints.formats.length > 0
           ? [...input.constraints.formats]
           : undefined;
-      params = { theme: candidate.resourceTheme, track: null, formats };
+      params = {
+        theme: candidate.resourceTheme,
+        track: null,
+        formats,
+        ...(isPlayGame && p.units != null ? { gameCount: p.units } : {}),
+      };
     }
 
     // Seam 8: attach the graded "why" and snapshot it (L3). Confidence comes from the
@@ -184,7 +249,7 @@ export function generateProgram(
       resourceTheme: candidate.resourceTheme,
       params,
       dimensionsTargeted: candidate.dimensionsTargeted,
-      estMinutes: candidate.estMinutes,
+      estMinutes,
       rationaleKey: candidate.rationaleKey,
       rationaleText: r.value,
       evidenceGrade: r.grade,

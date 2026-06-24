@@ -29,6 +29,16 @@ export const connectionsRouter = router({
     }),
   ),
 
+  // The user's preferred home platform — defaults the constraints/onboarding picker and the
+  // Today "play a game" deep link. Set via analysis.setPrimaryPlatform.
+  getPrimaryPlatform: protectedProcedure.query(async ({ ctx }) => {
+    const user = await ctx.prisma.user.findUnique({
+      where: { id: ctx.userId },
+      select: { primaryPlatform: true },
+    });
+    return { primaryPlatform: user?.primaryPlatform ?? null };
+  }),
+
   addChessComUsername: protectedProcedure
     .input(z.object({ username: z.string().trim().min(1).max(50) }))
     .mutation(async ({ ctx, input }) => {

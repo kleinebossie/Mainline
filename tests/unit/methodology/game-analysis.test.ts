@@ -31,20 +31,33 @@ describe("gameAnalysisProtocol", () => {
           { ply: 3, cpBefore: 30, cpAfter: -320, cpLoss: 350 },
         ],
         blunders: [
-          { ply: 3, fen: "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3", cpLoss: 350 },
+          {
+            ply: 3,
+            fen: "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3",
+            cpLoss: 350,
+          },
         ],
-        errorCounts: { inaccuracies: 0, mistakes: 0, blunders: 1, grossBlunders: 1 },
+        errorCounts: {
+          inaccuracies: 0,
+          mistakes: 0,
+          blunders: 1,
+          grossBlunders: 1,
+        },
       },
     };
 
     const session = gameAnalysisProtocol(game, "u800", cfg);
-    expect(session.calibrationPrompt).toBe("Did you get in trouble because of the clock or a blunder?");
+    expect(session.calibrationPrompt).toBe(
+      "Did you get in trouble because of the clock or a blunder?",
+    );
     expect(session.analysisUnlockDelay).toBe(0);
     expect(session.tiltBlocked).toBe(false);
     expect(session.criticalMoments.length).toBe(1);
     expect(session.criticalMoments[0]!.ply).toBe(3);
     expect(session.criticalMoments[0]!.cpLoss).toBe(350);
-    expect(session.criticalMoments[0]!.fen).toBe("r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3");
+    expect(session.criticalMoments[0]!.fen).toBe(
+      "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3",
+    );
     // u800 RPL threshold is 300cp and guessAcceptanceCpLossRatio is 0.5 → min(350*0.5, 300) = 175.
     expect(session.criticalMoments[0]!.maxAcceptableCpLoss).toBe(175);
     expect(session.srsPuzzles.length).toBe(1);
@@ -76,12 +89,67 @@ describe("gameAnalysisProtocol", () => {
           { ply: 3, fen: "fen-ply3", cpLoss: 210 },
           { ply: 7, fen: "fen-ply7", cpLoss: 500 },
         ],
-        errorCounts: { inaccuracies: 0, mistakes: 0, blunders: 2, grossBlunders: 1 },
+        errorCounts: {
+          inaccuracies: 0,
+          mistakes: 0,
+          blunders: 2,
+          grossBlunders: 1,
+        },
       },
     };
 
     const session = gameAnalysisProtocol(game, "b800_1200", cfg);
     expect(session.criticalMoments.map((m) => m.ply)).toEqual([3, 7]);
+  });
+
+  it("does NOT flag a missed mate that stays winning as a critical moment (low band)", () => {
+    // The user (White) makes two moves: ply 3 is a real swing (winning → equal); ply 5 is
+    // a missed forced mate that STAYS clearly winning (mate ≈ +1000 → +600). The raw cp gap
+    // at ply 5 is huge, but its win-probability drop is ~0 and the position stayed decided —
+    // so at a low band it must NOT be a critical moment, even though b800_1200 allows two.
+    const game = {
+      id: "game3",
+      pgn: "1. e4 e5 2. Nf3 Nc6 3. Bc4 Nf6 4. Ng5 d5 5. exd5 Na5 6. Bb5+ c6 7. dxc6 bxc6",
+      playedAt: new Date(),
+      result: "win",
+      color: "w",
+      rawFeatures: {
+        acplOverall: 40,
+        acplByPhase: { opening: 10, middlegame: 50, endgame: 0 },
+        phaseBoundaries: { openingEndsPly: 10, endgameStartsPly: 20 },
+        moveEvals: [
+          { ply: 1, cpBefore: 30, cpAfter: 30, cpLoss: 0, winProbDrop: 0 },
+          // Real swing: winning → equal (a big win-probability drop).
+          {
+            ply: 3,
+            cpBefore: 30,
+            cpAfter: -320,
+            cpLoss: 350,
+            winProbDrop: 0.29,
+          },
+          // Missed mate but stayed winning: huge cp gap, ~0 win-probability drop.
+          {
+            ply: 5,
+            cpBefore: 1000,
+            cpAfter: 600,
+            cpLoss: 400,
+            winProbDrop: 0.07,
+          },
+        ],
+        blunders: [{ ply: 3, fen: "fen-ply3", cpLoss: 350 }],
+        errorCounts: {
+          inaccuracies: 0,
+          mistakes: 0,
+          blunders: 1,
+          grossBlunders: 1,
+        },
+      },
+    };
+
+    const session = gameAnalysisProtocol(game, "b800_1200", cfg);
+    expect(session.criticalMoments.map((m) => m.ply)).toEqual([3]);
+    // The graded, band-dependent win-probability tolerance rides along for client grading.
+    expect(session.criticalMoments[0]!.maxAcceptableWinProbDrop).toBe(0.13);
   });
 });
 
@@ -105,21 +173,41 @@ describe("filterEngineLines", () => {
   });
 
   it("always shows a forced mate regardless of threshold", () => {
-    const mateLine: EngineLine = { pv: ["d8h4"], depth: 6, evaluation: 0, mate: true };
+    const mateLine: EngineLine = {
+      pv: ["d8h4"],
+      depth: 6,
+      evaluation: 0,
+      mate: true,
+    };
     const filtered = filterEngineLines([mateLine], "u800", cfg);
     expect(filtered[0]!.visible).toBe(true);
   });
 
   it("hides sub-threshold lines for b800_1200 (200cp)", () => {
-    const positionalLine: EngineLine = { pv: ["Re1"], depth: 10, evaluation: 120, mate: false };
+    const positionalLine: EngineLine = {
+      pv: ["Re1"],
+      depth: 10,
+      evaluation: 120,
+      mate: false,
+    };
     const filtered = filterEngineLines([positionalLine], "b800_1200", cfg);
     expect(filtered[0]!.visible).toBe(false);
     expect(filtered[0]!.reason).toContain("200cp");
   });
 
   it("applies the 100cp threshold for b1200_1600", () => {
-    const above: EngineLine = { pv: ["e4", "e5", "Nf3"], depth: 10, evaluation: 150, mate: false };
-    const below: EngineLine = { pv: ["a2a3"], depth: 10, evaluation: 80, mate: false };
+    const above: EngineLine = {
+      pv: ["e4", "e5", "Nf3"],
+      depth: 10,
+      evaluation: 150,
+      mate: false,
+    };
+    const below: EngineLine = {
+      pv: ["a2a3"],
+      depth: 10,
+      evaluation: 80,
+      mate: false,
+    };
     const filtered = filterEngineLines([above, below], "b1200_1600", cfg);
     expect(filtered[0]!.visible).toBe(true); // 150 ≥ 100
     expect(filtered[1]!.visible).toBe(false); // 80 < 100
@@ -154,7 +242,12 @@ describe("selectGamesForAnalysis", () => {
         phaseBoundaries: { openingEndsPly: 10, endgameStartsPly: 20 },
         moveEvals: [{ ply: 1, cpBefore: 10, cpAfter: 10, cpLoss: 0 }],
         blunders: [],
-        errorCounts: { inaccuracies: 0, mistakes: 0, blunders: 0, grossBlunders: 0 },
+        errorCounts: {
+          inaccuracies: 0,
+          mistakes: 0,
+          blunders: 0,
+          grossBlunders: 0,
+        },
       },
     },
     {
@@ -171,7 +264,12 @@ describe("selectGamesForAnalysis", () => {
           { ply: 2, cpBefore: 10, cpAfter: -190, cpLoss: 200 },
         ],
         blunders: [{ ply: 2, fen: "some_fen", cpLoss: 200 }],
-        errorCounts: { inaccuracies: 0, mistakes: 0, blunders: 1, grossBlunders: 0 },
+        errorCounts: {
+          inaccuracies: 0,
+          mistakes: 0,
+          blunders: 1,
+          grossBlunders: 0,
+        },
       },
     },
   ];

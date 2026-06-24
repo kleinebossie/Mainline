@@ -18,14 +18,17 @@ describe("extractFeatures", () => {
     const res = extractFeatures({ pgn, evals, userColor: "b" });
 
     expect(res.moveEvals).toHaveLength(7);
+    // cp fields are the clamped measurement; the win-prob companion (mover POV, from the
+    // UNclamped eval) saturates so the mate at ply 6/7 reads as a ~0/1 win chance — the
+    // mate-safe severity the analysis/diagnosis layers threshold on.
     expect(res.moveEvals).toEqual([
-      { ply: 1, cpBefore: 20, cpAfter: 20, cpLoss: 0 },
-      { ply: 2, cpBefore: -20, cpAfter: -20, cpLoss: 0 },
-      { ply: 3, cpBefore: 20, cpAfter: -30, cpLoss: 50 },
-      { ply: 4, cpBefore: 30, cpAfter: -40, cpLoss: 70 },
-      { ply: 5, cpBefore: 40, cpAfter: 40, cpLoss: 0 },
-      { ply: 6, cpBefore: -40, cpAfter: -1000, cpLoss: 960 },
-      { ply: 7, cpBefore: 1000, cpAfter: 1000, cpLoss: 0 },
+      { ply: 1, cpBefore: 20, cpAfter: 20, cpLoss: 0, winProbBefore: 0.52, winProbAfter: 0.52, winProbDrop: 0 }, // prettier-ignore
+      { ply: 2, cpBefore: -20, cpAfter: -20, cpLoss: 0, winProbBefore: 0.48, winProbAfter: 0.48, winProbDrop: 0 }, // prettier-ignore
+      { ply: 3, cpBefore: 20, cpAfter: -30, cpLoss: 50, winProbBefore: 0.52, winProbAfter: 0.47, winProbDrop: 0.05 }, // prettier-ignore
+      { ply: 4, cpBefore: 30, cpAfter: -40, cpLoss: 70, winProbBefore: 0.53, winProbAfter: 0.46, winProbDrop: 0.07 }, // prettier-ignore
+      { ply: 5, cpBefore: 40, cpAfter: 40, cpLoss: 0, winProbBefore: 0.54, winProbAfter: 0.54, winProbDrop: 0 }, // prettier-ignore
+      { ply: 6, cpBefore: -40, cpAfter: -1000, cpLoss: 960, winProbBefore: 0.46, winProbAfter: 0, winProbDrop: 0.46 }, // prettier-ignore
+      { ply: 7, cpBefore: 1000, cpAfter: 1000, cpLoss: 0, winProbBefore: 1, winProbAfter: 1, winProbDrop: 0 }, // prettier-ignore
     ]);
 
     expect(res.acplOverall).toBe(343.33); // (0 + 70 + 960) / 3

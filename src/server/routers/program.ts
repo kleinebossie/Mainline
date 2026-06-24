@@ -78,7 +78,12 @@ export const programRouter = router({
           select: { payload: true },
         });
         const excludePuzzleIds = pastEvents
-          .map((e) => (e.payload as Record<string, unknown>)?.puzzleId as string | undefined)
+          .map(
+            (e) =>
+              (e.payload as Record<string, unknown>)?.puzzleId as
+                | string
+                | undefined,
+          )
           .filter((id): id is string => !!id);
 
         puzzles = await selectPuzzles(ctx.prisma, {
@@ -93,7 +98,9 @@ export const programRouter = router({
       // Convert to TodayItem
       const dimLabels = new Map(cfg.dimensions.map((d) => [d.id, d.label]));
       const ledger = new Map(cfg.evidenceLedger.map((l) => [l.key, l.source]));
-      const todayItem = toTodayItem(item, cfg, dimLabels, ledger);
+      // Train items are always internal (delivery: internal → /train/...), so the external
+      // play-link platform is irrelevant here — pass null.
+      const todayItem = toTodayItem(item, cfg, dimLabels, ledger, null);
 
       // Seam 4 §4.4(c) — the board's interface-restriction affordances for this user, from
       // config (L1). `targetFocus` defaults to "online" until the constraints form captures

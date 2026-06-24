@@ -22,12 +22,20 @@ import { z } from "zod";
 const finite = z.number().finite();
 const intPly = z.number().int();
 
+const winProbUnit = z.number().min(0).max(1);
+
 export const moveEvalSchema = z
   .object({
     ply: intPly,
     cpBefore: finite,
     cpAfter: finite,
     cpLoss: finite,
+    // Win-probability measurement (mover's perspective; a saturating, mate-safe companion
+    // to cpLoss). Optional so analyses persisted before this field still parse. Still a RAW
+    // measurement (L1) — what win-prob DROP counts as a mistake is methodology (Seam 3/4).
+    winProbBefore: winProbUnit.optional(),
+    winProbAfter: winProbUnit.optional(),
+    winProbDrop: winProbUnit.optional(),
   })
   .strict();
 

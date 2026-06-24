@@ -27,11 +27,15 @@ function itemDetails(item: TodayItem): string {
       ? `Re-solve your due misses: ${p.dueItemRefs!.join(", ")}`
       : "Spaced review of your earlier misses.";
   }
+  if (item.activityType === "play_game" && typeof p.gameCount === "number") {
+    return `Play ~${p.gameCount} game${p.gameCount === 1 ? "" : "s"} — sized to fit today's time.`;
+  }
   if (p.track) {
     const bits: string[] = [];
     if (typeof p.targetRating === "number")
       bits.push(`target ~${p.targetRating}`);
-    if (typeof p.count === "number") bits.push(`${p.count} puzzles`);
+    // Count is derived from the time budget (Goal 1) — the minutes are the hard cap.
+    if (typeof p.count === "number") bits.push(`up to ~${p.count} puzzles`);
     if (p.structure) bits.push(p.structure);
     if (p.workedExample) bits.push("worked example first");
     return bits.join(" · ");
@@ -190,9 +194,13 @@ export function Today() {
                   href={item.externalUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={buttonVariants({ variant: "outline", size: "sm" })}
+                  className={buttonVariants({
+                    variant:
+                      item.activityType === "play_game" ? "default" : "outline",
+                    size: "sm",
+                  })}
                 >
-                  Open on Lichess ↗
+                  {item.externalLabel ?? "Open ↗"}
                 </a>
               )}
 
@@ -212,10 +220,7 @@ export function Today() {
                   <span className="text-graphite font-mono text-xs">
                     {done ? "✓ Logged" : "Skipped"}
                   </span>
-                ) : item.delivery === "internal" ? (
-                  // Internal activities are auto-logged in-app; only allow Skip here
-                  null
-                ) : isPuzzle(item) ? (
+                ) : item.delivery === "internal" ? null : isPuzzle(item) ? ( // Internal activities are auto-logged in-app; only allow Skip here
                   <>
                     <Button
                       type="button"

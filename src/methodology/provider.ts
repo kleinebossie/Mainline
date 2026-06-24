@@ -424,15 +424,23 @@ export function interpretGameFeatures(
   const confidence = confidenceFromSampleSize(sampleSize, "blunderRate", cfg);
   if (confidence === "insufficient") return [];
 
-  const { blunderCpLoss, excludeDecidedAboveCp } =
+  const { blunderCpLoss, excludeDecidedAboveCp, blunderWinProbDrop } =
     cfg.interpretation.thresholds;
   let blunders = 0;
   let consideredMoves = 0;
   for (const game of input.features) {
     for (const m of game.moveEvals) {
+      // Denominator unchanged: skip already-decided positions (blundering a lost/won game
+      // is not a signal). The blunder TEST prefers the mate-safe win-probability drop when
+      // the raw feature carries it — so a missed mate that stays winning is a ~0 drop and is
+      // never counted — falling back to the cp threshold for analyses predating win-prob.
       if (Math.abs(m.cpBefore) > excludeDecidedAboveCp.value) continue;
       consideredMoves += 1;
-      if (m.cpLoss >= blunderCpLoss.value) blunders += 1;
+      const isBlunder =
+        blunderWinProbDrop && typeof m.winProbDrop === "number"
+          ? m.winProbDrop >= blunderWinProbDrop.value
+          : m.cpLoss >= blunderCpLoss.value;
+      if (isBlunder) blunders += 1;
     }
   }
   const userRate = consideredMoves > 0 ? blunders / consideredMoves : 0;
@@ -944,6 +952,10 @@ export interface CriticalMoment {
    *  the player need not find the engine's literal #1 move (L1: the number is config,
    *  the comparison is plain UI arithmetic). */
   maxAcceptableCpLoss: number;
+  /** An alternative also grades "correct" when its win-probability drop is at or below this
+   *  (Seam 4 §maxAcceptableWinProbDrop) — the mate-safe grading the client prefers, so a
+   *  move that keeps the win counts even if it isn't the engine's fastest mate. */
+  maxAcceptableWinProbDrop: number;
 }
 
 export interface EngineLine {
@@ -1017,7 +1029,10 @@ export function detectTilt(
   cfg: MethodologyConfig,
 ): TiltState {
   const emotional = cfg.gameAnalysis.emotionalCalibration;
-  if (!emotional.enabled.value || !cfg.gameAnalysis.tiltPreventionEnabled.value) {
+  if (
+    !emotional.enabled.value ||
+    !cfg.gameAnalysis.tiltPreventionEnabled.value
+  ) {
     return { tilted: false };
   }
 
@@ -1044,7 +1059,9 @@ export function detectTilt(
       return { tilted: false };
     }
     // Check if the most recent N games are all losses
-    const consecutiveLosses = sorted.slice(0, countNeeded).filter((r) => r.result === "loss");
+    const consecutiveLosses = sorted
+      .slice(0, countNeeded)
+      .filter((r) => r.result === "loss");
     if (consecutiveLosses.length === countNeeded) {
       return {
         tilted: true,
@@ -1074,7 +1091,10 @@ export function detectTilt(
     const baselineWindowSize = 20;
 
     const recentGames = sorted.slice(0, recentWindowSize);
-    const baselineGames = sorted.slice(recentWindowSize, recentWindowSize + baselineWindowSize);
+    const baselineGames = sorted.slice(
+      recentWindowSize,
+      recentWindowSize + baselineWindowSize,
+    );
 
     // Only assess if we have enough games in both groups to be statistically sound
     if (recentGames.length >= 5 && baselineGames.length >= 5) {
@@ -1100,9 +1120,7 @@ export function detectTilt(
 }
 
 /** Helper function to score a game based on learning opportunities. */
-function scoreGameForAnalysis(
-  game: RecentGame,
-): number {
+function scoreGameForAnalysis(game: RecentGame): number {
   if (!game.rawFeatures) return 0;
   const isUserPly = (ply: number): boolean => {
     return game.color === "w" ? ply % 2 === 1 : ply % 2 === 0;
@@ -1292,8 +1310,9 @@ export function filterEngineLines(
   const top = nonMate[0];
   const chaotic =
     top !== undefined &&
-    nonMate.filter((l) => Math.abs(l.evaluation - top.evaluation) <= ENTROPY_WINDOW_CP)
-      .length >= 2;
+    nonMate.filter(
+      (l) => Math.abs(l.evaluation - top.evaluation) <= ENTROPY_WINDOW_CP,
+    ).length >= 2;
 
   const out: FilteredLine[] = lines.map((line) => {
     const visible = line.mate || Math.abs(line.evaluation) >= thresholdCp;
@@ -1301,7 +1320,8 @@ export function filterEngineLines(
     if (!visible) {
       reason = `Below the ${thresholdCp}cp visibility threshold for this level — beyond your Region of Proximal Learning.`;
     } else if (chaotic) {
-      reason = "Position is high-entropy (chaotic): several moves are nearly equal.";
+      reason =
+        "Position is high-entropy (chaotic): several moves are nearly equal.";
     }
     return {
       pv: [...line.pv],
@@ -1364,17 +1384,24 @@ export function gameAnalysisProtocol(
 ): AnalysisSession {
   // Step 1: Calibration
   const calibration = cfg.gameAnalysis.emotionalCalibration;
-  const calibrationPrompt = calibration.enabled.value && calibration.perBand[band]
-    ? calibration.perBand[band]!.reflectionPrompt.value
-    : "";
-  const analysisUnlockDelay = calibration.enabled.value && calibration.perBand[band]
-    ? calibration.perBand[band]!.analysisUnlockDelayMs.value
-    : 0;
+  const calibrationPrompt =
+    calibration.enabled.value && calibration.perBand[band]
+      ? calibration.perBand[band]!.reflectionPrompt.value
+      : "";
+  const analysisUnlockDelay =
+    calibration.enabled.value && calibration.perBand[band]
+      ? calibration.perBand[band]!.analysisUnlockDelayMs.value
+      : 0;
 
   // Tilt Detection
   let tiltBlocked = false;
   if (options?.recentResults && options?.clock) {
-    tiltBlocked = detectTilt(options.recentResults, band, options.clock, cfg).tilted;
+    tiltBlocked = detectTilt(
+      options.recentResults,
+      band,
+      options.clock,
+      cfg,
+    ).tilted;
   }
 
   // Step 2 & 3: Active Reproduction & RPL Filtering
@@ -1393,22 +1420,54 @@ export function gameAnalysisProtocol(
       return userColor === "w" ? ply % 2 === 1 : ply % 2 === 0;
     };
 
-    // Find candidate critical moments on user plies, selected by severity (highest
-    // cpLoss first) but re-sorted back to ply order — the player reproduces them in
-    // the order they happened in the game, not in error-severity order.
+    // Mate-aware, rating-dependent selection (Seam 4). Severity is a move's win-probability
+    // drop when available (saturating: a missed mate that stays winning is ~0) — falling
+    // back to cpLoss for analyses predating win-prob — and a decisive-zone guard drops moves
+    // that didn't change the practical result (still winning / still losing). The winning
+    // side can be re-surfaced at bands that train conversion (surfaceMissedConversion).
+    const minWinDrop = reproduction.criticalMomentMinWinProbDrop?.value;
+    const winningZone = cfg.gameAnalysis.winningZoneCp?.value;
+    const surfaceMissed = reproduction.surfaceMissedConversion?.value ?? false;
+    const severityOf = (m: { cpLoss: number; winProbDrop?: number }): number =>
+      typeof m.winProbDrop === "number" ? m.winProbDrop : m.cpLoss;
+    const isCritical = (m: {
+      cpLoss: number;
+      cpBefore: number;
+      cpAfter: number;
+      winProbDrop?: number;
+    }): boolean => {
+      if (winningZone !== undefined) {
+        const stillLosing =
+          m.cpBefore <= -winningZone && m.cpAfter <= -winningZone;
+        if (stillLosing) return false; // don't reproduce blunders in an already-lost game
+        const stillWinning =
+          m.cpBefore >= winningZone && m.cpAfter >= winningZone;
+        if (stillWinning && !surfaceMissed) return false; // missed mate but stayed winning
+      }
+      return typeof m.winProbDrop === "number" && minWinDrop !== undefined
+        ? m.winProbDrop >= minWinDrop
+        : m.cpLoss >= threshold;
+    };
+
+    // Selected by severity (highest first) but re-sorted back to ply order — the player
+    // reproduces them in the order they happened, not in error-severity order.
     const candidates = (game.rawFeatures.moveEvals || [])
-      .filter((m) => isUserPly(m.ply) && m.cpLoss >= threshold)
-      .sort((a, b) => b.cpLoss - a.cpLoss);
+      .filter((m) => isUserPly(m.ply) && isCritical(m))
+      .sort((a, b) => severityOf(b) - severityOf(a));
 
     const selectedMoments = candidates
       .slice(0, maxMoments)
       .sort((a, b) => a.ply - b.ply);
 
     const guessRatio = reproduction.guessAcceptanceCpLossRatio.value;
+    const maxAcceptableWinProbDrop =
+      reproduction.maxAcceptableWinProbDrop?.value ?? 0;
 
     for (const moment of selectedMoments) {
       // Find matching FEN from blunder features if available
-      const blunder = game.rawFeatures.blunders?.find((b) => b.ply === moment.ply);
+      const blunder = game.rawFeatures.blunders?.find(
+        (b) => b.ply === moment.ply,
+      );
       const fen = blunder?.fen || "";
 
       criticalMoments.push({
@@ -1425,6 +1484,7 @@ export function gameAnalysisProtocol(
           0,
           Math.min(moment.cpLoss * guessRatio, threshold),
         ),
+        maxAcceptableWinProbDrop,
       });
 
       // Step 4: SRS Puzzles

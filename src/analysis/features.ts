@@ -23,6 +23,7 @@ import type {
   RawGameFeatures,
 } from "@/lib/raw-features";
 import type { Color } from "@/analysis/engine-adapter";
+import { winProb } from "@/engine/math/winprob";
 import {
   CP_CLAMP,
   CP_LOSS,
@@ -191,10 +192,27 @@ export function extractFeatures(input: ExtractFeaturesInput): RawGameFeatures {
 
   for (let i = 1; i <= n; i++) {
     // Mover faces p_{i-1} (their POV); after the move the opponent faces p_i, so flip it.
-    const cpBefore = cap(evalToCp(evalAt(i - 1)));
-    const cpAfter = cap(-evalToCp(evalAt(i)));
+    const rawBefore = evalToCp(evalAt(i - 1)); // unclamped (mate ≈ ±MATE_SCORE_CP)
+    const rawAfter = -evalToCp(evalAt(i));
+    const cpBefore = cap(rawBefore);
+    const cpAfter = cap(rawAfter);
     const cpLoss = Math.max(0, cpBefore - cpAfter);
-    moveEvals.push({ ply: i, cpBefore, cpAfter, cpLoss });
+    // Win-probability companion (mover POV), computed from the UNclamped eval so a forced
+    // mate saturates to ~1 — making a missed-mate-but-still-winning move a ~0 drop, not the
+    // misleading ~99000cp that linear cp accounting produces (the win-prob measure is what
+    // the analysis/diagnosis layers threshold on, mate-safely).
+    const winProbBefore = round2(winProb(rawBefore));
+    const winProbAfter = round2(winProb(rawAfter));
+    const winProbDropVal = Math.max(0, round2(winProbBefore - winProbAfter));
+    moveEvals.push({
+      ply: i,
+      cpBefore,
+      cpAfter,
+      cpLoss,
+      winProbBefore,
+      winProbAfter,
+      winProbDrop: winProbDropVal,
+    });
 
     if (!isUserPly(i)) continue;
     const phase = phaseOf(i);

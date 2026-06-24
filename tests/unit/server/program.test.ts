@@ -50,6 +50,9 @@ function fakeDb(opts: FakeOpts) {
   } = { created: null };
 
   const db = {
+    user: {
+      findUnique: async () => ({ primaryPlatform: null }),
+    },
     assessment: {
       findUnique: async () =>
         opts.tacticalRating != null
@@ -134,10 +137,12 @@ describe("generateAndSaveProgram + getTodayProgram (round-trip)", () => {
     expect(today!.honesty.processGoal.length).toBeGreaterThan(0);
     expect(today!.honesty.expectations.length).toBeGreaterThan(0);
 
-    // Same order as the generator golden at b1200_1600 / 30 min.
+    // Same order as the generator golden at b1200_1600 / 30 min (Goal 1: time-divisible
+    // puzzles fit a third item within the budget).
     expect(today!.items.map((i) => i.label)).toEqual([
       "Analyse your own games",
       "Themed tactics (reflective)",
+      "Calculation / visualisation drill",
     ]);
 
     // Every item carries a graded, snapshotted "why" (L3).
@@ -153,7 +158,9 @@ describe("generateAndSaveProgram + getTodayProgram (round-trip)", () => {
     )!;
     expect(tactics.externalUrl).toBe("https://lichess.org/training/fork");
     expect(tactics.params.targetRating).toBe(1150);
-    expect(tactics.estMinutes).toBe(10);
+    // estMinutes is now the time the packer ALLOTTED (Goal 1): 15 puzzles × 0.75 min.
+    expect(tactics.estMinutes).toBe(11.25);
+    expect(tactics.params.count).toBe(15);
   });
 
   it("returns null when no program has been generated", async () => {

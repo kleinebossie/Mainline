@@ -240,7 +240,12 @@
       }
     },
     "tracks": [
-      { "id": "tactics", "dimension": "tactics", "label": "Tactics", "theme": "mix" },
+      {
+        "id": "tactics",
+        "dimension": "tactics",
+        "label": "Tactics",
+        "theme": "mix"
+      },
       {
         "id": "calculation",
         "dimension": "calculation",
@@ -270,6 +275,14 @@
         "tier": 1,
         "citationKey": "weakness_diagnosis",
         "note": "Ignore blunders in already-decided positions (|eval| already > 600cp)."
+      },
+      "blunderWinProbDrop": {
+        "value": 0.15,
+        "grade": "B",
+        "tier": 1,
+        "citationKey": "weakness_diagnosis",
+        "flag": "best-guess",
+        "note": "Win-probability drop (~150cp near equality) that marks a blunder — mate-safe: a missed mate that stays winning is a ~0 drop, so it never inflates the blunder rate."
       }
     },
     "blunderRate": {
@@ -1082,7 +1095,62 @@
         "tier": 1,
         "citationKey": "stub_open_question",
         "flag": "best-guess",
-        "note": "10–20 themed puzzles; deliberately no volume-chasing (S7)."
+        "note": "A CAP, not a fixed count: the session fits the hard time budget and stops at min(this, time available). Deliberately no volume-chasing (S7)."
+      },
+      "secondsPerPuzzleByTrack": {
+        "pattern": {
+          "value": 45,
+          "grade": "C",
+          "tier": 1,
+          "citationKey": "stub_open_question",
+          "flag": "best-guess",
+          "note": "Pattern-recognition puzzles are quick (~45s each); the time cap bounds how many fit."
+        },
+        "calculation": {
+          "value": 180,
+          "grade": "C",
+          "tier": 1,
+          "citationKey": "stub_open_question",
+          "flag": "best-guess",
+          "note": "Deep calculation/visualisation puzzles need longer (~3 min each)."
+        }
+      },
+      "minutesPerGameByFormat": {
+        "bullet": {
+          "value": 3,
+          "grade": "C",
+          "tier": 1,
+          "citationKey": "stub_open_question",
+          "flag": "best-guess"
+        },
+        "blitz": {
+          "value": 8,
+          "grade": "C",
+          "tier": 1,
+          "citationKey": "stub_open_question",
+          "flag": "best-guess"
+        },
+        "rapid": {
+          "value": 20,
+          "grade": "C",
+          "tier": 1,
+          "citationKey": "stub_open_question",
+          "flag": "best-guess"
+        },
+        "classical": {
+          "value": 45,
+          "grade": "C",
+          "tier": 1,
+          "citationKey": "stub_open_question",
+          "flag": "best-guess"
+        }
+      },
+      "maxGamesPerSession": {
+        "value": 8,
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "stub_open_question",
+        "flag": "best-guess"
       }
     }
   },
@@ -1248,6 +1316,14 @@
     }
   },
   "gameAnalysis": {
+    "winningZoneCp": {
+      "value": 300,
+      "grade": "C",
+      "tier": 1,
+      "citationKey": "stub_open_question",
+      "flag": "best-guess",
+      "note": "Eval (mover POV, cp) above which a position is practically decided/winning. A move that was winning before AND still winning after didn't change the result (e.g. a missed mate) — excluded from critical moments unless the band trains conversion."
+    },
     "emotionalCalibration": {
       "enabled": {
         "value": true,
@@ -1438,6 +1514,27 @@
             "tier": 1,
             "citationKey": "stub_open_question",
             "flag": "best-guess"
+          },
+          "criticalMomentMinWinProbDrop": {
+            "value": 0.25,
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "stub_open_question",
+            "flag": "best-guess"
+          },
+          "maxAcceptableWinProbDrop": {
+            "value": 0.15,
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "stub_open_question",
+            "flag": "best-guess"
+          },
+          "surfaceMissedConversion": {
+            "value": false,
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "stub_open_question",
+            "flag": "best-guess"
           }
         },
         "b800_1200": {
@@ -1463,6 +1560,27 @@
           },
           "guessAcceptanceCpLossRatio": {
             "value": 0.5,
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "stub_open_question",
+            "flag": "best-guess"
+          },
+          "criticalMomentMinWinProbDrop": {
+            "value": 0.22,
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "stub_open_question",
+            "flag": "best-guess"
+          },
+          "maxAcceptableWinProbDrop": {
+            "value": 0.13,
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "stub_open_question",
+            "flag": "best-guess"
+          },
+          "surfaceMissedConversion": {
+            "value": false,
             "grade": "C",
             "tier": 1,
             "citationKey": "stub_open_question",
@@ -1496,6 +1614,27 @@
             "tier": 1,
             "citationKey": "stub_open_question",
             "flag": "best-guess"
+          },
+          "criticalMomentMinWinProbDrop": {
+            "value": 0.18,
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "stub_open_question",
+            "flag": "best-guess"
+          },
+          "maxAcceptableWinProbDrop": {
+            "value": 0.1,
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "stub_open_question",
+            "flag": "best-guess"
+          },
+          "surfaceMissedConversion": {
+            "value": false,
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "stub_open_question",
+            "flag": "best-guess"
           }
         },
         "b1600_2000": {
@@ -1521,6 +1660,27 @@
           },
           "guessAcceptanceCpLossRatio": {
             "value": 0.5,
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "stub_open_question",
+            "flag": "best-guess"
+          },
+          "criticalMomentMinWinProbDrop": {
+            "value": 0.15,
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "stub_open_question",
+            "flag": "best-guess"
+          },
+          "maxAcceptableWinProbDrop": {
+            "value": 0.08,
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "stub_open_question",
+            "flag": "best-guess"
+          },
+          "surfaceMissedConversion": {
+            "value": false,
             "grade": "C",
             "tier": 1,
             "citationKey": "stub_open_question",
@@ -1554,6 +1714,27 @@
             "tier": 1,
             "citationKey": "stub_open_question",
             "flag": "best-guess"
+          },
+          "criticalMomentMinWinProbDrop": {
+            "value": 0.12,
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "stub_open_question",
+            "flag": "best-guess"
+          },
+          "maxAcceptableWinProbDrop": {
+            "value": 0.06,
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "stub_open_question",
+            "flag": "best-guess"
+          },
+          "surfaceMissedConversion": {
+            "value": true,
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "stub_open_question",
+            "flag": "best-guess"
           }
         },
         "b2200plus": {
@@ -1579,6 +1760,27 @@
           },
           "guessAcceptanceCpLossRatio": {
             "value": 0.5,
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "stub_open_question",
+            "flag": "best-guess"
+          },
+          "criticalMomentMinWinProbDrop": {
+            "value": 0.1,
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "stub_open_question",
+            "flag": "best-guess"
+          },
+          "maxAcceptableWinProbDrop": {
+            "value": 0.05,
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "stub_open_question",
+            "flag": "best-guess"
+          },
+          "surfaceMissedConversion": {
+            "value": true,
             "grade": "C",
             "tier": 1,
             "citationKey": "stub_open_question",

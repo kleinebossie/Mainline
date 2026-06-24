@@ -28,7 +28,7 @@ describe("servoOffset", () => {
 describe("packToBudget", () => {
   const item = (id: string, estMinutes: number) => ({ id, estMinutes });
 
-  it("keeps items in order while they fit, skipping ones too big for the remainder", () => {
+  it("keeps fixed items in order while they fit, skipping ones too big for the remainder", () => {
     const ordered = [
       item("a", 15),
       item("b", 30),
@@ -36,16 +36,61 @@ describe("packToBudget", () => {
       item("d", 15),
     ];
     // 15 (a) ✓ → 30 (b) 45>30 ✗ → 10 (c) 25 ✓ → 15 (d) 40>30 ✗
-    expect(packToBudget(ordered, 30).map((i) => i.id)).toEqual(["a", "c"]);
+    expect(packToBudget(ordered, 30).map((i) => i.item.id)).toEqual(["a", "c"]);
   });
 
   it("always keeps at least the highest-priority item when nothing fits the budget", () => {
     const ordered = [item("big", 30), item("med", 20)];
-    expect(packToBudget(ordered, 10).map((i) => i.id)).toEqual(["big"]);
+    expect(packToBudget(ordered, 10).map((i) => i.item.id)).toEqual(["big"]);
   });
 
   it("returns nothing for an empty candidate list", () => {
     expect(packToBudget([], 60)).toEqual([]);
+  });
+
+  it("sizes a divisible item to the budget and never exceeds it (Goal 1)", () => {
+    // 0.75 min/puzzle, cap 15. Budget 6 → floor(6/0.75)=8 puzzles = 6 min (≤ budget).
+    const ordered = [
+      {
+        id: "puzzles",
+        estMinutes: 0,
+        divisible: { perUnitMinutes: 0.75, maxUnits: 15 },
+      },
+    ];
+    const packed = packToBudget(ordered, 6);
+    expect(packed[0]!.units).toBe(8);
+    expect(packed[0]!.allocatedMinutes).toBe(6);
+  });
+
+  it("caps a divisible item at its unit cap even with budget to spare", () => {
+    const ordered = [
+      {
+        id: "games",
+        estMinutes: 0,
+        divisible: { perUnitMinutes: 3, maxUnits: 8 },
+      },
+    ];
+    // Budget 60 could fit 20 games, but the cap is 8 → 24 min used.
+    const packed = packToBudget(ordered, 60);
+    expect(packed[0]!.units).toBe(8);
+    expect(packed[0]!.allocatedMinutes).toBe(24);
+  });
+
+  it("fills remaining time with a later divisible item after a fixed one (strict ≤ budget)", () => {
+    const ordered = [
+      item("analyse", 20),
+      {
+        id: "puzzles",
+        estMinutes: 0,
+        divisible: { perUnitMinutes: 1, maxUnits: 15 },
+      },
+    ];
+    // 20 (analyse) ✓ → remaining 10 → 10 puzzles. Total 30 = budget (strict).
+    const packed = packToBudget(ordered, 30);
+    const total = packed.reduce((s, p) => s + p.allocatedMinutes, 0);
+    expect(packed.map((p) => p.item.id)).toEqual(["analyse", "puzzles"]);
+    expect(packed[1]!.units).toBe(10);
+    expect(total).toBeLessThanOrEqual(30);
   });
 });
 

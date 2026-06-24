@@ -6,6 +6,7 @@ import Link from "next/link";
 import { trpc } from "@/lib/trpc/react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { platformLabel } from "@/lib/format-game";
 import {
   CHESS_FORMATS,
   DEPTH_VS_BREADTH,
@@ -85,6 +86,18 @@ function Form({
     onError: (e) => setError(e.message),
   });
 
+  // Preferred home platform (Goal 3): stored on the User row, not the ConstraintSet — saved
+  // alongside via setPrimaryPlatform. Defaults to the saved choice, then a connected account.
+  const connections = trpc.connections.list.useQuery();
+  const primaryQuery = trpc.connections.getPrimaryPlatform.useQuery();
+  const setPrimary = trpc.analysis.setPrimaryPlatform.useMutation({
+    onSuccess: () => void utils.connections.getPrimaryPlatform.invalidate(),
+  });
+  const connectedPlatforms = [
+    ...new Set((connections.data ?? []).map((c) => c.platform)),
+  ];
+  const [primaryPlatform, setPrimaryPlatform] = useState<string | null>(null);
+
   const [minutesPerDay, setMinutes] = useState(initial.minutesPerDay);
   const [daysPerWeek, setDays] = useState(initial.daysPerWeek);
   const [goalKinds, setGoalKinds] = useState<Set<Goal["kind"]>>(
@@ -130,10 +143,21 @@ function Form({
   const removeResource = (index: number) =>
     setOwnedResources((rs) => rs.filter((_, i) => i !== index));
 
+  // The platform the picker should show: the in-form choice, else the saved preference, else
+  // a connected account, else Lichess.
+  const effectivePrimary: "lichess" | "chesscom" = (primaryPlatform ??
+    primaryQuery.data?.primaryPlatform ??
+    connectedPlatforms[0] ??
+    "lichess") as "lichess" | "chesscom";
+
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setSaved(false);
     setError(null);
+    // Persist the preferred platform on the User row (Goal 3) alongside the constraints.
+    if (effectivePrimary !== primaryQuery.data?.primaryPlatform) {
+      setPrimary.mutate({ platform: effectivePrimary });
+    }
     const goals: Goal[] = [
       ...GOAL_OPTIONS.filter((g) => goalKinds.has(g.kind)).map((g) => ({
         kind: g.kind,
@@ -173,6 +197,10 @@ function Form({
             value={minutesPerDay}
             onChange={(e) => setMinutes(Number(e.target.value))}
           />
+          <span className="text-graphite font-serif text-xs font-normal leading-relaxed">
+            This is a <span className="text-ink font-medium">hard maximum</span>
+            . Sessions are sized to stay at or under it — never over.
+          </span>
         </label>
         <label className="flex flex-col gap-2 font-serif text-sm font-medium">
           <span className="eyebrow !text-[0.65rem] !tracking-wider">
@@ -248,6 +276,38 @@ function Form({
           />
           I like variety in my daily sessions
         </label>
+      </fieldset>
+
+      <fieldset className="flex flex-col gap-4">
+        <legend className="eyebrow border-b border-line/80 pb-2 w-full mb-2">
+          Where do you prefer to play?
+        </legend>
+        <p className="text-graphite font-serif text-sm leading-relaxed -mt-1 mb-1">
+          We&apos;ll send you straight here when today&apos;s plan says to play
+          a game — one click, less friction.
+        </p>
+        <div className="flex flex-wrap gap-x-6 gap-y-2">
+          {(["lichess", "chesscom"] as const).map((p) => (
+            <label
+              key={p}
+              className="flex items-center gap-3 font-serif text-sm text-ink cursor-pointer"
+            >
+              <input
+                type="radio"
+                name="primaryPlatform"
+                checked={effectivePrimary === p}
+                onChange={() => setPrimaryPlatform(p)}
+                className="border-input text-evergreen focus:ring-evergreen h-4 w-4 bg-paper-raised"
+              />
+              {platformLabel(p)}
+              {connectedPlatforms.includes(p) && (
+                <span className="text-evergreen font-mono text-[0.65rem] uppercase tracking-wider">
+                  connected
+                </span>
+              )}
+            </label>
+          ))}
+        </div>
       </fieldset>
 
       <fieldset className="flex flex-col gap-4">

@@ -24,6 +24,17 @@ export function lichessThemeUrl(theme: string): string {
   return `https://lichess.org/training/${theme}`;
 }
 
+/** A friction-reducing deep link to START A GAME on the user's preferred platform. Both
+ *  platforms gate time-control selection behind their own lobby UI rather than a stable GET
+ *  param, so we link to the play lobby (one click from a real seek). Infra reference data —
+ *  which platform to send the user to is the user's stored preference, not a graded
+ *  methodology decision (L1). */
+export function platformPlayUrl(platform: string | null | undefined): string {
+  return platform === "chesscom"
+    ? "https://www.chess.com/play/online"
+    : "https://lichess.org/";
+}
+
 /** Build one `lichess_puzzle_theme` ResourceRef per trainable theme. */
 export function buildResourceCatalog(
   themes: readonly string[],

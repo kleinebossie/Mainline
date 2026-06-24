@@ -26,15 +26,18 @@ describe("generateProgram (golden)", () => {
     expect(band).toBe("b1200_1600");
     expect(generatedAt).toBe(1_700_000_000_000); // from the injected clock (L2)
 
-    // Order by ROI prior with id tiebreak; pack to 30 min: analyse(15) + themed(10) = 25.
+    // Order by ROI prior with id tiebreak. Hard-time-limit packing (Goal 1) fits the budget
+    // with time-divisible puzzles: analyse(15, fixed) + themed_tactics(15 puzzles ×0.75 =
+    // 11.25) + calculation_drill(1 ×3 = 3) = 29.25 ≤ 30 — a third item now fits.
     expect(items.map((i) => i.activityId)).toEqual([
       "analyse_own_games",
       "themed_tactics",
+      "calculation_drill",
     ]);
     expect(items.reduce((sum, i) => sum + i.estMinutes, 0)).toBeLessThanOrEqual(
       30,
     );
-    expect(items.map((i) => i.orderIndex)).toEqual([0, 1]);
+    expect(items.map((i) => i.orderIndex)).toEqual([0, 1, 2]);
   });
 
   it("every item carries a graded, snapshotted 'why' (L3)", () => {
@@ -100,6 +103,36 @@ describe("generateProgram (golden)", () => {
     expect(tactics.rationaleKey).toBe("blunder_focus");
     expect(tactics.confidence).toBe("medium"); // from the driving signal
     expect(tactics.soften).toBe(true); // blunder_focus is grade C
+  });
+
+  it("sizes the session to the hard time budget — never over, fewer puzzles when shorter (Goal 1)", () => {
+    const common = {
+      band: "b1200_1600" as const,
+      tacticalRating: 1300,
+      weaknessSignals: [],
+      dueItems: [],
+      clock,
+      config: cfg,
+    };
+    const big = generateProgram({
+      ...common,
+      constraints: { minutesPerDay: 30 },
+    });
+    const small = generateProgram({
+      ...common,
+      constraints: { minutesPerDay: 10 },
+    });
+
+    const total = (r: ReturnType<typeof generateProgram>): number =>
+      r.items.reduce((s, i) => s + i.estMinutes, 0);
+    // The binding metric is time: each session stays at or under its budget.
+    expect(total(big)).toBeLessThanOrEqual(30);
+    expect(total(small)).toBeLessThanOrEqual(10);
+
+    // A shorter budget yields no more tactics puzzles than a longer one (time-derived count).
+    const puzzles = (r: ReturnType<typeof generateProgram>): number =>
+      r.items.find((i) => i.activityId === "themed_tactics")?.params.count ?? 0;
+    expect(puzzles(small)).toBeLessThanOrEqual(puzzles(big));
   });
 
   it("always yields at least one item even on a tiny budget", () => {

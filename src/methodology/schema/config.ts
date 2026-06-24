@@ -130,6 +130,11 @@ const interpretationSchema = z.object({
     // Positions already decided (|eval| above this) are excluded — blundering a lost
     // game is not a signal (METHODOLOGY Seam 3 `excludeDecidedAbove`).
     excludeDecidedAboveCp: gradedValue(z.number().positive()),
+    // A move's win-probability DROP at/above this is a blunder — the mate-safe, saturating
+    // companion to blunderCpLoss (a missed mate that stays winning is a ~0 drop, not a
+    // blunder). Preferred over cpLoss when the raw feature carries win-prob; optional so
+    // configs predating it still validate (the provider falls back to cpLoss).
+    blunderWinProbDrop: gradedValue(z.number().min(0).max(1)).optional(),
   }),
   blunderRate: z.object({
     // Which dimension a high blunder rate flags (resolves in `dimensions`).
@@ -248,7 +253,22 @@ const prioritizationSchema = z.object({
     breadthRoiBonus: gradedValue(z.number().min(0)),
   }),
   volume: z.object({
+    // A CAP (not a fixed count): the session is sized to the user's hard time budget, and
+    // puzzle count = min(this, time that fits). Never volume-chasing (S7).
     dailyPuzzleDose: gradedValue(z.number().int().positive()),
+    // Max time per puzzle by track — the per-unit cost the hard-time-limit packer divides
+    // the budget by. Type-aware: pattern recognition is fast, calculation needs longer.
+    // Optional so configs predating it still validate (the packer falls back to estMinutes).
+    secondsPerPuzzleByTrack: z
+      .record(gradedValue(z.number().positive()))
+      .optional(),
+    // Expected minutes per game by format — used to cap how many games fit the budget
+    // ("a logical number for the time control you play"). Optional (fallback: estMinutes).
+    minutesPerGameByFormat: z
+      .record(gradedValue(z.number().positive()))
+      .optional(),
+    // Upper bound on games scheduled in one session, so a fast format can't fill it.
+    maxGamesPerSession: gradedValue(z.number().int().positive()).optional(),
   }),
 });
 
@@ -372,7 +392,12 @@ const anchorSourceSchema = z.object({
 });
 
 const tiltTriggerConfigSchema = z.object({
-  kind: z.enum(["losses_in_time", "losses_in_row", "performance_decline", "none"]),
+  kind: z.enum([
+    "losses_in_time",
+    "losses_in_row",
+    "performance_decline",
+    "none",
+  ]),
   count: z.number().int().optional(),
   timeWindowMs: z.number().int().optional(),
   declineThreshold: z.number().optional(),
@@ -395,6 +420,19 @@ const activeReproductionBandSchema = z.object({
   // provider.ts) — there is no direct study on the tolerance fraction itself, so this
   // is graded like the other per-band active-reproduction params (stub/best-guess).
   guessAcceptanceCpLossRatio: gradedValue(z.number().min(0).max(1)),
+  // A move is a "critical moment" worth reproducing only when its win-probability drop
+  // clears this (rating-dependent: lower bands need a bigger practical swing). Mate-safe,
+  // so a missed mate that stays winning is never flagged. Optional; the provider falls
+  // back to the RPL cp threshold when absent.
+  criticalMomentMinWinProbDrop: gradedValue(
+    z.number().min(0).max(1),
+  ).optional(),
+  // The player's alternative grades "correct" when its OWN win-probability drop is at most
+  // this — lenient at low bands (just find a non-disastrous move), tighter higher up.
+  maxAcceptableWinProbDrop: gradedValue(z.number().min(0).max(1)).optional(),
+  // Whether to still surface a "winning → still winning" missed conversion (e.g. a missed
+  // mate). True only at bands that train conversion technique; false lower down.
+  surfaceMissedConversion: gradedValue(z.boolean()).optional(),
 });
 
 const rplFilteringBandSchema = z.object({
@@ -410,6 +448,11 @@ const gameSelectionBandSchema = z.object({
 });
 
 const gameAnalysisSchema = z.object({
+  // The eval magnitude (mover POV, cp) above which a position is "decided/winning". The
+  // decisive-zone guard uses it: a move that was winning before AND still winning after did
+  // not change the practical result, so it isn't a mistake worth reproducing (unless the
+  // band trains conversion). Optional; the guard is skipped when absent.
+  winningZoneCp: gradedValue(z.number().positive()).optional(),
   emotionalCalibration: z.object({
     enabled: gradedValue(z.boolean()),
     perBand: z.record(emotionalCalibrationBandSchema),
@@ -705,7 +748,8 @@ export type MeasurementConfig = MethodologyConfig["measurement"];
 export type RationaleEntry = MethodologyConfig["rationale"][number];
 export type AnchorSource = MethodologyConfig["evidenceLedger"][number];
 export type GameAnalysisConfig = MethodologyConfig["gameAnalysis"];
-export type EmotionalCalibrationConfig = GameAnalysisConfig["emotionalCalibration"];
+export type EmotionalCalibrationConfig =
+  GameAnalysisConfig["emotionalCalibration"];
 export type ActiveReproductionConfig = GameAnalysisConfig["activeReproduction"];
 export type RplFilteringConfig = GameAnalysisConfig["rplFiltering"];
 export type SrsIntegrationConfig = GameAnalysisConfig["srsIntegration"];

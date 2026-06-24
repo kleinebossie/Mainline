@@ -19,8 +19,12 @@ import {
   rawGameFeaturesSchema,
   type RawGameFeatures,
 } from "@/lib/raw-features";
-import { lichessThemeUrl } from "@/integrations/catalog";
-import { ratingFromSnapshot, playingRatingFromSnapshot } from "@/server/assessment";
+import { lichessThemeUrl, platformPlayUrl } from "@/integrations/catalog";
+import { platformLabel } from "@/lib/format-game";
+import {
+  ratingFromSnapshot,
+  playingRatingFromSnapshot,
+} from "@/server/assessment";
 import { getCurrentConstraints } from "@/server/constraints";
 import {
   getActiveProgram,
@@ -32,6 +36,7 @@ import { EMPTY_CONSTRAINTS } from "@/lib/constraints";
 
 type Db = Pick<
   PrismaClient,
+  | "user"
   | "assessment"
   | "chessProfileSnapshot"
   | "analysisResult"
@@ -271,6 +276,8 @@ export interface TodayItem {
   estMinutes: number | null;
   params: ProgramItemParams;
   externalUrl: string | null;
+  /** The label for the external-link button (e.g. "Play on Lichess ↗"). */
+  externalLabel: string | null;
   url: string | null;
   delivery: "internal" | "external";
   rationaleText: string;
@@ -304,14 +311,25 @@ export function toTodayItem(
   cfg: MethodologyConfig,
   dimLabels: Map<string, string>,
   ledger: Map<string, string>,
+  primaryPlatform: string | null,
 ): TodayItem {
   const params = paramsOf(item.params);
   const def = cfg.activities.find((a) => a.id === item.activityId);
   const theme = params.theme ?? null;
-  const externalUrl =
-    item.resourceRef?.externalUrl ?? (theme ? lichessThemeUrl(theme) : null);
   const delivery =
     def?.delivery?.value === "internal" ? "internal" : "external";
+  // "Play a game" resolves to a one-click deep link to the user's preferred platform
+  // (Goal 3); themed puzzles keep their Lichess training-page link.
+  const isPlayGame = item.activityType === "play_game";
+  const externalUrl = isPlayGame
+    ? platformPlayUrl(primaryPlatform)
+    : (item.resourceRef?.externalUrl ??
+      (theme ? lichessThemeUrl(theme) : null));
+  const externalLabel = isPlayGame
+    ? `Play on ${platformLabel(primaryPlatform)} ↗`
+    : externalUrl
+      ? "Open on Lichess ↗"
+      : null;
   const url = delivery === "internal" ? `/train/${item.id}` : externalUrl;
   return {
     id: item.id,
@@ -323,6 +341,7 @@ export function toTodayItem(
       typeof params.estMinutes === "number" ? params.estMinutes : null,
     params: { ...params, theme },
     externalUrl,
+    externalLabel,
     url,
     delivery,
     rationaleText: item.rationaleText,
@@ -403,6 +422,12 @@ export async function getTodayProgram(
   const program = await getActiveProgram(db, userId);
   if (!program) return null;
 
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: { primaryPlatform: true },
+  });
+  const primaryPlatform = user?.primaryPlatform ?? null;
+
   const dimLabels = new Map(cfg.dimensions.map((d) => [d.id, d.label]));
   const ledger = new Map(cfg.evidenceLedger.map((a) => [a.key, a.source]));
 
@@ -414,6 +439,8 @@ export async function getTodayProgram(
       expectations: rationaleFor("expectations", cfg).value,
       processGoal: rationaleFor("process_goal", cfg).value,
     },
-    items: program.items.map((it) => toTodayItem(it, cfg, dimLabels, ledger)),
+    items: program.items.map((it) =>
+      toTodayItem(it, cfg, dimLabels, ledger, primaryPlatform),
+    ),
   };
 }

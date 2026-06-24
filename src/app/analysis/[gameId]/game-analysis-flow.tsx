@@ -12,6 +12,7 @@ import {
   type BoardMove,
 } from "@/components/interactive-board";
 import { TransparencyCard } from "@/components/transparency-card";
+import { winProb } from "@/engine/math/winprob";
 import { cn } from "@/lib/utils";
 import { resultLabel, platformLabel, formatGameDate } from "@/lib/format-game";
 
@@ -40,8 +41,12 @@ interface TopMove {
 interface MomentAnalysis {
   /** The best achievable eval at the position, player's perspective (cp; mate → ±MATE_CP). */
   rootBestCp: number;
+  /** Win probability (0..1) of the best line — the mate-safe grading baseline. */
+  rootBestWinProb: number;
   /** Centipawns the move actually played gave away (the denominator for "% better"). */
   gameCpLoss: number;
+  /** Win-probability the played move gave away (mate-safe; ~0 for a missed-mate-still-winning). */
+  gameWinProbDrop: number;
   /** The move the player actually made in the game (SAN), or null if it can't be resolved. */
   gameMoveSan: string | null;
   /** Top engine candidate moves (best first). */
@@ -53,6 +58,8 @@ interface Attempt {
   uci: string;
   san: string;
   cpLoss: number;
+  /** Win-probability this attempt gave away vs the best line (mate-safe grading). */
+  winProbDrop: number;
   correct: boolean;
   pctBetter: number | null;
 }
@@ -83,9 +90,18 @@ function clampPct(n: number): number {
   return Math.max(0, Math.min(100, Math.round(n)));
 }
 
+/** A win-probability drop (0..1) as whole percentage points of win chance — the mate-safe,
+ *  human-readable severity that replaces the misleading raw centipawn figure. */
+function pctWinChance(drop: number): number {
+  return Math.max(0, Math.round(drop * 100));
+}
+
 /** How much less centipawn loss `moveCpLoss` is than the played move, as a %. Null when a
  *  mate is involved (the played move missed a forced mate) — we show words there instead. */
-function pctBetterThanGame(gameCpLoss: number, moveCpLoss: number): number | null {
+function pctBetterThanGame(
+  gameCpLoss: number,
+  moveCpLoss: number,
+): number | null {
   if (!Number.isFinite(gameCpLoss) || gameCpLoss <= 0) return null;
   if (gameCpLoss >= MATE_CP / 2) return null;
   return clampPct(((gameCpLoss - moveCpLoss) / gameCpLoss) * 100);
@@ -112,7 +128,13 @@ export function GameAnalysisFlow() {
   const router = useRouter();
   const gameId = params.gameId as string;
 
-  const sessionQuery = trpc.analysis.session.useQuery({ gameId });
+  // Keep the session stable for the duration of a sitting: a focus/reconnect refetch must
+  // not reset an in-progress moment (cleared attempts / a snapped-back board read as a
+  // spurious "jump"). The data is deterministic for a given game, so this is safe.
+  const sessionQuery = trpc.analysis.session.useQuery(
+    { gameId },
+    { refetchOnWindowFocus: false, staleTime: Infinity },
+  );
   const saveSessionMutation = trpc.analysis.saveSession.useMutation();
 
   const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -125,7 +147,8 @@ export function GameAnalysisFlow() {
   const [momentBaseFen, setMomentBaseFen] = useState<string | null>(null);
   const [boardFen, setBoardFen] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<MomentAnalysis | null>(null);
-  const [analysisStatus, setAnalysisStatus] = useState<AnalysisStatus>("loading");
+  const [analysisStatus, setAnalysisStatus] =
+    useState<AnalysisStatus>("loading");
   const [attempts, setAttempts] = useState<Attempt[]>([]);
   const [grading, setGrading] = useState(false);
   const [solved, setSolved] = useState(false);
@@ -232,15 +255,22 @@ export function GameAnalysisFlow() {
       if (aborted) return;
       const rootBestCp = rootEval(rootLines[0]);
 
+      const rootBestWinProb = winProb(rootBestCp);
+
       // Fresh, coherent denominator: the played move's loss against this same root eval.
+      // The win-prob drop is the mate-safe severity — a missed mate that stays winning is
+      // ~0 here, where the raw cp difference would be a misleading ~99000.
       let gameCpLoss = moment.cpLoss;
+      let gameWinProbDrop = 0;
       if (gameMoveResultFen) {
         const gameLines = await engine.analyzeLines(gameMoveResultFen, {
           depth: 12,
           multiPv: 1,
         });
         if (aborted) return;
-        gameCpLoss = Math.max(0, rootBestCp - playerEvalAfter(gameLines[0]));
+        const gameEval = playerEvalAfter(gameLines[0]);
+        gameCpLoss = Math.max(0, rootBestCp - gameEval);
+        gameWinProbDrop = Math.max(0, rootBestWinProb - winProb(gameEval));
       }
 
       const topMoves: TopMove[] = rootLines.slice(0, 3).map((line) => {
@@ -258,7 +288,14 @@ export function GameAnalysisFlow() {
       });
 
       if (aborted) return;
-      setAnalysis({ rootBestCp, gameCpLoss, gameMoveSan, topMoves });
+      setAnalysis({
+        rootBestCp,
+        rootBestWinProb,
+        gameCpLoss,
+        gameWinProbDrop,
+        gameMoveSan,
+        topMoves,
+      });
       setAnalysisStatus("ready");
     }).catch(() => {
       if (!aborted) setAnalysisStatus("error");
@@ -292,12 +329,24 @@ export function GameAnalysisFlow() {
           depth: 12,
           multiPv: 1,
         });
-        const cpLoss = Math.max(0, analysis.rootBestCp - playerEvalAfter(lines[0]));
-        const correct = cpLoss <= moment.maxAcceptableCpLoss;
+        const moveEval = playerEvalAfter(lines[0]);
+        const cpLoss = Math.max(0, analysis.rootBestCp - moveEval);
+        const dropWinProb = Math.max(
+          0,
+          analysis.rootBestWinProb - winProb(moveEval),
+        );
+        // Grade on the mate-safe win-probability drop (config-driven, band-dependent) so a
+        // move that keeps the win counts even if it isn't the engine's fastest mate; fall
+        // back to the cp tolerance only if the win-prob cap is unset.
+        const correct =
+          moment.maxAcceptableWinProbDrop > 0
+            ? dropWinProb <= moment.maxAcceptableWinProbDrop
+            : cpLoss <= moment.maxAcceptableCpLoss;
         const attempt: Attempt = {
           uci: move.uci,
           san: move.san,
           cpLoss,
+          winProbDrop: dropWinProb,
           correct,
           pctBetter: pctBetterThanGame(analysis.gameCpLoss, cpLoss),
         };
@@ -389,8 +438,13 @@ export function GameAnalysisFlow() {
     showMoveOnBoard && lastAttempt
       ? [lastAttempt.uci.slice(0, 2), lastAttempt.uci.slice(2, 4)]
       : [];
+  // Orientation is the side the player is solving as — fixed to the moment's base position
+  // (side-to-move there), NOT the live board FEN. The live FEN's side-to-move flips after
+  // the user's move, which previously flipped a Black solver's board to White's view.
   const boardOrientation =
-    (boardFen ?? momentBaseFen ?? "").split(" ")[1] === "b" ? "black" : "white";
+    (momentBaseFen ?? moment?.fen ?? "").split(" ")[1] === "b"
+      ? "black"
+      : "white";
 
   return (
     <PageShell
@@ -519,8 +573,8 @@ export function GameAnalysisFlow() {
                   !skipCalibration && (
                     <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line/60 pt-3">
                       <p className="text-grade-d font-serif text-xs">
-                        Skipping this reflection isn&apos;t recommended — see the
-                        rationale below.
+                        Skipping this reflection isn&apos;t recommended — see
+                        the rationale below.
                       </p>
                       <Button
                         size="sm"
@@ -589,207 +643,222 @@ export function GameAnalysisFlow() {
           </div>
         )}
 
-        {step === 2 && session.criticalMoments.length > 0 && boardFen && moment && (
-          <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_24rem]">
-            {/* Board */}
-            <div className="flex flex-col gap-3">
-              <InteractiveBoard
-                fen={boardFen}
-                onMove={submitGuess}
-                orientation={boardOrientation}
-                disabled={
-                  analysisStatus !== "ready" || grading || solved || revealed
-                }
-                highlightedSquares={highlightedSquares}
-                className="w-full max-w-[32rem]"
-              />
-              <div className="flex max-w-[32rem] items-center justify-between px-1">
-                <span className="text-graphite font-mono text-xs">
-                  Moment {currentMomentIdx + 1} of{" "}
-                  {session.criticalMoments.length}
-                </span>
-                {!solved && !revealed && (
+        {step === 2 &&
+          session.criticalMoments.length > 0 &&
+          boardFen &&
+          moment && (
+            <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_24rem]">
+              {/* Board */}
+              <div className="flex flex-col gap-3">
+                <InteractiveBoard
+                  fen={boardFen}
+                  onMove={submitGuess}
+                  orientation={boardOrientation}
+                  disabled={
+                    analysisStatus !== "ready" || grading || solved || revealed
+                  }
+                  highlightedSquares={highlightedSquares}
+                  className="w-full max-w-[32rem]"
+                />
+                <div className="flex max-w-[32rem] items-center justify-between px-1">
                   <span className="text-graphite font-mono text-xs">
-                    {triesLeft > 0
-                      ? `${triesLeft} ${triesLeft === 1 ? "try" : "tries"} before reveal`
-                      : "Reveal available"}
+                    Moment {currentMomentIdx + 1} of{" "}
+                    {session.criticalMoments.length}
                   </span>
-                )}
+                  {!solved && !revealed && (
+                    <span className="text-graphite font-mono text-xs">
+                      {triesLeft > 0
+                        ? `${triesLeft} ${triesLeft === 1 ? "try" : "tries"} before reveal`
+                        : "Reveal available"}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Sidebar */}
+              <div className="flex flex-col gap-4">
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="font-serif text-lg">
+                      Find a better move
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="flex flex-col gap-4">
+                    {analysisStatus === "loading" && (
+                      <p className="text-graphite font-mono text-sm">
+                        Stockfish is reading the position…
+                      </p>
+                    )}
+                    {analysisStatus === "error" && (
+                      <p className="text-grade-d font-serif text-sm">
+                        We couldn&apos;t analyse this position. You can still
+                        continue.
+                      </p>
+                    )}
+
+                    {analysisStatus === "ready" && (
+                      <>
+                        <p className="text-graphite font-serif text-sm leading-relaxed">
+                          The engine is held back. Play a stronger move than the
+                          one you chose directly on the board.
+                        </p>
+
+                        {analysis?.gameMoveSan && (
+                          <p className="text-graphite font-mono text-xs">
+                            In the game you played{" "}
+                            <span className="font-bold text-ink">
+                              {analysis.gameMoveSan}
+                            </span>
+                            {analysis.gameWinProbDrop < 0.05
+                              ? " — you stayed clearly ahead; the engine just had a cleaner finish."
+                              : `, dropping ~${pctWinChance(analysis.gameWinProbDrop)}% win chance.`}
+                          </p>
+                        )}
+
+                        {/* Live verdict */}
+                        {grading && (
+                          <p className="text-graphite font-mono text-sm">
+                            Checking your move…
+                          </p>
+                        )}
+
+                        {!grading && solved && lastAttempt && (
+                          <div className="rounded-md border border-grade-a/30 bg-grade-a/10 p-3">
+                            <p className="text-grade-a font-mono text-xs font-bold uppercase">
+                              ✓ Found it — {lastAttempt.san}
+                            </p>
+                            <p className="mt-1 font-serif text-sm text-ink">
+                              {lastAttempt.pctBetter != null
+                                ? `This move is ${lastAttempt.pctBetter}% better than the move you played in the game.`
+                                : "This move steers clear of the mistake you played."}
+                            </p>
+                          </div>
+                        )}
+
+                        {!grading && !solved && !revealed && lastAttempt && (
+                          <div className="rounded-md border border-line bg-ink/[0.03] p-3">
+                            <p className="text-grade-d font-mono text-xs font-bold uppercase">
+                              Not the strongest — {lastAttempt.san}
+                            </p>
+                            <p className="mt-1 font-serif text-sm text-ink">
+                              That move still gives up ~
+                              {pctWinChance(lastAttempt.winProbDrop)}% win
+                              chance. Try another.
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Reveal control / revealed engine moves */}
+                        {canReveal && (
+                          <Button variant="outline" onClick={reveal}>
+                            Show the top 3 engine moves
+                          </Button>
+                        )}
+
+                        {revealed && analysis && (
+                          <div className="flex flex-col gap-2">
+                            <h4 className="text-graphite font-mono text-xs font-semibold uppercase">
+                              Top engine moves
+                            </h4>
+                            {analysis.topMoves.map((m, idx) => (
+                              <div
+                                key={idx}
+                                className="flex items-center justify-between gap-2 rounded-md border border-line bg-card p-3"
+                              >
+                                <span className="font-mono text-sm font-bold text-ink">
+                                  {idx + 1}. {m.san}
+                                </span>
+                                <div className="text-right">
+                                  <span className="text-graphite font-mono text-xs">
+                                    {m.mate != null
+                                      ? "Mate"
+                                      : `${m.cp > 0 ? "+" : ""}${(m.cp / 100).toFixed(1)}`}
+                                  </span>
+                                  {m.pctBetter != null && (
+                                    <p className="text-evergreen font-mono text-[0.7rem]">
+                                      {m.pctBetter}% better than your move
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {(solved || revealed) && (
+                          <Button onClick={goNext}>
+                            {currentMomentIdx + 1 <
+                            session.criticalMoments.length
+                              ? "Next critical moment"
+                              : "Proceed to spaced repetition"}
+                          </Button>
+                        )}
+                      </>
+                    )}
+
+                    {analysisStatus === "error" && (
+                      <Button onClick={goNext}>Continue</Button>
+                    )}
+
+                    {/* Why the engine is held back (always) + tolerance once a verdict shows. */}
+                    {rationales && (
+                      <div className="mt-2 flex flex-col gap-4 border-t border-line/60 pt-4">
+                        {rationales.analysis_engine_delay && (
+                          <TransparencyCard
+                            rationaleText={
+                              rationales.analysis_engine_delay.value
+                            }
+                            evidenceGrade={
+                              rationales.analysis_engine_delay.grade
+                            }
+                            evidenceTier={rationales.analysis_engine_delay.tier}
+                            citationKey={
+                              rationales.analysis_engine_delay.citationKey
+                            }
+                            confidence="medium"
+                            soften={rationales.analysis_engine_delay.soften}
+                            flag={rationales.analysis_engine_delay.flag}
+                          />
+                        )}
+                        {lastAttempt && rationales.analysis_guess_tolerance && (
+                          <TransparencyCard
+                            rationaleText={
+                              rationales.analysis_guess_tolerance.value
+                            }
+                            evidenceGrade={
+                              rationales.analysis_guess_tolerance.grade
+                            }
+                            evidenceTier={
+                              rationales.analysis_guess_tolerance.tier
+                            }
+                            citationKey={
+                              rationales.analysis_guess_tolerance.citationKey
+                            }
+                            confidence="medium"
+                            soften={rationales.analysis_guess_tolerance.soften}
+                            flag={rationales.analysis_guess_tolerance.flag}
+                          />
+                        )}
+                        {revealed && rationales.analysis_rpl_filter && (
+                          <TransparencyCard
+                            rationaleText={rationales.analysis_rpl_filter.value}
+                            evidenceGrade={rationales.analysis_rpl_filter.grade}
+                            evidenceTier={rationales.analysis_rpl_filter.tier}
+                            citationKey={
+                              rationales.analysis_rpl_filter.citationKey
+                            }
+                            confidence="medium"
+                            soften={rationales.analysis_rpl_filter.soften}
+                            flag={rationales.analysis_rpl_filter.flag}
+                          />
+                        )}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
               </div>
             </div>
-
-            {/* Sidebar */}
-            <div className="flex flex-col gap-4">
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="font-serif text-lg">
-                    Find a better move
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-4">
-                  {analysisStatus === "loading" && (
-                    <p className="text-graphite font-mono text-sm">
-                      Stockfish is reading the position…
-                    </p>
-                  )}
-                  {analysisStatus === "error" && (
-                    <p className="text-grade-d font-serif text-sm">
-                      We couldn&apos;t analyse this position. You can still
-                      continue.
-                    </p>
-                  )}
-
-                  {analysisStatus === "ready" && (
-                    <>
-                      <p className="text-graphite font-serif text-sm leading-relaxed">
-                        The engine is held back. Play a stronger move than the
-                        one you chose directly on the board.
-                      </p>
-
-                      {analysis?.gameMoveSan && (
-                        <p className="text-graphite font-mono text-xs">
-                          In the game you played{" "}
-                          <span className="font-bold text-ink">
-                            {analysis.gameMoveSan}
-                          </span>
-                          , losing ~{Math.round(analysis.gameCpLoss)}cp.
-                        </p>
-                      )}
-
-                      {/* Live verdict */}
-                      {grading && (
-                        <p className="text-graphite font-mono text-sm">
-                          Checking your move…
-                        </p>
-                      )}
-
-                      {!grading && solved && lastAttempt && (
-                        <div className="rounded-md border border-grade-a/30 bg-grade-a/10 p-3">
-                          <p className="text-grade-a font-mono text-xs font-bold uppercase">
-                            ✓ Found it — {lastAttempt.san}
-                          </p>
-                          <p className="mt-1 font-serif text-sm text-ink">
-                            {lastAttempt.pctBetter != null
-                              ? `This move is ${lastAttempt.pctBetter}% better than the move you played in the game.`
-                              : "This move steers clear of the mistake you played."}
-                          </p>
-                        </div>
-                      )}
-
-                      {!grading && !solved && !revealed && lastAttempt && (
-                        <div className="rounded-md border border-line bg-ink/[0.03] p-3">
-                          <p className="text-grade-d font-mono text-xs font-bold uppercase">
-                            Not the strongest — {lastAttempt.san}
-                          </p>
-                          <p className="mt-1 font-serif text-sm text-ink">
-                            That move still gives up ~
-                            {Math.round(lastAttempt.cpLoss)}cp. Try another.
-                          </p>
-                        </div>
-                      )}
-
-                      {/* Reveal control / revealed engine moves */}
-                      {canReveal && (
-                        <Button variant="outline" onClick={reveal}>
-                          Show the top 3 engine moves
-                        </Button>
-                      )}
-
-                      {revealed && analysis && (
-                        <div className="flex flex-col gap-2">
-                          <h4 className="text-graphite font-mono text-xs font-semibold uppercase">
-                            Top engine moves
-                          </h4>
-                          {analysis.topMoves.map((m, idx) => (
-                            <div
-                              key={idx}
-                              className="flex items-center justify-between gap-2 rounded-md border border-line bg-card p-3"
-                            >
-                              <span className="font-mono text-sm font-bold text-ink">
-                                {idx + 1}. {m.san}
-                              </span>
-                              <div className="text-right">
-                                <span className="text-graphite font-mono text-xs">
-                                  {m.mate != null
-                                    ? "Mate"
-                                    : `${m.cp > 0 ? "+" : ""}${(m.cp / 100).toFixed(1)}`}
-                                </span>
-                                {m.pctBetter != null && (
-                                  <p className="text-evergreen font-mono text-[0.7rem]">
-                                    {m.pctBetter}% better than your move
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      {(solved || revealed) && (
-                        <Button onClick={goNext}>
-                          {currentMomentIdx + 1 < session.criticalMoments.length
-                            ? "Next critical moment"
-                            : "Proceed to spaced repetition"}
-                        </Button>
-                      )}
-                    </>
-                  )}
-
-                  {analysisStatus === "error" && (
-                    <Button onClick={goNext}>Continue</Button>
-                  )}
-
-                  {/* Why the engine is held back (always) + tolerance once a verdict shows. */}
-                  {rationales && (
-                    <div className="mt-2 flex flex-col gap-4 border-t border-line/60 pt-4">
-                      {rationales.analysis_engine_delay && (
-                        <TransparencyCard
-                          rationaleText={rationales.analysis_engine_delay.value}
-                          evidenceGrade={rationales.analysis_engine_delay.grade}
-                          evidenceTier={rationales.analysis_engine_delay.tier}
-                          citationKey={
-                            rationales.analysis_engine_delay.citationKey
-                          }
-                          confidence="medium"
-                          soften={rationales.analysis_engine_delay.soften}
-                          flag={rationales.analysis_engine_delay.flag}
-                        />
-                      )}
-                      {lastAttempt && rationales.analysis_guess_tolerance && (
-                        <TransparencyCard
-                          rationaleText={
-                            rationales.analysis_guess_tolerance.value
-                          }
-                          evidenceGrade={
-                            rationales.analysis_guess_tolerance.grade
-                          }
-                          evidenceTier={rationales.analysis_guess_tolerance.tier}
-                          citationKey={
-                            rationales.analysis_guess_tolerance.citationKey
-                          }
-                          confidence="medium"
-                          soften={rationales.analysis_guess_tolerance.soften}
-                          flag={rationales.analysis_guess_tolerance.flag}
-                        />
-                      )}
-                      {revealed && rationales.analysis_rpl_filter && (
-                        <TransparencyCard
-                          rationaleText={rationales.analysis_rpl_filter.value}
-                          evidenceGrade={rationales.analysis_rpl_filter.grade}
-                          evidenceTier={rationales.analysis_rpl_filter.tier}
-                          citationKey={rationales.analysis_rpl_filter.citationKey}
-                          confidence="medium"
-                          soften={rationales.analysis_rpl_filter.soften}
-                          flag={rationales.analysis_rpl_filter.flag}
-                        />
-                      )}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        )}
+          )}
 
         {/* Step 3: Spaced Repetition confirmation */}
         {step === 3 && (
