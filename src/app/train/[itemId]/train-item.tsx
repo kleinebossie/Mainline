@@ -9,6 +9,7 @@ import type { AppRouter } from "@/server/routers/_app";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { InteractiveBoard } from "@/components/interactive-board";
+import { EndgameDrillSession } from "@/app/train/[itemId]/endgame-drill";
 import { stepSolve, type SolveState } from "@/engine/interactive/session";
 import {
   puzzleToSolveState,
@@ -130,11 +131,7 @@ export function TrainItem({ programItemId }: TrainItemProps) {
   };
 
   // Log one outcome, routing to the right event type by kind (puzzle_attempt vs drill_done).
-  const logOutcome = (
-    s: Solvable,
-    correct: boolean,
-    solveTimeMs: number,
-  ) => {
+  const logOutcome = (s: Solvable, correct: boolean, solveTimeMs: number) => {
     if (s.kind === "blunder_drill") {
       logMutation.mutate({
         programItemId,
@@ -280,6 +277,13 @@ export function TrainItem({ programItemId }: TrainItemProps) {
     );
   }
 
+  // M13: an endgame drill is PLAYED OUT vs the engine, not matched to a fixed line — it has
+  // its own session surface. Branch after the data load (all hooks above already ran, so hook
+  // order is stable).
+  if (data.item.activityType === "endgame_drill") {
+    return <EndgameDrillSession programItemId={programItemId} data={data} />;
+  }
+
   const activeList = phase === "retest" ? retestQueue : solvables;
   const current = activeList[currentIdx];
   const isDrill = current?.kind === "blunder_drill";
@@ -296,10 +300,14 @@ export function TrainItem({ programItemId }: TrainItemProps) {
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <p className="text-graphite font-serif text-sm leading-relaxed">
-              Awesome job! Your practice session has been completed, and outcomes
-              have been registered with the spaced repetition scheduler.
+              Awesome job! Your practice session has been completed, and
+              outcomes have been registered with the spaced repetition
+              scheduler.
             </p>
-            <Button onClick={() => router.push("/today")} className="self-start">
+            <Button
+              onClick={() => router.push("/today")}
+              className="self-start"
+            >
               Back to Today
             </Button>
           </CardContent>
@@ -497,9 +505,7 @@ export function TrainItem({ programItemId }: TrainItemProps) {
               <div className="flex flex-col gap-2 border-t border-line/80 pt-4">
                 {solveStatus === "solved" ? (
                   <Button onClick={handleNext} className="w-full">
-                    {currentIdx + 1 < activeList.length
-                      ? "Next"
-                      : "Continue"}
+                    {currentIdx + 1 < activeList.length ? "Next" : "Continue"}
                   </Button>
                 ) : (
                   <Button

@@ -4,12 +4,26 @@ import React, { useState, useEffect, useRef } from "react";
 import { PageShell } from "@/components/app-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Chess } from "chess.js";
 import { InteractiveBoard } from "@/components/interactive-board";
 import { stepSolve, type SolveState } from "@/engine/interactive/session";
 import { createEnginePlay } from "@/engine/interactive/engine-play";
+import {
+  classifyTerminal,
+  scoreEndgame,
+  endgameOrientation,
+  endgamePlayerColor,
+  type EndgameScore,
+} from "@/engine/interactive/endgame";
 import { StockfishAnalysisEngine } from "@/analysis/stockfish-adapter";
 import { systemClock } from "@/lib/clock";
 import { cn } from "@/lib/utils";
+
+// A genuine mate-in-1 ENDGAME for the M13 substrate demo: White Ka6 + Qg7 vs lone Black Ka8.
+// 1. Qa7# (g7→a7) is checkmate, so the play-out ends immediately — no engine reply needed,
+// keeping the demo deterministic and engine-free (the e2e drives exactly this).
+// FEN: k7/6Q1/K7/8/8/8/8/8 w - - 0 1   Objective: win (deliver checkmate).
+const DEMO_ENDGAME_FEN = "k7/6Q1/K7/8/8/8/8/8 w - - 0 1";
 
 // A genuine, verifiable mate-in-1 for the substrate demo. Black king is boxed on g8 by
 // its own pawns (f7/g7/h7); the rook swings to a8 and mates along the back rank — the rook
@@ -19,7 +33,12 @@ const DEMO_PUZZLE_FEN = "6k1/5ppp/8/8/8/8/8/R6K w - - 0 1";
 const DEMO_PUZZLE_SOLUTION = ["a1a8"]; // UCI expected: a1a8 (Ra8#)
 
 export default function TrainPage() {
-  const [mode, setMode] = useState<"puzzle" | "spar">("puzzle");
+  const [mode, setMode] = useState<"puzzle" | "spar" | "endgame">("puzzle");
+
+  // State for Endgame-drill mode (M13). Played out vs the engine; the mate-in-1 demo ends on
+  // the user's move, so we judge with the real engine scorer (classifyTerminal + scoreEndgame).
+  const [endgameFen, setEndgameFen] = useState<string>(DEMO_ENDGAME_FEN);
+  const [endgameResult, setEndgameResult] = useState<EndgameScore | null>(null);
 
   // State for Puzzle mode
   const [solveState, setSolveState] = useState<SolveState>({
@@ -104,6 +123,32 @@ export default function TrainPage() {
         setSolveStatus((prev) => (prev === "correct" ? "pending" : prev));
       }, 1000);
     }
+  };
+
+  // Handle endgame play-out moves (M13). Apply locally; when the game ends, judge the result
+  // against the "win" objective with the real engine scorer (the mate-in-1 demo ends here, so
+  // no opponent reply is needed — deterministic and engine-free).
+  const handleEndgameMove = (move: { san: string }) => {
+    const chess = new Chess(endgameFen);
+    try {
+      chess.move(move.san);
+    } catch {
+      return;
+    }
+    const after = chess.fen();
+    setEndgameFen(after);
+    if (chess.isGameOver()) {
+      const outcome = classifyTerminal(
+        after,
+        endgamePlayerColor(DEMO_ENDGAME_FEN),
+      );
+      setEndgameResult(scoreEndgame(outcome, "win"));
+    }
+  };
+
+  const resetEndgame = () => {
+    setEndgameFen(DEMO_ENDGAME_FEN);
+    setEndgameResult(null);
   };
 
   // Lazy initialize Stockfish client-side
@@ -227,18 +272,42 @@ export default function TrainPage() {
           >
             Spar Stockfish (WASM)
           </Button>
+          <Button
+            variant={mode === "endgame" ? "default" : "outline"}
+            onClick={() => setMode("endgame")}
+            size="sm"
+          >
+            Endgame Drill
+          </Button>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
           {/* Chessboard View */}
           <div className="flex flex-col items-center gap-3">
             <InteractiveBoard
-              fen={mode === "puzzle" ? solveState.position : sparFen}
-              onMove={mode === "puzzle" ? handlePuzzleMove : handleSparMove}
-              orientation="white"
+              fen={
+                mode === "puzzle"
+                  ? solveState.position
+                  : mode === "spar"
+                    ? sparFen
+                    : endgameFen
+              }
+              onMove={
+                mode === "puzzle"
+                  ? handlePuzzleMove
+                  : mode === "spar"
+                    ? handleSparMove
+                    : handleEndgameMove
+              }
+              orientation={
+                mode === "endgame"
+                  ? endgameOrientation(DEMO_ENDGAME_FEN)
+                  : "white"
+              }
               disabled={
                 (mode === "puzzle" && solveStatus === "solved") ||
-                (mode === "spar" && engineLoading)
+                (mode === "spar" && engineLoading) ||
+                (mode === "endgame" && endgameResult !== null)
               }
               className="w-full max-w-[36rem]"
             />
@@ -299,7 +368,7 @@ export default function TrainPage() {
                   </Button>
                 </CardContent>
               </Card>
-            ) : (
+            ) : mode === "spar" ? (
               <Card className="h-full">
                 <CardHeader>
                   <CardTitle className="font-serif text-lg">
@@ -376,6 +445,52 @@ export default function TrainPage() {
                     disabled={engineLoading}
                   >
                     Reset Sparring Board
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="h-full">
+                <CardHeader>
+                  <CardTitle className="font-serif text-lg">
+                    Endgame Drill (vs engine)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-4">
+                  <p className="text-graphite font-serif text-sm leading-relaxed">
+                    Objective: <strong>win</strong>. White to play and mate:
+                    play <code>Qa7#</code> (queen g7 → a7) to convert this King
+                    + Queen vs King endgame.
+                  </p>
+
+                  <div className="flex flex-col gap-2 rounded-md border border-line bg-paper/50 p-4">
+                    <span className="text-ink font-mono text-xs font-semibold uppercase tracking-wider">
+                      Endgame Result:
+                    </span>
+                    <span
+                      id="endgame-status"
+                      className={cn(
+                        "font-serif text-lg font-semibold",
+                        endgameResult?.correct && "text-evergreen-bright",
+                        endgameResult &&
+                          !endgameResult.correct &&
+                          "text-destructive",
+                        !endgameResult && "text-graphite",
+                      )}
+                    >
+                      {!endgameResult && "Playing… your move"}
+                      {endgameResult?.correct && "✓ Endgame won!"}
+                      {endgameResult &&
+                        !endgameResult.correct &&
+                        "✗ Objective not met"}
+                    </span>
+                  </div>
+
+                  <Button
+                    onClick={resetEndgame}
+                    className="w-full mt-2"
+                    size="sm"
+                  >
+                    Reset Endgame
                   </Button>
                 </CardContent>
               </Card>

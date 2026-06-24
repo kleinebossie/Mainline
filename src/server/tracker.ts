@@ -195,7 +195,7 @@ export async function logOutcome(
   if (input.programItemId) {
     const item = await db.programItem.findUnique({
       where: { id: input.programItemId },
-      select: { dimensionsTargeted: true, params: true },
+      select: { dimensionsTargeted: true, params: true, activityType: true },
     });
     if (item) {
       dimensions = item.dimensionsTargeted;
@@ -214,10 +214,13 @@ export async function logOutcome(
           itemType = "puzzle_theme";
         }
       } else if (input.type === "drill_done" && input.practiceItemId) {
-        // M12: a blunder-drill outcome re-steps that exact personal position's FSRS schedule
-        // (itemType "blunder_drill", itemRef = PracticeItem.id) — the same loop, no new seam.
+        // M12/M13: a drill outcome re-steps that exact personal position's FSRS schedule
+        // (itemRef = PracticeItem.id) — the same loop, no new seam. The itemType follows the
+        // originating activity: an endgame_drill spaces on its own "endgame" queue, every
+        // other drill (blunder) on "blunder_drill".
         itemRef = input.practiceItemId;
-        itemType = "blunder_drill";
+        itemType =
+          item.activityType === "endgame_drill" ? "endgame" : "blunder_drill";
       }
     }
   }
@@ -231,8 +234,7 @@ export async function logOutcome(
     payloadObj.durationMin = input.durationMin;
   if (input.externalRef !== undefined)
     payloadObj.externalRef = input.externalRef;
-  if (input.puzzleId !== undefined)
-    payloadObj.puzzleId = input.puzzleId;
+  if (input.puzzleId !== undefined) payloadObj.puzzleId = input.puzzleId;
   if (input.practiceItemId !== undefined)
     payloadObj.practiceItemId = input.practiceItemId;
   await appendActivityEvent(db, {

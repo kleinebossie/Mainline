@@ -32,6 +32,7 @@ import {
   type ActiveProgram,
 } from "@/db/program";
 import { findDueScheduleStates, findRecentPuzzleAttempts } from "@/db/tracker";
+import { ensureEndgameDrills } from "@/server/practice";
 import { EMPTY_CONSTRAINTS } from "@/lib/constraints";
 
 type Db = Pick<
@@ -43,6 +44,7 @@ type Db = Pick<
   | "constraintSet"
   | "resourceRef"
   | "program"
+  | "practiceItem"
   | "scheduleState"
   | "activityEvent"
   | "$transaction"
@@ -164,6 +166,20 @@ export async function generateAndSaveProgram(
   const cfg = loadMethodology();
   const tacticalRating = await resolveTacticalRating(db, userId, cfg);
   const band = bandForRating(tacticalRating, cfg);
+
+  // M13: seed the band's curated endgame curriculum (Seam-4 config) as spaced PracticeItems
+  // BEFORE reading due items, so the endgame_drill activity (due-gated) can surface them this
+  // session. Only when endgames are recommended for the band (positive ROI prior) — and
+  // idempotent, so it never re-seeds or resets an in-flight drill.
+  const endgameRecommended = cfg.activities.some(
+    (a) =>
+      a.activityType === "endgame_drill" &&
+      (a.priorityByBand[band]?.value ?? 0) > 0,
+  );
+  if (endgameRecommended) {
+    await ensureEndgameDrills(db, userId, band, cfg, clock);
+  }
+
   const features = await gatherFeatures(db, userId);
   const weaknessSignals = interpretGameFeatures({ features, band }, cfg);
   const constraints = await getCurrentConstraints(db, userId);

@@ -7,12 +7,14 @@
 import type { Prisma, PrismaClient } from "@prisma/client";
 
 import { deriveBlunderDrills } from "@/engine/interactive/blunder-drill";
-import { loadMethodology, scheduleReview } from "@/methodology";
-import { upsertPracticeItem } from "@/db/practice";
 import {
-  findScheduleStates,
-  upsertScheduleState,
-} from "@/db/tracker";
+  loadMethodology,
+  scheduleReview,
+  type Band,
+  type MethodologyConfig,
+} from "@/methodology";
+import { upsertPracticeItem } from "@/db/practice";
+import { findScheduleStates, upsertScheduleState } from "@/db/tracker";
 import { userOwnsGame } from "@/db/analysis";
 import { systemClock, type Clock } from "@/lib/clock";
 
@@ -97,6 +99,68 @@ export async function createBlunderDrillsFromGame(
       fsrsState: newState as unknown as Prisma.InputJsonValue,
       due: new Date(now),
       lastGrade: 1,
+      source: "drill",
+    });
+    created++;
+  }
+
+  return { created };
+}
+
+type EndgameDb = Pick<PrismaClient, "practiceItem" | "scheduleState">;
+
+/**
+ * Seed the band's curated endgame curriculum (Seam-4 config, M13) as personal PracticeItems
+ * + FSRS schedules, so they surface in `/today` as `endgame_drill` items (due-gated like
+ * blunder drills). Idempotent: re-generation re-uses the same positions (unique sourceRef
+ * `endgame:<id>`) and never resets a drill already moving through the FSRS queue. New drills
+ * are seeded due NOW so they reach the next session, then space out as the user replays them.
+ *
+ * The curriculum (which endgames, win or hold) is the methodology's call (config); this only
+ * gathers + persists (L1). Pure decisions stay in the provider; reproducible via the Clock (L2).
+ */
+export async function ensureEndgameDrills(
+  db: EndgameDb,
+  userId: string,
+  band: Band,
+  cfg: MethodologyConfig,
+  clock: Clock = systemClock,
+): Promise<{ created: number }> {
+  const positions = cfg.endgameCurriculum.positionsByBand[band] ?? [];
+  if (positions.length === 0) return { created: 0 };
+
+  const now = clock.now();
+  let created = 0;
+  for (const pos of positions) {
+    const item = await upsertPracticeItem(db, {
+      userId,
+      kind: "endgame",
+      fen: pos.fen,
+      // An endgame is PLAYED OUT vs the engine — there is no fixed solution line; the
+      // objective + scoring live in config + the engine scorer, not on this row.
+      solutionLine: [],
+      sourceRef: `endgame:${pos.id}`,
+      methodologyKey: pos.id,
+    });
+
+    const existing = await findScheduleStates(db, userId, [
+      { itemType: "endgame", itemRef: item.id },
+    ]);
+    if (existing.length > 0) continue;
+
+    // Curated learning items (not failures) → seed as Grade 3 (Good) but force due NOW so the
+    // drill appears in the first session; subsequent reviews space out via FSRS.
+    const { newState } = scheduleReview(
+      { grade: 3, fsrsState: null, now },
+      cfg,
+    );
+    await upsertScheduleState(db, {
+      userId,
+      itemRef: item.id,
+      itemType: "endgame",
+      fsrsState: newState as unknown as Prisma.InputJsonValue,
+      due: new Date(now),
+      lastGrade: 3,
       source: "drill",
     });
     created++;

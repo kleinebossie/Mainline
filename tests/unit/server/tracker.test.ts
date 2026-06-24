@@ -11,14 +11,23 @@ import { DAY_MS, fixedClock } from "@/lib/clock";
 interface Recorder {
   events: { type: string; payload: unknown; programItemId: string | null }[];
   itemUpdates: { id: string; status: string }[];
-  scheduleUpserts: { itemRef: string; due: Date; lastGrade: number }[];
+  scheduleUpserts: {
+    itemRef: string;
+    itemType: string;
+    due: Date;
+    lastGrade: number;
+  }[];
   skillUpserts: { dimension: string; estimate: number; sampleSize: number }[];
   logs: { trigger: string; decisions: unknown }[];
   rewardCreates: { type: string; copyKey: string }[];
 }
 
 function fakeDb(
-  item: { dimensionsTargeted: string[]; params: unknown } | null,
+  item: {
+    dimensionsTargeted: string[];
+    params: unknown;
+    activityType?: string;
+  } | null,
 ) {
   const rec: Recorder = {
     events: [],
@@ -92,10 +101,16 @@ function fakeDb(
       upsert: async ({
         create,
       }: {
-        create: { itemRef: string; due: Date; lastGrade: number };
+        create: {
+          itemRef: string;
+          itemType: string;
+          due: Date;
+          lastGrade: number;
+        };
       }) => {
         rec.scheduleUpserts.push({
           itemRef: create.itemRef,
+          itemType: create.itemType,
           due: create.due,
           lastGrade: create.lastGrade,
         });
@@ -189,5 +204,36 @@ describe("logOutcome (applyEvent)", () => {
     expect(rec.scheduleUpserts).toEqual([]);
     expect(rec.skillUpserts[0]!.estimate).toBe(1);
     expect(res.scheduledReviews).toBe(0);
+  });
+
+  it("M13: an endgame drill_done spaces on its own 'endgame' FSRS queue", async () => {
+    // A failed endgame conversion re-steps the personal position by id on the "endgame" queue
+    // (not "blunder_drill") — the per-activity routing that keeps endgame spacing separate.
+    const endgameItem = {
+      dimensionsTargeted: ["endgames"],
+      params: {},
+      activityType: "endgame_drill",
+    };
+    const { db, rec } = fakeDb(endgameItem);
+    await logOutcome(
+      db,
+      "u1",
+      {
+        programItemId: "p1",
+        type: "drill_done",
+        correct: false,
+        practiceItemId: "pi-endgame-1",
+      },
+      clock,
+    );
+    expect(rec.scheduleUpserts).toHaveLength(1);
+    expect(rec.scheduleUpserts[0]).toMatchObject({
+      itemRef: "pi-endgame-1",
+      itemType: "endgame",
+      lastGrade: 1,
+    });
+    expect(rec.skillUpserts).toEqual([
+      { dimension: "endgames", estimate: 0, sampleSize: 1 },
+    ]);
   });
 });

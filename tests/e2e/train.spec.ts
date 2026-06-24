@@ -22,3 +22,22 @@ test("train page demo solves mate in 1 puzzle", async ({ page }) => {
   // Verify the solving status changes to Solved!
   await expect(status).toHaveText("✓ Solved!");
 });
+
+test("train page plays a known endgame drill to a winning result", async ({
+  page,
+}) => {
+  await page.goto("/train");
+
+  // Switch to the M13 endgame-drill demo (King + Queen vs King, mate in 1).
+  await page.getByRole("button", { name: "Endgame Drill" }).click();
+
+  const status = page.locator("#endgame-status");
+  await expect(status).toHaveText("Playing… your move");
+
+  // 1. Qa7# — select the queen on g7, then play to a7 (checkmate ends the play-out).
+  await page.locator('[data-square="g7"]').click();
+  await page.locator('[data-square="a7"]').click();
+
+  // The position is played out vs the engine and judged against the "win" objective.
+  await expect(status).toHaveText("✓ Endgame won!");
+});

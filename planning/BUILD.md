@@ -1265,9 +1265,22 @@ function stepSolve(
 - **Tests:** unit — tablebase adapter parse + **cache hit (no refetch)** + back-off on 429; endgame
   position scoring golden; the curriculum is read from config (L1 guard). e2e — play a known endgame
   drill in-app to a correct result, outcome logged + scheduled.
-- **DoD:** ☐ endgame positions trained in-app vs the engine ☐ tablebase ground truth used where
-  available, **rate-limited & cached** (respect the platform, §12) ☐ outcomes auto-logged & spaced
-  ☐ endgame curriculum is Seam-4 config, not engine code (L1).
+- **DoD:** ✅ endgame positions trained in-app vs the engine (curated curriculum played out vs the
+  client-side Stockfish `engine-play` opponent) ✅ tablebase ground truth used where available,
+  **rate-limited & cached** (cache-first `TablebaseCache`, polite `politeFetch` 429 back-off,
+  ≤7-piece guard, graceful engine-only fallback — respect the platform, §12) ✅ outcomes
+  auto-logged (`drill_done`) & spaced on their own `endgame` FSRS queue ✅ endgame curriculum is
+  Seam-4 config (`endgameCurriculum`, graded `objective`), not engine code (L1).
+- **Status (2026-06-24): ✅ DONE.** Notes: (a) endgame drills are due-gated like blunder drills and
+  **seeded from the band curriculum at generation time** (`ensureEndgameDrills`, idempotent) so they
+  reach `/today`; (b) the play-out is judged by the pure `scoreEndgame`/`classifyTerminal` engine
+  scorer against the position's `objective`, with the Lichess tablebase as an **optional** ground-truth
+  oracle (null ⇒ engine-only); (c) the stub curriculum ships conservative, decisive "win" positions
+  (basic mates → conversions), legality-verified — the research config swaps in the full ladder with no
+  Engine change; (d) the e2e drives a deterministic engine-free mate-in-1 endgame on the `/train` demo,
+  while the full signed-in play-out (real Stockfish) is manually verified per §13.5. **Remaining user
+  step (infra): apply migration `20260624010000_m13_tablebase_cache` to Supabase
+  (`npm run prisma:deploy`).**
 
 ### M14 — Recommended resources, book-study & OTB-calibration protocols (the deliberately-external layer)
 

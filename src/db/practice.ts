@@ -47,6 +47,13 @@ export async function findPracticeItemsByIds(
   if (ids.length === 0) return [];
   return db.practiceItem.findMany({
     where: { userId, id: { in: [...ids] } },
-    select: { id: true, kind: true, fen: true, solutionLine: true },
+    select: {
+      id: true,
+      kind: true,
+      fen: true,
+      solutionLine: true,
+      // The curriculum position id (endgame drills) so the surface can resolve its objective.
+      methodologyKey: true,
+    },
   });
 }

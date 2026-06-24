@@ -459,6 +459,18 @@ model PracticeItem {
   @@index([userId, kind])
 }
 
+// Cached Lichess tablebase lookups (§5.3, §6.6, M13). Endgame ground truth (WDL/DTZ +
+// the best move for a ≤7-piece FEN) is IMMUTABLE for a given position, so we fetch once
+// and reuse forever — "respect the platform" (VISION §6, §12): never re-hit Lichess for a
+// FEN we have already seen. `fen` is the natural key; `result` is the parsed tablebase
+// payload ({ category, dtz, dtm, precise, checkmate, stalemate, bestMove, bestMoveSan }),
+// typed via Zod in lib/. Global (not user-owned) — the same position answers for everyone.
+model TablebaseCache {
+  fen       String   @id
+  result    Json
+  fetchedAt DateTime @default(now())
+}
+
 // Why the program changed (§5.6) — transparency for the loop. Each run records its
 // trigger, the input snapshot it ran on (reproducibility, L2), and the ordered
 // `decisions` (each carrying its rationaleKey + evidence grade, L3), under the

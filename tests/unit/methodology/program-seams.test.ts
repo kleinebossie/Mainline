@@ -226,6 +226,7 @@ describe("mapWeaknessToActivities", () => {
       "analyse_own_games",
       "blunder_drill",
       "calculation_drill",
+      "endgame_drill",
       "endgame_study",
       "play_games",
       "spaced_review",
@@ -409,16 +410,27 @@ describe("prioritizeDailyMix — preferences (Seam 7 personalisation)", () => {
   });
 
   it("penalises a format-specific activity the user never plays", () => {
-    const cand = { ...candidate("themed_tactics", "puzzle_theme", 3), formats: ["bullet"] };
+    const cand = {
+      ...candidate("themed_tactics", "puzzle_theme", 3),
+      formats: ["bullet"],
+    };
     const mismatch = prioritizeDailyMix(
-      { candidates: [cand], dueItems: [], preferences: { formats: ["classical"] } },
+      {
+        candidates: [cand],
+        dueItems: [],
+        preferences: { formats: ["classical"] },
+      },
       cfg,
     );
     // ROI 3 − formatMismatchPenalty 2 = 1.
     expect(mismatch[0]!.score).toBe(1);
     // When the user does play that format, no penalty.
     const match = prioritizeDailyMix(
-      { candidates: [cand], dueItems: [], preferences: { formats: ["bullet"] } },
+      {
+        candidates: [cand],
+        dueItems: [],
+        preferences: { formats: ["bullet"] },
+      },
       cfg,
     );
     expect(match[0]!.score).toBe(3);

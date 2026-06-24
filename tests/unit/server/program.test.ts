@@ -86,7 +86,17 @@ function fakeDb(opts: FakeOpts) {
           .filter((id) => where.id.in.includes(id))
           .map((id) => ({ id })),
     },
-    scheduleState: { findMany: async () => opts.dueRows ?? [] },
+    scheduleState: {
+      findMany: async () => opts.dueRows ?? [],
+      // M13: ensureEndgameDrills seeds endgame schedules; the fake just accepts the write.
+      upsert: async () => undefined,
+    },
+    // M13: ensureEndgameDrills upserts curated endgame PracticeItems before reading due items.
+    practiceItem: {
+      upsert: async ({ create }: { create: { sourceRef: string } }) => ({
+        id: `pi_${create.sourceRef}`,
+      }),
+    },
     activityEvent: { findMany: async () => opts.recentAttempts ?? [] },
     program: {
       updateMany: async () => ({ count: 0 }),

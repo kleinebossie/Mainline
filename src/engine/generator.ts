@@ -119,6 +119,10 @@ function dueItemsForActivity(
   if (activityType === "blunder_drill") {
     return dueItems.filter((d) => d.itemType === "blunder_drill");
   }
+  if (activityType === "endgame_drill") {
+    // M13: the due curated endgame positions (itemType "endgame", seeded from Seam-4 config).
+    return dueItems.filter((d) => d.itemType === "endgame");
+  }
   if (activityType === "spaced_review") {
     // Only renderable puzzle reviews — a legacy itemType the solving surface can't render
     // (e.g. an orphaned mistake_puzzle) is skipped rather than shown as an empty card.
@@ -180,9 +184,13 @@ export function generateProgram(
   const dose = vol.dailyPuzzleDose.value;
   const enriched = ordered.map((c) => {
     let divisible: Divisible | undefined;
-    if (c.activityType === "spaced_review" || c.activityType === "blunder_drill") {
-      // Both review-type activities solve one position per unit; blunder_drill has no track,
-      // so it borrows the pattern per-puzzle cost. Sized to its own due queue.
+    if (
+      c.activityType === "spaced_review" ||
+      c.activityType === "blunder_drill" ||
+      c.activityType === "endgame_drill"
+    ) {
+      // Review-type activities solve/play one position per unit; blunder_drill/endgame_drill
+      // have no track, so they borrow the pattern per-puzzle cost. Sized to their due queue.
       const due = dueItemsForActivity(c.activityType, input.dueItems);
       const per = puzzleMinutesFor(c.track ?? "pattern", cfg);
       if (per != null && due.length > 0) {
@@ -212,11 +220,13 @@ export function generateProgram(
     let params: ProgramItemParams;
     if (
       candidate.activityType === "spaced_review" ||
-      candidate.activityType === "blunder_drill"
+      candidate.activityType === "blunder_drill" ||
+      candidate.activityType === "endgame_drill"
     ) {
-      // Seam 6 (M7/M12): a review-type item carries the due refs to redo — as many as fit
+      // Seam 6 (M7/M12/M13): a review-type item carries the due refs to redo — as many as fit
       // the budget (Goal 1), no fresh servo target (the redo flow, §7.5). spaced_review pulls
-      // due puzzle reviews; blunder_drill pulls the due personal blunder positions.
+      // due puzzle reviews; blunder_drill pulls due personal blunder positions; endgame_drill
+      // pulls due curated endgame positions (itemType "endgame").
       const due = dueItemsForActivity(candidate.activityType, input.dueItems);
       const count = p.units ?? due.length;
       params = {

@@ -24,18 +24,24 @@ import {
 import { selectPuzzles } from "@/db/puzzles";
 import { findPracticeItemsByIds } from "@/db/practice";
 import { createBlunderDrillsFromGame } from "@/server/practice";
+import { lookupTablebase } from "@/server/tablebase";
 
-/** A position the in-app board can solve — a Lichess puzzle or a personal blunder drill —
- *  normalised so the solving surface renders both uniformly (M11/M12). */
+/** A position the in-app board can solve/play — a Lichess puzzle, a personal blunder drill,
+ *  or a curated endgame (M11/M12/M13) — normalised so the surface renders them uniformly. */
 interface Solvable {
   id: string;
-  kind: "puzzle" | "blunder_drill";
+  kind: "puzzle" | "blunder_drill" | "endgame";
   fen: string;
   /** The solution line: a puzzle's raw Lichess UCI (moves[0] = opponent setup) or a drill's
-   *  best-move line (already the player's move first). The `kind` tells the board which. */
+   *  best-move line (already the player's move first). Empty for an endgame, which is PLAYED
+   *  OUT vs the engine rather than matched to a fixed line. The `kind` tells the board which. */
   line: string[];
   rating: number | null;
   themes: string[];
+  /** Endgame only: the technique target the play-out is judged against (Seam-4 config). */
+  objective?: "win" | "draw";
+  /** Endgame only: the curated position's name (e.g. "King + Rook vs King"). */
+  label?: string;
 }
 
 function toPuzzleSolvable(p: LichessPuzzle): Solvable {
@@ -84,7 +90,11 @@ export const programRouter = router({
       if (item.activityType === "blunder_drill") {
         // M12: resolve the due personal blunder positions (PracticeItems) to solve on the board.
         const refs = (params.dueItemRefs as string[] | null) ?? [];
-        const items = await findPracticeItemsByIds(ctx.prisma, ctx.userId, refs);
+        const items = await findPracticeItemsByIds(
+          ctx.prisma,
+          ctx.userId,
+          refs,
+        );
         const order = new Map(refs.map((id, idx) => [id, idx]));
         solvables = items
           .sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0))
@@ -96,6 +106,39 @@ export const programRouter = router({
             rating: null,
             themes: [],
           }));
+      } else if (item.activityType === "endgame_drill") {
+        // M13: resolve the due curated endgame positions (PracticeItems) to play out vs the
+        // engine. Each position's OBJECTIVE (win / hold the draw) is resolved from the Seam-4
+        // curriculum by its methodologyKey (the curriculum id) — config is the source of truth.
+        const curriculumById = new Map(
+          Object.values(cfg.endgameCurriculum.positionsByBand)
+            .flat()
+            .map((pos) => [pos.id, pos]),
+        );
+        const refs = (params.dueItemRefs as string[] | null) ?? [];
+        const items = await findPracticeItemsByIds(
+          ctx.prisma,
+          ctx.userId,
+          refs,
+        );
+        const order = new Map(refs.map((id, idx) => [id, idx]));
+        solvables = items
+          .sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0))
+          .map((pi) => {
+            const pos = pi.methodologyKey
+              ? curriculumById.get(pi.methodologyKey)
+              : undefined;
+            return {
+              id: pi.id,
+              kind: "endgame" as const,
+              fen: pi.fen,
+              line: [],
+              rating: null,
+              themes: [],
+              objective: pos?.objective.value ?? "win",
+              label: pos?.label ?? "Endgame",
+            };
+          });
       } else if (item.activityType === "spaced_review") {
         // Fetch puzzles by their IDs
         const dueIds = (params.dueItemRefs as string[] | null) ?? [];
@@ -166,8 +209,7 @@ export const programRouter = router({
       // if the leaf is absent in an older config.
       const retest = rationaleFor("redo_retest", cfg);
       const redoFlow = {
-        retestDelaySec:
-          cfg.scheduling.intraSessionRetestDelaySec?.value ?? 600,
+        retestDelaySec: cfg.scheduling.intraSessionRetestDelaySec?.value ?? 600,
         rationale: {
           value: retest.value,
           grade: retest.grade,
@@ -214,6 +256,13 @@ export const programRouter = router({
     .mutation(({ ctx, input }) =>
       createBlunderDrillsFromGame(ctx.prisma, ctx.userId, input),
     ),
+
+  // M13: ground-truth tablebase result for an endgame position (cache-first, polite, capped
+  // — §6.6/§12). Null when unavailable (> 7 pieces, no entry, or a rate-limit/network miss);
+  // the endgame surface then falls back to engine-only judging.
+  probeTablebase: protectedProcedure
+    .input(z.object({ fen: z.string().min(1) }))
+    .query(({ ctx, input }) => lookupTablebase(ctx.prisma, input.fen)),
 
   bandExpectation: protectedProcedure.query(async ({ ctx }) => {
     const cfg = loadMethodology();

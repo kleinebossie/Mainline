@@ -296,7 +296,9 @@ const schedulingSchema = z.object({
   // working memory; a short spacing gap turns it into durable encoding). Best-guess value
   // (the exact gap is unstudied); optional so configs predating it still validate (the
   // solving surface falls back to a safe default).
-  intraSessionRetestDelaySec: gradedValue(z.number().int().positive()).optional(),
+  intraSessionRetestDelaySec: gradedValue(
+    z.number().int().positive(),
+  ).optional(),
 });
 
 // Measurement & expectations (cross-cutting; EXPECTATIONS.md). A rating is a distribution,
@@ -513,6 +515,30 @@ const boardSchema = z.object({
   restrictionRationaleKey: z.string().min(1),
 });
 
+// Seam 4 — the in-app endgame curriculum (METHODOLOGY Seam 4 endgame ladder, M13). A
+// per-band set of curated endgame positions the user trains in-app against the chess engine
+// (the internalised former `endgame_trainer`). The POSITION data (id/label/fen/category) is
+// structural reference data — like an activity's `resourceTheme`, which external/open thing
+// to render — while the `objective` (the technique outcome the drill requires: win, or hold
+// the draw) is the graded methodology decision the endgame scorer reads. WHICH endgames
+// matter at WHICH band is coaching consensus (Grade C); the stub ships conservative,
+// decisive positions, swapped for the research curriculum later with no Engine change.
+const endgamePositionSchema = z.object({
+  id: z.string().min(1),
+  label: z.string().min(1),
+  fen: z.string().min(1),
+  // A structural family tag (e.g. "basic_mate", "kp", "rook") for grouping/UI only.
+  category: z.string().min(1),
+  // The technique target the scorer judges the played-out result against (Seam 4, graded).
+  objective: gradedValue(z.enum(["win", "draw"])),
+});
+
+const endgameCurriculumSchema = z.object({
+  // Curated positions per band (full band coverage enforced below). May be empty for a
+  // band with no curated positions yet; the endgame_drill activity simply seeds none.
+  positionsByBand: z.record(z.array(endgamePositionSchema)),
+});
+
 /** Recursively collect every citationKey appearing on a GradedValue in the config. */
 function collectCitationKeys(node: unknown, into: Set<string>): void {
   if (Array.isArray(node)) {
@@ -543,6 +569,7 @@ export const methodologyConfigSchema = z
     evidenceLedger: z.array(anchorSourceSchema).min(1),
     gameAnalysis: gameAnalysisSchema,
     board: boardSchema,
+    endgameCurriculum: endgameCurriculumSchema,
   })
   .superRefine((cfg, ctx) => {
     // L3 — every citationKey must resolve to a ledger anchor (fail-closed, §2.6).
@@ -561,6 +588,7 @@ export const methodologyConfigSchema = z
       cfg.rationale,
       cfg.gameAnalysis,
       cfg.board,
+      cfg.endgameCurriculum,
     ]) {
       collectCitationKeys(section, usedCitations);
     }
@@ -635,6 +663,10 @@ export const methodologyConfigSchema = z
       "gameAnalysis",
       "gameSelection",
       "perBand",
+    ]);
+    requireBands(cfg.endgameCurriculum.positionsByBand, [
+      "endgameCurriculum",
+      "positionsByBand",
     ]);
 
     // Referential integrity: dimension/activity/rationale ids must all resolve, so a
@@ -740,6 +772,10 @@ export type SkillDimension = MethodologyConfig["dimensions"][number];
 export type InterpretationConfig = MethodologyConfig["interpretation"];
 export type ActivityDefinition = MethodologyConfig["activities"][number];
 export type BoardConfig = MethodologyConfig["board"];
+export type EndgameCurriculumConfig = MethodologyConfig["endgameCurriculum"];
+export type EndgamePosition =
+  EndgameCurriculumConfig["positionsByBand"][string][number];
+export type EndgameObjective = EndgamePosition["objective"]["value"];
 export type TargetFocus = (typeof TARGET_FOCUSES)[number];
 export type WeaknessResourceRule =
   MethodologyConfig["weaknessResourceRules"][number];

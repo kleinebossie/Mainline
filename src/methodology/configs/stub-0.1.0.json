@@ -21,7 +21,7 @@
     },
     {
       "id": "b800_1200",
-      "label": "800–1200",
+      "label": "800\u20131200",
       "minRating": {
         "value": 800,
         "grade": "C",
@@ -39,7 +39,7 @@
     },
     {
       "id": "b1200_1600",
-      "label": "1200–1600",
+      "label": "1200\u20131600",
       "minRating": {
         "value": 1200,
         "grade": "C",
@@ -57,7 +57,7 @@
     },
     {
       "id": "b1600_2000",
-      "label": "1600–2000",
+      "label": "1600\u20132000",
       "minRating": {
         "value": 1600,
         "grade": "C",
@@ -75,7 +75,7 @@
     },
     {
       "id": "b2000_2200",
-      "label": "2000–2200",
+      "label": "2000\u20132200",
       "minRating": {
         "value": 2000,
         "grade": "C",
@@ -111,13 +111,34 @@
     }
   ],
   "dimensions": [
-    { "id": "tactics", "label": "Tactical pattern recognition" },
-    { "id": "board_vision", "label": "Blunder avoidance / board vision" },
-    { "id": "calculation", "label": "Calculation / visualisation" },
-    { "id": "positional", "label": "Positional understanding" },
-    { "id": "openings", "label": "Opening knowledge" },
-    { "id": "endgames", "label": "Endgame technique" },
-    { "id": "time_mgmt", "label": "Time management" }
+    {
+      "id": "tactics",
+      "label": "Tactical pattern recognition"
+    },
+    {
+      "id": "board_vision",
+      "label": "Blunder avoidance / board vision"
+    },
+    {
+      "id": "calculation",
+      "label": "Calculation / visualisation"
+    },
+    {
+      "id": "positional",
+      "label": "Positional understanding"
+    },
+    {
+      "id": "openings",
+      "label": "Opening knowledge"
+    },
+    {
+      "id": "endgames",
+      "label": "Endgame technique"
+    },
+    {
+      "id": "time_mgmt",
+      "label": "Time management"
+    }
   ],
   "assessment": {
     "selfReportForSkill": {
@@ -132,7 +153,7 @@
       "grade": "A",
       "tier": 1,
       "citationKey": "heck2025",
-      "note": "Self-report remains valid for constraints/goals/resources — not a skill claim."
+      "note": "Self-report remains valid for constraints/goals/resources \u2014 not a skill claim."
     },
     "instantEvalGames": {
       "value": 5,
@@ -165,7 +186,7 @@
         "tier": 2,
         "citationKey": "cheung2014",
         "flag": "best-guess",
-        "note": "≈3 min keeps onboarding cognitive load low; exact length best-guess."
+        "note": "\u22483 min keeps onboarding cognitive load low; exact length best-guess."
       },
       "startRating": {
         "value": 1200,
@@ -180,7 +201,7 @@
         "grade": "B",
         "tier": 2,
         "citationKey": "wilson2019",
-        "note": "Servo target; pattern-learning sweet spot ≈85%, conservative 80%."
+        "note": "Servo target; pattern-learning sweet spot \u224885%, conservative 80%."
       },
       "stepUp": {
         "value": 50,
@@ -196,7 +217,7 @@
         "tier": 1,
         "citationKey": "stub_open_question",
         "flag": "best-guess",
-        "note": "4× stepUp ⇒ ladder converges to ~80% success (the target above)."
+        "note": "4\u00d7 stepUp \u21d2 ladder converges to ~80% success (the target above)."
       },
       "ratingFloor": {
         "value": 600,
@@ -220,7 +241,7 @@
         "tier": 1,
         "citationKey": "stub_open_question",
         "flag": "best-guess",
-        "note": "Maps (success − target) to a rating offset in the estimator."
+        "note": "Maps (success \u2212 target) to a rating offset in the estimator."
       },
       "uncertaintyBase": {
         "value": 350,
@@ -228,7 +249,7 @@
         "tier": 1,
         "citationKey": "stub_open_question",
         "flag": "best-guess",
-        "note": "Estimate SE at n=1; shrinks by √n as items accrue."
+        "note": "Estimate SE at n=1; shrinks by \u221an as items accrue."
       },
       "stopUncertainty": {
         "value": 120,
@@ -267,7 +288,7 @@
         "grade": "A",
         "tier": 1,
         "citationKey": "weakness_diagnosis",
-        "note": "A move losing ≥150cp (from the mover's perspective) is a blunder."
+        "note": "A move losing \u2265150cp (from the mover's perspective) is a blunder."
       },
       "excludeDecidedAboveCp": {
         "value": 600,
@@ -282,7 +303,7 @@
         "tier": 1,
         "citationKey": "weakness_diagnosis",
         "flag": "best-guess",
-        "note": "Win-probability drop (~150cp near equality) that marks a blunder — mate-safe: a missed mate that stays winning is a ~0 drop, so it never inflates the blunder rate."
+        "note": "Win-probability drop (~150cp near equality) that marks a blunder \u2014 mate-safe: a missed mate that stays winning is a ~0 drop, so it never inflates the blunder rate."
       }
     },
     "blunderRate": {
@@ -294,7 +315,7 @@
           "tier": 1,
           "citationKey": "weakness_diagnosis",
           "flag": "contested",
-          "note": "Expected blunder rate; reports disagree — recalibrate from telemetry."
+          "note": "Expected blunder rate; reports disagree \u2014 recalibrate from telemetry."
         },
         "b800_1200": {
           "value": 0.15,
@@ -338,7 +359,7 @@
         "tier": 1,
         "citationKey": "weakness_diagnosis",
         "flag": "best-guess",
-        "note": "Flag a weakness when the user's rate exceeds 1.2× the band baseline."
+        "note": "Flag a weakness when the user's rate exceeds 1.2\u00d7 the band baseline."
       },
       "rationaleKey": "blunder_focus"
     },
@@ -349,7 +370,7 @@
           "grade": "A",
           "tier": 1,
           "citationKey": "weakness_diagnosis",
-          "note": "≥20 trailing games to flag a blunder-rate weakness at all (binomial power)."
+          "note": "\u226520 trailing games to flag a blunder-rate weakness at all (binomial power)."
         },
         "medium": {
           "value": 35,
@@ -767,6 +788,73 @@
       }
     },
     {
+      "id": "endgame_drill",
+      "label": "Endgame drill (vs engine)",
+      "activityType": "endgame_drill",
+      "dimensions": ["endgames"],
+      "resourceTheme": null,
+      "estMinutes": {
+        "value": 15,
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "stub_open_question",
+        "flag": "best-guess"
+      },
+      "priorityByBand": {
+        "u800": {
+          "value": 1,
+          "grade": "C",
+          "tier": 1,
+          "citationKey": "stub_open_question",
+          "flag": "best-guess"
+        },
+        "b800_1200": {
+          "value": 1,
+          "grade": "C",
+          "tier": 1,
+          "citationKey": "stub_open_question",
+          "flag": "best-guess"
+        },
+        "b1200_1600": {
+          "value": 2,
+          "grade": "C",
+          "tier": 1,
+          "citationKey": "stub_open_question",
+          "flag": "best-guess"
+        },
+        "b1600_2000": {
+          "value": 2,
+          "grade": "C",
+          "tier": 1,
+          "citationKey": "stub_open_question",
+          "flag": "best-guess"
+        },
+        "b2000_2200": {
+          "value": 3,
+          "grade": "C",
+          "tier": 1,
+          "citationKey": "stub_open_question",
+          "flag": "best-guess"
+        },
+        "b2200plus": {
+          "value": 3,
+          "grade": "C",
+          "tier": 1,
+          "citationKey": "stub_open_question",
+          "flag": "best-guess"
+        }
+      },
+      "track": null,
+      "delivery": {
+        "value": "internal",
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "stub_open_question",
+        "flag": "best-guess"
+      },
+      "rationaleKey": "endgame_focus"
+    },
+    {
       "id": "calculation_drill",
       "label": "Calculation / visualisation drill",
       "activityType": "puzzle_theme",
@@ -846,6 +934,12 @@
       "activityId": "blunder_drill",
       "theme": null,
       "rationaleKey": "blunder_drill"
+    },
+    {
+      "dimension": "endgames",
+      "activityId": "endgame_drill",
+      "theme": null,
+      "rationaleKey": "endgame_focus"
     }
   ],
   "difficulty": {
@@ -856,7 +950,7 @@
         "tier": 2,
         "citationKey": "wilson2019",
         "flag": "semi-evidenced",
-        "note": "≈85% optimal-difficulty (ML, extrapolated to chess); conservative 0.80."
+        "note": "\u224885% optimal-difficulty (ML, extrapolated to chess); conservative 0.80."
       },
       "offsetSeedByBand": {
         "u800": {
@@ -910,7 +1004,7 @@
         "tier": 2,
         "citationKey": "stub_open_question",
         "flag": "best-guess",
-        "note": "Productive-struggle target for the calculation track (50–60%)."
+        "note": "Productive-struggle target for the calculation track (50\u201360%)."
       },
       "offsetSeedByBand": {
         "u800": {
@@ -1062,7 +1156,7 @@
       "tier": 1,
       "citationKey": "stub_open_question",
       "flag": "best-guess",
-      "note": "Interval cap (days) — an infra sanity bound, not a learning value."
+      "note": "Interval cap (days) \u2014 an infra sanity bound, not a learning value."
     },
     "fsrsWeights": {
       "value": [
@@ -1083,7 +1177,7 @@
         "tier": 1,
         "citationKey": "stub_open_question",
         "flag": "best-guess",
-        "note": "Correct & solve time < band-median × 0.5 → Easy (FSRS grade 4)."
+        "note": "Correct & solve time < band-median \u00d7 0.5 \u2192 Easy (FSRS grade 4)."
       },
       "slowFactor": {
         "value": 1.5,
@@ -1091,7 +1185,7 @@
         "tier": 1,
         "citationKey": "stub_open_question",
         "flag": "best-guess",
-        "note": "Correct & solve time > band-median × 1.5 → Hard (2); between → Good (3)."
+        "note": "Correct & solve time > band-median \u00d7 1.5 \u2192 Hard (2); between \u2192 Good (3)."
       }
     },
     "intraSessionRetestDelaySec": {
@@ -1100,7 +1194,7 @@
       "tier": 2,
       "citationKey": "roediger2006",
       "flag": "best-guess",
-      "note": "Within-session wait (10 min) before a just-failed puzzle is retested without its hint (§7.5 redo flow). The exact gap is unstudied; a short delay beats an immediate massed retest."
+      "note": "Within-session wait (10 min) before a just-failed puzzle is retested without its hint (\u00a77.5 redo flow). The exact gap is unstudied; a short delay beats an immediate massed retest."
     }
   },
   "prioritization": {
@@ -1258,7 +1352,7 @@
       "tier": 2,
       "citationKey": "silverman_barasch2023",
       "flag": "best-guess",
-      "note": "Streak resets to a fresh cycle each week — capped, never infinite (anti-loss-aversion); the number is best-guess."
+      "note": "Streak resets to a fresh cycle each week \u2014 capped, never infinite (anti-loss-aversion); the number is best-guess."
     },
     "consistencyWindowDays": {
       "value": 90,
@@ -1274,7 +1368,7 @@
       "tier": 2,
       "citationKey": "lally2010",
       "flag": "best-guess",
-      "note": "Median time to automate a habit (range 18–254); communicate honestly, don't promise."
+      "note": "Median time to automate a habit (range 18\u2013254); communicate honestly, don't promise."
     },
     "competenceMilestones": {
       "value": [10, 50, 100, 250, 500],
@@ -1313,7 +1407,7 @@
       "tier": 1,
       "citationKey": "stub_open_question",
       "flag": "stub",
-      "note": "Suggest a break after this many consecutive losses; thin chess evidence — forgiving default only."
+      "note": "Suggest a break after this many consecutive losses; thin chess evidence \u2014 forgiving default only."
     },
     "events": [
       {
@@ -1339,7 +1433,7 @@
       "grade": "A",
       "tier": 1,
       "citationKey": "glickman2012",
-      "note": "95% confidence interval = rating ± 1.96 × RD (Glicko-2)."
+      "note": "95% confidence interval = rating \u00b1 1.96 \u00d7 RD (Glicko-2)."
     },
     "rdBaselineMax": {
       "value": 110,
@@ -1347,7 +1441,7 @@
       "tier": 1,
       "citationKey": "glickman2012",
       "flag": "best-guess",
-      "note": "Use a rating as a baseline only when RD ≤ this (enough recent games); the threshold value is best-guess."
+      "note": "Use a rating as a baseline only when RD \u2264 this (enough recent games); the threshold value is best-guess."
     },
     "plateauWindowDays": {
       "value": 90,
@@ -1403,7 +1497,7 @@
       "tier": 1,
       "citationKey": "stub_open_question",
       "flag": "best-guess",
-      "note": "Eval (mover POV, cp) above which a position is practically decided/winning. A move that was winning before AND still winning after didn't change the result (e.g. a missed mate) — excluded from critical moments unless the band trains conversion."
+      "note": "Eval (mover POV, cp) above which a position is practically decided/winning. A move that was winning before AND still winning after didn't change the result (e.g. a missed mate) \u2014 excluded from critical moments unless the band trains conversion."
     },
     "emotionalCalibration": {
       "enabled": {
@@ -2204,7 +2298,7 @@
     {
       "key": "blunder_drill",
       "whenShown": "a personalised blunder drill in the daily session",
-      "value": "These are the exact positions where you blundered in your own games — re-solving them, spaced over days, is the most science-backed way to stop repeating a mistake. The spacing effect is strong in general learning; its use on whole chess positions is our own extrapolation, not proven.",
+      "value": "These are the exact positions where you blundered in your own games \u2014 re-solving them, spaced over days, is the most science-backed way to stop repeating a mistake. The spacing effect is strong in general learning; its use on whole chess positions is our own extrapolation, not proven.",
       "grade": "C",
       "tier": 2,
       "citationKey": "cepeda2006",
@@ -2233,7 +2327,7 @@
     {
       "key": "play_games",
       "whenShown": "a play-games item",
-      "value": "Playing full-length games is the strongest single correlate of rating in the data. That's correlation, not proof — but it's where real skill is tested.",
+      "value": "Playing full-length games is the strongest single correlate of rating in the data. That's correlation, not proof \u2014 but it's where real skill is tested.",
       "grade": "B",
       "tier": 1,
       "citationKey": "howard2012",
@@ -2242,7 +2336,7 @@
     {
       "key": "puzzle_difficulty",
       "whenShown": "a themed-tactics set",
-      "value": "You learn fastest at around 80–85% success: hard enough to make you think, easy enough to lock in the pattern.",
+      "value": "You learn fastest at around 80\u201385% success: hard enough to make you think, easy enough to lock in the pattern.",
       "grade": "B",
       "tier": 2,
       "citationKey": "wilson2019",
@@ -2251,7 +2345,7 @@
     {
       "key": "redo_failed",
       "whenShown": "a spaced-review item",
-      "value": "Re-solving your misses, spaced over days, is the most science-backed way to make patterns stick — proven mostly on flashcards, not chess yet.",
+      "value": "Re-solving your misses, spaced over days, is the most science-backed way to make patterns stick \u2014 proven mostly on flashcards, not chess yet.",
       "grade": "C",
       "tier": 2,
       "citationKey": "roediger2006",
@@ -2260,7 +2354,7 @@
     {
       "key": "analyse_own_games",
       "whenShown": "analysis module entry",
-      "value": "Analysing your own games is the single strongest vehicle for building pattern recognition — but how you analyse matters enormously. We guide you through a science-backed process: think first, engine second.",
+      "value": "Analysing your own games is the single strongest vehicle for building pattern recognition \u2014 but how you analyse matters enormously. We guide you through a science-backed process: think first, engine second.",
       "grade": "B",
       "tier": 1,
       "citationKey": "yiannakoulias2026",
@@ -2278,7 +2372,7 @@
     {
       "key": "calculation_focus",
       "whenShown": "a calculation drill",
-      "value": "Slow, calculate-to-the-end puzzles train depth. Aim for ~50–60% success — these are meant to be hard.",
+      "value": "Slow, calculate-to-the-end puzzles train depth. Aim for ~50\u201360% success \u2014 these are meant to be hard.",
       "grade": "C",
       "tier": 1,
       "citationKey": "stub_open_question",
@@ -2287,7 +2381,7 @@
     {
       "key": "interleaving",
       "whenShown": "a mixed-theme set",
-      "value": "Mixed themes feel harder, and that's the point — in a real game nobody tells you what to look for.",
+      "value": "Mixed themes feel harder, and that's the point \u2014 in a real game nobody tells you what to look for.",
       "grade": "C",
       "tier": 2,
       "citationKey": "rohrer2010",
@@ -2296,7 +2390,7 @@
     {
       "key": "weekly_volume",
       "whenShown": "program setup",
-      "value": "A little most days beats cramming — one of the most reliable findings in learning science. We keep sessions short so fatigue doesn't wreck accuracy.",
+      "value": "A little most days beats cramming \u2014 one of the most reliable findings in learning science. We keep sessions short so fatigue doesn't wreck accuracy.",
       "grade": "C",
       "tier": 2,
       "citationKey": "cepeda2006",
@@ -2305,7 +2399,7 @@
     {
       "key": "process_goal",
       "whenShown": "the daily target",
-      "value": "Your goal today is what you can control — finishing these reps — not your rating. Research on athletes shows process goals beat outcome goals for results and confidence.",
+      "value": "Your goal today is what you can control \u2014 finishing these reps \u2014 not your rating. Research on athletes shows process goals beat outcome goals for results and confidence.",
       "grade": "A",
       "tier": 2,
       "citationKey": "williamson2022",
@@ -2323,7 +2417,7 @@
     {
       "key": "expectations_timeline",
       "whenShown": "progress / onboarding",
-      "value": "Climbing 100 points takes a month or two near 1000, but often years around 1800 — that's normal, not you stalling. We measure you against your own past, never an average.",
+      "value": "Climbing 100 points takes a month or two near 1000, but often years around 1800 \u2014 that's normal, not you stalling. We measure you against your own past, never an average.",
       "grade": "A",
       "tier": 1,
       "citationKey": "lichess_etl",
@@ -2332,7 +2426,7 @@
     {
       "key": "skill_update",
       "whenShown": "after logging results",
-      "value": "We re-estimate each skill from your logged results. Early estimates are rough — we show them with their uncertainty, never as a verdict.",
+      "value": "We re-estimate each skill from your logged results. Early estimates are rough \u2014 we show them with their uncertainty, never as a verdict.",
       "grade": "C",
       "tier": 1,
       "citationKey": "stub_open_question",
@@ -2341,7 +2435,7 @@
     {
       "key": "plateau",
       "whenShown": "a flat rating trend",
-      "value": "Your rating hasn't cleared its noise band in a while. At your level that's statistically normal — the fix is changing the stimulus (harder sweet-spot puzzles, your recurring mistakes), not just doing more.",
+      "value": "Your rating hasn't cleared its noise band in a while. At your level that's statistically normal \u2014 the fix is changing the stimulus (harder sweet-spot puzzles, your recurring mistakes), not just doing more.",
       "grade": "B",
       "tier": 1,
       "citationKey": "lichess_etl",
@@ -2350,7 +2444,7 @@
     {
       "key": "streak_tick",
       "whenShown": "after a day's training",
-      "value": "You've trained another day. We cap the streak at a week on purpose and reset it gently — consistency over weeks is what counts, and one missed day never wipes your progress.",
+      "value": "You've trained another day. We cap the streak at a week on purpose and reset it gently \u2014 consistency over weeks is what counts, and one missed day never wipes your progress.",
       "grade": "B",
       "tier": 2,
       "citationKey": "silverman_barasch2023",
@@ -2359,7 +2453,7 @@
     {
       "key": "competence_milestone",
       "whenShown": "crossing a work milestone",
-      "value": "Milestone reached. These badges mark genuine work you've put in — never just time spent or money paid — because rewards tied to an already-interesting task can quietly sap the motivation to do it.",
+      "value": "Milestone reached. These badges mark genuine work you've put in \u2014 never just time spent or money paid \u2014 because rewards tied to an already-interesting task can quietly sap the motivation to do it.",
       "grade": "B",
       "tier": 2,
       "citationKey": "deci1999",
@@ -2368,7 +2462,7 @@
     {
       "key": "recovery_prompt",
       "whenShown": "after a missed day",
-      "value": "You didn't lose your progress for missing a day. A habit takes on the order of two months to automate, and one skipped day barely dents that — punitive streak-resets mostly just make people quit. Pick it back up today.",
+      "value": "You didn't lose your progress for missing a day. A habit takes on the order of two months to automate, and one skipped day barely dents that \u2014 punitive streak-resets mostly just make people quit. Pick it back up today.",
       "grade": "B",
       "tier": 2,
       "citationKey": "lally2010",
@@ -2377,7 +2471,7 @@
     {
       "key": "consistency_grid",
       "whenShown": "the consistency grid",
-      "value": "This grid shows your effort over time, not a fragile streak. Aim to fill in most days — perfect attendance isn't the goal, and the long view is what builds a habit.",
+      "value": "This grid shows your effort over time, not a fragile streak. Aim to fill in most days \u2014 perfect attendance isn't the goal, and the long view is what builds a habit.",
       "grade": "B",
       "tier": 2,
       "citationKey": "lally2010",
@@ -2386,7 +2480,7 @@
     {
       "key": "analysis_engine_delay",
       "whenShown": "engine hidden during Step 2",
-      "value": "The engine is off on purpose. Turning it on first is like reading the answer key before trying the problem — you recognise the answer but don't learn the method. By thinking first, you train the exact brain pathways you need during your next game.",
+      "value": "The engine is off on purpose. Turning it on first is like reading the answer key before trying the problem \u2014 you recognise the answer but don't learn the method. By thinking first, you train the exact brain pathways you need during your next game.",
       "grade": "A",
       "tier": 2,
       "citationKey": "bjork2011",
@@ -2404,7 +2498,7 @@
     {
       "key": "analysis_guess_tolerance",
       "whenShown": "alternative-move verdict in Step 3",
-      "value": "We don't require the engine's literal top move. Any alternative that recovers most of what you lost, and stays inside this level's visibility threshold, counts as correct — practical chess usually has more than one right answer.",
+      "value": "We don't require the engine's literal top move. Any alternative that recovers most of what you lost, and stays inside this level's visibility threshold, counts as correct \u2014 practical chess usually has more than one right answer.",
       "grade": "C",
       "tier": 1,
       "citationKey": "stub_open_question",
@@ -2441,7 +2535,7 @@
     {
       "key": "analysis_entropy",
       "whenShown": "high-entropy position shown",
-      "value": "This position is chaotic — even the engine gives several nearly-equal options. We're flagging it so you know: this isn't a clear mistake, it's a genuinely complex situation where multiple moves were reasonable.",
+      "value": "This position is chaotic \u2014 even the engine gives several nearly-equal options. We're flagging it so you know: this isn't a clear mistake, it's a genuinely complex situation where multiple moves were reasonable.",
       "grade": "B",
       "tier": 1,
       "citationKey": "luu2025",
@@ -2452,43 +2546,43 @@
     {
       "key": "heck2025",
       "source": "Heck, Benjamin, Simons & Chabris 2025",
-      "anchors": "Dunning-Kruger in chess → reject self-report for skill; valid for constraints/goals",
+      "anchors": "Dunning-Kruger in chess \u2192 reject self-report for skill; valid for constraints/goals",
       "grade": "A"
     },
     {
       "key": "cheung2014",
       "source": "Cheung et al. 2014",
-      "anchors": "Onboarding cognitive load → keep the assessment short",
+      "anchors": "Onboarding cognitive load \u2192 keep the assessment short",
       "grade": "A"
     },
     {
       "key": "wilson2019",
       "source": "Wilson et al. 2019, Nat. Commun. 10:4646",
-      "anchors": "≈85% optimal-difficulty success target (ML; extrapolated to chess)",
+      "anchors": "\u224885% optimal-difficulty success target (ML; extrapolated to chess)",
       "grade": "B"
     },
     {
       "key": "bands_convention",
-      "source": "Rating-band convenience prior (METHODOLOGY §0.4)",
-      "anchors": "Fuzzy ±150 online bands; pools differ (Lichess>Chess.com>FIDE); user data overrides",
+      "source": "Rating-band convenience prior (METHODOLOGY \u00a70.4)",
+      "anchors": "Fuzzy \u00b1150 online bands; pools differ (Lichess>Chess.com>FIDE); user data overrides",
       "grade": "C"
     },
     {
       "key": "stub_open_question",
-      "source": "Deliberately stubbed best-guess (METHODOLOGY §4)",
+      "source": "Deliberately stubbed best-guess (METHODOLOGY \u00a74)",
       "anchors": "Conservative placeholder pending the app's own outcome telemetry",
       "grade": "C"
     },
     {
       "key": "compute_realism",
-      "source": "Engineering constraint (BUILD.md §6.5)",
+      "source": "Engineering constraint (BUILD.md \u00a76.5)",
       "anchors": "Client-side instant-analysis budget at onboarding",
       "grade": "C"
     },
     {
       "key": "weakness_diagnosis",
-      "source": "WEAKNESS_DIAGNOSIS.md §1",
-      "anchors": "Blunder cp thresholds; blunder rate = highest-ROI sub-2000 diagnostic; contested per-band baselines; ≥20-game gate",
+      "source": "WEAKNESS_DIAGNOSIS.md \u00a71",
+      "anchors": "Blunder cp thresholds; blunder rate = highest-ROI sub-2000 diagnostic; contested per-band baselines; \u226520-game gate",
       "grade": "A"
     },
     {
@@ -2512,7 +2606,7 @@
     {
       "key": "roediger2006",
       "source": "Roediger & Karpicke 2006; Adesope et al. 2017",
-      "anchors": "Retrieval/testing effect (g≈0.51) → spaced redo of failed tactics",
+      "anchors": "Retrieval/testing effect (g\u22480.51) \u2192 spaced redo of failed tactics",
       "grade": "A"
     },
     {
@@ -2530,7 +2624,7 @@
     {
       "key": "vangog2015",
       "source": "van Gog & Sweller 2015",
-      "anchors": "Testing effect reverses at high element-interactivity → worked-example cutoff",
+      "anchors": "Testing effect reverses at high element-interactivity \u2192 worked-example cutoff",
       "grade": "A"
     },
     {
@@ -2560,7 +2654,7 @@
     {
       "key": "glickman2012",
       "source": "Glickman 2012 (Glicko-2)",
-      "anchors": "Rating as a distribution; 95% CI = R ± 1.96·RD; real change only on non-overlapping CIs; RD baseline gate",
+      "anchors": "Rating as a distribution; 95% CI = R \u00b1 1.96\u00b7RD; real change only on non-overlapping CIs; RD baseline gate",
       "grade": "A"
     },
     {
@@ -2572,13 +2666,13 @@
     {
       "key": "lally2010",
       "source": "Lally et al. 2010, Eur. J. Soc. Psychol. 40:998",
-      "anchors": "Habit automaticity forms over a median 66 days (range 18–254); a missed day doesn't derail formation",
+      "anchors": "Habit automaticity forms over a median 66 days (range 18\u2013254); a missed day doesn't derail formation",
       "grade": "B"
     },
     {
       "key": "silverman_barasch2023",
       "source": "Silverman & Barasch 2023",
-      "anchors": "Broken infinite streaks weaponise loss-aversion → a 'quit moment'; use capped/forgiving streaks",
+      "anchors": "Broken infinite streaks weaponise loss-aversion \u2192 a 'quit moment'; use capped/forgiving streaks",
       "grade": "B"
     },
     {
@@ -2649,7 +2743,7 @@
       "tier": 2,
       "citationKey": "board_interface_restriction",
       "flag": "best-guess",
-      "note": "Eval bar is a crutch absent OTB; off across all bands (METHODOLOGY §4.4c)."
+      "note": "Eval bar is a crutch absent OTB; off across all bands (METHODOLOGY \u00a74.4c)."
     },
     "showLegalMoveDots": {
       "value": false,
@@ -2657,7 +2751,7 @@
       "tier": 2,
       "citationKey": "board_interface_restriction",
       "flag": "best-guess",
-      "note": "Legal-move dots are a crutch absent OTB; off across all bands (METHODOLOGY §4.4c)."
+      "note": "Legal-move dots are a crutch absent OTB; off across all bands (METHODOLOGY \u00a74.4c)."
     },
     "allowArrowsByFocus": {
       "online": {
@@ -2674,7 +2768,7 @@
         "tier": 2,
         "citationKey": "board_interface_restriction",
         "flag": "best-guess",
-        "note": "OTB-bound players drill without arrows (anti-crutch, METHODOLOGY §4.4c)."
+        "note": "OTB-bound players drill without arrows (anti-crutch, METHODOLOGY \u00a74.4c)."
       },
       "hybrid": {
         "value": false,
@@ -2700,7 +2794,7 @@
         "tier": 2,
         "citationKey": "board_interface_restriction",
         "flag": "best-guess",
-        "note": "OTB-bound players drill without hover (anti-crutch, METHODOLOGY §4.4c)."
+        "note": "OTB-bound players drill without hover (anti-crutch, METHODOLOGY \u00a74.4c)."
       },
       "hybrid": {
         "value": true,
@@ -2712,5 +2806,177 @@
       }
     },
     "restrictionRationaleKey": "anti_arrow_hover"
+  },
+  "endgameCurriculum": {
+    "positionsByBand": {
+      "u800": [
+        {
+          "id": "kq_v_k",
+          "label": "King + Queen vs King",
+          "fen": "4k3/8/8/8/8/4K3/4Q3/8 w - - 0 1",
+          "category": "basic_mate",
+          "objective": {
+            "value": "win",
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "stub_open_question",
+            "flag": "best-guess"
+          }
+        },
+        {
+          "id": "kr_v_k",
+          "label": "King + Rook vs King",
+          "fen": "4k3/8/8/8/8/4K3/8/R7 w - - 0 1",
+          "category": "basic_mate",
+          "objective": {
+            "value": "win",
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "stub_open_question",
+            "flag": "best-guess"
+          }
+        }
+      ],
+      "b800_1200": [
+        {
+          "id": "two_connected_pawns",
+          "label": "Two connected passed pawns",
+          "fen": "4k3/8/8/8/3PP3/4K3/8/8 w - - 0 1",
+          "category": "pawn",
+          "objective": {
+            "value": "win",
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "stub_open_question",
+            "flag": "best-guess"
+          }
+        },
+        {
+          "id": "kq_v_kp",
+          "label": "Queen vs a lone pawn",
+          "fen": "4k3/4p3/8/8/8/4K3/4Q3/8 w - - 0 1",
+          "category": "queen",
+          "objective": {
+            "value": "win",
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "stub_open_question",
+            "flag": "best-guess"
+          }
+        }
+      ],
+      "b1200_1600": [
+        {
+          "id": "kr_v_kp",
+          "label": "Rook stops and wins the pawn",
+          "fen": "4k3/8/8/8/4p3/4K3/8/R7 w - - 0 1",
+          "category": "rook",
+          "objective": {
+            "value": "win",
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "stub_open_question",
+            "flag": "best-guess"
+          }
+        },
+        {
+          "id": "two_split_passers",
+          "label": "Two split passed pawns",
+          "fen": "4k3/8/8/8/2P2P2/4K3/8/8 w - - 0 1",
+          "category": "pawn",
+          "objective": {
+            "value": "win",
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "stub_open_question",
+            "flag": "best-guess"
+          }
+        }
+      ],
+      "b1600_2000": [
+        {
+          "id": "kq_v_kr",
+          "label": "Queen vs Rook (convert the win)",
+          "fen": "4k3/4r3/8/8/8/8/6K1/3Q4 w - - 0 1",
+          "category": "queen_vs_rook",
+          "objective": {
+            "value": "win",
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "stub_open_question",
+            "flag": "best-guess"
+          }
+        },
+        {
+          "id": "kb_pawn",
+          "label": "Bishop + central pawn",
+          "fen": "4k3/8/8/8/8/4K3/4P3/3B4 w - - 0 1",
+          "category": "minor_piece",
+          "objective": {
+            "value": "win",
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "stub_open_question",
+            "flag": "best-guess"
+          }
+        }
+      ],
+      "b2000_2200": [
+        {
+          "id": "two_bishops",
+          "label": "Two bishops mate",
+          "fen": "4k3/8/8/8/8/4K3/8/2B2B2 w - - 0 1",
+          "category": "basic_mate",
+          "objective": {
+            "value": "win",
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "stub_open_question",
+            "flag": "best-guess"
+          }
+        },
+        {
+          "id": "kq_v_kb",
+          "label": "Queen vs Bishop",
+          "fen": "4k3/8/8/8/4b3/8/7K/3Q4 w - - 0 1",
+          "category": "queen",
+          "objective": {
+            "value": "win",
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "stub_open_question",
+            "flag": "best-guess"
+          }
+        }
+      ],
+      "b2200plus": [
+        {
+          "id": "kbn_v_k",
+          "label": "Bishop + Knight mate",
+          "fen": "4k3/8/8/8/8/4K3/8/3B1N2 w - - 0 1",
+          "category": "basic_mate",
+          "objective": {
+            "value": "win",
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "stub_open_question",
+            "flag": "best-guess"
+          }
+        },
+        {
+          "id": "kq_v_kn",
+          "label": "Queen vs Knight",
+          "fen": "4k3/8/8/8/4n3/8/7K/3Q4 w - - 0 1",
+          "category": "queen",
+          "objective": {
+            "value": "win",
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "stub_open_question",
+            "flag": "best-guess"
+          }
+        }
+      ]
+    }
   }
 }

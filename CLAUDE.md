@@ -151,9 +151,14 @@ machine + an injected-adapter `engine-play` Stockfish opponent), with `ProgramIt
 `/train`. **M11** in-app puzzles + internalised tactical assessment (+ the §7.5 redo hint/retest + the
 §4.4(c) anti-arrow/anti-hover/eval-bar board affordances) — done. **M12** interactive game review
 (`ReviewBoard`, the onboarding "reveal" now built on it) + personalised blunder drills derived from
-`RawGameFeatures.blunders[]`, auto-logged and FSRS-scheduled — done. **Next: the internal-first arc
-continues M13–M14** — internalise what we can (VISION §1/§8): **M13** in-app endgame drills (vs the
-engine, + Lichess tablebase), **M14** recommended
+`RawGameFeatures.blunders[]`, auto-logged and FSRS-scheduled — done. **M13** in-app endgame drills —
+the per-band **endgame curriculum is Seam-4 config** (`endgameCurriculum`, graded `objective`), seeded
+as spaced `PracticeItem`s (`ensureEndgameDrills`) and **played out vs the client-side Stockfish
+`engine-play` opponent**; the result is judged by the pure `scoreEndgame`/`classifyTerminal` scorer
+against the objective, with the **Lichess tablebase** as an optional cached ground-truth oracle
+(`TablebaseCache`, polite/back-off, ≤7-piece guard, engine-only fallback); outcomes auto-log
+(`drill_done`) and space on their own `endgame` FSRS queue — done. **Next: the internal-first arc
+finishes with M14** — internalise what we can (VISION §1/§8): **M14** recommended
 resources + **book-study & 2D/3D-modality/OTB-calibration protocols** + in-app logging (books/courses/
 real games stay external; guidance from `BEST_BOOKS.md`/`2D_VS_3D.md`). These add **no new seam** — only
 generic Engine surfaces + graded Seam-4 `ActivityDefinition`s with a `delivery: 'internal' | 'external'`

@@ -687,20 +687,26 @@ export function prioritizeDailyMix(
   const p = cfg.prioritization.preferences;
   const prefs = input.preferences;
   // Due-gating is item-type aware: a spaced_review needs a due puzzle review, a blunder_drill
-  // needs a due personal blunder position (itemType "blunder_drill"). An activity that only
-  // makes sense with due work is dropped when its queue is empty, and earns the due bonus when
-  // it is not. (The activityType/itemType strings are Engine identifiers, not graded numbers —
-  // L1 is unaffected, exactly as the existing spaced_review/play_game switches here.)
-  const hasDrillDue = input.dueItems.some((d) => d.itemType === "blunder_drill");
+  // a due personal blunder position (itemType "blunder_drill"), an endgame_drill a due curated
+  // endgame (itemType "endgame", M13). An activity that only makes sense with due work is
+  // dropped when its queue is empty, and earns the due bonus when it is not. (The
+  // activityType/itemType strings are Engine identifiers, not graded numbers — L1 is
+  // unaffected, exactly as the existing spaced_review/play_game switches here.)
+  const hasDrillDue = input.dueItems.some(
+    (d) => d.itemType === "blunder_drill",
+  );
+  const hasEndgameDue = input.dueItems.some((d) => d.itemType === "endgame");
   const hasPuzzleDue = input.dueItems.some(
     (d) => d.itemType === "puzzle" || d.itemType === "puzzle_theme",
   );
   const dueSatisfied = (activityType: string): boolean | null =>
     activityType === "blunder_drill"
       ? hasDrillDue
-      : activityType === "spaced_review"
-        ? hasPuzzleDue
-        : null; // null = not a due-gated activity
+      : activityType === "endgame_drill"
+        ? hasEndgameDue
+        : activityType === "spaced_review"
+          ? hasPuzzleDue
+          : null; // null = not a due-gated activity
 
   // Depth/breadth multipliers (1 = neutral) — only one side is ever > 1.
   const depthMul =
