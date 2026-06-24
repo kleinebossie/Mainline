@@ -22,6 +22,32 @@ import {
   type TargetFocus,
 } from "@/methodology";
 import { selectPuzzles } from "@/db/puzzles";
+import { findPracticeItemsByIds } from "@/db/practice";
+import { createBlunderDrillsFromGame } from "@/server/practice";
+
+/** A position the in-app board can solve — a Lichess puzzle or a personal blunder drill —
+ *  normalised so the solving surface renders both uniformly (M11/M12). */
+interface Solvable {
+  id: string;
+  kind: "puzzle" | "blunder_drill";
+  fen: string;
+  /** The solution line: a puzzle's raw Lichess UCI (moves[0] = opponent setup) or a drill's
+   *  best-move line (already the player's move first). The `kind` tells the board which. */
+  line: string[];
+  rating: number | null;
+  themes: string[];
+}
+
+function toPuzzleSolvable(p: LichessPuzzle): Solvable {
+  return {
+    id: p.puzzleId,
+    kind: "puzzle",
+    fen: p.fen,
+    line: p.moves.trim().length > 0 ? p.moves.trim().split(/\s+/) : [],
+    rating: p.rating,
+    themes: p.themes,
+  };
+}
 
 export const programRouter = router({
   getToday: protectedProcedure.query(({ ctx }) =>
@@ -53,23 +79,40 @@ export const programRouter = router({
       const targetRating = (params.targetRating as number | null) ?? 1500;
       const count = (params.count as number | null) ?? 5;
 
-      let puzzles: LichessPuzzle[] = [];
+      let solvables: Solvable[] = [];
 
-      if (item.activityType === "spaced_review") {
+      if (item.activityType === "blunder_drill") {
+        // M12: resolve the due personal blunder positions (PracticeItems) to solve on the board.
+        const refs = (params.dueItemRefs as string[] | null) ?? [];
+        const items = await findPracticeItemsByIds(ctx.prisma, ctx.userId, refs);
+        const order = new Map(refs.map((id, idx) => [id, idx]));
+        solvables = items
+          .sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0))
+          .map((pi) => ({
+            id: pi.id,
+            kind: "blunder_drill" as const,
+            fen: pi.fen,
+            line: pi.solutionLine,
+            rating: null,
+            themes: [],
+          }));
+      } else if (item.activityType === "spaced_review") {
         // Fetch puzzles by their IDs
         const dueIds = (params.dueItemRefs as string[] | null) ?? [];
         if (dueIds.length > 0) {
-          puzzles = await ctx.prisma.lichessPuzzle.findMany({
+          const puzzles = await ctx.prisma.lichessPuzzle.findMany({
             where: { puzzleId: { in: dueIds } },
           });
-          // Sort to match order of dueIds
           const orderMap = new Map<string, number>(
             dueIds.map((id: string, idx: number) => [id, idx]),
           );
-          puzzles.sort(
-            (a, b) =>
-              (orderMap.get(a.puzzleId) ?? 0) - (orderMap.get(b.puzzleId) ?? 0),
-          );
+          solvables = puzzles
+            .sort(
+              (a, b) =>
+                (orderMap.get(a.puzzleId) ?? 0) -
+                (orderMap.get(b.puzzleId) ?? 0),
+            )
+            .map(toPuzzleSolvable);
         }
       } else {
         // Query past puzzle attempts to get excludePuzzleIds
@@ -86,13 +129,14 @@ export const programRouter = router({
           )
           .filter((id): id is string => !!id);
 
-        puzzles = await selectPuzzles(ctx.prisma, {
+        const puzzles = await selectPuzzles(ctx.prisma, {
           theme: theme || "mix",
           ratingTarget: targetRating,
           ratingWindow: 150,
           count,
           excludePuzzleIds,
         });
+        solvables = puzzles.map(toPuzzleSolvable);
       }
 
       // Convert to TodayItem
@@ -117,11 +161,26 @@ export const programRouter = router({
         ? rationaleFor(affordances.restrictionRationaleKey, cfg)
         : null;
 
+      // §7.5 redo flow — the intra-session retest wait + its graded "why" come from config
+      // (Seam 6), never hardcoded on the solving surface (L1). Falls back to a safe default
+      // if the leaf is absent in an older config.
+      const retest = rationaleFor("redo_retest", cfg);
+      const redoFlow = {
+        retestDelaySec:
+          cfg.scheduling.intraSessionRetestDelaySec?.value ?? 600,
+        rationale: {
+          value: retest.value,
+          grade: retest.grade,
+          tier: retest.tier,
+        },
+      };
+
       return {
         item: todayItem,
-        puzzles,
+        solvables,
         affordances,
         restrictionRationale,
+        redoFlow,
       };
     }),
 
@@ -133,6 +192,28 @@ export const programRouter = router({
     await generateAndSaveProgram(ctx.prisma, ctx.userId);
     return getTodayProgram(ctx.prisma, ctx.userId);
   }),
+
+  // M12: turn the blunders the client found (FEN + engine best move, computed client-side)
+  // into spaced personal drills. Pure derivation + FSRS seeding live in @/server/practice.
+  createBlunderDrills: protectedProcedure
+    .input(
+      z.object({
+        gameId: z.string().min(1),
+        drills: z
+          .array(
+            z.object({
+              ply: z.number().int().nonnegative(),
+              fen: z.string().min(1),
+              bestUci: z.string().min(2).max(6),
+              cpLoss: z.number().nonnegative(),
+            }),
+          )
+          .max(40),
+      }),
+    )
+    .mutation(({ ctx, input }) =>
+      createBlunderDrillsFromGame(ctx.prisma, ctx.userId, input),
+    ),
 
   bandExpectation: protectedProcedure.query(async ({ ctx }) => {
     const cfg = loadMethodology();

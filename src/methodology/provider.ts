@@ -686,7 +686,21 @@ export function prioritizeDailyMix(
   const w = cfg.prioritization.weights;
   const p = cfg.prioritization.preferences;
   const prefs = input.preferences;
-  const hasDue = input.dueItems.length > 0;
+  // Due-gating is item-type aware: a spaced_review needs a due puzzle review, a blunder_drill
+  // needs a due personal blunder position (itemType "blunder_drill"). An activity that only
+  // makes sense with due work is dropped when its queue is empty, and earns the due bonus when
+  // it is not. (The activityType/itemType strings are Engine identifiers, not graded numbers —
+  // L1 is unaffected, exactly as the existing spaced_review/play_game switches here.)
+  const hasDrillDue = input.dueItems.some((d) => d.itemType === "blunder_drill");
+  const hasPuzzleDue = input.dueItems.some(
+    (d) => d.itemType === "puzzle" || d.itemType === "puzzle_theme",
+  );
+  const dueSatisfied = (activityType: string): boolean | null =>
+    activityType === "blunder_drill"
+      ? hasDrillDue
+      : activityType === "spaced_review"
+        ? hasPuzzleDue
+        : null; // null = not a due-gated activity
 
   // Depth/breadth multipliers (1 = neutral) — only one side is ever > 1.
   const depthMul =
@@ -698,14 +712,14 @@ export function prioritizeDailyMix(
   const ownedRefs = prefs?.ownedRefs ?? null;
 
   const scored = input.candidates
-    .filter((c) => !(c.activityType === "spaced_review" && !hasDue))
+    .filter((c) => dueSatisfied(c.activityType) !== false)
     .map((c) => {
       const roiTerm = w.activityRoiPrior.value * c.priority * breadthMul;
       const weaknessTerm = c.drivingSignal
         ? w.weaknessSeverity.value * c.drivingSignal.severity * depthMul
         : 0;
       const dueTerm =
-        c.activityType === "spaced_review" && hasDue ? w.dueReviews.value : 0;
+        dueSatisfied(c.activityType) === true ? w.dueReviews.value : 0;
 
       // Format fit: penalise an activity that declares formats none of which the user plays.
       const formatPenalty =

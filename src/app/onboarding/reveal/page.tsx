@@ -17,6 +17,7 @@ export default async function RevealPage() {
       eyebrow="Step 4 of onboarding"
       title="Where you stand"
       lede="Built from what you do, not what you say. Mainline never overstates how strong the evidence is."
+      width="wide"
     >
       <Reveal />
     </PageShell>

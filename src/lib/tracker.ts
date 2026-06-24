@@ -15,6 +15,9 @@ export const activityEventPayloadSchema = z
     durationMin: z.number().nonnegative().max(600).optional(),
     externalRef: z.string().min(1).max(200).optional(),
     puzzleId: z.string().min(1).max(100).optional(),
+    // The personal practice position a drill_done outcome solved (M12 blunder drill); keys
+    // its per-item FSRS schedule (itemType "blunder_drill", itemRef = PracticeItem.id).
+    practiceItemId: z.string().min(1).max(100).optional(),
   })
   .strict();
 export type ActivityEventPayload = z.infer<typeof activityEventPayloadSchema>;
@@ -37,6 +40,7 @@ export const logOutcomeInputSchema = z.object({
   durationMin: z.number().nonnegative().max(600).optional(),
   externalRef: z.string().min(1).max(200).optional(),
   puzzleId: z.string().min(1).max(100).optional(),
+  practiceItemId: z.string().min(1).max(100).optional(),
 });
 export type LogOutcomeInput = z.infer<typeof logOutcomeInputSchema>;
 

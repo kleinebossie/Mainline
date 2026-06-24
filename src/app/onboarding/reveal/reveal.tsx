@@ -7,6 +7,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GradeMark } from "@/components/evidence";
 import { TransparencyCard } from "@/components/transparency-card";
+import { ReviewBoard } from "@/components/review-board";
 
 type Grade = "A" | "B" | "C" | "D";
 function asGrade(g: string): Grade {
@@ -21,6 +22,10 @@ export function Reveal() {
   const state = trpc.assessment.state.useQuery();
   const signals = trpc.program.gameSignals.useQuery();
   const constraints = trpc.constraints.getCurrent.useQuery();
+  // The reveal IS the interactive review (M12): step through your most-recent analysed game.
+  const library = trpc.analysis.library.useQuery();
+  const reviewGameId =
+    library.data?.games.find((g) => g.analyzed)?.id ?? null;
 
   if (state.isLoading || !state.data) {
     return <p className="text-graphite font-mono text-sm">Loading…</p>;
@@ -183,6 +188,29 @@ export function Reveal() {
                 </div>
               ))}
             </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* 2.5 — see it for yourself: the interactive review of a real game (M12) */}
+      <Card className="settle [animation-delay:120ms]">
+        <CardHeader className="pb-4">
+          <CardTitle className="font-serif text-2xl font-semibold">
+            Step through one of your games
+          </CardTitle>
+          <p className="text-graphite font-mono text-sm mt-1">
+            The honest picture isn&apos;t a number — it&apos;s the moment it
+            turned. Walk the advantage graph and see your own blunders.
+          </p>
+        </CardHeader>
+        <CardContent>
+          {reviewGameId ? (
+            <ReviewBoard gameId={reviewGameId} />
+          ) : (
+            <p className="text-graphite text-sm leading-relaxed font-serif">
+              Analyse a game (in your browser) and you&apos;ll be able to step
+              through it here — eval graph, blunders, and best lines on demand.
+            </p>
           )}
         </CardContent>
       </Card>

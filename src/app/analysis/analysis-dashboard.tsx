@@ -349,17 +349,28 @@ export function AnalysisDashboard() {
                     </div>
                   </div>
                   {g.analyzed ? (
-                    // Engine work is done — the primary action is the structured human
-                    // review. Filled evergreen, distinct from the neutral engine button.
-                    <Link
-                      href={`/analysis/${g.id}`}
-                      className={cn(
-                        buttonVariants({ size: "sm", variant: "default" }),
-                        "shrink-0",
-                      )}
-                    >
-                      Analyze
-                    </Link>
+                    // Engine work is done — offer both the quick step-through review (eval
+                    // graph + blunder drills) and the deeper structured analysis protocol.
+                    <div className="flex shrink-0 gap-2">
+                      <Link
+                        href={`/analysis/${g.id}/review`}
+                        className={cn(
+                          buttonVariants({ size: "sm", variant: "outline" }),
+                          "shrink-0",
+                        )}
+                      >
+                        Review
+                      </Link>
+                      <Link
+                        href={`/analysis/${g.id}`}
+                        className={cn(
+                          buttonVariants({ size: "sm", variant: "default" }),
+                          "shrink-0",
+                        )}
+                      >
+                        Analyze
+                      </Link>
+                    </div>
                   ) : (
                     // Not analysed yet — turn the engine on for just this game. Neutral
                     // outline, so it never looks like the same control as "Analyze".

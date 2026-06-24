@@ -220,9 +220,11 @@ describe("mapWeaknessToActivities", () => {
       { signals: [], band: "u800" },
       cfg,
     );
-    // At <800 every activity still has priority ≥1 in the stub, so all six appear.
+    // At <800 every activity still has priority ≥1 in the stub, so all appear (due-gating of
+    // spaced_review / blunder_drill happens later, in prioritizeDailyMix).
     expect(candidates.map((c) => c.activityId).sort()).toEqual([
       "analyse_own_games",
+      "blunder_drill",
       "calculation_drill",
       "endgame_study",
       "play_games",
@@ -296,6 +298,41 @@ describe("prioritizeDailyMix", () => {
     // themed_tactics: 1×3 + 3×1 = 6 vs play_games 3.
     expect(ordered[0]!.activityId).toBe("themed_tactics");
     expect(ordered[0]!.score).toBe(6);
+  });
+
+  it("gates blunder_drill on a due personal-position queue (itemType blunder_drill)", () => {
+    const candidates = [
+      candidate("play_games", "play_game", 3),
+      candidate("blunder_drill", "blunder_drill", 3),
+      candidate("spaced_review", "spaced_review", 3),
+    ];
+    // Nothing due → both review-type activities are dropped.
+    const none = prioritizeDailyMix({ candidates, dueItems: [] }, cfg);
+    expect(none.map((c) => c.activityId)).toEqual(["play_games"]);
+
+    // A due blunder drill surfaces blunder_drill (with its due bonus) but not spaced_review.
+    const drillDue = prioritizeDailyMix(
+      {
+        candidates,
+        dueItems: [{ itemRef: "pi_1", itemType: "blunder_drill" }],
+      },
+      cfg,
+    );
+    const ids = drillDue.map((c) => c.activityId);
+    expect(ids).toContain("blunder_drill");
+    expect(ids).not.toContain("spaced_review");
+
+    // A due puzzle review surfaces spaced_review but not blunder_drill.
+    const puzzleDue = prioritizeDailyMix(
+      {
+        candidates,
+        dueItems: [{ itemRef: "fork", itemType: "puzzle" }],
+      },
+      cfg,
+    );
+    const ids2 = puzzleDue.map((c) => c.activityId);
+    expect(ids2).toContain("spaced_review");
+    expect(ids2).not.toContain("blunder_drill");
   });
 });
 

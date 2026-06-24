@@ -291,6 +291,12 @@ const schedulingSchema = z.object({
     fastFactor: gradedValue(z.number().positive()),
     slowFactor: gradedValue(z.number().positive()),
   }),
+  // The within-session wait before a just-failed puzzle is retested without its hint (the
+  // §7.5 redo flow's delayed intra-session retest — a massed immediate retest only checks
+  // working memory; a short spacing gap turns it into durable encoding). Best-guess value
+  // (the exact gap is unstudied); optional so configs predating it still validate (the
+  // solving surface falls back to a safe default).
+  intraSessionRetestDelaySec: gradedValue(z.number().int().positive()).optional(),
 });
 
 // Measurement & expectations (cross-cutting; EXPECTATIONS.md). A rating is a distribution,

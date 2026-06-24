@@ -27,6 +27,12 @@ function itemDetails(item: TodayItem): string {
       ? `Re-solve your due misses: ${p.dueItemRefs!.join(", ")}`
       : "Spaced review of your earlier misses.";
   }
+  if (item.activityType === "blunder_drill") {
+    const n = p.dueItemRefs?.length ?? 0;
+    return n > 0
+      ? `Re-solve ${n} position${n === 1 ? "" : "s"} you blundered — find the better move.`
+      : "Drill the blunders from your own games.";
+  }
   if (item.activityType === "play_game" && typeof p.gameCount === "number") {
     return `Play ~${p.gameCount} game${p.gameCount === 1 ? "" : "s"} — sized to fit today's time.`;
   }

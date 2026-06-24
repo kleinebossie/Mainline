@@ -257,6 +257,50 @@ export const analysisRouter = router({
       };
     }),
 
+  // M12 — the interactive game review: the game + its raw per-move evals + blunders, for the
+  // step-through eval-graph board (projected client-side via @/engine/review). Lighter than
+  // `session` (no 5-step protocol); also backs the onboarding "reveal".
+  review: protectedProcedure
+    .input(z.object({ gameId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const owns = await userOwnsGame(ctx.prisma, ctx.userId, input.gameId);
+      if (!owns) throw new Error("Unauthorized");
+
+      const game = await ctx.prisma.importedGame.findUnique({
+        where: { id: input.gameId },
+        include: { analysis: true },
+      });
+      if (!game) throw new Error("Game not found");
+
+      const parsed = game.analysis
+        ? rawGameFeaturesSchema.safeParse(game.analysis.rawFeatures)
+        : null;
+      const rawFeatures: RawGameFeatures | null =
+        parsed && parsed.success ? parsed.data : null;
+
+      const cfg = loadMethodology();
+      return {
+        game: {
+          id: game.id,
+          pgn: game.pgn,
+          color: game.color,
+          result: game.result,
+          platform: game.platform,
+          playedAt: game.playedAt,
+          timeControl: game.timeControl,
+          opening: game.opening,
+          eco: game.eco,
+          opponentRating: game.opponentRating,
+          userRating: game.userRatingAtGame,
+          ...gameIdentity(game.pgn, game.color),
+        },
+        analyzed: rawFeatures !== null,
+        moveEvals: rawFeatures?.moveEvals ?? [],
+        blunders: rawFeatures?.blunders ?? [],
+        rationale: rationaleFor("analyse_own_games", cfg),
+      };
+    }),
+
   // Submit session outcomes and schedule review states
   saveSession: protectedProcedure
     .input(

@@ -109,6 +109,26 @@ function puzzleMinutesFor(
   return g ? g.value / 60 : null;
 }
 
+/** The due items that belong to a review-type activity (Engine itemType routing, not a
+ *  graded choice): blunder_drill takes the personal blunder positions; spaced_review takes
+ *  everything else (themed puzzle reviews). Other activities own no due queue. */
+function dueItemsForActivity(
+  activityType: string,
+  dueItems: readonly DueItem[],
+): DueItem[] {
+  if (activityType === "blunder_drill") {
+    return dueItems.filter((d) => d.itemType === "blunder_drill");
+  }
+  if (activityType === "spaced_review") {
+    // Only renderable puzzle reviews — a legacy itemType the solving surface can't render
+    // (e.g. an orphaned mistake_puzzle) is skipped rather than shown as an empty card.
+    return dueItems.filter(
+      (d) => d.itemType === "puzzle" || d.itemType === "puzzle_theme",
+    );
+  }
+  return [];
+}
+
 /** Minutes per game for the user's formats, from config — the LONGEST format they play, so
  *  the game count stays conservatively under the time budget. Null when unconfigured. */
 function gameMinutesFor(
@@ -160,10 +180,13 @@ export function generateProgram(
   const dose = vol.dailyPuzzleDose.value;
   const enriched = ordered.map((c) => {
     let divisible: Divisible | undefined;
-    if (c.activityType === "spaced_review") {
+    if (c.activityType === "spaced_review" || c.activityType === "blunder_drill") {
+      // Both review-type activities solve one position per unit; blunder_drill has no track,
+      // so it borrows the pattern per-puzzle cost. Sized to its own due queue.
+      const due = dueItemsForActivity(c.activityType, input.dueItems);
       const per = puzzleMinutesFor(c.track ?? "pattern", cfg);
-      if (per != null && input.dueItems.length > 0) {
-        divisible = { perUnitMinutes: per, maxUnits: input.dueItems.length };
+      if (per != null && due.length > 0) {
+        divisible = { perUnitMinutes: per, maxUnits: due.length };
       }
     } else if (c.track) {
       const per = puzzleMinutesFor(c.track, cfg);
@@ -187,14 +210,19 @@ export function generateProgram(
 
     // Seam 5: difficulty params for puzzle activities (track !== null).
     let params: ProgramItemParams;
-    if (candidate.activityType === "spaced_review") {
-      // Seam 6 (M7): a spaced-review item carries the due misses to redo — as many as fit
-      // the budget (Goal 1), no fresh servo target (the redo flow, §7.5).
-      const count = p.units ?? input.dueItems.length;
+    if (
+      candidate.activityType === "spaced_review" ||
+      candidate.activityType === "blunder_drill"
+    ) {
+      // Seam 6 (M7/M12): a review-type item carries the due refs to redo — as many as fit
+      // the budget (Goal 1), no fresh servo target (the redo flow, §7.5). spaced_review pulls
+      // due puzzle reviews; blunder_drill pulls the due personal blunder positions.
+      const due = dueItemsForActivity(candidate.activityType, input.dueItems);
+      const count = p.units ?? due.length;
       params = {
         theme: candidate.resourceTheme,
         track: candidate.track,
-        dueItemRefs: input.dueItems.slice(0, count).map((d) => d.itemRef),
+        dueItemRefs: due.slice(0, count).map((d) => d.itemRef),
         count,
       };
     } else if (candidate.track) {

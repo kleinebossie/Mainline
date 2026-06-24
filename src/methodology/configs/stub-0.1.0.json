@@ -566,6 +566,73 @@
       }
     },
     {
+      "id": "blunder_drill",
+      "label": "Drill your own blunders",
+      "activityType": "blunder_drill",
+      "dimensions": ["board_vision", "tactics"],
+      "resourceTheme": null,
+      "estMinutes": {
+        "value": 8,
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "stub_open_question",
+        "flag": "best-guess"
+      },
+      "track": null,
+      "delivery": {
+        "value": "internal",
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "stub_open_question",
+        "flag": "best-guess"
+      },
+      "rationaleKey": "blunder_drill",
+      "priorityByBand": {
+        "u800": {
+          "value": 3,
+          "grade": "C",
+          "tier": 2,
+          "citationKey": "cepeda2006",
+          "flag": "best-guess"
+        },
+        "b800_1200": {
+          "value": 3,
+          "grade": "C",
+          "tier": 2,
+          "citationKey": "cepeda2006",
+          "flag": "best-guess"
+        },
+        "b1200_1600": {
+          "value": 2,
+          "grade": "C",
+          "tier": 2,
+          "citationKey": "cepeda2006",
+          "flag": "best-guess"
+        },
+        "b1600_2000": {
+          "value": 2,
+          "grade": "C",
+          "tier": 2,
+          "citationKey": "cepeda2006",
+          "flag": "best-guess"
+        },
+        "b2000_2200": {
+          "value": 1,
+          "grade": "C",
+          "tier": 2,
+          "citationKey": "cepeda2006",
+          "flag": "best-guess"
+        },
+        "b2200plus": {
+          "value": 1,
+          "grade": "C",
+          "tier": 2,
+          "citationKey": "cepeda2006",
+          "flag": "best-guess"
+        }
+      }
+    },
+    {
       "id": "analyse_own_games",
       "label": "Analyse your own games",
       "activityType": "analyse",
@@ -773,6 +840,12 @@
       "activityId": "themed_tactics",
       "theme": "hangingPiece",
       "rationaleKey": "blunder_focus"
+    },
+    {
+      "dimension": "board_vision",
+      "activityId": "blunder_drill",
+      "theme": null,
+      "rationaleKey": "blunder_drill"
     }
   ],
   "difficulty": {
@@ -1020,6 +1093,14 @@
         "flag": "best-guess",
         "note": "Correct & solve time > band-median × 1.5 → Hard (2); between → Good (3)."
       }
+    },
+    "intraSessionRetestDelaySec": {
+      "value": 600,
+      "grade": "C",
+      "tier": 2,
+      "citationKey": "roediger2006",
+      "flag": "best-guess",
+      "note": "Within-session wait (10 min) before a just-failed puzzle is retested without its hint (§7.5 redo flow). The exact gap is unstudied; a short delay beats an immediate massed retest."
     }
   },
   "prioritization": {
@@ -2119,6 +2200,26 @@
       "tier": 2,
       "citationKey": "board_interface_restriction",
       "soften": false
+    },
+    {
+      "key": "blunder_drill",
+      "whenShown": "a personalised blunder drill in the daily session",
+      "value": "These are the exact positions where you blundered in your own games — re-solving them, spaced over days, is the most science-backed way to stop repeating a mistake. The spacing effect is strong in general learning; its use on whole chess positions is our own extrapolation, not proven.",
+      "grade": "C",
+      "tier": 2,
+      "citationKey": "cepeda2006",
+      "flag": "best-guess",
+      "soften": true
+    },
+    {
+      "key": "redo_retest",
+      "whenShown": "the within-session wait before retesting a just-failed puzzle",
+      "value": "We wait a little before showing this puzzle again, without its hint. An immediate retest only checks your short-term memory; a short gap forces a real recall and makes the pattern stick. The ideal gap length isn't settled, so this is a best guess.",
+      "grade": "C",
+      "tier": 2,
+      "citationKey": "roediger2006",
+      "flag": "best-guess",
+      "soften": true
     },
     {
       "key": "blunder_focus",

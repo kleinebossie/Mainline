@@ -64,6 +64,35 @@ export function puzzleToSolveState(
   };
 }
 
+/**
+ * Convert a blunder drill (or any "you are to move here" practice position) into a
+ * {@link SolveState}. Unlike a Lichess puzzle there is NO opponent setup move — the `fen`
+ * IS the position the solver faces and `solutionLine[0]` is already the player's move — so
+ * this skips the setup-move translation `puzzleToSolveState` does.
+ *
+ * @param fen           the position the solver faces
+ * @param solutionLine  the known answer (UCI/SAN); the player must find `solutionLine[0]`
+ * @param startedMs     solve clock origin (from the injected Clock, never the wall clock — L2)
+ */
+export function drillToSolveState(
+  fen: string,
+  solutionLine: readonly string[],
+  startedMs: EpochMs,
+): PuzzleSetup {
+  const chess = safeChess(fen);
+  return {
+    solveState: {
+      position: chess.fen(),
+      solutionLine: [...solutionLine],
+      cursor: 0,
+      startedMs,
+      attempts: 0,
+    },
+    orientation: chess.turn() === "w" ? "white" : "black",
+    setupMove: null,
+  };
+}
+
 /** Apply a UCI move to the board in place; return true on success, false if illegal. */
 function applyUci(chess: Chess, uci: string): boolean {
   const from = uci.slice(0, 2);

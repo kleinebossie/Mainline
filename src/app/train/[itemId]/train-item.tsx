@@ -4,18 +4,27 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { trpc } from "@/lib/trpc/react";
+import type { inferRouterOutputs } from "@trpc/server";
+import type { AppRouter } from "@/server/routers/_app";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { InteractiveBoard } from "@/components/interactive-board";
 import { stepSolve, type SolveState } from "@/engine/interactive/session";
 import {
   puzzleToSolveState,
+  drillToSolveState,
   type BoardOrientation,
 } from "@/engine/interactive/puzzle";
 import { systemClock } from "@/lib/clock";
 import { cn } from "@/lib/utils";
-import type { LichessPuzzle } from "@prisma/client";
 import { humanizeTheme } from "@/integrations/puzzles/themes";
+
+// One board-solvable item (a Lichess puzzle or a personal blunder drill), as returned by
+// program.getTrainItem. Both render on the same board + redo flow; only the solve-state
+// construction (a puzzle has an opponent setup move, a drill does not) and the logged event
+// type differ by `kind`.
+type TrainData = inferRouterOutputs<AppRouter>["program"]["getTrainItem"];
+type Solvable = TrainData["solvables"][number];
 
 interface TrainItemProps {
   programItemId: string;
@@ -25,7 +34,6 @@ export function TrainItem({ programItemId }: TrainItemProps) {
   const router = useRouter();
   const utils = trpc.useUtils();
 
-  // 1. Fetch item and puzzles
   const { data, isLoading, error } = trpc.program.getTrainItem.useQuery({
     programItemId,
   });
@@ -38,49 +46,56 @@ export function TrainItem({ programItemId }: TrainItemProps) {
   });
 
   // Solving states
-  const [puzzles, setPuzzles] = useState<LichessPuzzle[]>([]);
+  const [solvables, setSolvables] = useState<Solvable[]>([]);
   const [currentIdx, setCurrentIdx] = useState<number>(0);
   const [solveState, setSolveState] = useState<SolveState | null>(null);
   const [orientation, setOrientation] = useState<BoardOrientation>("white");
   const [solveStatus, setSolveStatus] = useState<
     "pending" | "correct" | "wrong" | "solved"
   >("pending");
-  
+
   // Timer for elapsed solve time
   const [elapsedMs, setElapsedMs] = useState<number>(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Redo Flow States
   const [firstTryPassed, setFirstTryPassed] = useState<boolean>(true);
-  const [retestQueue, setRetestQueue] = useState<LichessPuzzle[]>([]);
-  const [phase, setPhase] = useState<"training" | "delay" | "retest" | "complete">("training");
-  
+  const [retestQueue, setRetestQueue] = useState<Solvable[]>([]);
+  const [phase, setPhase] = useState<
+    "training" | "delay" | "retest" | "complete"
+  >("training");
+
   // Hint State (Phase 1)
   const [hintActive, setHintActive] = useState<boolean>(false);
   const [highlightedSquares, setHighlightedSquares] = useState<string[]>([]);
 
-  // Delay Phase State (Phase 2)
-  const [delayRemaining, setDelayRemaining] = useState<number>(600); // 10 minutes in seconds
+  // Delay Phase State (Phase 2). The wait length is a Seam-6 config value (L1) carried on
+  // the item; default only if an older config omits it.
+  const retestDelaySec = data?.redoFlow.retestDelaySec ?? 600;
+  const [delayRemaining, setDelayRemaining] = useState<number>(retestDelaySec);
   const delayTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Initialize puzzles when loaded
+  // Initialise solvables when loaded
   useEffect(() => {
-    if (data?.puzzles) {
-      setPuzzles(data.puzzles);
+    if (data?.solvables) {
+      setSolvables(data.solvables);
       setCurrentIdx(0);
       setRetestQueue([]);
-      setPhase(data.puzzles.length > 0 ? "training" : "complete");
+      setPhase(data.solvables.length > 0 ? "training" : "complete");
     }
   }, [data]);
 
-  // Set up puzzle solve state when active puzzle index changes
+  // Set up solve state when the active item (by phase + index) changes.
   useEffect(() => {
-    if (puzzles.length > 0 && currentIdx < puzzles.length && phase === "training") {
-      initPuzzle(puzzles[currentIdx]!);
-    } else if (puzzles.length > 0 && currentIdx < puzzles.length && phase === "retest") {
-      initPuzzle(puzzles[currentIdx]!);
+    const list = phase === "retest" ? retestQueue : solvables;
+    if (
+      (phase === "training" || phase === "retest") &&
+      currentIdx < list.length &&
+      list[currentIdx]
+    ) {
+      initSolvable(list[currentIdx]!);
     }
-  }, [puzzles, currentIdx, phase]);
+  }, [solvables, retestQueue, currentIdx, phase]);
 
   // Clean up timers on unmount
   useEffect(() => {
@@ -90,17 +105,16 @@ export function TrainItem({ programItemId }: TrainItemProps) {
     };
   }, []);
 
-  const initPuzzle = (puzzle: LichessPuzzle) => {
+  const initSolvable = (s: Solvable) => {
     if (timerRef.current) clearInterval(timerRef.current);
 
     const now = systemClock.now();
-    // Apply the opponent's setup move so the board faces the real puzzle and the solution
-    // line starts with the player's move (fixes the off-by-one + wrong orientation).
-    const { solveState: setup, orientation: playerSide } = puzzleToSolveState(
-      puzzle.fen,
-      puzzle.moves,
-      now,
-    );
+    // A puzzle has an opponent setup move (moves[0]); a blunder drill is the position the
+    // player already faces, so its line starts with the player's move.
+    const { solveState: setup, orientation: playerSide } =
+      s.kind === "blunder_drill"
+        ? drillToSolveState(s.fen, s.line, now)
+        : puzzleToSolveState(s.fen, s.line.join(" "), now);
 
     setSolveState(setup);
     setOrientation(playerSide);
@@ -115,10 +129,36 @@ export function TrainItem({ programItemId }: TrainItemProps) {
     }, 100);
   };
 
+  // Log one outcome, routing to the right event type by kind (puzzle_attempt vs drill_done).
+  const logOutcome = (
+    s: Solvable,
+    correct: boolean,
+    solveTimeMs: number,
+  ) => {
+    if (s.kind === "blunder_drill") {
+      logMutation.mutate({
+        programItemId,
+        type: "drill_done",
+        correct,
+        solveTimeMs,
+        practiceItemId: s.id,
+      });
+    } else {
+      logMutation.mutate({
+        programItemId,
+        type: "puzzle_attempt",
+        correct,
+        solveTimeMs,
+        puzzleId: s.id,
+      });
+    }
+  };
+
   const handleMove = (move: { san: string }) => {
     if (!solveState) return;
-
-    const currentPuzzle = puzzles[currentIdx]!;
+    const activeList = phase === "retest" ? retestQueue : solvables;
+    const current = activeList[currentIdx];
+    if (!current) return;
     const isFirstAttempt = solveState.attempts === 0;
 
     const result = stepSolve(solveState, {
@@ -131,39 +171,23 @@ export function TrainItem({ programItemId }: TrainItemProps) {
       setSolveStatus("solved");
       if (timerRef.current) clearInterval(timerRef.current);
 
-      // If it's training mode and they solved it on the first attempt, log success!
+      // Training mode, solved on the first attempt → log success.
       if (phase === "training" && firstTryPassed && isFirstAttempt) {
-        logMutation.mutate({
-          programItemId,
-          type: "puzzle_attempt",
-          correct: true,
-          solveTimeMs: result.solveMs,
-          puzzleId: currentPuzzle.puzzleId,
-        });
+        logOutcome(current, true, result.solveMs);
       }
     } else if (result.step === "wrong") {
       setSolveStatus("wrong");
 
-      // First mistake triggers fail logging and registers the puzzle for retest
+      // First mistake triggers fail logging and registers the item for retest.
       if (phase === "training" && isFirstAttempt && firstTryPassed) {
         setFirstTryPassed(false);
-        // Log fail immediately
-        logMutation.mutate({
-          programItemId,
-          type: "puzzle_attempt",
-          correct: false,
-          solveTimeMs: result.solveMs,
-          puzzleId: currentPuzzle.puzzleId,
-        });
-        
-        // Add to retest queue
-        setRetestQueue((prev) => [...prev, currentPuzzle]);
+        logOutcome(current, false, result.solveMs);
+        setRetestQueue((prev) => [...prev, current]);
 
-        // Activate hint (Phase 1)
+        // Activate the scaffolded hint (Phase 1): wash the start square of the right move.
         const nextCorrectMove = solveState.solutionLine[solveState.cursor];
         if (nextCorrectMove) {
-          const startSquare = nextCorrectMove.substring(0, 2);
-          setHighlightedSquares([startSquare]);
+          setHighlightedSquares([nextCorrectMove.substring(0, 2)]);
         }
         setHintActive(true);
       }
@@ -181,17 +205,16 @@ export function TrainItem({ programItemId }: TrainItemProps) {
 
   const handleNext = () => {
     const nextIdx = currentIdx + 1;
-    const activePuzzlesList = phase === "retest" ? retestQueue : puzzles;
+    const activeList = phase === "retest" ? retestQueue : solvables;
 
-    if (nextIdx < activePuzzlesList.length) {
+    if (nextIdx < activeList.length) {
       setCurrentIdx(nextIdx);
     } else {
-      // Finished the current batch of puzzles
+      // Finished the current batch.
       if (phase === "training") {
         if (retestQueue.length > 0) {
-          // Transition to Phase 2: 10-minute delay
           setPhase("delay");
-          setDelayRemaining(600); // 10 minutes
+          setDelayRemaining(retestDelaySec);
           startDelayTimer();
         } else {
           setPhase("complete");
@@ -208,14 +231,13 @@ export function TrainItem({ programItemId }: TrainItemProps) {
       setDelayRemaining((prev) => {
         if (prev <= 1) {
           clearInterval(delayTimerRef.current!);
-          // Start Phase 3: Retest
           setPhase("retest");
           setCurrentIdx(0);
           return 0;
         }
         return prev - 1;
       });
-    }, 100); // Fast interval for responsive rendering
+    }, 1000);
   };
 
   const skipDelay = () => {
@@ -226,20 +248,13 @@ export function TrainItem({ programItemId }: TrainItemProps) {
 
   const handleSkip = () => {
     if (timerRef.current) clearInterval(timerRef.current);
-    
-    // Log skip if in training
+
     if (phase === "training") {
-      const currentPuzzle = puzzles[currentIdx]!;
-      logMutation.mutate({
-        programItemId,
-        type: "puzzle_attempt",
-        correct: false,
-        solveTimeMs: 0,
-        puzzleId: currentPuzzle.puzzleId,
-      });
-      setRetestQueue((prev) => [...prev, currentPuzzle]);
+      const current = solvables[currentIdx]!;
+      logOutcome(current, false, 0);
+      setRetestQueue((prev) => [...prev, current]);
     }
-    
+
     handleNext();
   };
 
@@ -265,8 +280,9 @@ export function TrainItem({ programItemId }: TrainItemProps) {
     );
   }
 
-  const activeList = phase === "retest" ? retestQueue : puzzles;
-  const currentPuzzle = activeList[currentIdx];
+  const activeList = phase === "retest" ? retestQueue : solvables;
+  const current = activeList[currentIdx];
+  const isDrill = current?.kind === "blunder_drill";
 
   // Render complete state
   if (phase === "complete") {
@@ -280,14 +296,10 @@ export function TrainItem({ programItemId }: TrainItemProps) {
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <p className="text-graphite font-serif text-sm leading-relaxed">
-              Awesome job! Your practice session has been completed, and outcomes have been registered with the spaced repetition scheduler.
+              Awesome job! Your practice session has been completed, and outcomes
+              have been registered with the spaced repetition scheduler.
             </p>
-            <Button
-              onClick={() => {
-                router.push("/today");
-              }}
-              className="self-start"
-            >
+            <Button onClick={() => router.push("/today")} className="self-start">
               Back to Today
             </Button>
           </CardContent>
@@ -296,11 +308,12 @@ export function TrainItem({ programItemId }: TrainItemProps) {
     );
   }
 
-  // Render delay screen (Phase 2)
+  // Render delay screen (Phase 2) — wait length + rationale come from config (Seam 6).
   if (phase === "delay") {
     const mins = Math.floor(delayRemaining / 60);
     const secs = Math.floor(delayRemaining % 60);
     const formattedTime = `${mins}:${secs.toString().padStart(2, "0")}`;
+    const delayMinutes = Math.max(1, Math.round(retestDelaySec / 60));
 
     return (
       <div className="flex flex-col gap-6 py-6 settle max-w-xl mx-auto">
@@ -317,19 +330,18 @@ export function TrainItem({ programItemId }: TrainItemProps) {
                 {formattedTime}
               </p>
             </div>
-            
+
             <blockquote className="border-l-4 border-evergreen/40 pl-4 py-1 text-left text-sm text-graphite italic font-serif leading-relaxed">
-              &ldquo;Massed retests (reviewing a mistake immediately) only verify your short-term working memory. To move patterns into your long-term memory, we wait 10 minutes before retesting your mistakes without hints.&rdquo;
-              <cite className="block text-right text-xs mt-1 font-mono not-italic opacity-80">— Spaced Repetition Theory</cite>
+              &ldquo;{data.redoFlow.rationale.value}&rdquo;
+              <cite className="block text-right text-xs mt-1 font-mono not-italic opacity-80">
+                — Evidence {data.redoFlow.rationale.grade} · tier{" "}
+                {data.redoFlow.rationale.tier}
+              </cite>
             </blockquote>
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4 border-t border-line">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={skipDelay}
-              >
-                Skip Delay (Developer Demo)
+              <Button variant="outline" size="sm" onClick={skipDelay}>
+                I&apos;ve waited {delayMinutes} min — retest now
               </Button>
               <Link
                 href="/today"
@@ -344,21 +356,31 @@ export function TrainItem({ programItemId }: TrainItemProps) {
     );
   }
 
-  if (!currentPuzzle || !solveState) return null;
+  if (!current || !solveState) return null;
+
+  const phaseLabel =
+    phase === "retest"
+      ? "Phase 3: Retesting Mistakes"
+      : isDrill
+        ? "Blunder drill"
+        : "In-App Practice";
 
   return (
     <div className="flex flex-col gap-6 py-6 settle">
       <div className="flex items-baseline justify-between gap-3 border-b border-line pb-3">
         <div className="flex flex-col gap-1">
           <p className="eyebrow !text-[0.65rem] uppercase tracking-wider">
-            {phase === "retest" ? "Phase 3: Retesting Mistakes" : "In-App Practice"} · {data.item.label}
+            {phaseLabel} · {data.item.label}
           </p>
           <h1 className="text-ink font-serif text-3xl font-bold tracking-tight">
-            Puzzle {currentIdx + 1} of {activeList.length}
+            {isDrill ? "Position" : "Puzzle"} {currentIdx + 1} of{" "}
+            {activeList.length}
           </h1>
         </div>
         <span className="text-graphite font-mono text-sm">
-          Rating target: {currentPuzzle.rating}
+          {current.rating != null
+            ? `Rating target: ${current.rating}`
+            : "From your own game"}
         </span>
       </div>
 
@@ -400,10 +422,16 @@ export function TrainItem({ programItemId }: TrainItemProps) {
           <Card className="h-full">
             <CardHeader className="pb-3">
               <CardTitle className="font-serif text-lg">
-                Practice Status
+                {isDrill ? "Find the move you missed" : "Practice Status"}
               </CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
+              {isDrill && (
+                <p className="text-graphite font-serif text-sm leading-relaxed">
+                  You blundered in this position in one of your own games. Find
+                  the move the engine prefers.
+                </p>
+              )}
               <div className="flex flex-col gap-2 rounded-md border border-line bg-paper/50 p-4">
                 <span className="text-ink font-mono text-xs font-semibold uppercase tracking-wider">
                   Solve State:
@@ -431,11 +459,20 @@ export function TrainItem({ programItemId }: TrainItemProps) {
                     Scaffolded Hint:
                   </span>
                   <p className="text-sm font-serif text-ink leading-relaxed">
-                    We highlighted the starting square of the correct piece. Look for:{" "}
-                    <span className="font-medium text-evergreen">
-                      {currentPuzzle.themes.map(humanizeTheme).slice(0, 3).join(", ")}
-                    </span>
-                    .
+                    We highlighted the starting square of the correct piece.
+                    {current.themes.length > 0 && (
+                      <>
+                        {" "}
+                        Look for:{" "}
+                        <span className="font-medium text-evergreen">
+                          {current.themes
+                            .map(humanizeTheme)
+                            .slice(0, 3)
+                            .join(", ")}
+                        </span>
+                        .
+                      </>
+                    )}
                   </p>
                 </div>
               )}
@@ -460,7 +497,9 @@ export function TrainItem({ programItemId }: TrainItemProps) {
               <div className="flex flex-col gap-2 border-t border-line/80 pt-4">
                 {solveStatus === "solved" ? (
                   <Button onClick={handleNext} className="w-full">
-                    {currentIdx + 1 < activeList.length ? "Next Puzzle" : "Continue"}
+                    {currentIdx + 1 < activeList.length
+                      ? "Next"
+                      : "Continue"}
                   </Button>
                 ) : (
                   <Button

@@ -22,22 +22,22 @@ datasource db {
 // --- Auth.js (NextAuth v5) standard tables (BUILD.md §5.1) ---
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
+  id              String    @id @default(cuid())
+  name            String?
+  email           String?   @unique
+  emailVerified   DateTime?
+  image           String?
   // Identity fields (BUILD.md §5.1). `patronStatus` is a billing-capable
   // reservation — no billing is built in Phase 1 (VISION §7).
-  locale        String    @default("en")
-  role          String    @default("user") // user | admin
-  patronStatus  String    @default("none") // none | patron
+  locale          String    @default("en")
+  role            String    @default("user") // user | admin
+  patronStatus    String    @default("none") // none | patron
   // The platform the user treats as their "home" account — defaults the game picker and
   // analysis surfaces. Nullable: when unset we infer it from the most recent imported game.
   primaryPlatform String? // lichess | chesscom
-  deletedAt     DateTime? // soft-delete for GDPR export/erase
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  deletedAt       DateTime? // soft-delete for GDPR export/erase
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   accounts              Account[]
   sessions              Session[]
@@ -53,6 +53,7 @@ model User {
   adaptationLogs        AdaptationLog[]
   rewardEvents          RewardEvent[]
   notificationPref      NotificationPref?
+  practiceItems         PracticeItem[]
 }
 
 model Account {
@@ -431,6 +432,31 @@ model ScheduleState {
 
   @@unique([userId, itemType, itemRef])
   @@index([userId, due])
+}
+
+// A generated/curated in-app practice position (§5.3, M12/M13). `userId` null = a
+// shared/curated position; set = personal (e.g. a blunder drill derived from the user's
+// own game). `kind` is the activity family (blunder_drill | endgame | …). `fen` is the
+// position the solver faces; `solutionLine` is its known answer (UCI/SAN moves the
+// player must find — the engine's best line for a blunder drill). `sourceRef` ties it to
+// its origin (e.g. "blunder:<gameId>:<ply>") and is UNIQUE per user so re-deriving the
+// same blunder is idempotent. It holds NO graded merit — *which* position to drill is the
+// methodology's call (Seam 4); this row is only the position + its known solution. Spaced
+// via ScheduleState (itemType "blunder_drill", itemRef = PracticeItem.id).
+model PracticeItem {
+  id             String   @id @default(cuid())
+  userId         String?
+  kind           String // blunder_drill | endgame
+  fen            String
+  solutionLine   String[]
+  sourceRef      String? // e.g. "blunder:<gameId>:<ply>" — idempotency key for re-derivation
+  methodologyKey String?
+  createdAt      DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, sourceRef])
+  @@index([userId, kind])
 }
 
 // Why the program changed (§5.6) — transparency for the loop. Each run records its
