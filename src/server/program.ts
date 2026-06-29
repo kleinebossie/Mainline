@@ -24,6 +24,7 @@ import { platformLabel } from "@/lib/format-game";
 import {
   ratingFromSnapshot,
   playingRatingFromSnapshot,
+  highestLiveRatingFromSnapshot,
 } from "@/server/assessment";
 import { getCurrentConstraints } from "@/server/constraints";
 import {
@@ -101,6 +102,33 @@ export async function resolvePlayingRating(
   });
   return (
     playingRatingFromSnapshot(snap?.ratings) ??
+    (await resolveTacticalRating(db, userId, cfg))
+  );
+}
+
+/** The rating that drives book-catalog BAND selection (Seam 4 §4.2): the user's highest
+ *  actual live-game rating (bullet/blitz/rapid — never puzzle) on their PRIMARY platform.
+ *  Puzzle rating runs far above playing strength (`resolveTacticalRating`'s job is puzzle
+ *  DIFFICULTY, not this), and the catalog is pitched at playing strength. Falls back to the
+ *  tactical estimate when the user has no live-game rating on record. */
+export async function resolveLibraryRating(
+  db: Db,
+  userId: string,
+  cfg: MethodologyConfig,
+): Promise<number> {
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: { primaryPlatform: true },
+  });
+  const snap = await db.chessProfileSnapshot.findFirst({
+    where: user?.primaryPlatform
+      ? { userId, platform: user.primaryPlatform }
+      : { userId },
+    orderBy: { capturedAt: "desc" },
+    select: { ratings: true },
+  });
+  return (
+    highestLiveRatingFromSnapshot(snap?.ratings) ??
     (await resolveTacticalRating(db, userId, cfg))
   );
 }

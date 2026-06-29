@@ -19,11 +19,11 @@ import {
   expectationForBand,
   interfaceAffordancesFor,
   rationaleFor,
-  type TargetFocus,
 } from "@/methodology";
 import { selectPuzzles } from "@/db/puzzles";
 import { findPracticeItemsByIds } from "@/db/practice";
 import { createBlunderDrillsFromGame } from "@/server/practice";
+import { getTargetFocus } from "@/server/constraints";
 import { lookupTablebase } from "@/server/tablebase";
 
 /** A position the in-app board can solve/play — a Lichess puzzle, a personal blunder drill,
@@ -190,15 +190,15 @@ export const programRouter = router({
       const todayItem = toTodayItem(item, cfg, dimLabels, ledger, null);
 
       // Seam 4 §4.4(c) — the board's interface-restriction affordances for this user, from
-      // config (L1). `targetFocus` defaults to "online" until the constraints form captures
-      // it (M14); the band×focus gating is already config-driven and ready.
+      // config (L1). The user's stored play medium (M14) gates arrows/hover; the band×focus
+      // gating is config-driven.
       const tacticalRating = await resolveTacticalRating(
         ctx.prisma,
         ctx.userId,
         cfg,
       );
       const band = bandForRating(tacticalRating, cfg);
-      const targetFocus: TargetFocus = "online";
+      const targetFocus = await getTargetFocus(ctx.prisma, ctx.userId);
       const affordances = interfaceAffordancesFor({ band, targetFocus }, cfg);
       const restrictionRationale = affordances.restricted
         ? rationaleFor(affordances.restrictionRationaleKey, cfg)

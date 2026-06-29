@@ -225,6 +225,17 @@ export async function logOutcome(
     }
   }
 
+  // M14 — a book_session logged from the /library surface carries no ProgramItem; resolve its
+  // dimensions from the Seam-4 `book` activity so the AdaptationLog targets the same dimensions
+  // a daily book item would. A book session NEVER moves skill (its `correct` stays null below,
+  // so the pure loop's skill step skips it) — the self-reported success rate is for the 85%
+  // difficulty nudge only, never skill diagnosis (Seam 2 boundary). It still appends to the
+  // immutable log and runs the SAME adaptation loop, unchanged.
+  if (input.type === "book_session" && dimensions.length === 0) {
+    const bookDef = cfg.activities.find((a) => a.activityType === "book");
+    if (bookDef) dimensions = [...bookDef.dimensions];
+  }
+
   // 2. Append the immutable event (the append-only substrate, §7.3 — never updated/deleted).
   const payloadObj: Record<string, unknown> = {};
   if (input.correct !== undefined) payloadObj.correct = input.correct;
@@ -237,6 +248,11 @@ export async function logOutcome(
   if (input.puzzleId !== undefined) payloadObj.puzzleId = input.puzzleId;
   if (input.practiceItemId !== undefined)
     payloadObj.practiceItemId = input.practiceItemId;
+  // M14 — book_session: the external resource progressed + the self-reported position/success.
+  if (input.resourceRefId !== undefined)
+    payloadObj.resourceRefId = input.resourceRefId;
+  if (input.position !== undefined) payloadObj.position = input.position;
+  if (input.selfReport !== undefined) payloadObj.selfReport = input.selfReport;
   await appendActivityEvent(db, {
     userId,
     programItemId: input.programItemId ?? null,

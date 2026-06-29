@@ -236,4 +236,43 @@ describe("logOutcome (applyEvent)", () => {
       { dimension: "endgames", estimate: 0, sampleSize: 1 },
     ]);
   });
+
+  it("M14: a book_session feeds the SAME loop — appended + logged, with no skill/schedule move", async () => {
+    // Logged from /library with no ProgramItem; carries the external resource + self-reported
+    // success. It must append to the immutable log, run the adaptation loop (an AdaptationLog),
+    // and tick the engagement streak — but NEVER move skill or schedule, because the success
+    // rate is for the 85% nudge only, not skill diagnosis (Seam 2). correct stays null.
+    const { db, rec } = fakeDb(null);
+    const res = await logOutcome(
+      db,
+      "u1",
+      {
+        type: "book_session",
+        resourceRefId: "silman_reassess_your_chess",
+        durationMin: 30,
+        position: { chapter: 4 },
+        selfReport: { successRate: 0.8, woodpeckerCycle: 2 },
+      },
+      clock,
+    );
+
+    expect(rec.events).toHaveLength(1);
+    expect(rec.events[0]).toMatchObject({
+      type: "book_session",
+      programItemId: null,
+      payload: {
+        resourceRefId: "silman_reassess_your_chess",
+        position: { chapter: 4 },
+        selfReport: { successRate: 0.8, woodpeckerCycle: 2 },
+      },
+    });
+    // No ProgramItem to flip, and a book session never moves skill/schedule (correct is null).
+    expect(rec.itemUpdates).toEqual([]);
+    expect(rec.scheduleUpserts).toEqual([]);
+    expect(rec.skillUpserts).toEqual([]);
+    // It still runs the same adaptation loop and ticks the forgiving streak (it's a completion).
+    expect(rec.logs).toHaveLength(1);
+    expect(rec.rewardCreates[0]!.type).toBe("streak_tick");
+    expect(res.scheduledReviews).toBe(0);
+  });
 });
