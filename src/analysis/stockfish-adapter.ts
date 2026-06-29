@@ -181,7 +181,11 @@ export class StockfishAnalysisEngine implements AnalysisEngineAdapter {
   ): Promise<RawGameFeatures> {
     await this.ensureReady();
     const chess = new Chess();
-    chess.loadPgn(pgn);
+    try {
+      chess.loadPgn(pgn);
+    } catch (e) {
+      console.warn("stockfish-adapter analyzeGame loadPgn failed, using partial history:", e);
+    }
     const moves = chess.history({ verbose: true });
 
     // Positions p0..pN, aligned to what extractFeatures expects.

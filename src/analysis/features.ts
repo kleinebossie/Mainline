@@ -141,7 +141,11 @@ function extractClock(chess: Chess): ClockEntry[] | null {
 export function extractFeatures(input: ExtractFeaturesInput): RawGameFeatures {
   const { pgn, evals, userColor } = input;
   const chess = new Chess();
-  chess.loadPgn(pgn);
+  try {
+    chess.loadPgn(pgn);
+  } catch (e) {
+    console.warn("features extractFeatures loadPgn failed, using partial history:", e);
+  }
   const moves = chess.history({ verbose: true });
   const n = moves.length;
 

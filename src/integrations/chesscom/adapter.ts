@@ -193,6 +193,7 @@ export const chessComAdapter: PlatformAdapter = {
       };
       for (const g of games) {
         const parsed = parseChessComGame(g, username);
+        if (!parsed) continue;
         if (since && parsed.playedAt < since) continue;
         out.push(parsed);
       }

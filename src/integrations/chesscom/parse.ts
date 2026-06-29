@@ -14,6 +14,7 @@ export interface ChessComGame {
   white?: { username?: string; rating?: number; result?: string };
   black?: { username?: string; rating?: number; result?: string };
   eco?: string; // usually an opening URL, not an ECO code
+  rules?: string; // e.g. "chess", "chess960", etc.
 }
 
 // Chess.com encodes the outcome per side as a string. "win" is the only winning
@@ -54,7 +55,10 @@ function sideOf(game: ChessComGame, username: string): "w" | "b" | undefined {
 export function parseChessComGame(
   game: ChessComGame,
   username: string,
-): ImportedGameInput {
+): ImportedGameInput | null {
+  if (game.rules && game.rules !== "chess") {
+    return null;
+  }
   const color = sideOf(game, username);
   const me =
     color === "w" ? game.white : color === "b" ? game.black : undefined;

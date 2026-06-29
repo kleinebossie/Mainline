@@ -4,6 +4,8 @@
 // chess/learning constant in this file. M4 ships the Seam 2 functions (assessment) and
 // the Seam 9 if-then assembler; later seams' functions land with their milestones.
 
+import { Chess } from "chess.js";
+
 import type { Grade, GradedFlag, Tier } from "@/methodology/schema/graded";
 import type {
   MethodologyConfig,
@@ -1681,7 +1683,22 @@ export function gameAnalysisProtocol(
       const blunder = game.rawFeatures.blunders?.find(
         (b) => b.ply === moment.ply,
       );
-      const fen = blunder?.fen || "";
+      let fen = blunder?.fen || "";
+
+      if (!fen && game.pgn) {
+        // If not a blunder (e.g. a mistake under 300cp), reconstruct the FEN by replaying the PGN
+        try {
+          const replay = new Chess();
+          replay.loadPgn(game.pgn);
+          const history = replay.history({ verbose: true });
+          const played = history[moment.ply - 1];
+          if (played) {
+            fen = played.before;
+          }
+        } catch (e) {
+          console.warn("gameAnalysisProtocol replay FEN failed:", e);
+        }
+      }
 
       criticalMoments.push({
         ply: moment.ply,

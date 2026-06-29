@@ -21,6 +21,7 @@ export interface LichessGame {
     black?: { user?: { name?: string }; rating?: number };
   };
   pgn?: string;
+  variant?: string; // e.g. "standard", "chess960", etc.
 }
 
 function sideOf(game: LichessGame, username: string): "w" | "b" | undefined {
@@ -54,7 +55,10 @@ function timeControlOf(game: LichessGame): string | undefined {
 export function parseLichessGame(
   game: LichessGame,
   username: string,
-): ImportedGameInput {
+): ImportedGameInput | null {
+  if (game.variant && game.variant !== "standard") {
+    return null;
+  }
   const color = sideOf(game, username);
   const pgn = game.pgn ?? "";
   return {
@@ -93,5 +97,6 @@ export function parseLichessNdjson(
     .split("\n")
     .map((l) => l.trim())
     .filter(Boolean)
-    .map((line) => parseLichessGame(JSON.parse(line) as LichessGame, username));
+    .map((line) => parseLichessGame(JSON.parse(line) as LichessGame, username))
+    .filter((g): g is ImportedGameInput => g !== null);
 }

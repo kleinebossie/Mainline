@@ -41,10 +41,10 @@ describe("parseLichessGame", () => {
   });
 
   it("maps a loss and a draw from the black player's view", () => {
-    expect(parseLichessGame({ ...base, winner: "white" }, "bob").result).toBe(
+    expect(parseLichessGame({ ...base, winner: "white" }, "bob")?.result).toBe(
       "loss",
     );
-    expect(parseLichessGame({ ...base }, "bob").result).toBe("draw"); // no winner
+    expect(parseLichessGame({ ...base }, "bob")?.result).toBe("draw"); // no winner
   });
 
   it("falls back to PGN tags when opening fields are absent", () => {
@@ -52,8 +52,13 @@ describe("parseLichessGame", () => {
       { ...base, opening: undefined, pgn: '[ECO "D20"]\n[Opening "QGA"]' },
       "alice",
     );
-    expect(g.eco).toBe("D20");
-    expect(g.opening).toBe("QGA");
+    expect(g?.eco).toBe("D20");
+    expect(g?.opening).toBe("QGA");
+  });
+
+  it("ignores non-standard chess variants", () => {
+    const variantGame = { ...base, variant: "chess960" };
+    expect(parseLichessGame(variantGame, "alice")).toBeNull();
   });
 });
 
@@ -91,6 +96,17 @@ describe("parseChessComGame", () => {
       },
       "carol",
     );
-    expect(g.result).toBe("loss");
+    expect(g?.result).toBe("loss");
+  });
+
+  it("ignores non-standard chess variants/rules", () => {
+    const variantGame = {
+      url: "https://www.chess.com/game/live/9999",
+      white: { username: "carol", rating: 1200 },
+      black: { username: "dave", rating: 1210 },
+      rules: "chess960",
+      pgn: "",
+    };
+    expect(parseChessComGame(variantGame, "carol")).toBeNull();
   });
 });

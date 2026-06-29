@@ -102,6 +102,44 @@ describe("gameAnalysisProtocol", () => {
     expect(session.criticalMoments.map((m) => m.ply)).toEqual([3, 7]);
   });
 
+  it("reconstructs the FEN for a mistake (not in blunders array) by replaying the PGN", () => {
+    const game = {
+      id: "game-mistake",
+      pgn: "1. e4 e5 2. Nf3 Nc6",
+      playedAt: new Date(),
+      result: "loss",
+      color: "w",
+      rawFeatures: {
+        acplOverall: 30,
+        acplByPhase: { opening: 30, middlegame: 0, endgame: 0 },
+        phaseBoundaries: { openingEndsPly: 10, endgameStartsPly: 20 },
+        moveEvals: [
+          { ply: 1, cpBefore: 35, cpAfter: 35, cpLoss: 0 },
+          { ply: 2, cpBefore: -35, cpAfter: -35, cpLoss: 0 },
+          { ply: 3, cpBefore: 35, cpAfter: -165, cpLoss: 200 }, // White's mistake on move 2 (ply 3)
+          { ply: 4, cpBefore: 165, cpAfter: 165, cpLoss: 0 },
+        ],
+        blunders: [], // No blunders over 300cp
+        errorCounts: {
+          inaccuracies: 0,
+          mistakes: 1,
+          blunders: 0,
+          grossBlunders: 0,
+        },
+      },
+    };
+
+    // For b800_1200 band, threshold is 100cp, so ply 3 (200cp loss) is critical.
+    const session = gameAnalysisProtocol(game, "b800_1200", cfg);
+    expect(session.criticalMoments.length).toBe(1);
+    expect(session.criticalMoments[0]!.ply).toBe(3);
+    expect(session.criticalMoments[0]!.cpLoss).toBe(200);
+    // The FEN before ply 3 (White's move 2: 2. Nf3) is the position after 1... e5
+    expect(session.criticalMoments[0]!.fen).toBe(
+      "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2",
+    );
+  });
+
   it("does NOT flag a missed mate that stays winning as a critical moment (low band)", () => {
     // The user (White) makes two moves: ply 3 is a real swing (winning → equal); ply 5 is
     // a missed forced mate that STAYS clearly winning (mate ≈ +1000 → +600). The raw cp gap
