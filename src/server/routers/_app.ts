@@ -8,6 +8,7 @@ import { connectionsRouter } from "@/server/routers/connections";
 import { constraintsRouter } from "@/server/routers/constraints";
 import { engagementRouter } from "@/server/routers/engagement";
 import { importRouter } from "@/server/routers/import";
+import { libraryRouter } from "@/server/routers/library";
 import { programRouter } from "@/server/routers/program";
 import { trackerRouter } from "@/server/routers/tracker";
 import { router } from "@/server/trpc";
@@ -22,6 +23,7 @@ export const appRouter = router({
   tracker: trackerRouter,
   engagement: engagementRouter,
   account: accountRouter,
+  library: libraryRouter,
 });
 
 export type AppRouter = typeof appRouter;
