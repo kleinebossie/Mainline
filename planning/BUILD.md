@@ -1314,11 +1314,33 @@ function stepSolve(
   (with success rate) → it appears in the tracker and influences the next session; an OTB-focused user
   sees physical-board / tournament-simulation guidance; a play-games activity links out and the imported
   game is picked up by the loop.
-- **DoD:** ☐ books/courses recommended per band with **graded** rationale (content stays external;
-  low-band overload books blocked) ☐ book-study protocol (active recall, 85% calibration, Woodpecker
-  cycles) surfaced + logged ☐ 2D/3D modality + OTB-calibration recommendations driven by `targetFocus`
-  ☐ users log progress (incl. self-reported success rate) through external resources in-app ☐ game-play
-  stays **external** (deep-link + import) ☐ logged external outcomes feed the **same** adaptation loop.
+- **DoD:** ✅ books/courses recommended per band with **graded** rationale (content stays external;
+  low-band overload books blocked) ✅ book-study protocol (active recall, 85% calibration, Woodpecker
+  cycles) surfaced + logged ✅ 2D/3D modality + OTB-calibration recommendations driven by `targetFocus`
+  ✅ users log progress (incl. self-reported success rate) through external resources in-app ✅ game-play
+  stays **external** (deep-link + import) ✅ logged external outcomes feed the **same** adaptation loop.
+- **Status (2026-06-24): ✅ DONE.** Notes: (a) the deliberately-external layer lives on a new
+  **`/library`** surface, all config-driven — two graded Seam-4 sections (`bookStudy`: active-recall +
+  the 85% difficulty rule + Woodpecker cycles + the per-band catalog + the cognitive-load
+  `blockedCategoriesByBand`; `modality`: the per-band 2D/3D split + OTB tournament-simulation cadence +
+  physical-board advice) read by four pure provider fns (`recommendBooks` / `woodpeckerSchedule` /
+  `bookDifficultyFeedback` / `modalityRecommendation`), each graded (L3) and golden-tested; (b) the
+  cognitive-load block rule suppresses low-band strategy/opening books (`recommendBooks` filters by
+  `blockedCategoriesByBand`); (c) **no schema change** — a new `book_session` `ActivityEvent` carries the
+  self-reported success rate + position + Woodpecker cycle in the existing `payload` JSON, and
+  **`ResourceProgress` (§5.5) is a derived roll-up** of those events (no table); the session feeds the
+  **same** `logOutcome` → `runAdaptation` loop unchanged, with `correct` left null so it never moves
+  skill (the self-report tunes the 85% nudge only — Seam-2 boundary); (d) `ConstraintSet.targetFocus`
+  rides in the `formatPrefs` JSON (no migration, §5.4), is captured in the constraints form, and now
+  drives the Seam-4 modality/OTB recommendations **and** the M11 board interface-restrictions (the
+  hardcoded `"online"` stub in calibration + train is replaced by the user's stored medium); (e) game-play
+  stays **external** via the existing `play_games` deep-link (golden-tested to resolve to a platform URL,
+  never an internal `/train` route); (f) the `book` Seam-4 activity ships `delivery: external` with a
+  conservative stub daily-mix priority of 0 (surfaced on `/library`, not forced into the timed session —
+  the research config can raise it with no Engine change); (g) the e2e drives the public `/library`
+  auth-gate redirect, while the full signed-in book-session loop is manually verified per §13.5.
+  **No migration / infra hand-off** — all M14 state rides in existing JSON columns, and book
+  recommendations are config-driven (identified by the config book id), so `seed:resources` is unchanged.
 
 ### M15 — Beta hardening
 

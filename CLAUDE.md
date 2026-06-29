@@ -157,15 +157,23 @@ as spaced `PracticeItem`s (`ensureEndgameDrills`) and **played out vs the client
 `engine-play` opponent**; the result is judged by the pure `scoreEndgame`/`classifyTerminal` scorer
 against the objective, with the **Lichess tablebase** as an optional cached ground-truth oracle
 (`TablebaseCache`, polite/back-off, ≤7-piece guard, engine-only fallback); outcomes auto-log
-(`drill_done`) and space on their own `endgame` FSRS queue — done. **Next: the internal-first arc
-finishes with M14** — internalise what we can (VISION §1/§8): **M14** recommended
-resources + **book-study & 2D/3D-modality/OTB-calibration protocols** + in-app logging (books/courses/
-real games stay external; guidance from `BEST_BOOKS.md`/`2D_VS_3D.md`). These add **no new seam** — only
-generic Engine surfaces + graded Seam-4 `ActivityDefinition`s with a `delivery: 'internal' | 'external'`
-flag (now also the visual-modality / OTB-calibration / book-study config) — and **no LLM**. A new
-`ConstraintSet.targetFocus` (`online | otb | hybrid`, self-report) drives the modality/OTB
-recommendations and the board interface restrictions, landing with its consumers in M11/M14. **M15** —
-beta hardening (was M10).
+(`drill_done`) and space on their own `endgame` FSRS queue — done. **M14** the deliberately-external
+layer — books/courses + **book-study & 2D/3D-modality/OTB-calibration protocols** + real games, made
+first-class via recommendation + logging, **without hosting anything** and with **no LLM**. The
+internal-first arc (M10–M14) is **complete**. M14 adds **no new seam** — two graded Seam-4 config
+sections (`bookStudy`: active recall + the 85% difficulty rule + Woodpecker cycles + the per-band
+catalog + the cognitive-load `blockedCategoriesByBand`; `modality`: the per-band 2D/3D split + OTB
+tournament-simulation cadence) read by four pure provider fns (`recommendBooks` / `woodpeckerSchedule` /
+`bookDifficultyFeedback` / `modalityRecommendation`, golden-tested, graded) — plus a `book`
+`ActivityDefinition` (`delivery: external`). All of it is surfaced on a new **`/library`** page (gated by
+the user's play medium). A **`book_session`** `ActivityEvent` (self-reported success rate + position +
+Woodpecker cycle in the existing `payload` JSON — **no schema change**) feeds the **same** `logOutcome`
+→ adaptation loop, with `correct` left null so it never moves skill (the self-report only tunes the 85%
+nudge — Seam-2 boundary); **`ResourceProgress` is a derived roll-up** of those events (no table). The
+M11-stubbed **`ConstraintSet.targetFocus`** (`online | otb | hybrid`, in `formatPrefs` JSON — no
+migration) is now captured in the constraints form and drives both the modality/OTB recommendations and
+the board interface-restrictions; game-play stays **external** via the existing `play_games` deep-link —
+done. **Next: M15** — beta hardening (was M10).
 `planning/BUILD.md` is the source of truth these notes summarize; the `build-slice`
 skill drives a milestone end-to-end.
 
