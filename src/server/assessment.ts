@@ -27,11 +27,14 @@ import {
   type MethodologyConfig,
   type NextCalibrationItem,
   type RationaleEntry,
-  type TargetFocus,
 } from "@/methodology";
 import { selectPuzzles } from "@/db/puzzles";
+import { getTargetFocus } from "@/server/constraints";
 
-type Db = Pick<PrismaClient, "assessment" | "chessProfileSnapshot" | "lichessPuzzle">;
+type Db = Pick<
+  PrismaClient,
+  "assessment" | "chessProfileSnapshot" | "lichessPuzzle" | "constraintSet"
+>;
 
 // A stored response is a behavioural outcome tagged with its track (track optional for
 // back-compat with single-track rows written before multi-track; those default to track 0).
@@ -75,6 +78,29 @@ export function ratingFromSnapshot(ratings: unknown): number | null {
  *  1600–2000 (50cp). Returns null when the user has no rated games of any format. */
 export function playingRatingFromSnapshot(ratings: unknown): number | null {
   return ratingForFormats(ratings, ["rapid", "blitz", "classical", "bullet"]);
+}
+
+/** The user's highest rating across actual live-game formats (bullet/blitz/rapid) from a
+ *  snapshot — the true playing-strength signal for picking a book-catalog band. Unlike
+ *  `playingRatingFromSnapshot` (first found in preference order), this takes the MAX across
+ *  all three, so a strong blitz player isn't pointed at a "beginner rapid" pick because rapid
+ *  happened to come first. Returns null when none of the three formats has a rating. */
+export function highestLiveRatingFromSnapshot(ratings: unknown): number | null {
+  if (!ratings || typeof ratings !== "object") return null;
+  const r = ratings as Record<string, unknown>;
+  const values = (["bullet", "blitz", "rapid"] as const)
+    .map((fmt) => {
+      const f = r[fmt];
+      if (f && typeof f === "object") {
+        const rating = (f as Record<string, unknown>).rating;
+        return typeof rating === "number" && Number.isFinite(rating)
+          ? rating
+          : null;
+      }
+      return null;
+    })
+    .filter((v): v is number => v != null);
+  return values.length > 0 ? Math.round(Math.max(...values)) : null;
 }
 
 /** First finite `ratings[fmt].rating` for the formats, in preference order, else null. */
@@ -216,9 +242,9 @@ export async function getCalibrationState(
   }
 
   // Seam 4 §4.4(c) — the calibration board hides the same crutches as the training board,
-  // from config (L1). targetFocus defaults to "online" until the constraints form captures
-  // it (M14); the band derives from the seed rating.
-  const targetFocus: TargetFocus = "online";
+  // from config (L1). The user's stored play medium (M14) gates arrows/hover; the band
+  // derives from the seed rating.
+  const targetFocus = await getTargetFocus(db, userId);
   const affordances = interfaceAffordancesFor(
     { band: bandForRating(startRating, cfg), targetFocus },
     cfg,

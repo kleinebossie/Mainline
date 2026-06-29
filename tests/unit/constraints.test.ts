@@ -19,7 +19,11 @@ const valid: ConstraintsInput = {
     { kind: "book", label: "Dvoretsky's Endgame Manual" },
     { kind: "membership", label: "Lichess", externalRef: "lichess.org" },
   ],
-  formatPrefs: { formats: ["rapid", "blitz"], preferredVariety: true },
+  formatPrefs: {
+    formats: ["rapid", "blitz"],
+    preferredVariety: true,
+    targetFocus: "otb",
+  },
   sessionStyle: { depthVsBreadth: "depth", interleave: false },
   ifThenPlan: { cue: "my morning coffee", plan: "open today's session" },
 };
@@ -55,6 +59,27 @@ describe("constraintsInputSchema", () => {
   it("rejects non-integer time/cadence", () => {
     expect(
       constraintsInputSchema.safeParse({ ...valid, daysPerWeek: 3.5 }).success,
+    ).toBe(false);
+  });
+
+  it("defaults targetFocus to online when omitted (M14 — no migration for old rows)", () => {
+    const out = constraintsInputSchema.parse({
+      ...valid,
+      formatPrefs: { formats: ["rapid"], preferredVariety: false },
+    });
+    expect(out.formatPrefs.targetFocus).toBe("online");
+  });
+
+  it("rejects an unknown play medium", () => {
+    expect(
+      constraintsInputSchema.safeParse({
+        ...valid,
+        formatPrefs: {
+          formats: ["rapid"],
+          preferredVariety: false,
+          targetFocus: "vr",
+        },
+      }).success,
     ).toBe(false);
   });
 

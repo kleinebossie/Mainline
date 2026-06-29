@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { LichessPuzzle, PrismaClient } from "@prisma/client";
-import { getCalibrationState, applyCalibrationResponse } from "@/server/assessment";
+import {
+  getCalibrationState,
+  applyCalibrationResponse,
+} from "@/server/assessment";
 
 interface StoredResponse {
   track: string;
@@ -9,7 +12,11 @@ interface StoredResponse {
   puzzleId?: string;
 }
 
-function mockPuzzle(puzzleId: string, rating: number, theme: string): LichessPuzzle {
+function mockPuzzle(
+  puzzleId: string,
+  rating: number,
+  theme: string,
+): LichessPuzzle {
   return {
     puzzleId,
     fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
@@ -38,9 +45,15 @@ describe("calibration-puzzle test", () => {
     const db = {
       assessment: {
         findUnique: async () => {
-          return savedResponses ? { calibrationResponses: savedResponses, completedAt: null } : null;
+          return savedResponses
+            ? { calibrationResponses: savedResponses, completedAt: null }
+            : null;
         },
-        upsert: async ({ create }: { create: { calibrationResponses: StoredResponse[] } }) => {
+        upsert: async ({
+          create,
+        }: {
+          create: { calibrationResponses: StoredResponse[] };
+        }) => {
           savedResponses = create.calibrationResponses;
           return {};
         },
@@ -48,11 +61,18 @@ describe("calibration-puzzle test", () => {
       chessProfileSnapshot: {
         findFirst: async () => null,
       },
+      // M14: the calibration board reads the user's play medium (targetFocus) for its interface
+      // restrictions; with no saved constraints it defaults to "online".
+      constraintSet: {
+        findFirst: async () => null,
+      },
       lichessPuzzle: {
         findMany: async () => {
           // Filter to simulate selectPuzzles behavior roughly
-          return puzzlesPool.filter(p => {
-            const excludeIds = savedResponses ? savedResponses.map(r => r.puzzleId) : [];
+          return puzzlesPool.filter((p) => {
+            const excludeIds = savedResponses
+              ? savedResponses.map((r) => r.puzzleId)
+              : [];
             return !excludeIds.includes(p.puzzleId);
           });
         },
@@ -79,7 +99,7 @@ describe("calibration-puzzle test", () => {
         correct: true,
         puzzleId: firstPuzzleId,
       },
-      date
+      date,
     );
 
     // Verify response was saved and the solved puzzle is excluded, yielding a new active puzzle

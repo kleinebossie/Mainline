@@ -70,9 +70,18 @@ export type IfThenPlan = z.infer<typeof ifThenPlanSchema>;
 
 export const CHESS_FORMATS = ["bullet", "blitz", "rapid", "classical"] as const;
 
+/** The user's primary play medium (M14). Self-report is VALID here — it is a goal/constraint,
+ *  not a skill claim (Seam 2) — and it drives the Seam-4 2D/3D modality, OTB-prep, and board
+ *  interface-restriction recommendations (METHODOLOGY §4.4). Rides in the formatPrefs JSON
+ *  column so no migration is needed (BUILD.md §5.4). */
+export const TARGET_FOCUSES = ["online", "otb", "hybrid"] as const;
+export type TargetFocus = (typeof TARGET_FOCUSES)[number];
+
 export const formatPrefsSchema = z.object({
   formats: z.array(z.enum(CHESS_FORMATS)).max(CHESS_FORMATS.length),
   preferredVariety: z.boolean(),
+  // Defaults to "online" so rows written before M14 decode cleanly (no migration).
+  targetFocus: z.enum(TARGET_FOCUSES).default("online"),
 });
 export type FormatPrefs = z.infer<typeof formatPrefsSchema>;
 
@@ -93,7 +102,7 @@ export const EMPTY_CONSTRAINTS: ConstraintsInput = {
   daysPerWeek: 5,
   goals: [],
   ownedResources: [],
-  formatPrefs: { formats: [], preferredVariety: false },
+  formatPrefs: { formats: [], preferredVariety: false, targetFocus: "online" },
   sessionStyle: DEFAULT_SESSION_STYLE,
   ifThenPlan: null,
 };

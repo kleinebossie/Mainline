@@ -16,6 +16,7 @@ import {
   sessionStyleSchema,
   DEFAULT_SESSION_STYLE,
   type ConstraintsInput,
+  type TargetFocus,
 } from "@/lib/constraints";
 
 type Db = Pick<PrismaClient, "constraintSet" | "$transaction">;
@@ -34,9 +35,9 @@ export function decodeConstraintSet(row: {
   version: number;
 }): ConstraintsInput & { id: string; version: number } {
   const goals = z.array(goalSchema).safeParse(row.goals);
-  const ownedResources = z.array(ownedResourceSchema).safeParse(
-    row.ownedResources,
-  );
+  const ownedResources = z
+    .array(ownedResourceSchema)
+    .safeParse(row.ownedResources);
   const formatPrefs = formatPrefsSchema.safeParse(row.formatPrefs);
   const sessionStyle = sessionStyleSchema.safeParse(row.sessionStyle);
   const ifThenPlan = ifThenPlanSchema.safeParse(row.ifThenPlan);
@@ -49,8 +50,10 @@ export function decodeConstraintSet(row: {
     ownedResources: ownedResources.success ? ownedResources.data : [],
     formatPrefs: formatPrefs.success
       ? formatPrefs.data
-      : { formats: [], preferredVariety: false },
-    sessionStyle: sessionStyle.success ? sessionStyle.data : DEFAULT_SESSION_STYLE,
+      : { formats: [], preferredVariety: false, targetFocus: "online" },
+    sessionStyle: sessionStyle.success
+      ? sessionStyle.data
+      : DEFAULT_SESSION_STYLE,
     ifThenPlan: ifThenPlan.success ? ifThenPlan.data : null,
   };
 }
@@ -65,6 +68,20 @@ export async function getCurrentConstraints(
     orderBy: { version: "desc" },
   });
   return row ? decodeConstraintSet(row) : null;
+}
+
+/** The user's stored play medium (M14), defaulting to "online" when unset. Drives the Seam-4
+ *  modality/OTB and board interface-restriction recommendations. Read-only — needs only the
+ *  ConstraintSet table. */
+export async function getTargetFocus(
+  db: Pick<PrismaClient, "constraintSet">,
+  userId: string,
+): Promise<TargetFocus> {
+  const row = await db.constraintSet.findFirst({
+    where: { userId, isCurrent: true },
+    orderBy: { version: "desc" },
+  });
+  return row ? decodeConstraintSet(row).formatPrefs.targetFocus : "online";
 }
 
 /**

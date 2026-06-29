@@ -12,11 +12,20 @@ import {
   DEPTH_VS_BREADTH,
   EMPTY_CONSTRAINTS,
   OWNED_RESOURCE_KINDS,
+  TARGET_FOCUSES,
   type ConstraintsInput,
   type Goal,
   type OwnedResource,
   type SessionStyle,
+  type TargetFocus,
 } from "@/lib/constraints";
+
+// Labels for the play-medium choice (M14) — drives the 2D/3D modality + OTB recommendations.
+const TARGET_FOCUS_LABELS: Record<TargetFocus, string> = {
+  online: "Online only",
+  hybrid: "Both online and over-the-board",
+  otb: "Over-the-board tournaments",
+};
 
 // Labels for the owned-resource kinds (UI copy; the schema stores the kind enum).
 const RESOURCE_KIND_LABELS: Record<OwnedResource["kind"], string> = {
@@ -112,6 +121,9 @@ function Form({
   const [preferredVariety, setVariety] = useState(
     initial.formatPrefs.preferredVariety,
   );
+  const [targetFocus, setTargetFocus] = useState<TargetFocus>(
+    initial.formatPrefs.targetFocus,
+  );
   const [ownedResources, setOwnedResources] = useState<OwnedResource[]>(
     initial.ownedResources,
   );
@@ -177,6 +189,7 @@ function Form({
       formatPrefs: {
         formats: CHESS_FORMATS.filter((f) => formats.has(f)),
         preferredVariety,
+        targetFocus,
       },
       sessionStyle: { depthVsBreadth, interleave },
       ifThenPlan: cueT && planT ? { cue: cueT, plan: planT } : null,
@@ -276,6 +289,35 @@ function Form({
           />
           I like variety in my daily sessions
         </label>
+
+        {/* M14 — the play medium drives the 2D/3D modality + over-the-board recommendations
+            and the board interface restrictions (Seam 4 §4.4). */}
+        <div className="mt-3 flex flex-col gap-2">
+          <span className="eyebrow !text-[0.65rem] !tracking-wider">
+            Where do you mostly play?
+          </span>
+          <div className="flex flex-col gap-2">
+            {TARGET_FOCUSES.map((tf) => (
+              <label
+                key={tf}
+                className="flex items-center gap-3 font-serif text-sm text-ink cursor-pointer"
+              >
+                <input
+                  type="radio"
+                  name="targetFocus"
+                  checked={targetFocus === tf}
+                  onChange={() => setTargetFocus(tf)}
+                  className="border-input text-evergreen focus:ring-evergreen h-4 w-4 bg-paper-raised"
+                />
+                {TARGET_FOCUS_LABELS[tf]}
+              </label>
+            ))}
+          </div>
+          <p className="text-graphite font-serif text-xs leading-relaxed">
+            Over-the-board players get physical-board and tournament-simulation
+            guidance, and a stricter board (no arrows or hover).
+          </p>
+        </div>
       </fieldset>
 
       <fieldset className="flex flex-col gap-4">
