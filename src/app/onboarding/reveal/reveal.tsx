@@ -7,7 +7,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GradeMark } from "@/components/evidence";
 import { TransparencyCard } from "@/components/transparency-card";
-import { ReviewBoard } from "@/components/review-board";
+
 
 type Grade = "A" | "B" | "C" | "D";
 function asGrade(g: string): Grade {
@@ -200,16 +200,27 @@ export function Reveal() {
           </CardTitle>
           <p className="text-graphite font-mono text-sm mt-1">
             The honest picture isn&apos;t a number — it&apos;s the moment it
-            turned. Walk the advantage graph and see your own blunders.
+            turned. Walk the turning points and find better moves for your mistakes.
           </p>
         </CardHeader>
         <CardContent>
           {reviewGameId ? (
-            <ReviewBoard gameId={reviewGameId} />
+            <div className="flex flex-col gap-3">
+              <p className="text-graphite text-sm leading-relaxed font-serif">
+                You have games ready for review. Walk through the turning points, identify your errors, and schedule them as personal drills.
+              </p>
+              <div>
+                <Link
+                  href={`/analysis/${reviewGameId}`}
+                  className={buttonVariants()}
+                >
+                  Review Game →
+                </Link>
+              </div>
+            </div>
           ) : (
             <p className="text-graphite text-sm leading-relaxed font-serif">
-              Analyse a game (in your browser) and you&apos;ll be able to step
-              through it here — eval graph, blunders, and best lines on demand.
+              Scan a game first — then you&apos;ll be able to review it, walk the turning points, and drill your mistakes.
             </p>
           )}
         </CardContent>

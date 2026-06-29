@@ -155,6 +155,7 @@ export function GameAnalysisFlow() {
   const [revealed, setRevealed] = useState(false);
   // Final per-moment outcome (found a good move = true) fed to the SRS scheduler on save.
   const [outcomes, setOutcomes] = useState<Record<number, boolean>>({});
+  const [bestUcis, setBestUcis] = useState<Record<number, string>>({});
 
   // One Stockfish worker, reused across moments. Engine calls are serialised through a
   // promise chain so a stale search can never overlap a fresh one on the single worker.
@@ -288,6 +289,11 @@ export function GameAnalysisFlow() {
       });
 
       if (aborted) return;
+      const bestMove = topMoves[0];
+      if (bestMove) {
+        const uci = bestMove.uci;
+        setBestUcis((prev) => ({ ...prev, [currentMomentIdx]: uci }));
+      }
       setAnalysis({
         rootBestCp,
         rootBestWinProb,
@@ -396,6 +402,7 @@ export function GameAnalysisFlow() {
     const saveOutcomes = session.criticalMoments.map((moment, idx) => ({
       ply: moment.ply,
       correct: outcomes[idx] ?? false,
+      bestUci: bestUcis[idx],
     }));
     await saveSessionMutation.mutateAsync({
       gameId,
@@ -409,7 +416,7 @@ export function GameAnalysisFlow() {
     return (
       <PageShell width="default">
         <p className="text-graphite font-mono text-sm">
-          Loading game analysis session…
+          Loading game review session…
         </p>
       </PageShell>
     );
@@ -419,7 +426,7 @@ export function GameAnalysisFlow() {
     return (
       <PageShell width="default">
         <p className="text-graphite font-serif text-sm">
-          Game analysis session not found.
+          Game review session not found.
         </p>
       </PageShell>
     );
@@ -448,7 +455,7 @@ export function GameAnalysisFlow() {
 
   return (
     <PageShell
-      eyebrow={`Step ${step} of 3 · Analysis`}
+      eyebrow={`Step ${step} of 3 · Game Review`}
       title={
         step === 1
           ? "Emotional Calibration"
@@ -531,7 +538,7 @@ export function GameAnalysisFlow() {
           <div className="mx-auto w-full max-w-2xl">
             <Card>
               <CardHeader>
-                <CardTitle>Reflect Before You Analyze</CardTitle>
+                <CardTitle>Reflect Before You Review</CardTitle>
               </CardHeader>
               <CardContent className="flex flex-col gap-4">
                 <p className="text-ink font-serif text-base leading-relaxed">
@@ -549,7 +556,7 @@ export function GameAnalysisFlow() {
                 <div className="mt-2 flex items-center justify-between gap-4">
                   {countdown > 0 ? (
                     <span className="text-graphite font-mono text-xs">
-                      Analysis unlocks in {Math.floor(countdown / 60)}:
+                      Review unlocks in {Math.floor(countdown / 60)}:
                       {String(countdown % 60).padStart(2, "0")}
                     </span>
                   ) : (
@@ -691,7 +698,7 @@ export function GameAnalysisFlow() {
                     )}
                     {analysisStatus === "error" && (
                       <p className="text-grade-d font-serif text-sm">
-                        We couldn&apos;t analyse this position. You can still
+                        We couldn&apos;t review this position. You can still
                         continue.
                       </p>
                     )}

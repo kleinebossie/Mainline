@@ -257,50 +257,6 @@ export const analysisRouter = router({
       };
     }),
 
-  // M12 — the interactive game review: the game + its raw per-move evals + blunders, for the
-  // step-through eval-graph board (projected client-side via @/engine/review). Lighter than
-  // `session` (no 5-step protocol); also backs the onboarding "reveal".
-  review: protectedProcedure
-    .input(z.object({ gameId: z.string() }))
-    .query(async ({ ctx, input }) => {
-      const owns = await userOwnsGame(ctx.prisma, ctx.userId, input.gameId);
-      if (!owns) throw new Error("Unauthorized");
-
-      const game = await ctx.prisma.importedGame.findUnique({
-        where: { id: input.gameId },
-        include: { analysis: true },
-      });
-      if (!game) throw new Error("Game not found");
-
-      const parsed = game.analysis
-        ? rawGameFeaturesSchema.safeParse(game.analysis.rawFeatures)
-        : null;
-      const rawFeatures: RawGameFeatures | null =
-        parsed && parsed.success ? parsed.data : null;
-
-      const cfg = loadMethodology();
-      return {
-        game: {
-          id: game.id,
-          pgn: game.pgn,
-          color: game.color,
-          result: game.result,
-          platform: game.platform,
-          playedAt: game.playedAt,
-          timeControl: game.timeControl,
-          opening: game.opening,
-          eco: game.eco,
-          opponentRating: game.opponentRating,
-          userRating: game.userRatingAtGame,
-          ...gameIdentity(game.pgn, game.color),
-        },
-        analyzed: rawFeatures !== null,
-        moveEvals: rawFeatures?.moveEvals ?? [],
-        blunders: rawFeatures?.blunders ?? [],
-        rationale: rationaleFor("analyse_own_games", cfg),
-      };
-    }),
-
   // Submit session outcomes and schedule review states
   saveSession: protectedProcedure
     .input(
@@ -311,6 +267,7 @@ export const analysisRouter = router({
           z.object({
             ply: z.number().int(),
             correct: z.boolean(),
+            bestUci: z.string().optional(),
           }),
         ),
       }),
@@ -349,10 +306,33 @@ export const analysisRouter = router({
       for (const outcome of input.outcomes) {
         const blunder = rawFeatures.blunders?.find((b) => b.ply === outcome.ply);
         const fen = blunder?.fen;
-        if (!fen) continue;
+        if (!fen || !outcome.bestUci) continue;
 
-        const itemType = "mistake_puzzle";
-        const itemRef = `${input.gameId}:${outcome.ply}`;
+        // 1. Create/upsert the PracticeItem of kind "blunder_drill"
+        const sourceRef = `blunder:${input.gameId}:${outcome.ply}`;
+        const item = await ctx.prisma.practiceItem.upsert({
+          where: {
+            userId_sourceRef: {
+              userId: ctx.userId,
+              sourceRef,
+            },
+          },
+          create: {
+            userId: ctx.userId,
+            kind: "blunder_drill",
+            fen,
+            solutionLine: [outcome.bestUci],
+            sourceRef,
+          },
+          update: {
+            fen,
+            solutionLine: [outcome.bestUci],
+          },
+        });
+
+        // 2. Schedule/upsert the ScheduleState of itemType "blunder_drill"
+        const itemType = "blunder_drill";
+        const itemRef = item.id;
 
         const existing = await ctx.prisma.scheduleState.findUnique({
           where: {
@@ -387,7 +367,7 @@ export const analysisRouter = router({
             fsrsState: newState as unknown as Prisma.InputJsonValue,
             due: new Date(newState.due),
             lastGrade: grade,
-            source: "redo",
+            source: "drill",
           },
           update: {
             fsrsState: newState as unknown as Prisma.InputJsonValue,

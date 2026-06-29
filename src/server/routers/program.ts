@@ -22,7 +22,6 @@ import {
 } from "@/methodology";
 import { selectPuzzles } from "@/db/puzzles";
 import { findPracticeItemsByIds } from "@/db/practice";
-import { createBlunderDrillsFromGame } from "@/server/practice";
 import { getTargetFocus } from "@/server/constraints";
 import { lookupTablebase } from "@/server/tablebase";
 
@@ -235,27 +234,6 @@ export const programRouter = router({
     return getTodayProgram(ctx.prisma, ctx.userId);
   }),
 
-  // M12: turn the blunders the client found (FEN + engine best move, computed client-side)
-  // into spaced personal drills. Pure derivation + FSRS seeding live in @/server/practice.
-  createBlunderDrills: protectedProcedure
-    .input(
-      z.object({
-        gameId: z.string().min(1),
-        drills: z
-          .array(
-            z.object({
-              ply: z.number().int().nonnegative(),
-              fen: z.string().min(1),
-              bestUci: z.string().min(2).max(6),
-              cpLoss: z.number().nonnegative(),
-            }),
-          )
-          .max(40),
-      }),
-    )
-    .mutation(({ ctx, input }) =>
-      createBlunderDrillsFromGame(ctx.prisma, ctx.userId, input),
-    ),
 
   // M13: ground-truth tablebase result for an endgame position (cache-first, polite, capped
   // — §6.6/§12). Null when unavailable (> 7 pieces, no entry, or a rate-limit/network miss);

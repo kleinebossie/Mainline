@@ -109,7 +109,7 @@ export function AnalysisDashboard() {
         utils.analysis.summary.invalidate(),
       ]);
     } catch (e) {
-      setBatchError(e instanceof Error ? e.message : "Engine analysis failed.");
+      setBatchError(e instanceof Error ? e.message : "Game scanning failed.");
     } finally {
       setAnalyzingGameId(null);
     }
@@ -174,9 +174,9 @@ export function AnalysisDashboard() {
 
   return (
     <PageShell
-      eyebrow="Structured Game Analysis"
-      title="Analyse Own Games"
-      lede="Pick one of your games and walk through a 5-step, science-backed review. We prioritise wins for pattern reinforcement and self-correction, avoiding ego-threat while training."
+      eyebrow="Structured Game Review"
+      title="Review Own Games"
+      lede="Pick one of your games and walk through a 3-step, science-backed review. We prioritise wins for pattern reinforcement and self-correction, avoiding ego-threat while training."
       width="default"
     >
       <div className="flex flex-col gap-8">
@@ -184,7 +184,7 @@ export function AnalysisDashboard() {
         <section className="flex flex-col gap-4">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div className="flex flex-col gap-0.5">
-              <h2 className="eyebrow">Your games · pick one to analyse</h2>
+              <h2 className="eyebrow">Your games · pick one to review</h2>
               <p className="text-graphite font-serif text-xs">
                 Most recent first.
               </p>
@@ -241,7 +241,7 @@ export function AnalysisDashboard() {
                 disabled={batchStatus === "running" || analyzingGameId !== null}
                 onClick={() => void runBatchAnalysis()}
               >
-                Engine analysis (all)
+                Scan all games
               </Button>
               {[5, 20, 50].map((n) => (
                 <Button
@@ -251,12 +251,12 @@ export function AnalysisDashboard() {
                   disabled={batchStatus === "running" || analyzingGameId !== null}
                   onClick={() => void runBatchAnalysis(n)}
                 >
-                  Last {n} games
+                  Scan last {n}
                 </Button>
               ))}
               {batchStatus === "running" && batchProgress && (
                 <span className="text-graphite font-mono text-xs">
-                  Analysing {batchProgress.done}/{batchProgress.total}…
+                  Scanning {batchProgress.done}/{batchProgress.total}…
                 </span>
               )}
               {(batchStatus === "error" || batchStatus === "partial") && batchError && (
@@ -326,7 +326,7 @@ export function AnalysisDashboard() {
                       </span>
                       {g.analyzed && (
                         <span className="rounded bg-evergreen/10 px-1.5 py-0.5 font-mono text-[0.55rem] font-bold uppercase tracking-wide text-evergreen">
-                          Analysed
+                          Scanned
                         </span>
                       )}
                     </div>
@@ -349,31 +349,18 @@ export function AnalysisDashboard() {
                     </div>
                   </div>
                   {g.analyzed ? (
-                    // Engine work is done — offer both the quick step-through review (eval
-                    // graph + blunder drills) and the deeper structured analysis protocol.
-                    <div className="flex shrink-0 gap-2">
-                      <Link
-                        href={`/analysis/${g.id}/review`}
-                        className={cn(
-                          buttonVariants({ size: "sm", variant: "outline" }),
-                          "shrink-0",
-                        )}
-                      >
-                        Review
-                      </Link>
-                      <Link
-                        href={`/analysis/${g.id}`}
-                        className={cn(
-                          buttonVariants({ size: "sm", variant: "default" }),
-                          "shrink-0",
-                        )}
-                      >
-                        Analyze
-                      </Link>
-                    </div>
+                    <Link
+                      href={`/analysis/${g.id}`}
+                      className={cn(
+                        buttonVariants({ size: "sm", variant: "default" }),
+                        "shrink-0",
+                      )}
+                    >
+                      Review Game
+                    </Link>
                   ) : (
-                    // Not analysed yet — turn the engine on for just this game. Neutral
-                    // outline, so it never looks like the same control as "Analyze".
+                    // Not scanned yet — turn the engine on for just this game. Neutral
+                    // outline, so it never looks like the same control as "Review Game".
                     <Button
                       size="sm"
                       variant="outline"
@@ -381,7 +368,7 @@ export function AnalysisDashboard() {
                       disabled={analyzingGameId !== null || batchStatus === "running"}
                       onClick={() => void runSingleAnalysis(g.id)}
                     >
-                      {analyzingGameId === g.id ? "Analysing…" : "Engine analysis"}
+                      {analyzingGameId === g.id ? "Scanning…" : "Scan game"}
                     </Button>
                   )}
                 </div>
