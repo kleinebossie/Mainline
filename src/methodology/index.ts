@@ -20,6 +20,11 @@ export {
   confidenceFromSampleSize,
   mapWeaknessToActivities,
   interfaceAffordancesFor,
+  // Seam 4 §4.2–4.4 (M14): book-study + 2D/3D-modality readers for the deliberately-external layer.
+  recommendBooks,
+  woodpeckerSchedule,
+  bookDifficultyFeedback,
+  modalityRecommendation,
   targetPuzzleRating,
   practiceStructure,
   useWorkedExample,
@@ -54,6 +59,12 @@ export {
   type WeaknessSignal,
   type CandidateActivity,
   type BoardAffordances,
+  type BookRecommendation,
+  type WoodpeckerCycle,
+  type WoodpeckerSchedule,
+  type BookDifficultyVerdict,
+  type BookDifficultyFeedback,
+  type ModalityRecommendation,
   type TargetFocus,
   type ScoredCandidate,
   type MixPreferences,
@@ -99,6 +110,10 @@ export type {
   SrsIntegrationConfig,
   GameSelectionConfig,
   TiltTriggerConfig,
+  BookStudyConfig,
+  BookRec,
+  BookCategory,
+  ModalityConfig,
 } from "@/methodology/schema/config";
 
 export type {

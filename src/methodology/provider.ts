@@ -580,6 +580,199 @@ export function interfaceAffordancesFor(
 }
 
 // ---------------------------------------------------------------------------
+// Seam 4 §4.2–4.4 — Book study + 2D/3D modality (BEST_BOOKS, 2D_VS_3D; M14). The
+// deliberately-EXTERNAL layer: books/courses are recommended + logged, never hosted, and
+// real games stay external (the play_games activity is a deep-link). All pure (L2) and
+// config-only (L1) — every value, including the cognitive-load block list and the split
+// ratios, comes from cfg.bookStudy / cfg.modality, so the research config retunes them with
+// no Engine change.
+// ---------------------------------------------------------------------------
+
+/** One graded book recommendation (a deliberately-external resource — recommended, never
+ *  hosted). Carries the evidence so the "why this" can never render as Grade-A fact (L3). */
+export interface BookRecommendation {
+  id: string;
+  title: string;
+  author: string;
+  category: string;
+  why: string;
+  /** True when the user already owns this book (prefer what they can use, Seam 7). */
+  owned: boolean;
+  evidenceGrade: Grade;
+  evidenceTier: Tier;
+  citationKey: string;
+  flag?: GradedFlag;
+}
+
+/**
+ * Seam 4 §4.3 — the band's recommended books, with the cognitive-load block rule applied:
+ * categories that overload the band (strategy/opening for beginners) are suppressed, so a
+ * sub-1200 reader never gets a strategy or opening book. Owned books (matched loosely against
+ * `ownedRefs` by id or title) are flagged so the surface can prefer what the user already has.
+ * Pure (L2), config-only (L1) — the catalog AND the block list both come from `bookStudy`.
+ */
+export function recommendBooks(
+  input: { band: Band; ownedRefs?: readonly string[] },
+  cfg: MethodologyConfig,
+): BookRecommendation[] {
+  const bs = cfg.bookStudy;
+  const blocked = new Set<string>(
+    bs.blockedCategoriesByBand[input.band]?.value ?? [],
+  );
+  const catalog = bs.catalogByBand[input.band] ?? [];
+  const owned = new Set((input.ownedRefs ?? []).map((r) => r.toLowerCase()));
+  const isOwned = (b: { id: string; title: string }): boolean =>
+    owned.has(b.id.toLowerCase()) || owned.has(b.title.toLowerCase());
+  return catalog
+    .filter((b) => !blocked.has(b.category))
+    .map((b) => ({
+      id: b.id,
+      title: b.title,
+      author: b.author,
+      category: b.category,
+      why: b.recommendation.value,
+      owned: isOwned(b),
+      evidenceGrade: b.recommendation.grade,
+      evidenceTier: b.recommendation.tier,
+      citationKey: b.recommendation.citationKey,
+      flag: b.recommendation.flag,
+    }));
+}
+
+export interface WoodpeckerCycle {
+  cycle: number;
+  intervalDays: number;
+}
+
+export interface WoodpeckerSchedule {
+  cycles: WoodpeckerCycle[];
+  /** The minimum number of cycles worth completing (the rest is diminishing returns). */
+  recommendedMinCycles: number;
+  evidenceGrade: Grade;
+  evidenceTier: Tier;
+  citationKey: string;
+  flag?: GradedFlag;
+}
+
+/**
+ * Seam 4 §4.2 — derive the Woodpecker repetition schedule: `maxCycles` cycles, the first
+ * `firstCycleDays` apart, each subsequent interval = previous × `cycleDecay` (0.5 ⇒ halving),
+ * rounded and floored at 1 day. Spaced, not massed (the reconciliation in METHODOLOGY §1.3).
+ * Pure (L2), config-only (L1) — the cycle count and decay come from `bookStudy.woodpecker`.
+ */
+export function woodpeckerSchedule(cfg: MethodologyConfig): WoodpeckerSchedule {
+  const w = cfg.bookStudy.woodpecker;
+  const cycles: WoodpeckerCycle[] = [];
+  let interval = w.firstCycleDays.value;
+  for (let c = 1; c <= w.maxCycles.value; c++) {
+    cycles.push({ cycle: c, intervalDays: Math.max(1, Math.round(interval)) });
+    interval = interval * w.cycleDecay.value;
+  }
+  return {
+    cycles,
+    recommendedMinCycles: w.minCycles.value,
+    evidenceGrade: w.firstCycleDays.grade,
+    evidenceTier: w.firstCycleDays.tier,
+    citationKey: w.firstCycleDays.citationKey,
+    flag: w.firstCycleDays.flag,
+  };
+}
+
+export type BookDifficultyVerdict = "too_easy" | "calibrated" | "too_hard";
+
+export interface BookDifficultyFeedback {
+  verdict: BookDifficultyVerdict;
+  successRate: number;
+  targetSuccessRate: number;
+  lowerBound: number;
+  upperBound: number;
+  evidenceGrade: Grade;
+  evidenceTier: Tier;
+  citationKey: string;
+  flag?: GradedFlag;
+}
+
+/**
+ * Seam 4 §4.2 — the 85% difficulty-calibration verdict for a self-reported book success rate:
+ * above the upper bound ⇒ too easy, below the lower bound ⇒ too hard, else calibrated. The
+ * success rate is a self-report of OUTCOME on exercises, used ONLY to tune book difficulty —
+ * never to estimate skill, which stays behavioural (Seam 2 boundary). Pure (L2), config-only (L1).
+ */
+export function bookDifficultyFeedback(
+  input: { successRate: number },
+  cfg: MethodologyConfig,
+): BookDifficultyFeedback {
+  const d = cfg.bookStudy.difficultyCalibration;
+  const r = input.successRate;
+  const verdict: BookDifficultyVerdict =
+    r > d.upperBound.value
+      ? "too_easy"
+      : r < d.lowerBound.value
+        ? "too_hard"
+        : "calibrated";
+  return {
+    verdict,
+    successRate: r,
+    targetSuccessRate: d.targetSuccessRate.value,
+    lowerBound: d.lowerBound.value,
+    upperBound: d.upperBound.value,
+    evidenceGrade: d.targetSuccessRate.grade,
+    evidenceTier: d.targetSuccessRate.tier,
+    citationKey: d.targetSuccessRate.citationKey,
+    flag: d.targetSuccessRate.flag,
+  };
+}
+
+export interface ModalityRecommendation {
+  band: Band;
+  targetFocus: TargetFocus;
+  digitalPct: number;
+  physicalPct: number;
+  /** True when the play medium is OTB/hybrid — surface physical-board + OTB-simulation advice. */
+  surfacePhysical: boolean;
+  otbCadence: string;
+  physicalBoardAdvice: string;
+  evidenceGrade: Grade;
+  evidenceTier: Tier;
+  citationKey: string;
+  flag?: GradedFlag;
+  /** Seam-8 rationale keys for the modality split + the OTB-simulation copy. */
+  modalityRationaleKey: string;
+  otbRationaleKey: string;
+}
+
+/**
+ * Seam 4 §4.4 — the 2D/3D modality + OTB recommendation for a band × play medium. The split
+ * (digital vs physical %) is per-band config; whether to PUSH physical-board + OTB-simulation
+ * guidance is gated by `targetFocus` — an online-only player keeps the screen-heavy default,
+ * an OTB/hybrid player gets the physical-board advice and the band's tournament-simulation
+ * cadence (Zen mode, no arrows, notation, touch-move). Pure (L2), config-only (L1).
+ */
+export function modalityRecommendation(
+  input: { band: Band; targetFocus: TargetFocus },
+  cfg: MethodologyConfig,
+): ModalityRecommendation {
+  const m = cfg.modality;
+  const split = m.splitByBand[input.band];
+  const cadence = m.otbSimulationByBand[input.band];
+  return {
+    band: input.band,
+    targetFocus: input.targetFocus,
+    digitalPct: split?.digitalPct.value ?? 100,
+    physicalPct: split?.physicalPct.value ?? 0,
+    surfacePhysical: input.targetFocus !== "online",
+    otbCadence: cadence?.value ?? "",
+    physicalBoardAdvice: m.physicalBoardAdvice.value,
+    evidenceGrade: split?.digitalPct.grade ?? "C",
+    evidenceTier: split?.digitalPct.tier ?? 1,
+    citationKey: split?.digitalPct.citationKey ?? "stub_open_question",
+    flag: split?.digitalPct.flag,
+    modalityRationaleKey: m.modalityRationaleKey,
+    otbRationaleKey: m.otbRationaleKey,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Seam 5 — Difficulty / calibration targets (PRACTICE_DESIGN)
 // ---------------------------------------------------------------------------
 

@@ -539,6 +539,93 @@ const endgameCurriculumSchema = z.object({
   positionsByBand: z.record(z.array(endgamePositionSchema)),
 });
 
+// Seam 4 §4.2–4.3 — the book-study protocol + per-band book catalog (METHODOLOGY §4.2/§4.3,
+// research/BEST_BOOKS.md, M14). Books/courses are DELIBERATELY EXTERNAL — recommended +
+// logged, never hosted (VISION §6). The book DATA (id/title/author/category) is structural
+// reference data, like an activity's `resourceTheme` (which external thing to name); the
+// GRADED methodology calls are the study-protocol parameters (active recall, the 85%
+// difficulty rule, the Woodpecker cycle), the per-band BLOCKED categories (the cognitive-load
+// rule — low-band strategy/opening books overload a beginner), and each recommendation's
+// graded "why this". Causal grade is C (coaching consensus); the mechanisms it leans on
+// (chunking, retrieval, spacing) are A — so the recommendation copy is softened, the
+// protocol params carry their real grade.
+export const BOOK_CATEGORIES = [
+  "tactics",
+  "strategy",
+  "endgame",
+  "opening",
+  "calculation",
+  "games",
+] as const;
+export const bookCategorySchema = z.enum(BOOK_CATEGORIES);
+
+const bookRecSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1),
+  author: z.string().min(1),
+  // A structural family tag (which kind of book) — drives the cognitive-load block rule.
+  category: bookCategorySchema,
+  // The graded "why this book at this band" focus copy (Grade C coaching consensus); carries
+  // the citation so a recommendation can never render as Grade-A fact.
+  recommendation: gradedValue(z.string().min(1)),
+});
+
+const bookStudySchema = z.object({
+  // Active recall: cover the answer, set up the position, calculate first (anti fluency-trap).
+  activeRecall: z.object({
+    enabled: gradedValue(z.boolean()),
+    // Minutes to calculate a diagram before checking the solution (best-guess length).
+    timeLimitMin: gradedValue(z.number().positive()),
+  }),
+  // The 85% difficulty-calibration rule (Wilson 2019): a book matches the reader when the
+  // self-reported exercise-success rate sits in [lowerBound, upperBound]; outside ⇒ adjust.
+  difficultyCalibration: z.object({
+    targetSuccessRate: gradedValue(z.number().min(0).max(1)),
+    lowerBound: gradedValue(z.number().min(0).max(1)),
+    upperBound: gradedValue(z.number().min(0).max(1)),
+  }),
+  // Woodpecker cycles: re-solve the same set with a shrinking interval to automate patterns
+  // (spaced, never massed — the reconciliation in METHODOLOGY §1.3).
+  woodpecker: z.object({
+    minCycles: gradedValue(z.number().int().positive()),
+    maxCycles: gradedValue(z.number().int().positive()),
+    firstCycleDays: gradedValue(z.number().int().positive()),
+    // Each cycle's interval = the previous × this (0.5 ⇒ halving). Best-guess decay.
+    cycleDecay: gradedValue(z.number().min(0).max(1)),
+  }),
+  // The cognitive-load block rule (Sweller): categories that OVERLOAD a band are suppressed
+  // (e.g. strategy/opening for beginners). One graded leaf per band (the list + its grade).
+  blockedCategoriesByBand: z.record(gradedValue(z.array(bookCategorySchema))),
+  // The per-band recommended catalog (full band coverage enforced below; may be empty).
+  catalogByBand: z.record(z.array(bookRecSchema)),
+  // Seam-8 rationale keys for the three protocol pieces (resolve in `rationale`).
+  activeRecallRationaleKey: z.string().min(1),
+  calibrationRationaleKey: z.string().min(1),
+  woodpeckerRationaleKey: z.string().min(1),
+});
+
+// Seam 4 §4.4(a/b) — the 2D/3D visual-modality split + OTB tournament-simulation cadence
+// (METHODOLOGY §4.4, research/2D_VS_3D.md, M14). Drives the modality/OTB recommendations,
+// gated by the user's play medium (`targetFocus`). The split ratios are best-guess (B/C);
+// the OTB-stress finding motivating simulation is strong (A, Künn 2021) but the per-band
+// cadence is coaching opinion (best-guess).
+const modalitySplitSchema = z.object({
+  digitalPct: gradedValue(z.number().min(0).max(100)),
+  physicalPct: gradedValue(z.number().min(0).max(100)),
+});
+
+const modalitySchema = z.object({
+  // The recommended 2D-screen / 3D-physical time split per band (full band coverage below).
+  splitByBand: z.record(modalitySplitSchema),
+  // Per-band OTB tournament-simulation cadence copy (e.g. "1× per month (15+10), Zen mode").
+  otbSimulationByBand: z.record(gradedValue(z.string().min(1))),
+  // Advice surfaced when the user is OTB/hybrid-bound (set up a physical board).
+  physicalBoardAdvice: gradedValue(z.string().min(1)),
+  // Seam-8 rationale keys (resolve in `rationale`).
+  modalityRationaleKey: z.string().min(1),
+  otbRationaleKey: z.string().min(1),
+});
+
 /** Recursively collect every citationKey appearing on a GradedValue in the config. */
 function collectCitationKeys(node: unknown, into: Set<string>): void {
   if (Array.isArray(node)) {
@@ -570,6 +657,8 @@ export const methodologyConfigSchema = z
     gameAnalysis: gameAnalysisSchema,
     board: boardSchema,
     endgameCurriculum: endgameCurriculumSchema,
+    bookStudy: bookStudySchema,
+    modality: modalitySchema,
   })
   .superRefine((cfg, ctx) => {
     // L3 — every citationKey must resolve to a ledger anchor (fail-closed, §2.6).
@@ -589,6 +678,8 @@ export const methodologyConfigSchema = z
       cfg.gameAnalysis,
       cfg.board,
       cfg.endgameCurriculum,
+      cfg.bookStudy,
+      cfg.modality,
     ]) {
       collectCitationKeys(section, usedCitations);
     }
@@ -668,6 +759,18 @@ export const methodologyConfigSchema = z
       "endgameCurriculum",
       "positionsByBand",
     ]);
+    // M14 — book catalog + the cognitive-load block list + the modality split/cadence all
+    // cover every band (a missing band would silently drop recommendations there).
+    requireBands(cfg.bookStudy.blockedCategoriesByBand, [
+      "bookStudy",
+      "blockedCategoriesByBand",
+    ]);
+    requireBands(cfg.bookStudy.catalogByBand, ["bookStudy", "catalogByBand"]);
+    requireBands(cfg.modality.splitByBand, ["modality", "splitByBand"]);
+    requireBands(cfg.modality.otbSimulationByBand, [
+      "modality",
+      "otbSimulationByBand",
+    ]);
 
     // Referential integrity: dimension/activity/rationale ids must all resolve, so a
     // signal or program item can never point at a non-existent leaf.
@@ -745,6 +848,26 @@ export const methodologyConfigSchema = z
       "restrictionRationaleKey",
     ]);
 
+    // M14 §4.2/§4.4 — the book-study + modality rationale keys must resolve, so the "why"
+    // card always has graded copy for active recall, the 85% rule, Woodpecker, and OTB prep.
+    requireRat(cfg.bookStudy.activeRecallRationaleKey, [
+      "bookStudy",
+      "activeRecallRationaleKey",
+    ]);
+    requireRat(cfg.bookStudy.calibrationRationaleKey, [
+      "bookStudy",
+      "calibrationRationaleKey",
+    ]);
+    requireRat(cfg.bookStudy.woodpeckerRationaleKey, [
+      "bookStudy",
+      "woodpeckerRationaleKey",
+    ]);
+    requireRat(cfg.modality.modalityRationaleKey, [
+      "modality",
+      "modalityRationaleKey",
+    ]);
+    requireRat(cfg.modality.otbRationaleKey, ["modality", "otbRationaleKey"]);
+
     // Seam 9 — every engagement event copyKey must resolve to a rationale entry (so its
     // graded copy exists); the event TYPE is enum-bounded already (forbidden mechanics excluded).
     cfg.engagement.events.forEach((ev, i) => {
@@ -776,6 +899,10 @@ export type EndgameCurriculumConfig = MethodologyConfig["endgameCurriculum"];
 export type EndgamePosition =
   EndgameCurriculumConfig["positionsByBand"][string][number];
 export type EndgameObjective = EndgamePosition["objective"]["value"];
+export type BookStudyConfig = MethodologyConfig["bookStudy"];
+export type BookRec = BookStudyConfig["catalogByBand"][string][number];
+export type BookCategory = (typeof BOOK_CATEGORIES)[number];
+export type ModalityConfig = MethodologyConfig["modality"];
 export type TargetFocus = (typeof TARGET_FOCUSES)[number];
 export type WeaknessResourceRule =
   MethodologyConfig["weaknessResourceRules"][number];

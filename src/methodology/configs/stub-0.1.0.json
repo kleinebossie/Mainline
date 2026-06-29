@@ -920,6 +920,75 @@
           "flag": "best-guess"
         }
       }
+    },
+    {
+      "id": "book_study",
+      "label": "Study a recommended book",
+      "activityType": "book",
+      "dimensions": ["positional", "calculation"],
+      "resourceTheme": null,
+      "estMinutes": {
+        "value": 30,
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "stub_open_question",
+        "flag": "best-guess",
+        "note": "Time-budget estimate only; the rich book interaction (recommendations, the active-recall/85%/Woodpecker protocol, and logging) lives on the /library surface."
+      },
+      "track": null,
+      "delivery": {
+        "value": "external",
+        "grade": "A",
+        "tier": 1,
+        "citationKey": "best_books",
+        "note": "Books stay EXTERNAL — recommended + logged, never hosted (VISION §6)."
+      },
+      "rationaleKey": "book_active_recall",
+      "priorityByBand": {
+        "u800": {
+          "value": 0,
+          "grade": "C",
+          "tier": 1,
+          "citationKey": "stub_open_question",
+          "flag": "best-guess",
+          "note": "The conservative stub keeps book study on the dedicated /library surface rather than forcing it into the timed daily mix (daily-mix ROI prior 0); the research config can raise this with no Engine change."
+        },
+        "b800_1200": {
+          "value": 0,
+          "grade": "C",
+          "tier": 1,
+          "citationKey": "stub_open_question",
+          "flag": "best-guess"
+        },
+        "b1200_1600": {
+          "value": 0,
+          "grade": "C",
+          "tier": 1,
+          "citationKey": "stub_open_question",
+          "flag": "best-guess"
+        },
+        "b1600_2000": {
+          "value": 0,
+          "grade": "C",
+          "tier": 1,
+          "citationKey": "stub_open_question",
+          "flag": "best-guess"
+        },
+        "b2000_2200": {
+          "value": 0,
+          "grade": "C",
+          "tier": 1,
+          "citationKey": "stub_open_question",
+          "flag": "best-guess"
+        },
+        "b2200plus": {
+          "value": 0,
+          "grade": "C",
+          "tier": 1,
+          "citationKey": "stub_open_question",
+          "flag": "best-guess"
+        }
+      }
     }
   ],
   "weaknessResourceRules": [
@@ -2540,6 +2609,52 @@
       "tier": 1,
       "citationKey": "luu2025",
       "soften": false
+    },
+    {
+      "key": "book_active_recall",
+      "whenShown": "a book-study session",
+      "value": "Cover the page and guess the moves before you read on. Passive reading feels smooth but builds little lasting memory; actively retrieving the move trains the exact pathways you use in a game. (Strong in general learning; the chess-specific transfer is our extrapolation.)",
+      "grade": "C",
+      "tier": 2,
+      "citationKey": "bjork2011",
+      "flag": "best-guess",
+      "soften": true
+    },
+    {
+      "key": "book_difficulty_calibration",
+      "whenShown": "logging a book session's success rate",
+      "value": "We aim for roughly a 15% miss rate. If a book feels too easy or too hard, your brain stops learning efficiently — tell us how the exercises went and we'll nudge the difficulty.",
+      "grade": "B",
+      "tier": 2,
+      "citationKey": "wilson2019",
+      "soften": false
+    },
+    {
+      "key": "book_woodpecker_cycle",
+      "whenShown": "a tactical-book repeat cycle",
+      "value": "Re-solving the same set with a shrinking time limit moves patterns from slow calculation to fast recognition. We space the cycles out rather than cramming them. (Builds fluency; not proven to raise rating.)",
+      "grade": "B",
+      "tier": 1,
+      "citationKey": "smith_tikkanen2018",
+      "soften": false
+    },
+    {
+      "key": "modality_2d_vs_3d",
+      "whenShown": "the 2D/3D modality recommendation",
+      "value": "If you play over the board, you need physical-board practice. Screens are faster for learning basic patterns, but a real board trains the 3D vision that prevents over-the-board blind spots.",
+      "grade": "A",
+      "tier": 1,
+      "citationKey": "schneider2025",
+      "soften": false
+    },
+    {
+      "key": "otb_tournament_simulation",
+      "whenShown": "an OTB tournament-simulation recommendation",
+      "value": "Rehearsing tournament conditions — a physical board, no arrows, writing your moves, strict touch-move — inoculates you against over-the-board stress. Online play without that pressure shows nearly 17% more error.",
+      "grade": "A",
+      "tier": 1,
+      "citationKey": "kunn2021",
+      "soften": false
     }
   ],
   "evidenceLedger": [
@@ -2734,6 +2849,24 @@
       "source": "research/2D_VS_3D.md (OTB transfer & visual-modality synthesis)",
       "anchors": "hiding board crutches (arrows/hover/eval) to train internal visualisation",
       "grade": "B"
+    },
+    {
+      "key": "schneider2025",
+      "source": "Schneider, Kunde & Klaffehn 2025",
+      "anchors": "2D is processed faster than 3D (occlusion / perspective / no binocular depth) → modality split + OTB calibration",
+      "grade": "A"
+    },
+    {
+      "key": "kunn2021",
+      "source": "Künn, Seel & Zegners 2021",
+      "anchors": "Remote/online play shows ~17% more error than OTB (lower arousal, no peer presence) → OTB tournament simulation",
+      "grade": "A"
+    },
+    {
+      "key": "best_books",
+      "source": "research/BEST_BOOKS.md (evidence-based book study)",
+      "anchors": "Per-band book catalog + the active-recall / 85% / Woodpecker study protocol; causal grade C (coaching consensus), underlying mechanisms A",
+      "grade": "C"
     }
   ],
   "board": {
@@ -2978,5 +3111,540 @@
         }
       ]
     }
+  },
+  "bookStudy": {
+    "activeRecall": {
+      "enabled": {
+        "value": true,
+        "grade": "A",
+        "tier": 2,
+        "citationKey": "bjork2011",
+        "note": "Cover the answer and calculate first — passive reading is a fluency trap (desirable difficulties)."
+      },
+      "timeLimitMin": {
+        "value": 15,
+        "grade": "C",
+        "tier": 2,
+        "citationKey": "stub_open_question",
+        "flag": "best-guess",
+        "note": "10–15 min per diagram for intermediate+; the exact length is best-guess."
+      }
+    },
+    "difficultyCalibration": {
+      "targetSuccessRate": {
+        "value": 0.85,
+        "grade": "B",
+        "tier": 2,
+        "citationKey": "wilson2019",
+        "flag": "semi-evidenced",
+        "note": "≈85% optimal-difficulty (ML, extrapolated to chess) — a book matched to ~15% miss rate."
+      },
+      "lowerBound": {
+        "value": 0.75,
+        "grade": "B",
+        "tier": 2,
+        "citationKey": "wilson2019",
+        "flag": "best-guess",
+        "note": "Below this self-reported success the book is too hard."
+      },
+      "upperBound": {
+        "value": 0.9,
+        "grade": "B",
+        "tier": 2,
+        "citationKey": "wilson2019",
+        "flag": "best-guess",
+        "note": "Above this the book is too easy to keep learning efficiently."
+      }
+    },
+    "woodpecker": {
+      "minCycles": {
+        "value": 3,
+        "grade": "B",
+        "tier": 1,
+        "citationKey": "smith_tikkanen2018",
+        "flag": "best-guess"
+      },
+      "maxCycles": {
+        "value": 7,
+        "grade": "B",
+        "tier": 1,
+        "citationKey": "smith_tikkanen2018",
+        "flag": "best-guess"
+      },
+      "firstCycleDays": {
+        "value": 28,
+        "grade": "B",
+        "tier": 1,
+        "citationKey": "smith_tikkanen2018",
+        "flag": "best-guess",
+        "note": "Cycle 1 ≈ 28 days; each cycle halves the interval (Smith & Tikkanen)."
+      },
+      "cycleDecay": {
+        "value": 0.5,
+        "grade": "B",
+        "tier": 1,
+        "citationKey": "smith_tikkanen2018",
+        "flag": "best-guess",
+        "note": "Each cycle halves the interval — spaced, never massed (METHODOLOGY §1.3)."
+      }
+    },
+    "blockedCategoriesByBand": {
+      "u800": {
+        "value": ["strategy", "opening", "calculation", "games"],
+        "grade": "A",
+        "tier": 2,
+        "citationKey": "sweller1988",
+        "note": "Cognitive-load rule: beginners get tactics + basic mates only; strategy/opening books overload."
+      },
+      "b800_1200": {
+        "value": ["opening", "calculation"],
+        "grade": "A",
+        "tier": 2,
+        "citationKey": "sweller1988"
+      },
+      "b1200_1600": {
+        "value": ["opening"],
+        "grade": "A",
+        "tier": 2,
+        "citationKey": "sweller1988",
+        "note": "Heavy opening memorisation is low-ROI below ~1600 (Grade D for heavy memorisation)."
+      },
+      "b1600_2000": {
+        "value": [],
+        "grade": "A",
+        "tier": 2,
+        "citationKey": "sweller1988"
+      },
+      "b2000_2200": {
+        "value": [],
+        "grade": "A",
+        "tier": 2,
+        "citationKey": "sweller1988"
+      },
+      "b2200plus": {
+        "value": [],
+        "grade": "A",
+        "tier": 2,
+        "citationKey": "sweller1988"
+      }
+    },
+    "catalogByBand": {
+      "u800": [
+        {
+          "id": "giannatos_first_workbook",
+          "title": "Everyone's First Chess Workbook",
+          "author": "Giannatos",
+          "category": "tactics",
+          "recommendation": {
+            "value": "Single-move tactics and fundamental checkmate patterns — the board vision everything else is built on.",
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "best_books",
+            "flag": "best-guess"
+          }
+        },
+        {
+          "id": "fischer_teaches_chess",
+          "title": "Bobby Fischer Teaches Chess",
+          "author": "Fischer & Margulies",
+          "category": "tactics",
+          "recommendation": {
+            "value": "Spaced, repetitive back-rank and mating-pattern drills — gentle and motivating for a first book.",
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "best_books",
+            "flag": "best-guess"
+          }
+        },
+        {
+          "id": "bain_tactics_for_students",
+          "title": "Chess Tactics for Students",
+          "author": "Bain",
+          "category": "tactics",
+          "recommendation": {
+            "value": "A clean themed-tactics workbook to automate the basic motifs by repetition.",
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "best_books",
+            "flag": "best-guess"
+          }
+        }
+      ],
+      "b800_1200": [
+        {
+          "id": "polgar_5334",
+          "title": "Chess: 5334 Problems, Combinations and Games",
+          "author": "Polgár",
+          "category": "tactics",
+          "recommendation": {
+            "value": "High-volume mate-in-2 pattern automation — ideal raw material for Woodpecker cycles.",
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "best_books",
+            "flag": "best-guess"
+          }
+        },
+        {
+          "id": "silman_complete_endgame",
+          "title": "Silman's Complete Endgame Course",
+          "author": "Silman",
+          "category": "endgame",
+          "recommendation": {
+            "value": "The essential mathematical endgames for your level, introduced in order of need.",
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "best_books",
+            "flag": "best-guess"
+          }
+        },
+        {
+          "id": "chernev_logical_chess",
+          "title": "Logical Chess: Move by Move",
+          "author": "Chernev",
+          "category": "games",
+          "recommendation": {
+            "value": "Every move explained in words — a first taste of planning without heavy strategic load.",
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "best_books",
+            "flag": "best-guess"
+          }
+        }
+      ],
+      "b1200_1600": [
+        {
+          "id": "silman_amateurs_mind",
+          "title": "The Amateur's Mind",
+          "author": "Silman",
+          "category": "strategy",
+          "recommendation": {
+            "value": "Names and corrects the thinking errors that stall club players — imbalances over memorisation.",
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "best_books",
+            "flag": "best-guess"
+          }
+        },
+        {
+          "id": "stean_simple_chess",
+          "title": "Simple Chess",
+          "author": "Stean",
+          "category": "strategy",
+          "recommendation": {
+            "value": "A short, clear introduction to planning in quiet positions (outposts, files, weak pawns).",
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "best_books",
+            "flag": "best-guess"
+          }
+        },
+        {
+          "id": "delavilla_100_endgames",
+          "title": "100 Endgames You Must Know",
+          "author": "de la Villa",
+          "category": "endgame",
+          "recommendation": {
+            "value": "The theoretical endgames worth memorising at this level — study with active recall, then space them.",
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "best_books",
+            "flag": "best-guess"
+          }
+        }
+      ],
+      "b1600_2000": [
+        {
+          "id": "silman_reassess_your_chess",
+          "title": "How to Reassess Your Chess (4th ed.)",
+          "author": "Silman",
+          "category": "strategy",
+          "recommendation": {
+            "value": "A full method for reading imbalances and forming plans — the positional backbone for this band.",
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "best_books",
+            "flag": "best-guess"
+          }
+        },
+        {
+          "id": "flores_chess_structures",
+          "title": "Chess Structures: A Grandmaster Guide",
+          "author": "Flores Rios",
+          "category": "strategy",
+          "recommendation": {
+            "value": "Learn the typical pawn structures and the plans that go with them — connects openings to middlegames.",
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "best_books",
+            "flag": "best-guess"
+          }
+        },
+        {
+          "id": "smith_tikkanen_woodpecker",
+          "title": "The Woodpecker Method",
+          "author": "Smith & Tikkanen",
+          "category": "tactics",
+          "recommendation": {
+            "value": "A built-in cyclic tactics set — re-solve with a shrinking clock to turn calculation into recognition.",
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "best_books",
+            "flag": "best-guess"
+          }
+        },
+        {
+          "id": "vukovic_art_of_attack",
+          "title": "The Art of Attack in Chess",
+          "author": "Vuković",
+          "category": "strategy",
+          "recommendation": {
+            "value": "The geometry of the kingside attack — study the model games with the board set up and moves covered.",
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "best_books",
+            "flag": "best-guess"
+          }
+        }
+      ],
+      "b2000_2200": [
+        {
+          "id": "dvoretsky_endgame_manual",
+          "title": "Dvoretsky's Endgame Manual",
+          "author": "Dvoretsky",
+          "category": "endgame",
+          "recommendation": {
+            "value": "High-precision theoretical endgames — the reference, worked actively, not just read.",
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "best_books",
+            "flag": "best-guess"
+          }
+        },
+        {
+          "id": "aagaard_calculation",
+          "title": "Grandmaster Preparation: Calculation",
+          "author": "Aagaard",
+          "category": "calculation",
+          "recommendation": {
+            "value": "Deep, solitary calculation studies (20–40 min per position) that stress your search tree.",
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "best_books",
+            "flag": "best-guess"
+          }
+        },
+        {
+          "id": "gelfand_positional_decision",
+          "title": "Positional Decision Making in Chess",
+          "author": "Gelfand",
+          "category": "strategy",
+          "recommendation": {
+            "value": "Elite positional transformations explained by a world-class player — high cognitive friction by design.",
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "best_books",
+            "flag": "best-guess"
+          }
+        }
+      ],
+      "b2200plus": [
+        {
+          "id": "volokitin_perfect_your_chess",
+          "title": "Perfect Your Chess",
+          "author": "Volokitin & Grabinsky",
+          "category": "calculation",
+          "recommendation": {
+            "value": "Elite calculation puzzles for micro-weakness optimisation — stretch the error target to 30–40%.",
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "best_books",
+            "flag": "best-guess"
+          }
+        },
+        {
+          "id": "bronstein_zurich_1953",
+          "title": "Zurich International Chess Tournament 1953",
+          "author": "Bronstein",
+          "category": "games",
+          "recommendation": {
+            "value": "Deep classical annotations — study the decision-making, not just the moves.",
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "best_books",
+            "flag": "best-guess"
+          }
+        },
+        {
+          "id": "shereshevsky_endgame_strategy",
+          "title": "Endgame Strategy",
+          "author": "Shereshevsky",
+          "category": "endgame",
+          "recommendation": {
+            "value": "Abstract endgame planning (restraint, the two weaknesses) for the technical phase.",
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "best_books",
+            "flag": "best-guess"
+          }
+        }
+      ]
+    },
+    "activeRecallRationaleKey": "book_active_recall",
+    "calibrationRationaleKey": "book_difficulty_calibration",
+    "woodpeckerRationaleKey": "book_woodpecker_cycle"
+  },
+  "modality": {
+    "splitByBand": {
+      "u800": {
+        "digitalPct": {
+          "value": 90,
+          "grade": "B",
+          "tier": 1,
+          "citationKey": "schneider2025",
+          "flag": "best-guess",
+          "note": "Easy tactical volume stays on 2D to maximise exposure per hour; the ratio is best-guess."
+        },
+        "physicalPct": {
+          "value": 10,
+          "grade": "B",
+          "tier": 1,
+          "citationKey": "schneider2025",
+          "flag": "best-guess"
+        }
+      },
+      "b800_1200": {
+        "digitalPct": {
+          "value": 85,
+          "grade": "B",
+          "tier": 1,
+          "citationKey": "schneider2025",
+          "flag": "best-guess"
+        },
+        "physicalPct": {
+          "value": 15,
+          "grade": "B",
+          "tier": 1,
+          "citationKey": "schneider2025",
+          "flag": "best-guess"
+        }
+      },
+      "b1200_1600": {
+        "digitalPct": {
+          "value": 75,
+          "grade": "B",
+          "tier": 1,
+          "citationKey": "schneider2025",
+          "flag": "best-guess"
+        },
+        "physicalPct": {
+          "value": 25,
+          "grade": "B",
+          "tier": 1,
+          "citationKey": "schneider2025",
+          "flag": "best-guess"
+        }
+      },
+      "b1600_2000": {
+        "digitalPct": {
+          "value": 60,
+          "grade": "B",
+          "tier": 1,
+          "citationKey": "schneider2025",
+          "flag": "best-guess"
+        },
+        "physicalPct": {
+          "value": 40,
+          "grade": "B",
+          "tier": 1,
+          "citationKey": "schneider2025",
+          "flag": "best-guess"
+        }
+      },
+      "b2000_2200": {
+        "digitalPct": {
+          "value": 50,
+          "grade": "B",
+          "tier": 1,
+          "citationKey": "schneider2025",
+          "flag": "best-guess"
+        },
+        "physicalPct": {
+          "value": 50,
+          "grade": "B",
+          "tier": 1,
+          "citationKey": "schneider2025",
+          "flag": "best-guess"
+        }
+      },
+      "b2200plus": {
+        "digitalPct": {
+          "value": 40,
+          "grade": "B",
+          "tier": 1,
+          "citationKey": "schneider2025",
+          "flag": "best-guess"
+        },
+        "physicalPct": {
+          "value": 60,
+          "grade": "B",
+          "tier": 1,
+          "citationKey": "schneider2025",
+          "flag": "best-guess"
+        }
+      }
+    },
+    "otbSimulationByBand": {
+      "u800": {
+        "value": "Optional at this level — build volume on a screen first.",
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "kunn2021",
+        "flag": "best-guess"
+      },
+      "b800_1200": {
+        "value": "About once a month: play a 15+10 game and mirror every move on a real board.",
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "kunn2021",
+        "flag": "best-guess"
+      },
+      "b1200_1600": {
+        "value": "Twice a month: a 30+0 game in Zen mode (no arrows), mirrored on a physical board.",
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "kunn2021",
+        "flag": "best-guess"
+      },
+      "b1600_2000": {
+        "value": "Weekly: a 45+45 league game, Zen mode, no arrows, writing your notation.",
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "kunn2021",
+        "flag": "best-guess"
+      },
+      "b2000_2200": {
+        "value": "Twice weekly: 90+30 with full notation and strict touch-move.",
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "kunn2021",
+        "flag": "best-guess"
+      },
+      "b2200plus": {
+        "value": "Three times a week pre-event: 90+30, full notation, strict touch-move.",
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "kunn2021",
+        "flag": "best-guess"
+      }
+    },
+    "physicalBoardAdvice": {
+      "value": "Set sharp positions up on a real board and calculate over the wood — it builds the 3D vision a screen can't.",
+      "grade": "C",
+      "tier": 1,
+      "citationKey": "schneider2025",
+      "flag": "best-guess"
+    },
+    "modalityRationaleKey": "modality_2d_vs_3d",
+    "otbRationaleKey": "otb_tournament_simulation"
   }
 }

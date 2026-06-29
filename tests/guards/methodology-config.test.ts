@@ -48,6 +48,9 @@ describe("L3: methodology config integrity", () => {
       walkCitationKeys(cfg.measurement, used);
       walkCitationKeys(cfg.rationale, used);
       walkCitationKeys(cfg.gameAnalysis, used);
+      // M14 — the deliberately-external layer (book study + 2D/3D modality).
+      walkCitationKeys(cfg.bookStudy, used);
+      walkCitationKeys(cfg.modality, used);
       expect(used.size).toBeGreaterThan(0);
       for (const key of used) expect(ledger).toContain(key);
     },
@@ -119,6 +122,45 @@ describe("L3: methodology config integrity", () => {
       const ratKeys = new Set(cfg.rationale.map((r) => r.key));
       expect(e.events.length).toBeGreaterThan(0);
       for (const ev of e.events) expect(ratKeys).toContain(ev.copyKey);
+    },
+  );
+
+  it.each(SHIPPED)(
+    "%s: the M14 book-study + modality seams load graded, band-covered, rationale-resolved",
+    (version) => {
+      const cfg = loadMethodology(version);
+      const bandIds = cfg.bands.map((b) => b.id);
+      const ratKeys = new Set(cfg.rationale.map((r) => r.key));
+
+      // Book-study protocol leaves are graded; the per-band catalog + block list cover every band.
+      expect(cfg.bookStudy.difficultyCalibration.targetSuccessRate.value).toBe(
+        0.85,
+      );
+      expect(cfg.bookStudy.woodpecker.firstCycleDays.grade).toBeDefined();
+      for (const id of bandIds) {
+        expect(cfg.bookStudy.catalogByBand[id]).toBeDefined();
+        expect(cfg.bookStudy.blockedCategoriesByBand[id]).toBeDefined();
+        expect(cfg.modality.splitByBand[id]).toBeDefined();
+        expect(cfg.modality.otbSimulationByBand[id]).toBeDefined();
+      }
+      // Low-band overload books are blocked (the cognitive-load rule).
+      expect(
+        cfg.bookStudy.blockedCategoriesByBand[bandIds[0]!]!.value,
+      ).toContain("strategy");
+
+      // Every new Seam-8 rationale key resolves (book study + modality + OTB).
+      for (const key of [
+        cfg.bookStudy.activeRecallRationaleKey,
+        cfg.bookStudy.calibrationRationaleKey,
+        cfg.bookStudy.woodpeckerRationaleKey,
+        cfg.modality.modalityRationaleKey,
+        cfg.modality.otbRationaleKey,
+      ]) {
+        expect(ratKeys).toContain(key);
+      }
+      // The `book` activity is a deliberately-external Seam-4 activity.
+      const book = cfg.activities.find((a) => a.activityType === "book");
+      expect(book?.delivery.value).toBe("external");
     },
   );
 
