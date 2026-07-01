@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 
+import { useEffect } from "react";
+
 import { trpc } from "@/lib/trpc/react";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,6 +28,12 @@ export function Reveal() {
   const library = trpc.analysis.library.useQuery();
   const reviewGameId =
     library.data?.games.find((g) => g.analyzed)?.id ?? null;
+
+  useEffect(() => {
+    if (state.data?.completed && typeof window !== "undefined") {
+      localStorage.setItem("mainline_reveal_seen", "true");
+    }
+  }, [state.data?.completed]);
 
   if (state.isLoading || !state.data) {
     return <p className="text-graphite font-mono text-sm">Loading…</p>;

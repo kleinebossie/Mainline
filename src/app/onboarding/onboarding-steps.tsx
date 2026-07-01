@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState, useEffect } from "react";
 
 import { trpc } from "@/lib/trpc/react";
 import { buttonVariants } from "@/components/ui/button";
@@ -14,6 +15,42 @@ export function OnboardingSteps() {
   const calibration = trpc.assessment.state.useQuery();
   const constraints = trpc.constraints.getCurrent.useQuery();
   const today = trpc.program.getToday.useQuery();
+
+  const [revealSeen, setRevealSeen] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setRevealSeen(localStorage.getItem("mainline_reveal_seen") === "true");
+    }
+  }, []);
+
+  const isLoading =
+    connections.isLoading ||
+    calibration.isLoading ||
+    constraints.isLoading ||
+    today.isLoading;
+
+  if (isLoading) {
+    return (
+      <ol className="flex flex-col gap-4">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <li
+            key={i}
+            className="bg-card flex items-center justify-between gap-4 rounded-lg border p-4 shadow-sheet animate-pulse"
+          >
+            <div className="flex items-start gap-3.5 w-full">
+              <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-line bg-paper/40 text-xs font-mono font-medium" />
+              <div className="flex-1 space-y-2 py-1">
+                <div className="h-4 bg-ink/10 rounded w-1/3" />
+                <div className="h-3 bg-ink/5 rounded w-2/3" />
+              </div>
+            </div>
+            <div className="h-8 w-16 bg-ink/10 rounded-md shrink-0" />
+          </li>
+        ))}
+      </ol>
+    );
+  }
 
   const steps = [
     {
@@ -40,7 +77,7 @@ export function OnboardingSteps() {
       href: "/onboarding/reveal",
       title: "See where you stand",
       detail: "Your data-driven starting picture (more lands with the engine).",
-      done: false,
+      done: (today.data?.items.length ?? 0) > 0 || revealSeen,
     },
     {
       href: "/today",
