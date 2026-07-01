@@ -6,7 +6,6 @@ import { trpc } from "@/lib/trpc/react";
 import { PageShell } from "@/components/app-shell";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { TransparencyCard } from "@/components/transparency-card";
 import { cn } from "@/lib/utils";
 import {
   resultLabel,
@@ -55,7 +54,6 @@ export function AnalysisDashboard() {
   // The id of the single game whose engine analysis is running (per-row "Engine analysis").
   const [analyzingGameId, setAnalyzingGameId] = useState<string | null>(null);
 
-  const successBiasRationale = suggestionsQuery.data?.rationale;
   const ratio = suggestionsQuery.data?.ratio;
 
   const library = libraryQuery.data;
@@ -243,17 +241,14 @@ export function AnalysisDashboard() {
               >
                 Scan all games
               </Button>
-              {[5, 20, 50].map((n) => (
-                <Button
-                  key={n}
-                  size="sm"
-                  variant="outline"
-                  disabled={batchStatus === "running" || analyzingGameId !== null}
-                  onClick={() => void runBatchAnalysis(n)}
-                >
-                  Scan last {n}
-                </Button>
-              ))}
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={batchStatus === "running" || analyzingGameId !== null}
+                onClick={() => void runBatchAnalysis(20)}
+              >
+                Scan recent 20
+              </Button>
               {batchStatus === "running" && batchProgress && (
                 <span className="text-graphite font-mono text-xs">
                   Scanning {batchProgress.done}/{batchProgress.total}…
@@ -387,17 +382,7 @@ export function AnalysisDashboard() {
               <span className="font-mono font-semibold">{ratio.lossPct}% losses</span> —{" "}
               {ratio.focusDescription}.
             </p>
-            {successBiasRationale && (
-              <TransparencyCard
-                rationaleText={successBiasRationale.value}
-                evidenceGrade={successBiasRationale.grade}
-                evidenceTier={successBiasRationale.tier}
-                citationKey={successBiasRationale.citationKey}
-                confidence="medium"
-                soften={successBiasRationale.soften}
-                flag={successBiasRationale.flag}
-              />
-            )}
+
           </section>
         )}
       </div>

@@ -303,22 +303,6 @@ export function EndgameDrillSession({
                 </div>
               )}
 
-              {/* Why the board hides crutches (Seam 8 anti_arrow_hover rationale). */}
-              {data.restrictionRationale && !result && (
-                <div className="flex flex-col gap-1.5 rounded-md border border-line bg-paper/40 p-4">
-                  <span className="text-graphite font-mono text-[0.65rem] font-semibold uppercase tracking-wider">
-                    Why no arrows or eval bar?
-                  </span>
-                  <p className="text-sm font-serif text-ink leading-relaxed">
-                    {data.restrictionRationale.value}
-                  </p>
-                  <span className="text-graphite font-mono text-[0.6rem] uppercase tracking-wider">
-                    Evidence {data.restrictionRationale.grade} · tier{" "}
-                    {data.restrictionRationale.tier}
-                  </span>
-                </div>
-              )}
-
               <div className="flex flex-col gap-2 border-t border-line/80 pt-4">
                 {status === "done" ? (
                   <Button onClick={goNext} className="w-full">

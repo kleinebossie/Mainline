@@ -611,17 +611,6 @@ export function GameAnalysisFlow() {
                         flag={rationales.analysis_tilt_pause.flag}
                       />
                     )}
-                    {rationales.analyse_own_games && (
-                      <TransparencyCard
-                        rationaleText={rationales.analyse_own_games.value}
-                        evidenceGrade={rationales.analyse_own_games.grade}
-                        evidenceTier={rationales.analyse_own_games.tier}
-                        citationKey={rationales.analyse_own_games.citationKey}
-                        confidence="medium"
-                        soften={rationales.analyse_own_games.soften}
-                        flag={rationales.analyse_own_games.flag}
-                      />
-                    )}
                   </div>
                 )}
               </CardContent>
@@ -827,38 +816,6 @@ export function GameAnalysisFlow() {
                             flag={rationales.analysis_engine_delay.flag}
                           />
                         )}
-                        {lastAttempt && rationales.analysis_guess_tolerance && (
-                          <TransparencyCard
-                            rationaleText={
-                              rationales.analysis_guess_tolerance.value
-                            }
-                            evidenceGrade={
-                              rationales.analysis_guess_tolerance.grade
-                            }
-                            evidenceTier={
-                              rationales.analysis_guess_tolerance.tier
-                            }
-                            citationKey={
-                              rationales.analysis_guess_tolerance.citationKey
-                            }
-                            confidence="medium"
-                            soften={rationales.analysis_guess_tolerance.soften}
-                            flag={rationales.analysis_guess_tolerance.flag}
-                          />
-                        )}
-                        {revealed && rationales.analysis_rpl_filter && (
-                          <TransparencyCard
-                            rationaleText={rationales.analysis_rpl_filter.value}
-                            evidenceGrade={rationales.analysis_rpl_filter.grade}
-                            evidenceTier={rationales.analysis_rpl_filter.tier}
-                            citationKey={
-                              rationales.analysis_rpl_filter.citationKey
-                            }
-                            confidence="medium"
-                            soften={rationales.analysis_rpl_filter.soften}
-                            flag={rationales.analysis_rpl_filter.flag}
-                          />
-                        )}
                       </div>
                     )}
                   </CardContent>
@@ -929,19 +886,6 @@ export function GameAnalysisFlow() {
                   </Button>
                 </div>
 
-                {rationales && rationales.analysis_srs_puzzle && (
-                  <div className="mt-4 border-t border-line/60 pt-4">
-                    <TransparencyCard
-                      rationaleText={rationales.analysis_srs_puzzle.value}
-                      evidenceGrade={rationales.analysis_srs_puzzle.grade}
-                      evidenceTier={rationales.analysis_srs_puzzle.tier}
-                      citationKey={rationales.analysis_srs_puzzle.citationKey}
-                      confidence="medium"
-                      soften={rationales.analysis_srs_puzzle.soften}
-                      flag={rationales.analysis_srs_puzzle.flag}
-                    />
-                  </div>
-                )}
               </CardContent>
             </Card>
           </div>

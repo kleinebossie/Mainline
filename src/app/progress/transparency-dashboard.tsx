@@ -1,13 +1,11 @@
 "use client";
 
 import { trpc } from "@/lib/trpc/react";
-import { TransparencyCard } from "@/components/transparency-card";
 
 export function TransparencyDashboard() {
   const skillStates = trpc.tracker.skillStates.useQuery();
   const dueStates = trpc.tracker.dueScheduleStates.useQuery();
   const adaptationLogs = trpc.tracker.adaptationLogs.useQuery();
-  const expectation = trpc.program.bandExpectation.useQuery();
 
   return (
     <div className="flex flex-col gap-12 mt-4">
@@ -102,31 +100,7 @@ export function TransparencyDashboard() {
         )}
       </section>
 
-      <section className="flex flex-col gap-4">
-        <h2 className="eyebrow border-b border-line/80 pb-3">Expectations</h2>
-        {expectation.isLoading ? (
-          <p className="text-graphite font-mono text-sm">
-            Loading expectations…
-          </p>
-        ) : expectation.data ? (
-          <TransparencyCard
-            rationaleText={expectation.data.text}
-            evidenceGrade={expectation.data.evidenceGrade}
-            evidenceTier={expectation.data.evidenceTier}
-            citationKey={expectation.data.citationKey}
-            confidence="low"
-            soften={
-              expectation.data.evidenceGrade === "C" ||
-              expectation.data.evidenceGrade === "D"
-            }
-            flag={expectation.data.flag}
-          />
-        ) : (
-          <p className="text-graphite text-sm">
-            Could not load expectation for your level.
-          </p>
-        )}
-      </section>
+
     </div>
   );
 }

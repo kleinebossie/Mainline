@@ -5,7 +5,6 @@ import { useState } from "react";
 import { trpc } from "@/lib/trpc/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { GradeMark } from "@/components/evidence";
 import { cn } from "@/lib/utils";
 
 // The engagement panel (BUILD.md §9, M8/M9). Surfaces the FORGIVING, capped consistency
@@ -170,12 +169,7 @@ export function EngagementPanel() {
         <p className="text-graphite mt-4 border-l-2 border-evergreen/40 pl-3 font-serif text-sm leading-relaxed">
           {data.gridCaption.text}
         </p>
-        <div className="mt-2">
-          <GradeMark
-            grade={data.gridCaption.evidenceGrade}
-            tier={data.gridCaption.evidenceTier}
-          />
-        </div>
+
       </div>
 
       {/* Genuine recognition — each carries its evidence grade (never hype). */}
@@ -225,9 +219,7 @@ export function EngagementPanel() {
                 <p className="text-ink font-serif text-[0.95rem] leading-relaxed">
                   {e.text}
                 </p>
-                <div>
-                  <GradeMark grade={e.evidenceGrade} tier={e.evidenceTier} />
-                </div>
+
               </li>
             ))}
           </ul>
