@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 // lean (the repo only ships button/card/input primitives) and on-brand (mono, paper, ink).
 
 const ITEMS: ReadonlyArray<{ href: string; label: string }> = [
+  { href: "/onboarding", label: "Setup" },
   { href: "/settings", label: "Settings" },
   { href: "/connections", label: "Connections" },
   { href: "/settings#data", label: "Export data" },

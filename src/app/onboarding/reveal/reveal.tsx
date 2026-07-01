@@ -270,12 +270,6 @@ export function Reveal() {
             <Link href="/today" className={buttonVariants()}>
               Build my first session →
             </Link>
-            <Link
-              href="/progress"
-              className={buttonVariants({ variant: "outline" })}
-            >
-              See my progress view
-            </Link>
           </div>
         </CardContent>
       </Card>

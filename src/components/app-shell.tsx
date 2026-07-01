@@ -11,17 +11,15 @@ import { cn } from "@/lib/utils";
 // reads as a single instrument instead of a stack of pages. The wordmark carries the
 // annotation mark (·!) that is the brand's whole idea: a graded, honest line.
 //
-// IA: the primary bar holds the three things you DO — Today (train), Progress (the honest
-// read-out), Setup (the resumable onboarding). Everything that is account/data rather than
-// training (Settings, Connections, export, sign out) lives in the AccountMenu (⚙), so the
-// bar never grows a new tab every time a setting appears.
+// IA: the primary bar holds the things you DO — Today (train), Analysis, Library.
+// Everything that is account/config rather than training (Setup, Settings, Connections,
+// export, sign out) lives in the AccountMenu (⚙), so the bar never grows a new tab
+// every time a setting appears.
 
 const NAV = [
   { href: "/today", label: "Today" },
   { href: "/analysis", label: "Analysis" },
   { href: "/library", label: "Library" },
-  { href: "/progress", label: "Progress" },
-  { href: "/onboarding", label: "Setup" },
   { href: "/about", label: "About" },
 ];
 
