@@ -163,29 +163,6 @@ export function Today() {
               </p>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
-              {item.dimensionLabels.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {item.dimensionLabels.map((d) => (
-                    <span
-                      key={d}
-                      className="border-line text-graphite rounded-sm border bg-paper px-2 py-0.5 font-mono text-[0.7rem] uppercase tracking-wide"
-                    >
-                      {d}
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              {item.params.formats && item.params.formats.length > 0 && (
-                <p className="text-graphite font-serif text-sm">
-                  In the formats you play:{" "}
-                  <span className="text-ink font-medium capitalize">
-                    {item.params.formats.join(", ")}
-                  </span>
-                  .
-                </p>
-              )}
-
               {item.delivery === "internal" && item.url && (
                 <Link
                   href={item.url}

@@ -152,57 +152,35 @@ export function Library() {
 
       {/* --- Book-study protocol --- */}
       <section className="flex flex-col gap-4">
-        <h2 className="font-serif text-2xl font-semibold tracking-tight">
-          How to study a book
-        </h2>
         <Card gutter={asGrade(data.protocol.activeRecall.grade)}>
           <CardHeader>
-            <CardTitle>Active recall, not passive reading</CardTitle>
+            <CardTitle>How to study a book</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
-            <p className="text-graphite font-mono text-xs">
-              Cover the answer, set the position up, and calculate for up to ~
-              {data.protocol.activeRecall.timeLimitMin} min before you check.
-            </p>
-            <Why copy={data.protocol.activeRecall} />
-          </CardContent>
-        </Card>
-        <Card gutter={asGrade(data.protocol.calibration.grade)}>
-          <CardHeader>
-            <CardTitle className="flex items-baseline justify-between gap-3">
-              <span>Keep it at the right difficulty</span>
-              <span className="text-graphite font-mono text-sm tabular-nums">
-                aim ~{data.protocol.calibration.targetPct}% (
-                {data.protocol.calibration.lowerPct}–
-                {data.protocol.calibration.upperPct}%)
-              </span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Why copy={data.protocol.calibration} />
-          </CardContent>
-        </Card>
-        <Card gutter={asGrade(data.protocol.woodpecker.grade)}>
-          <CardHeader>
-            <CardTitle>Woodpecker cycles (for tactics books)</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3">
-            <div className="flex flex-wrap gap-1.5">
-              {data.protocol.woodpecker.cycles.map((c) => (
-                <span
-                  key={c.cycle}
-                  className="border-line text-graphite rounded-sm border bg-paper px-2 py-0.5 font-mono text-[0.7rem]"
-                  title={`Cycle ${c.cycle}`}
-                >
-                  #{c.cycle}: {c.intervalDays}d
+            <ul className="flex flex-col gap-2 font-serif text-sm leading-relaxed">
+              <li className="flex items-start gap-2">
+                <span aria-hidden className="text-evergreen font-mono text-xs shrink-0 pt-1">▸</span>
+                <span>
+                  Cover the answer, set the position up, and calculate for up to ~
+                  {data.protocol.activeRecall.timeLimitMin} min before you check.
                 </span>
-              ))}
-            </div>
-            <p className="text-graphite font-mono text-xs">
-              Complete at least {data.protocol.woodpecker.recommendedMinCycles}{" "}
-              cycles, re-solving the same set with a shrinking gap.
-            </p>
-            <Why copy={data.protocol.woodpecker} />
+              </li>
+              <li className="flex items-start gap-2">
+                <span aria-hidden className="text-evergreen font-mono text-xs shrink-0 pt-1">▸</span>
+                <span>
+                  Aim for ~{data.protocol.calibration.targetPct}% success (
+                  {data.protocol.calibration.lowerPct}–{data.protocol.calibration.upperPct}% range).
+                </span>
+              </li>
+              {data.protocol.woodpecker.cycles.length > 0 && (
+                <li className="flex items-start gap-2">
+                  <span aria-hidden className="text-evergreen font-mono text-xs shrink-0 pt-1">▸</span>
+                  <span>
+                    For tactics books: complete at least {data.protocol.woodpecker.recommendedMinCycles} woodpecker cycles, re-solving the same set with a shrinking gap.
+                  </span>
+                </li>
+              )}
+            </ul>
           </CardContent>
         </Card>
       </section>
@@ -260,11 +238,6 @@ export function Library() {
           </h2>
           <Card gutter="A">
             <CardContent className="flex flex-col gap-4 pt-6">
-              <p className="text-graphite font-serif text-sm leading-relaxed">
-                Tell us how a session went. Your success rate tunes the difficulty
-                (we aim for ~{data.protocol.calibration.targetPct}%) — it&apos;s
-                never used to judge your skill.
-              </p>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <label className="flex flex-col gap-1.5 font-serif text-sm">
                   <span className="eyebrow !text-[0.62rem]">Book</span>
@@ -355,20 +328,15 @@ export function Library() {
                 {log.isPending ? "Logging…" : "Log this session"}
               </Button>
 
-              {log.data?.feedback && log.data.feedbackCopy && (
-                <div className="border-l-2 border-evergreen/40 pl-3">
-                  <p className="text-ink font-serif text-sm leading-relaxed">
-                    {log.data.feedback.verdict === "too_easy" &&
-                      "That book looks a bit easy — consider a harder one to keep learning efficiently."}
-                    {log.data.feedback.verdict === "too_hard" &&
-                      "That book looks tough right now — an easier one will keep you in the learning zone."}
-                    {log.data.feedback.verdict === "calibrated" &&
-                      "Nicely calibrated — that difficulty is right where learning is fastest."}
-                  </p>
-                  <p className="text-graphite mt-1 font-serif text-xs italic leading-relaxed">
-                    {log.data.feedbackCopy.text}
-                  </p>
-                </div>
+              {log.data?.feedback && (
+                <p className="text-graphite border-l-2 border-evergreen/40 pl-3 font-serif text-sm leading-relaxed">
+                  {log.data.feedback.verdict === "too_easy" &&
+                    "That book looks a bit easy — consider a harder one."}
+                  {log.data.feedback.verdict === "too_hard" &&
+                    "That book looks tough right now — an easier one will help."}
+                  {log.data.feedback.verdict === "calibrated" &&
+                    "Nicely calibrated — that difficulty is right where learning is fastest."}
+                </p>
               )}
             </CardContent>
           </Card>

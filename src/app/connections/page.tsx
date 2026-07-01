@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { auth, signIn, signOut } from "@/server/auth";
+import { auth, signIn } from "@/server/auth";
 import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/app-shell";
 import { ConnectionsManager } from "@/app/connections/connections-manager";
@@ -16,24 +16,7 @@ export default async function ConnectionsPage() {
     <PageShell
       eyebrow="Game sources"
       title="Connections"
-      lede={
-        <span className="flex flex-wrap items-center justify-between gap-4">
-          <span>
-            Link your chess accounts so Mainline can analyse your games.
-          </span>
-          <form
-            action={async () => {
-              "use server";
-              await signOut({ redirectTo: "/" });
-            }}
-            className="shrink-0"
-          >
-            <Button type="submit" variant="outline" size="sm">
-              Sign out
-            </Button>
-          </form>
-        </span>
-      }
+      lede="Link your chess accounts so Mainline can analyse your games."
     >
       <div className="flex flex-col gap-12">
         <section className="flex flex-col gap-4">
