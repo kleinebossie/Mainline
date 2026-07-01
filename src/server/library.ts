@@ -47,6 +47,7 @@ export interface ResourceProgressView {
   resourceRefId: string;
   /** Resolved from the book catalog when the resource is a known book; else null. */
   title: string | null;
+  studyUnit: "exercises" | "games" | null;
   position: BookPosition | null;
   lastSuccessRate: number | null;
   woodpeckerCycle: number | null;
@@ -150,6 +151,12 @@ export async function getResourceProgress(
       .flat()
       .map((b) => [b.id, b.title]),
   );
+  const studyUnitById = new Map(
+    Object.values(cfg.bookStudy.catalogByBand)
+      .flat()
+      .map((b) => [b.id, b.studyUnit]),
+  );
+
   const byRef = new Map<string, ResourceProgressView>();
   for (const row of rows) {
     const parsed = parseBookSession(row.payload);
@@ -158,6 +165,7 @@ export async function getResourceProgress(
     const acc: ResourceProgressView = byRef.get(id) ?? {
       resourceRefId: id,
       title: titleById.get(id) ?? null,
+      studyUnit: studyUnitById.get(id) ?? null,
       position: null,
       lastSuccessRate: null,
       woodpeckerCycle: null,

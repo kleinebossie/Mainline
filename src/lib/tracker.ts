@@ -16,6 +16,7 @@ export const bookPositionSchema = z
     page: z.number().int().nonnegative().max(100_000).optional(),
     exercise: z.string().min(1).max(120).optional(),
     percent: z.number().min(0).max(100).optional(),
+    unitCount: z.number().int().positive().max(10_000).optional(),
   })
   .strict();
 export type BookPosition = z.infer<typeof bookPositionSchema>;

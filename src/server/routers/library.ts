@@ -39,7 +39,9 @@ export const libraryRouter = router({
       z.object({
         resourceRefId: z.string().min(1).max(200),
         durationMin: z.number().nonnegative().max(600).optional(),
-        position: bookPositionSchema.optional(),
+        position: bookPositionSchema.extend({
+          unitCount: z.number().int().positive().max(10_000),
+        }),
         successRate: z.number().min(0).max(1).optional(),
         woodpeckerCycle: z.number().int().min(1).max(99).optional(),
       }),

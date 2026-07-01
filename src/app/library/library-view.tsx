@@ -41,7 +41,8 @@ export function Library() {
   const utils = trpc.useUtils();
   const library = trpc.library.get.useQuery();
   const [bookId, setBookId] = useState<string>("");
-  const [successPct, setSuccessPct] = useState<string>("85");
+  const [unitCount, setUnitCount] = useState<string>("");
+  const [successPct, setSuccessPct] = useState<string>("");
   const [chapter, setChapter] = useState<string>("");
   const [cycle, setCycle] = useState<string>("");
   const [minutes, setMinutes] = useState<string>("");
@@ -50,6 +51,11 @@ export function Library() {
     onSuccess: () => {
       void utils.library.get.invalidate();
       void utils.tracker.dueReviews.invalidate();
+      setUnitCount("");
+      setChapter("");
+      setMinutes("");
+      setCycle("");
+      setSuccessPct("");
     },
   });
 
@@ -67,17 +73,28 @@ export function Library() {
     );
   }
 
-  const selectedBook = data.books.find((b) => b.id === bookId);
+  const selectedBook = data.books.find((b) => b.id === bookId) ?? data.books[0];
+  const unitLabel = selectedBook?.studyUnit === "games" ? "Games studied" : "Exercises done";
+  const unitPlaceholder = selectedBook?.studyUnit === "games" ? "e.g. 3" : "e.g. 10";
+
   const onLog = () => {
     const resourceRefId = bookId || data.books[0]?.id;
     if (!resourceRefId) return;
-    const pct = Number(successPct);
+    const count = Number(unitCount);
+    if (!unitCount || !Number.isInteger(count) || count <= 0) {
+      alert("Please enter a valid positive number for exercises/games.");
+      return;
+    }
+    const pct = successPct ? Number(successPct) : NaN;
     log.mutate({
       resourceRefId,
-      successRate: Number.isFinite(pct) ? pct / 100 : undefined,
+      successRate: !isNaN(pct) && Number.isFinite(pct) ? pct / 100 : undefined,
       durationMin: minutes ? Number(minutes) : undefined,
       woodpeckerCycle: cycle ? Number(cycle) : undefined,
-      position: chapter ? { chapter: Number(chapter) } : undefined,
+      position: {
+        unitCount: count,
+        chapter: chapter ? Number(chapter) : undefined,
+      },
     });
   };
 
@@ -265,13 +282,27 @@ export function Library() {
                 </label>
                 <label className="flex flex-col gap-1.5 font-serif text-sm">
                   <span className="eyebrow !text-[0.62rem]">
-                    Exercises solved (%)
+                    {unitLabel} <span className="text-red-500">*</span>
+                  </span>
+                  <Input
+                    type="number"
+                    min={1}
+                    placeholder={unitPlaceholder}
+                    value={unitCount}
+                    onChange={(e) => setUnitCount(e.target.value)}
+                    required
+                  />
+                </label>
+                <label className="flex flex-col gap-1.5 font-serif text-sm">
+                  <span className="eyebrow !text-[0.62rem]">
+                    Exercises solved (%) (optional)
                   </span>
                   <select
                     value={successPct}
                     onChange={(e) => setSuccessPct(e.target.value)}
                     className="border-input bg-paper-raised h-9 rounded-md border px-2 font-serif text-sm"
                   >
+                    <option value="">Optional (select...)</option>
                     {["50", "60", "70", "75", "80", "85", "90", "95"].map((p) => (
                       <option key={p} value={p}>
                         {p}%
@@ -362,6 +393,10 @@ export function Library() {
                     {p.totalMinutes > 0 && ` · ${p.totalMinutes} min`}
                     {p.position?.chapter != null &&
                       ` · chapter ${p.position.chapter}`}
+                    {p.position?.unitCount != null &&
+                      ` · ${p.position.unitCount} ${
+                        p.studyUnit === "games" ? "games" : "exercises"
+                      }`}
                     {p.woodpeckerCycle != null &&
                       ` · cycle ${p.woodpeckerCycle}`}
                   </p>

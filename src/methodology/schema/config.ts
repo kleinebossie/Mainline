@@ -565,6 +565,7 @@ const bookRecSchema = z.object({
   author: z.string().min(1),
   // A structural family tag (which kind of book) — drives the cognitive-load block rule.
   category: bookCategorySchema,
+  studyUnit: z.enum(["exercises", "games"]),
   // The graded "why this book at this band" focus copy (Grade C coaching consensus); carries
   // the citation so a recommendation can never render as Grade-A fact.
   recommendation: gradedValue(z.string().min(1)),

@@ -71,6 +71,7 @@ describe("buildLibrary (Seam 4 §4.2–4.4)", () => {
           {
             resourceRefId: target.id,
             title: target.title,
+            studyUnit: target.studyUnit,
             position: { chapter: 2 },
             lastSuccessRate: 0.8,
             woodpeckerCycle: null,

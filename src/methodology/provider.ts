@@ -598,6 +598,7 @@ export interface BookRecommendation {
   author: string;
   category: string;
   why: string;
+  studyUnit: "exercises" | "games";
   /** True when the user already owns this book (prefer what they can use, Seam 7). */
   owned: boolean;
   evidenceGrade: Grade;
@@ -633,6 +634,7 @@ export function recommendBooks(
       author: b.author,
       category: b.category,
       why: b.recommendation.value,
+      studyUnit: b.studyUnit,
       owned: isOwned(b),
       evidenceGrade: b.recommendation.grade,
       evidenceTier: b.recommendation.tier,
