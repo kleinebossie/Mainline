@@ -22,6 +22,7 @@ const NAV = [
   { href: "/library", label: "Library" },
   { href: "/progress", label: "Progress" },
   { href: "/onboarding", label: "Setup" },
+  { href: "/about", label: "About" },
 ];
 
 export function Wordmark({ className }: { className?: string }) {
