@@ -10,7 +10,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GradeMark } from "@/components/evidence";
 import { TransparencyCard } from "@/components/transparency-card";
 
-
 type Grade = "A" | "B" | "C" | "D";
 function asGrade(g: string): Grade {
   return g === "A" || g === "B" || g === "C" || g === "D" ? g : "C";
@@ -26,8 +25,7 @@ export function Reveal() {
   const constraints = trpc.constraints.getCurrent.useQuery();
   // The reveal IS the interactive review (M12): step through your most-recent analysed game.
   const library = trpc.analysis.library.useQuery();
-  const reviewGameId =
-    library.data?.games.find((g) => g.analyzed)?.id ?? null;
+  const reviewGameId = library.data?.games.find((g) => g.analyzed)?.id ?? null;
 
   useEffect(() => {
     if (state.data?.completed && typeof window !== "undefined") {
@@ -208,14 +206,17 @@ export function Reveal() {
           </CardTitle>
           <p className="text-graphite font-mono text-sm mt-1">
             The honest picture isn&apos;t a number — it&apos;s the moment it
-            turned. Walk the turning points and find better moves for your mistakes.
+            turned. Walk the turning points and find better moves for your
+            mistakes.
           </p>
         </CardHeader>
         <CardContent>
           {reviewGameId ? (
             <div className="flex flex-col gap-3">
               <p className="text-graphite text-sm leading-relaxed font-serif">
-                You have games ready for review. Walk through the turning points, identify your errors, and schedule them as personal drills.
+                You have games ready for review. Walk through the turning
+                points, identify your errors, and schedule them as personal
+                drills.
               </p>
               <div>
                 <Link
@@ -228,7 +229,8 @@ export function Reveal() {
             </div>
           ) : (
             <p className="text-graphite text-sm leading-relaxed font-serif">
-              Scan a game first — then you&apos;ll be able to review it, walk the turning points, and drill your mistakes.
+              Scan a game first — then you&apos;ll be able to review it, walk
+              the turning points, and drill your mistakes.
             </p>
           )}
         </CardContent>
@@ -263,8 +265,9 @@ export function Reveal() {
             You stay in control. Where your games and your goals point the same
             way, we lean in hard. Where they disagree, we trust your{" "}
             <span className="text-ink font-medium">games</span> for the
-            diagnosis and your <span className="text-ink font-medium">goals</span>{" "}
-            for what to emphasise — and we always show the evidence.
+            diagnosis and your{" "}
+            <span className="text-ink font-medium">goals</span> for what to
+            emphasise — and we always show the evidence.
           </p>
           <div className="flex flex-wrap items-center gap-3 border-t border-line/80 pt-5">
             <Link href="/today" className={buttonVariants()}>

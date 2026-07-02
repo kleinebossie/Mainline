@@ -184,7 +184,10 @@ export class StockfishAnalysisEngine implements AnalysisEngineAdapter {
     try {
       chess.loadPgn(pgn);
     } catch (e) {
-      console.warn("stockfish-adapter analyzeGame loadPgn failed, using partial history:", e);
+      console.warn(
+        "stockfish-adapter analyzeGame loadPgn failed, using partial history:",
+        e,
+      );
     }
     const moves = chess.history({ verbose: true });
 

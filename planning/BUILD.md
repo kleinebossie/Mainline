@@ -778,16 +778,16 @@ as fact. **Framework now; copy from Seam 8.**
 
 A linear, resumable flow; each step writes typed state and is independently testable.
 
-| Step                     | Route / action                                         | Writes                                              | Methodology called                                  | Phase-1 status            |
-| ------------------------ | ------------------------------------------------------ | --------------------------------------------------- | --------------------------------------------------- | ------------------------- |
-| 1. Sign in               | `(auth)` — Auth.js (Google / Lichess PKCE)             | `User`, `Account`, `Session`                        | —                                                   | built                     |
-| 2. Connect platforms     | `onboarding` — Lichess OAuth / Chess.com username      | `PlatformConnection`                                | —                                                   | built                     |
-| 3. Background import     | `api/cron` job via `PlatformAdapter.fetchGames`        | `ImportedGame` (idempotent), `ChessProfileSnapshot` | —                                                   | built                     |
-| 4. Instant analysis      | analyse ~5 most-recent games client-side; queue rest   | `AnalysisResult` (raw features)                     | — (raw only, L1)                                    | built                     |
-| 5. Tactical calibration  | adaptive ladder over puzzles, solved **in-app** (M11)  | `Assessment`                                        | `nextCalibrationItem` / `scoreCalibration` (Seam 2) | shell built, content stub |
-| 6. Constraints + if-then | `onboarding` form                                      | `ConstraintSet` (incl. `ifThenPlan`, `targetFocus`) | `buildImplementationIntention` (Seam 9)             | built                     |
+| Step                     | Route / action                                                 | Writes                                              | Methodology called                                  | Phase-1 status            |
+| ------------------------ | -------------------------------------------------------------- | --------------------------------------------------- | --------------------------------------------------- | ------------------------- |
+| 1. Sign in               | `(auth)` — Auth.js (Google / Lichess PKCE)                     | `User`, `Account`, `Session`                        | —                                                   | built                     |
+| 2. Connect platforms     | `onboarding` — Lichess OAuth / Chess.com username              | `PlatformConnection`                                | —                                                   | built                     |
+| 3. Background import     | `api/cron` job via `PlatformAdapter.fetchGames`                | `ImportedGame` (idempotent), `ChessProfileSnapshot` | —                                                   | built                     |
+| 4. Instant analysis      | analyse ~5 most-recent games client-side; queue rest           | `AnalysisResult` (raw features)                     | — (raw only, L1)                                    | built                     |
+| 5. Tactical calibration  | adaptive ladder over puzzles, solved **in-app** (M11)          | `Assessment`                                        | `nextCalibrationItem` / `scoreCalibration` (Seam 2) | shell built, content stub |
+| 6. Constraints + if-then | `onboarding` form                                              | `ConstraintSet` (incl. `ifThenPlan`, `targetFocus`) | `buildImplementationIntention` (Seam 9)             | built                     |
 | 7. The "reveal"          | interactive game review contrasting signals vs self-bias (M12) | —                                                   | `interpretGameFeatures` (Seam 3)                    | framework built           |
-| 8. First program         | `generateProgram(...)` → land on `/today`              | `Program`, `ProgramItem`, `SkillState` seed         | Seams 3→4→5→7→8                                     | built (stub config)       |
+| 8. First program         | `generateProgram(...)` → land on `/today`                      | `Program`, `ProgramItem`, `SkillState` seed         | Seams 3→4→5→7→8                                     | built (stub config)       |
 
 Self-report is captured for **constraints/goals/owned resources/play-medium only** — never for skill
 diagnosis (Seam 2). The constraints step also records the user's **target focus** (`online | otb |
@@ -1159,7 +1159,11 @@ DoD checklist._
 function stepSolve(
   state: SolveState, // { position, solutionLine: San[], cursor, startedMs, attempts }
   move: { san: San; atMs: EpochMs }, // atMs from the injected Clock (L2) — no Date.now()
-): { state: SolveState; step: "correct" | "wrong" | "solved" | "continue"; solveMs: number };
+): {
+  state: SolveState;
+  step: "correct" | "wrong" | "solved" | "continue";
+  solveMs: number;
+};
 //  Matches `move` against the SUPPLIED solutionLine (puzzle.moves / drill bestLine); it never
 //  judges chess MERIT (that came from methodology/data upstream) — only line-match + timing.
 
@@ -1167,9 +1171,9 @@ function stepSolve(
 //  opponent (endgames, M13). Pure given the adapter + Clock; the adapter type lives in analysis/lib.
 ```
 
-  Plus an **activity-resolution** change: a `ProgramItem` resolves to an **internal route**
-  (`/train/...`) or an external `ResourceRef.externalUrl`, decided by the `ActivityDefinition`'s
-  graded **`delivery`** field (Seam 4 — data, not a code branch).
+Plus an **activity-resolution** change: a `ProgramItem` resolves to an **internal route**
+(`/train/...`) or an external `ResourceRef.externalUrl`, decided by the `ActivityDefinition`'s
+graded **`delivery`** field (Seam 4 — data, not a code branch).
 
 - **Tasks:** an `InteractiveBoard` component (`chess.js` legality + `react-chessboard`/chessground)
   under `src/components/`; the pure `stepSolve` state machine (line-match, solve-timing, retry); the
@@ -1361,18 +1365,18 @@ Each seam is an **interface defined here**, filled with **stub config now** and 
 later** (`METHODOLOGY.md`); **none change the architecture** (VISION §4, §9). Contents are in
 `METHODOLOGY.md` — this table is the **map**, not the content (§0.3).
 
-| #   | Seam                                       | `MethodologyConfig` field(s)          | Pure function(s) (§2.8)                                       | METHODOLOGY.md anchor | Research source                                                        | Phase-1 |
-| --- | ------------------------------------------ | ------------------------------------- | ------------------------------------------------------------- | --------------------- | ---------------------------------------------------------------------- | ------- |
-| 1   | Skill dimensions & taxonomy                | `dimensions`, `bands`                 | `dimensionsForBand`                                           | Seam 1                | `SKILL_TAXONOMY.md`                                                    | stub    |
-| 2   | Assessment content + scoring               | `assessment`                          | `nextCalibrationItem`, `scoreCalibration`                     | Seam 2                | `WEAKNESS_DIAGNOSIS.md`                                                | stub    |
-| 3   | Game-feature → weakness                    | `interpretation`                      | `interpretGameFeatures`, `confidenceFromSampleSize`           | Seam 3                | `WEAKNESS_DIAGNOSIS.md`, `SKILL_TAXONOMY.md`                           | stub    |
+| #   | Seam                                       | `MethodologyConfig` field(s)                                                   | Pure function(s) (§2.8)                                       | METHODOLOGY.md anchor | Research source                                                                                                                                                     | Phase-1 |
+| --- | ------------------------------------------ | ------------------------------------------------------------------------------ | ------------------------------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| 1   | Skill dimensions & taxonomy                | `dimensions`, `bands`                                                          | `dimensionsForBand`                                           | Seam 1                | `SKILL_TAXONOMY.md`                                                                                                                                                 | stub    |
+| 2   | Assessment content + scoring               | `assessment`                                                                   | `nextCalibrationItem`, `scoreCalibration`                     | Seam 2                | `WEAKNESS_DIAGNOSIS.md`                                                                                                                                             | stub    |
+| 3   | Game-feature → weakness                    | `interpretation`                                                               | `interpretGameFeatures`, `confidenceFromSampleSize`           | Seam 3                | `WEAKNESS_DIAGNOSIS.md`, `SKILL_TAXONOMY.md`                                                                                                                        | stub    |
 | 4   | Weakness/level → resource + params         | `activities`, `weaknessResourceRules`, `gameAnalysis`, `bookStudy`, `modality` | `mapWeaknessToActivities`                                     | Seam 4                | `WHAT_RAISES_RATING.md`, `GAME_ANALYSIS.md`, `BEST_BOOKS.md`, `2D_VS_3D.md` (recs, game-analysis protocol, book-study, 2D/3D + OTB calibration, endgame curriculum) | stub    |
-| 5   | Difficulty / calibration targets           | `difficulty`                          | `targetPuzzleRating`, `practiceStructure`, `useWorkedExample` | Seam 5                | `PRACTICE_DESIGN.md`                                                   | stub    |
-| 6   | Spacing / scheduling                       | `scheduling`                          | `gradeFromOutcome`, `scheduleReview`                          | Seam 6                | `SPACED_REPETITION.md`                                                 | stub    |
-| 7   | Periodisation / prioritisation (daily mix) | `prioritization`                      | `prioritizeDailyMix`, `detectPlateau`                         | Seam 7                | `TRAINING_PROGRAMMING.md`                                              | stub    |
-| 8   | Rationale & evidence copy                  | `rationale`, `evidenceLedger`         | `rationaleFor`                                                | Seam 8                | `USER_FACING.md` (multi-seam "why this?" synthesis), `EXPECTATIONS.md` | stub    |
-| 9   | Engagement mechanics + guardrails          | `engagement`                          | `engagementEventsFor`, `buildImplementationIntention`         | Seam 9                | `MOTIVATION.md`                                                        | stub    |
-| —   | Measurement & expectations (cross-cutting) | `measurement`                         | `isProgressReal`, `isStableBaseline`, `expectationForBand`    | Measurement           | `EXPECTATIONS.md`, `2D_VS_3D.md` (remote↔OTB performance gap)          | stub    |
+| 5   | Difficulty / calibration targets           | `difficulty`                                                                   | `targetPuzzleRating`, `practiceStructure`, `useWorkedExample` | Seam 5                | `PRACTICE_DESIGN.md`                                                                                                                                                | stub    |
+| 6   | Spacing / scheduling                       | `scheduling`                                                                   | `gradeFromOutcome`, `scheduleReview`                          | Seam 6                | `SPACED_REPETITION.md`                                                                                                                                              | stub    |
+| 7   | Periodisation / prioritisation (daily mix) | `prioritization`                                                               | `prioritizeDailyMix`, `detectPlateau`                         | Seam 7                | `TRAINING_PROGRAMMING.md`                                                                                                                                           | stub    |
+| 8   | Rationale & evidence copy                  | `rationale`, `evidenceLedger`                                                  | `rationaleFor`                                                | Seam 8                | `USER_FACING.md` (multi-seam "why this?" synthesis), `EXPECTATIONS.md`                                                                                              | stub    |
+| 9   | Engagement mechanics + guardrails          | `engagement`                                                                   | `engagementEventsFor`, `buildImplementationIntention`         | Seam 9                | `MOTIVATION.md`                                                                                                                                                     | stub    |
+| —   | Measurement & expectations (cross-cutting) | `measurement`                                                                  | `isProgressReal`, `isStableBaseline`, `expectationForBand`    | Measurement           | `EXPECTATIONS.md`, `2D_VS_3D.md` (remote↔OTB performance gap)                                                                                                       | stub    |
 
 Updating any seam = a `MethodologyConfig` edit + a version bump. **The Engine, the data model, and the
 contracts above do not move.**

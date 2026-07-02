@@ -1,10 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { loadMethodology } from "@/methodology/loader";
-import {
-  bandForRating,
-  interfaceAffordancesFor,
-} from "@/methodology/provider";
+import { bandForRating, interfaceAffordancesFor } from "@/methodology/provider";
 
 // Golden tests for the Seam-4 §4.4(c) board interface-restriction doctrine (M11): the
 // affordance values come ONLY from config (L1), eval bar + legal dots are off across all
@@ -24,7 +21,10 @@ describe("interfaceAffordancesFor (Seam 4 §4.4c)", () => {
   });
 
   it("gates arrows and hover by play medium", () => {
-    const online = interfaceAffordancesFor({ band, targetFocus: "online" }, cfg);
+    const online = interfaceAffordancesFor(
+      { band, targetFocus: "online" },
+      cfg,
+    );
     expect(online.allowArrows).toBe(true);
     expect(online.allowHover).toBe(true);
 
@@ -32,7 +32,10 @@ describe("interfaceAffordancesFor (Seam 4 §4.4c)", () => {
     expect(otb.allowArrows).toBe(false);
     expect(otb.allowHover).toBe(false);
 
-    const hybrid = interfaceAffordancesFor({ band, targetFocus: "hybrid" }, cfg);
+    const hybrid = interfaceAffordancesFor(
+      { band, targetFocus: "hybrid" },
+      cfg,
+    );
     expect(hybrid.allowArrows).toBe(false);
     expect(hybrid.allowHover).toBe(true);
   });

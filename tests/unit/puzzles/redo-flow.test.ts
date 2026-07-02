@@ -36,7 +36,7 @@ function initSession(puzzles: Puzzle[]): RedoSessionState {
 function processAttempt(
   state: RedoSessionState,
   correct: boolean,
-  startSquare: string
+  startSquare: string,
 ): RedoSessionState {
   const currentPuzzle = state.puzzles[state.currentIdx]!;
   const newLogs = [...state.logs];
@@ -82,7 +82,8 @@ function processAttempt(
 }
 
 function processNext(state: RedoSessionState): RedoSessionState {
-  const activeList = state.phase === "retest" ? state.retestQueue : state.puzzles;
+  const activeList =
+    state.phase === "retest" ? state.retestQueue : state.puzzles;
   const nextIdx = state.currentIdx + 1;
 
   if (nextIdx < activeList.length) {
@@ -133,7 +134,7 @@ describe("Redo Flow 3-phase state transitions", () => {
     state = processAttempt(state, true, "e2");
     expect(state.logs).toEqual([{ puzzleId: "p1", correct: true }]);
     expect(state.retestQueue).toEqual([]);
-    
+
     // Go to next puzzle
     state = processNext(state);
     expect(state.currentIdx).toBe(1);
@@ -145,7 +146,9 @@ describe("Redo Flow 3-phase state transitions", () => {
       { puzzleId: "p1", correct: true },
       { puzzleId: "p2", correct: false },
     ]);
-    expect(state.retestQueue).toEqual([{ id: "p2", rating: 1200, themes: ["pin"] }]);
+    expect(state.retestQueue).toEqual([
+      { id: "p2", rating: 1200, themes: ["pin"] },
+    ]);
     expect(state.hintActive).toBe(true);
     expect(state.highlightedSquares).toEqual(["d2"]);
 

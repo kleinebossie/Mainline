@@ -8,7 +8,10 @@ import {
   saveAnalysisResult,
   userOwnsGame,
 } from "@/db/analysis";
-import { rawGameFeaturesSchema, type RawGameFeatures } from "@/lib/raw-features";
+import {
+  rawGameFeaturesSchema,
+  type RawGameFeatures,
+} from "@/lib/raw-features";
 import {
   loadMethodology,
   bandForRating,
@@ -96,7 +99,11 @@ export const analysisRouter = router({
   suggestions: protectedProcedure.query(async ({ ctx }) => {
     const cfg = loadMethodology();
     // The win:loss recommendation keys off PLAYING strength, not the inflated puzzle rating.
-    const playingRating = await resolvePlayingRating(ctx.prisma, ctx.userId, cfg);
+    const playingRating = await resolvePlayingRating(
+      ctx.prisma,
+      ctx.userId,
+      cfg,
+    );
     const band = bandForRating(playingRating, cfg);
 
     return {
@@ -221,7 +228,8 @@ export const analysisRouter = router({
         result: game.result,
         color: game.color,
         userRatingAtGame: game.userRatingAtGame,
-        rawFeatures: game.analysis?.rawFeatures as unknown as RawGameFeatures | null,
+        rawFeatures: game.analysis
+          ?.rawFeatures as unknown as RawGameFeatures | null,
       };
 
       const session = gameAnalysisProtocol(parsedGame, band, cfg, {
@@ -250,7 +258,10 @@ export const analysisRouter = router({
           analysis_tilt_pause: rationaleFor("analysis_tilt_pause", cfg),
           analysis_engine_delay: rationaleFor("analysis_engine_delay", cfg),
           analysis_rpl_filter: rationaleFor("analysis_rpl_filter", cfg),
-          analysis_guess_tolerance: rationaleFor("analysis_guess_tolerance", cfg),
+          analysis_guess_tolerance: rationaleFor(
+            "analysis_guess_tolerance",
+            cfg,
+          ),
           analysis_entropy: rationaleFor("analysis_entropy", cfg),
           analysis_srs_puzzle: rationaleFor("analysis_srs_puzzle", cfg),
         },
@@ -282,7 +293,8 @@ export const analysisRouter = router({
       });
       if (!game || !game.analysis) throw new Error("Game analysis not found");
 
-      const rawFeatures = game.analysis.rawFeatures as unknown as RawGameFeatures;
+      const rawFeatures = game.analysis
+        .rawFeatures as unknown as RawGameFeatures;
       const cfg = loadMethodology();
       const now = Date.now();
 
@@ -304,7 +316,9 @@ export const analysisRouter = router({
       let scheduledCount = 0;
 
       for (const outcome of input.outcomes) {
-        const blunder = rawFeatures.blunders?.find((b) => b.ply === outcome.ply);
+        const blunder = rawFeatures.blunders?.find(
+          (b) => b.ply === outcome.ply,
+        );
         const fen = blunder?.fen;
         if (!fen || !outcome.bestUci) continue;
 
@@ -344,13 +358,12 @@ export const analysisRouter = router({
           },
         });
 
-        const fsrsState = existing ? (existing.fsrsState as unknown as FsrsState) : null;
+        const fsrsState = existing
+          ? (existing.fsrsState as unknown as FsrsState)
+          : null;
         const grade = outcome.correct ? 3 : 1; // Good vs Again
 
-        const { newState } = scheduleReview(
-          { grade, fsrsState, now },
-          cfg,
-        );
+        const { newState } = scheduleReview({ grade, fsrsState, now }, cfg);
 
         await ctx.prisma.scheduleState.upsert({
           where: {

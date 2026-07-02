@@ -44,7 +44,10 @@ export function TransparencyCard({
 
   return (
     <div
-      className={cn("bg-paper/60 rounded-md border border-dashed p-4", className)}
+      className={cn(
+        "bg-paper/60 rounded-md border border-dashed p-4",
+        className,
+      )}
       role="note"
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -77,9 +80,9 @@ export function TransparencyCard({
 
           {soften && (
             <p className="text-graphite mt-3 border-l-2 border-amber/50 pl-3 font-serif text-sm italic leading-relaxed">
-              Honest caveat: the evidence here is thin — treat this as a best-guess
-              starting point, not a proven prescription. No training activity is
-              proven to cause a rating gain.
+              Honest caveat: the evidence here is thin — treat this as a
+              best-guess starting point, not a proven prescription. No training
+              activity is proven to cause a rating gain.
             </p>
           )}
 

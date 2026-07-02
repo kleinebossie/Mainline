@@ -5,10 +5,30 @@ import { cn } from "@/lib/utils";
 // recommendations are graded in the product itself.
 
 const GRADE_KEY = [
-  { glyph: "‼", grade: "A", label: "Strong, replicated", note: "Used for robust, replicated findings — e.g. the retrieval-practice effect or the spacing effect." },
-  { glyph: "!", grade: "B", label: "Suggestive, limited", note: "Suggestive studies with limited sample size, context, or generalizability." },
-  { glyph: "?!", grade: "C", label: "Theory / best-guess", note: "Logical inference, placeholder, or calibration estimate. Treated as a starting point, never a proven prescription." },
-  { glyph: "??", grade: "D", label: "Myth — avoided", note: "Popular chess-improvement advice the app actively avoids because the evidence contradicts it." },
+  {
+    glyph: "‼",
+    grade: "A",
+    label: "Strong, replicated",
+    note: "Used for robust, replicated findings — e.g. the retrieval-practice effect or the spacing effect.",
+  },
+  {
+    glyph: "!",
+    grade: "B",
+    label: "Suggestive, limited",
+    note: "Suggestive studies with limited sample size, context, or generalizability.",
+  },
+  {
+    glyph: "?!",
+    grade: "C",
+    label: "Theory / best-guess",
+    note: "Logical inference, placeholder, or calibration estimate. Treated as a starting point, never a proven prescription.",
+  },
+  {
+    glyph: "??",
+    grade: "D",
+    label: "Myth — avoided",
+    note: "Popular chess-improvement advice the app actively avoids because the evidence contradicts it.",
+  },
 ] as const;
 
 const GRADE_CLR: Record<string, string> = {
@@ -19,15 +39,42 @@ const GRADE_CLR: Record<string, string> = {
 };
 
 const EXCLUSIONS = [
-  { what: "No LLM/AI at runtime", why: "AI plays chess poorly and invites cost, abuse, and opacity. The app is pure deterministic algorithms. You can verify every decision." },
-  { what: "No competing game platform", why: "Lichess and Chess.com already do that better. The app references external platforms; it doesn't replace them." },
-  { what: "No hosted copyrighted content", why: "Books and courses are recommended and logged, never hosted. The app points you to the right resource; it doesn't steal it." },
-  { what: "No social or multiplayer", why: "No leaderboards, no chat, no shared sessions. Social comparison harms long-term motivation, and the app's goal is personal improvement." },
-  { what: "No self-report skill diagnosis", why: "Dunning-Kruger is real in chess (Grade A/1). The app diagnoses you behaviorally — from your games and your puzzle performance — never by asking you to rate yourself." },
-  { what: "No infinite streaks", why: "Unbreakable streaks are a dark pattern. They create a loss-aversion \"quit moment\" when the streak breaks. The app caps streaks and forgives missed days." },
-  { what: "No global leaderboards", why: "Downward social comparison (seeing yourself ranked below strangers) harms motivation for the majority of users who are not at the top." },
-  { what: "No puzzle-volume chasing", why: "Correlation between puzzle volume and rating gap is r=−0.02. Grinding puzzles without reflection or spacing doesn't help. The app prioritizes how you practice over how much." },
-  { what: "No opening memorization for beginners", why: "Beginners lose to blunders, not opening theory. Time spent memorizing lines at <1200 is time not spent on tactics and board vision." },
+  {
+    what: "No LLM/AI at runtime",
+    why: "AI plays chess poorly and invites cost, abuse, and opacity. The app is pure deterministic algorithms. You can verify every decision.",
+  },
+  {
+    what: "No competing game platform",
+    why: "Lichess and Chess.com already do that better. The app references external platforms; it doesn't replace them.",
+  },
+  {
+    what: "No hosted copyrighted content",
+    why: "Books and courses are recommended and logged, never hosted. The app points you to the right resource; it doesn't steal it.",
+  },
+  {
+    what: "No social or multiplayer",
+    why: "No leaderboards, no chat, no shared sessions. Social comparison harms long-term motivation, and the app's goal is personal improvement.",
+  },
+  {
+    what: "No self-report skill diagnosis",
+    why: "Dunning-Kruger is real in chess (Grade A/1). The app diagnoses you behaviorally — from your games and your puzzle performance — never by asking you to rate yourself.",
+  },
+  {
+    what: "No infinite streaks",
+    why: 'Unbreakable streaks are a dark pattern. They create a loss-aversion "quit moment" when the streak breaks. The app caps streaks and forgives missed days.',
+  },
+  {
+    what: "No global leaderboards",
+    why: "Downward social comparison (seeing yourself ranked below strangers) harms motivation for the majority of users who are not at the top.",
+  },
+  {
+    what: "No puzzle-volume chasing",
+    why: "Correlation between puzzle volume and rating gap is r=−0.02. Grinding puzzles without reflection or spacing doesn't help. The app prioritizes how you practice over how much.",
+  },
+  {
+    what: "No opening memorization for beginners",
+    why: "Beginners lose to blunders, not opening theory. Time spent memorizing lines at <1200 is time not spent on tactics and board vision.",
+  },
 ];
 
 export default function AboutPage() {
@@ -76,8 +123,9 @@ export default function AboutPage() {
             Mainline is not another puzzle trainer, game analysis tool, or
             spaced-repetition deck. This app sits one layer up: it is the{" "}
             <strong className="text-ink">orchestration layer</strong> that
-            decides <em>what you should work on, with which resources, and
-            why</em> — and revises that plan continuously as you train and play.
+            decides{" "}
+            <em>what you should work on, with which resources, and why</em> —
+            and revises that plan continuously as you train and play.
           </p>
         </section>
 

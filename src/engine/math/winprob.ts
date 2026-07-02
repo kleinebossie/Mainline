@@ -27,10 +27,7 @@ export function winProb(cp: number): number {
 
 /** Win probability for an explicit eval where a forced mate is signalled separately
  *  (mate ⇒ 1 if winning, 0 if being mated; otherwise the logistic of `cp`). */
-export function evalToWinProb(e: {
-  cp: number;
-  mate?: number | null;
-}): number {
+export function evalToWinProb(e: { cp: number; mate?: number | null }): number {
   if (e.mate != null && e.mate !== 0) return e.mate > 0 ? 1 : 0;
   return winProb(e.cp);
 }

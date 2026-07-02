@@ -144,7 +144,10 @@ export function extractFeatures(input: ExtractFeaturesInput): RawGameFeatures {
   try {
     chess.loadPgn(pgn);
   } catch (e) {
-    console.warn("features extractFeatures loadPgn failed, using partial history:", e);
+    console.warn(
+      "features extractFeatures loadPgn failed, using partial history:",
+      e,
+    );
   }
   const moves = chess.history({ verbose: true });
   const n = moves.length;

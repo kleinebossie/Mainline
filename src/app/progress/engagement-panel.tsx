@@ -169,7 +169,6 @@ export function EngagementPanel() {
         <p className="text-graphite mt-4 border-l-2 border-evergreen/40 pl-3 font-serif text-sm leading-relaxed">
           {data.gridCaption.text}
         </p>
-
       </div>
 
       {/* Genuine recognition — each carries its evidence grade (never hype). */}
@@ -219,7 +218,6 @@ export function EngagementPanel() {
                 <p className="text-ink font-serif text-[0.95rem] leading-relaxed">
                   {e.text}
                 </p>
-
               </li>
             ))}
           </ul>

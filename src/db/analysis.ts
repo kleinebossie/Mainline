@@ -16,7 +16,11 @@ export async function gamesNeedingAnalysis(
   platform?: string,
 ): Promise<ImportedGame[]> {
   return db.importedGame.findMany({
-    where: { userId, analysis: { is: null }, ...(platform ? { platform } : {}) },
+    where: {
+      userId,
+      analysis: { is: null },
+      ...(platform ? { platform } : {}),
+    },
     orderBy: { playedAt: "desc" },
     take: Math.max(0, limit),
   });

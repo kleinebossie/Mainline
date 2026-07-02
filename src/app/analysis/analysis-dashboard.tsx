@@ -47,9 +47,10 @@ export function AnalysisDashboard() {
 
   const [platformOverride, setPlatformOverride] = useState<string | null>(null);
   const [batchStatus, setBatchStatus] = useState<BatchStatus>("idle");
-  const [batchProgress, setBatchProgress] = useState<{ done: number; total: number } | null>(
-    null,
-  );
+  const [batchProgress, setBatchProgress] = useState<{
+    done: number;
+    total: number;
+  } | null>(null);
   const [batchError, setBatchError] = useState<string | null>(null);
   // The id of the single game whose engine analysis is running (per-row "Engine analysis").
   const [analyzingGameId, setAnalyzingGameId] = useState<string | null>(null);
@@ -58,7 +59,8 @@ export function AnalysisDashboard() {
 
   const library = libraryQuery.data;
   const platforms = library?.platforms ?? [];
-  const selectedPlatform = platformOverride ?? library?.effectivePlatform ?? null;
+  const selectedPlatform =
+    platformOverride ?? library?.effectivePlatform ?? null;
   const games = (library?.games ?? []).filter(
     (g) => !selectedPlatform || g.platform === selectedPlatform,
   );
@@ -117,14 +119,19 @@ export function AnalysisDashboard() {
   // selected primary platform. `limit` omitted = every unanalysed game currently in view;
   // otherwise the `limit` most recent games on that platform ("Analyse last N games").
   async function runBatchAnalysis(limit?: number) {
-    const platform = selectedPlatform === "lichess" || selectedPlatform === "chesscom"
-      ? selectedPlatform
-      : undefined;
+    const platform =
+      selectedPlatform === "lichess" || selectedPlatform === "chesscom"
+        ? selectedPlatform
+        : undefined;
     setBatchStatus("running");
     setBatchError(null);
     try {
       const pendingGames = await utils.analysis.pending.fetch(
-        limit != null ? { limit, platform } : platform ? { platform } : undefined,
+        limit != null
+          ? { limit, platform }
+          : platform
+            ? { platform }
+            : undefined,
       );
       if (pendingGames.length === 0) {
         setBatchStatus("idle");
@@ -254,11 +261,12 @@ export function AnalysisDashboard() {
                   Scanning {batchProgress.done}/{batchProgress.total}…
                 </span>
               )}
-              {(batchStatus === "error" || batchStatus === "partial") && batchError && (
-                <span className="text-grade-d font-mono text-xs" role="alert">
-                  {batchError}
-                </span>
-              )}
+              {(batchStatus === "error" || batchStatus === "partial") &&
+                batchError && (
+                  <span className="text-grade-d font-mono text-xs" role="alert">
+                    {batchError}
+                  </span>
+                )}
             </div>
           )}
 
@@ -284,7 +292,10 @@ export function AnalysisDashboard() {
                   </Button>
                   <Link
                     href="/connections"
-                    className={buttonVariants({ variant: "outline", size: "sm" })}
+                    className={buttonVariants({
+                      variant: "outline",
+                      size: "sm",
+                    })}
                   >
                     {platforms.length === 0
                       ? "Connect an account"
@@ -360,7 +371,9 @@ export function AnalysisDashboard() {
                       size="sm"
                       variant="outline"
                       className="shrink-0"
-                      disabled={analyzingGameId !== null || batchStatus === "running"}
+                      disabled={
+                        analyzingGameId !== null || batchStatus === "running"
+                      }
                       onClick={() => void runSingleAnalysis(g.id)}
                     >
                       {analyzingGameId === g.id ? "Scanning…" : "Scan game"}
@@ -378,11 +391,15 @@ export function AnalysisDashboard() {
           <section className="flex flex-col gap-3 rounded-lg border border-line bg-card px-5 py-4 shadow-sheet">
             <p className="text-ink font-serif text-sm leading-relaxed">
               When picking a game above, aim for roughly{" "}
-              <span className="font-mono font-semibold">{ratio.winPct}% wins</span> to{" "}
-              <span className="font-mono font-semibold">{ratio.lossPct}% losses</span> —{" "}
-              {ratio.focusDescription}.
+              <span className="font-mono font-semibold">
+                {ratio.winPct}% wins
+              </span>{" "}
+              to{" "}
+              <span className="font-mono font-semibold">
+                {ratio.lossPct}% losses
+              </span>{" "}
+              — {ratio.focusDescription}.
             </p>
-
           </section>
         )}
       </div>

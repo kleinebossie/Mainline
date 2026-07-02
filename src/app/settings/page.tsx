@@ -21,14 +21,15 @@ export default async function SettingsPage() {
     >
       <div className="flex flex-col gap-14">
         <section className="flex flex-col gap-4">
-          <h2 className="eyebrow border-b border-line/80 pb-3">
-            Your plan
-          </h2>
+          <h2 className="eyebrow border-b border-line/80 pb-3">Your plan</h2>
           <p className="text-graphite text-sm leading-relaxed font-serif">
             Time, goals, formats and your if-then plan. Saving updates the
             program — regenerate Today to see it reflected.
           </p>
-          <ConstraintsForm continueHref="/today" continueLabel="Go to Today →" />
+          <ConstraintsForm
+            continueHref="/today"
+            continueLabel="Go to Today →"
+          />
         </section>
 
         <AnalysisRunner />

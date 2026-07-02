@@ -394,12 +394,7 @@
       "id": "play_games",
       "label": "Play rated games (longer time control)",
       "activityType": "play_game",
-      "dimensions": [
-        "tactics",
-        "board_vision",
-        "calculation",
-        "time_mgmt"
-      ],
+      "dimensions": ["tactics", "board_vision", "calculation", "time_mgmt"],
       "resourceTheme": null,
       "estMinutes": {
         "value": 30,
@@ -461,9 +456,7 @@
       "id": "themed_tactics",
       "label": "Themed tactics (reflective)",
       "activityType": "puzzle_theme",
-      "dimensions": [
-        "tactics"
-      ],
+      "dimensions": ["tactics"],
       "resourceTheme": "fork",
       "estMinutes": {
         "value": 10,
@@ -530,9 +523,7 @@
       "id": "spaced_review",
       "label": "Spaced review of failed tactics",
       "activityType": "spaced_review",
-      "dimensions": [
-        "tactics"
-      ],
+      "dimensions": ["tactics"],
       "resourceTheme": null,
       "estMinutes": {
         "value": 10,
@@ -599,10 +590,7 @@
       "id": "blunder_drill",
       "label": "Drill your own blunders",
       "activityType": "blunder_drill",
-      "dimensions": [
-        "board_vision",
-        "tactics"
-      ],
+      "dimensions": ["board_vision", "tactics"],
       "resourceTheme": null,
       "estMinutes": {
         "value": 8,
@@ -669,11 +657,7 @@
       "id": "analyse_own_games",
       "label": "Analyse your own games",
       "activityType": "analyse",
-      "dimensions": [
-        "positional",
-        "calculation",
-        "openings"
-      ],
+      "dimensions": ["positional", "calculation", "openings"],
       "resourceTheme": null,
       "estMinutes": {
         "value": 15,
@@ -740,9 +724,7 @@
       "id": "endgame_study",
       "label": "Endgame study",
       "activityType": "study",
-      "dimensions": [
-        "endgames"
-      ],
+      "dimensions": ["endgames"],
       "resourceTheme": "endgame",
       "estMinutes": {
         "value": 15,
@@ -809,9 +791,7 @@
       "id": "endgame_drill",
       "label": "Endgame drill (vs engine)",
       "activityType": "endgame_drill",
-      "dimensions": [
-        "endgames"
-      ],
+      "dimensions": ["endgames"],
       "resourceTheme": null,
       "estMinutes": {
         "value": 15,
@@ -878,9 +858,7 @@
       "id": "calculation_drill",
       "label": "Calculation / visualisation drill",
       "activityType": "puzzle_theme",
-      "dimensions": [
-        "calculation"
-      ],
+      "dimensions": ["calculation"],
       "resourceTheme": "veryLong",
       "estMinutes": {
         "value": 15,
@@ -947,10 +925,7 @@
       "id": "book_study",
       "label": "Study a recommended book",
       "activityType": "book",
-      "dimensions": [
-        "positional",
-        "calculation"
-      ],
+      "dimensions": ["positional", "calculation"],
       "resourceTheme": null,
       "estMinutes": {
         "value": 30,
@@ -1153,9 +1128,7 @@
       "flag": "best-guess",
       "note": "Servo gain: a success-rate error maps to this many rating points of offset nudge."
     },
-    "beginnerBands": [
-      "u800"
-    ],
+    "beginnerBands": ["u800"],
     "beginnerSuccessTarget": {
       "value": 0.9,
       "grade": "C",
@@ -1210,10 +1183,7 @@
       "flag": "best-guess",
       "note": "Block a new motif until accuracy clears this, then interleave it."
     },
-    "workedExampleBands": [
-      "u800",
-      "b800_1200"
-    ],
+    "workedExampleBands": ["u800", "b800_1200"],
     "workedExampleComplexityThreshold": {
       "value": 0.7,
       "grade": "B",
@@ -1259,27 +1229,9 @@
     },
     "fsrsWeights": {
       "value": [
-        0.2172,
-        1.1771,
-        3.2602,
-        16.1507,
-        7.0114,
-        0.57,
-        2.0966,
-        0.0069,
-        1.5261,
-        0.112,
-        1.0178,
-        1.849,
-        0.1133,
-        0.3127,
-        2.2934,
-        0.2191,
-        3.0004,
-        0.7536,
-        0.3332,
-        0.1437,
-        0.2
+        0.2172, 1.1771, 3.2602, 16.1507, 7.0114, 0.57, 2.0966, 0.0069, 1.5261,
+        0.112, 1.0178, 1.849, 0.1133, 0.3127, 2.2934, 0.2191, 3.0004, 0.7536,
+        0.3332, 0.1437, 0.2
       ],
       "grade": "A",
       "tier": 2,
@@ -1488,13 +1440,7 @@
       "note": "Median time to automate a habit (range 18–254); communicate honestly, don't promise."
     },
     "competenceMilestones": {
-      "value": [
-        10,
-        50,
-        100,
-        250,
-        500
-      ],
+      "value": [10, 50, 100, 250, 500],
       "grade": "C",
       "tier": 2,
       "citationKey": "stub_open_question",
@@ -3244,30 +3190,20 @@
     },
     "blockedCategoriesByBand": {
       "u800": {
-        "value": [
-          "strategy",
-          "opening",
-          "calculation",
-          "games"
-        ],
+        "value": ["strategy", "opening", "calculation", "games"],
         "grade": "A",
         "tier": 2,
         "citationKey": "sweller1988",
         "note": "Cognitive-load rule: beginners get tactics + basic mates only; strategy/opening books overload."
       },
       "b800_1200": {
-        "value": [
-          "opening",
-          "calculation"
-        ],
+        "value": ["opening", "calculation"],
         "grade": "A",
         "tier": 2,
         "citationKey": "sweller1988"
       },
       "b1200_1600": {
-        "value": [
-          "opening"
-        ],
+        "value": ["opening"],
         "grade": "A",
         "tier": 2,
         "citationKey": "sweller1988",

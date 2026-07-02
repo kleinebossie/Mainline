@@ -234,7 +234,6 @@ export const programRouter = router({
     return getTodayProgram(ctx.prisma, ctx.userId);
   }),
 
-
   // M13: ground-truth tablebase result for an endgame position (cache-first, polite, capped
   // — §6.6/§12). Null when unavailable (> 7 pieces, no entry, or a rate-limit/network miss);
   // the endgame surface then falls back to engine-only judging.

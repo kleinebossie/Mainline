@@ -130,6 +130,9 @@ function Form({
   const [newResourceKind, setNewResourceKind] =
     useState<OwnedResource["kind"]>("book");
   const [newResourceLabel, setNewResourceLabel] = useState("");
+  const [newResourceExternalRef, setNewResourceExternalRef] = useState<
+    string | undefined
+  >(undefined);
   const [depthVsBreadth, setDepth] = useState<SessionStyle["depthVsBreadth"]>(
     initial.sessionStyle.depthVsBreadth,
   );
@@ -139,6 +142,18 @@ function Form({
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const libraryQuery = trpc.library.get.useQuery();
+
+  const recommendedBooks = libraryQuery.data?.books ?? [];
+  const availableBooks = recommendedBooks.filter(
+    (b) =>
+      !ownedResources.some(
+        (r) =>
+          r.externalRef === b.id ||
+          r.label.toLowerCase() === b.title.toLowerCase(),
+      ),
+  );
+
   const toggle = <T,>(set: Set<T>, value: T): Set<T> => {
     const nextSet = new Set(set);
     if (nextSet.has(value)) nextSet.delete(value);
@@ -146,11 +161,27 @@ function Form({
     return nextSet;
   };
 
+  const handleResourceKindChange = (kind: OwnedResource["kind"]) => {
+    setNewResourceKind(kind);
+    setNewResourceLabel("");
+    setNewResourceExternalRef(undefined);
+  };
+
   const addResource = () => {
     const label = newResourceLabel.trim();
     if (!label || ownedResources.length >= 100) return;
-    setOwnedResources((rs) => [...rs, { kind: newResourceKind, label }]);
+    setOwnedResources((rs) => [
+      ...rs,
+      {
+        kind: newResourceKind,
+        label,
+        ...(newResourceKind === "book" && newResourceExternalRef
+          ? { externalRef: newResourceExternalRef }
+          : {}),
+      },
+    ]);
     setNewResourceLabel("");
+    setNewResourceExternalRef(undefined);
   };
   const removeResource = (index: number) =>
     setOwnedResources((rs) => rs.filter((_, i) => i !== index));
@@ -212,8 +243,8 @@ function Form({
           />
           <span className="text-graphite font-serif text-xs font-normal leading-relaxed">
             This is a <span className="text-ink font-medium">hard maximum</span>
-            . Sessions are sized to stay at or under it — never over. 5–1440
-            min (up to 24 hours).
+            . Sessions are sized to stay at or under it — never over. 5–1440 min
+            (up to 24 hours).
           </span>
         </label>
         <label className="flex flex-col gap-2 font-serif text-sm font-medium">
@@ -390,7 +421,7 @@ function Form({
           <select
             value={newResourceKind}
             onChange={(e) =>
-              setNewResourceKind(e.target.value as OwnedResource["kind"])
+              handleResourceKindChange(e.target.value as OwnedResource["kind"])
             }
             aria-label="Resource type"
             className="border-input bg-paper-raised text-ink h-10 rounded-md border px-3 font-mono text-sm focus:ring-evergreen focus:outline-none focus:ring-2"
@@ -401,20 +432,59 @@ function Form({
               </option>
             ))}
           </select>
-          <Input
-            value={newResourceLabel}
-            onChange={(e) => setNewResourceLabel(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                addResource();
+          {newResourceKind === "book" ? (
+            <select
+              value={newResourceExternalRef || ""}
+              onChange={(e) => {
+                const bookId = e.target.value;
+                setNewResourceExternalRef(bookId || undefined);
+                const book = recommendedBooks.find((b) => b.id === bookId);
+                setNewResourceLabel(book ? book.title : "");
+              }}
+              aria-label="Select recommended book"
+              className="border-input bg-paper-raised text-ink h-10 rounded-md border px-3 font-serif text-sm focus:ring-evergreen focus:outline-none focus:ring-2 flex-1"
+            >
+              {libraryQuery.isLoading ? (
+                <option value="">Loading recommended books...</option>
+              ) : availableBooks.length === 0 ? (
+                <option value="">
+                  All recommended books at your level added
+                </option>
+              ) : (
+                <>
+                  <option value="">Select a recommended book...</option>
+                  {availableBooks.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.title} (by {b.author})
+                    </option>
+                  ))}
+                </>
+              )}
+            </select>
+          ) : (
+            <Input
+              value={newResourceLabel}
+              onChange={(e) => setNewResourceLabel(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  addResource();
+                }
+              }}
+              placeholder={
+                newResourceKind === "course"
+                  ? "e.g. Chess Steps Level 1"
+                  : newResourceKind === "membership"
+                    ? "e.g. Chess.com Diamond"
+                    : newResourceKind === "trainer"
+                      ? "e.g. Aimchess"
+                      : "e.g. Chessable"
               }
-            }}
-            placeholder="e.g. Dvoretsky's Endgame Manual"
-            aria-label="Resource name"
-            maxLength={160}
-            className="flex-1"
-          />
+              aria-label="Resource name"
+              maxLength={160}
+              className="flex-1"
+            />
+          )}
           <Button
             type="button"
             variant="outline"

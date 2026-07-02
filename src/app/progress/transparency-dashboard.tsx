@@ -99,8 +99,6 @@ export function TransparencyDashboard() {
           <p className="text-graphite text-sm">No engine adaptations yet.</p>
         )}
       </section>
-
-
     </div>
   );
 }
