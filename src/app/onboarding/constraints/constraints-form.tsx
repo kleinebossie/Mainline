@@ -206,13 +206,14 @@ function Form({
           <Input
             type="number"
             min={5}
-            max={600}
+            max={1440}
             value={minutesPerDay}
             onChange={(e) => setMinutes(Number(e.target.value))}
           />
           <span className="text-graphite font-serif text-xs font-normal leading-relaxed">
             This is a <span className="text-ink font-medium">hard maximum</span>
-            . Sessions are sized to stay at or under it — never over.
+            . Sessions are sized to stay at or under it — never over. 5–1440
+            min (up to 24 hours).
           </span>
         </label>
         <label className="flex flex-col gap-2 font-serif text-sm font-medium">

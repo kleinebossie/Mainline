@@ -45,7 +45,7 @@ describe("constraintsInputSchema", () => {
       constraintsInputSchema.safeParse({ ...valid, minutesPerDay: 0 }).success,
     ).toBe(false);
     expect(
-      constraintsInputSchema.safeParse({ ...valid, minutesPerDay: 601 })
+      constraintsInputSchema.safeParse({ ...valid, minutesPerDay: 1441 })
         .success,
     ).toBe(false);
     expect(

@@ -86,7 +86,7 @@ export const formatPrefsSchema = z.object({
 export type FormatPrefs = z.infer<typeof formatPrefsSchema>;
 
 export const constraintsInputSchema = z.object({
-  minutesPerDay: z.number().int().min(5).max(600),
+  minutesPerDay: z.number().int().min(5).max(1440),
   daysPerWeek: z.number().int().min(1).max(7),
   goals: z.array(goalSchema).max(10),
   ownedResources: z.array(ownedResourceSchema).max(100),

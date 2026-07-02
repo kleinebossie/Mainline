@@ -1,9 +1,11 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc/react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { TransparencyCard } from "@/components/transparency-card";
 import type { TodayItem } from "@/server/program";
 import { cn } from "@/lib/utils";
@@ -70,6 +72,41 @@ export function Today() {
     },
   });
 
+  const constraints = trpc.constraints.getCurrent.useQuery();
+
+  const saveConstraints = trpc.constraints.save.useMutation({
+    onSuccess: () => {
+      void utils.constraints.getCurrent.invalidate();
+    },
+  });
+
+  const [timeInput, setTimeInput] = useState("");
+
+  const minutes = constraints.data?.minutesPerDay;
+  useEffect(() => {
+    if (minutes != null) setTimeInput(String(minutes));
+  }, [minutes]);
+
+  const handleRegenerateWithTime = () => {
+    const mins = parseInt(timeInput, 10);
+    if (!constraints.data || isNaN(mins) || mins < 5 || mins > 1440) return;
+    saveConstraints.mutate(
+      { ...constraints.data, minutesPerDay: mins },
+      {
+        onSuccess: () => {
+          generate.mutate();
+        },
+      },
+    );
+  };
+
+  const timeBusy = saveConstraints.isPending || generate.isPending;
+
+  const timeValid = (() => {
+    const mins = parseInt(timeInput, 10);
+    return !isNaN(mins) && mins >= 5 && mins <= 1440;
+  })();
+
   if (today.isLoading) {
     return (
       <p className="text-graphite font-mono text-sm">Loading your session…</p>
@@ -92,14 +129,38 @@ export function Today() {
             Build your first training session from your calibration, your games,
             and the time you have. You can regenerate it any time.
           </p>
-          <Button
-            type="button"
-            disabled={generate.isPending}
-            onClick={() => generate.mutate()}
-            className="self-start"
-          >
-            {generate.isPending ? "Generating…" : "Generate today's session"}
-          </Button>
+          <div className="flex flex-col gap-2">
+            <label
+              htmlFor="today-time-input"
+              className="font-serif text-sm text-ink"
+            >
+              How much time do you have today?
+            </label>
+            <div className="flex items-center gap-2">
+              <Input
+                id="today-time-input"
+                type="number"
+                min={5}
+                max={1440}
+                value={timeInput}
+                onChange={(e) => setTimeInput(e.target.value)}
+                disabled={timeBusy}
+                className="w-20 font-mono text-sm"
+              />
+              <span className="text-graphite font-mono text-xs">min</span>
+              <Button
+                type="button"
+                size="sm"
+                disabled={timeBusy || timeInput === ""}
+                onClick={handleRegenerateWithTime}
+              >
+                {timeBusy ? "Generating…" : "Regenerate"}
+              </Button>
+            </div>
+            <p className="text-graphite font-mono text-[0.65rem]">
+              5–1440 min (up to 24 hours)
+            </p>
+          </div>
         </CardContent>
       </Card>
     );
@@ -109,6 +170,44 @@ export function Today() {
 
   return (
     <div className="flex flex-col gap-5">
+      {/* Time input — set how many minutes you have today, then regenerate. */}
+      <div className="flex flex-col gap-2">
+        <label
+          htmlFor="today-time-input"
+          className="font-serif text-sm text-ink"
+        >
+          How much time do you have today?
+        </label>
+        <div className="flex items-center gap-2">
+          <Input
+            id="today-time-input"
+            type="number"
+            min={5}
+            max={600}
+            value={timeInput}
+            onChange={(e) => setTimeInput(e.target.value)}
+            disabled={timeBusy}
+            className="w-20 font-mono text-sm"
+          />
+          <span className="text-graphite font-mono text-xs">min</span>
+              <Button
+                type="button"
+                size="sm"
+                variant={!timeValid && !timeBusy ? "outline" : "default"}
+                disabled={timeBusy || !timeValid}
+                onClick={handleRegenerateWithTime}
+                className={cn(
+                  !timeValid && !timeBusy && "border-evergreen/30 text-evergreen/50",
+                )}
+              >
+                {timeBusy ? "Regenerating…" : "Regenerate"}
+              </Button>
+        </div>
+        <p className="text-graphite font-mono text-[0.65rem]">
+          5–1440 min (up to 24 hours)
+        </p>
+      </div>
+
       {/* Honest framing: a process goal and realistic expectations, never a rating promise. */}
       <div className="bg-card focus-card rounded-lg border p-5 shadow-sheet settle">
         <p className="eyebrow">Today&apos;s focus</p>
