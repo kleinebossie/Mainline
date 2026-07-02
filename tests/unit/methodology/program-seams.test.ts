@@ -233,6 +233,17 @@ describe("mapWeaknessToActivities", () => {
       "themed_tactics",
     ]);
   });
+
+  it("includes book_study if the user owns a book recommended for their band", () => {
+    const candidates = mapWeaknessToActivities(
+      { signals: [], band: "u800", ownedRefs: ["giannatos_first_workbook"] },
+      cfg,
+    );
+    const book = candidates.find((c) => c.activityId === "book_study");
+    expect(book).toBeDefined();
+    expect(book?.owned).toBe(true);
+    expect(book?.priority).toBe(2);
+  });
 });
 
 describe("prioritizeDailyMix", () => {
@@ -273,6 +284,23 @@ describe("prioritizeDailyMix", () => {
       "play_games",
       "endgame_study", // spaced_review dropped (nothing due)
     ]);
+  });
+
+  it("awards the owned bonus if owned is true on candidate", () => {
+    const ordered = prioritizeDailyMix(
+      {
+        candidates: [
+          { ...candidate("book_study", "book", 1), owned: true },
+          candidate("play_games", "play_game", 1),
+        ],
+        dueItems: [],
+        preferences: {
+          ownedRefs: [],
+        },
+      },
+      cfg,
+    );
+    expect(ordered[0]?.activityId).toBe("book_study");
   });
 
   it("a weakness severity pulls the elevated activity to the top", () => {

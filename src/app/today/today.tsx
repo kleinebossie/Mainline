@@ -73,6 +73,8 @@ export function Today() {
   });
 
   const constraints = trpc.constraints.getCurrent.useQuery();
+  const library = trpc.library.get.useQuery();
+  const ownedBooks = library.data?.books.filter((b) => b.owned) ?? [];
 
   const saveConstraints = trpc.constraints.save.useMutation({
     onSuccess: () => {
@@ -190,18 +192,20 @@ export function Today() {
             className="w-20 font-mono text-sm"
           />
           <span className="text-graphite font-mono text-xs">min</span>
-              <Button
-                type="button"
-                size="sm"
-                variant={!timeValid && !timeBusy ? "outline" : "default"}
-                disabled={timeBusy || !timeValid}
-                onClick={handleRegenerateWithTime}
-                className={cn(
-                  !timeValid && !timeBusy && "border-evergreen/30 text-evergreen/50",
-                )}
-              >
-                {timeBusy ? "Regenerating…" : "Regenerate"}
-              </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant={!timeValid && !timeBusy ? "outline" : "default"}
+            disabled={timeBusy || !timeValid}
+            onClick={handleRegenerateWithTime}
+            className={cn(
+              !timeValid &&
+                !timeBusy &&
+                "border-evergreen/30 text-evergreen/50",
+            )}
+          >
+            {timeBusy ? "Regenerating…" : "Regenerate"}
+          </Button>
         </div>
         <p className="text-graphite font-mono text-[0.65rem]">
           5–1440 min (up to 24 hours)
@@ -229,6 +233,7 @@ export function Today() {
         const done = item.status === "done";
         const skipped = item.status === "skipped";
         const busy = pendingItemId === item.id;
+        const isBook = item.activityType === "book";
         return (
           <Card
             key={item.id}
@@ -297,72 +302,115 @@ export function Today() {
               />
 
               {/* M7 — log the outcome; a miss is scheduled to return spaced. */}
-              <div className="flex flex-wrap items-center gap-2 border-t border-line/80 pt-4">
-                {done || skipped ? (
-                  <span className="text-graphite font-mono text-xs">
-                    {done ? "✓ Logged" : "Skipped"}
-                  </span>
-                ) : item.delivery === "internal" ? null : isPuzzle(item) ? ( // Internal activities are auto-logged in-app; only allow Skip here
-                  <>
-                    <Button
-                      type="button"
-                      size="sm"
-                      disabled={busy}
-                      onClick={() =>
-                        log.mutate({
-                          programItemId: item.id,
-                          type: "puzzle_attempt",
-                          correct: true,
-                        })
-                      }
-                    >
-                      Solved them
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      disabled={busy}
-                      onClick={() =>
-                        log.mutate({
-                          programItemId: item.id,
-                          type: "puzzle_attempt",
-                          correct: false,
-                        })
-                      }
-                    >
-                      Struggled
-                    </Button>
-                  </>
+              {isBook && !done && !skipped ? (
+                library.isLoading ? (
+                  <p className="text-graphite font-mono text-xs pt-4 border-t border-line/80">
+                    Loading owned books…
+                  </p>
+                ) : ownedBooks.length === 0 ? (
+                  <div className="flex flex-col gap-2 border-t border-line/80 pt-4">
+                    <p className="text-graphite font-serif text-sm">
+                      You don&apos;t own any recommended books at your level
+                      yet. Add books you own in the Library section or Settings.
+                    </p>
+                    {!done && !skipped && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        disabled={busy}
+                        onClick={() =>
+                          log.mutate({ programItemId: item.id, type: "skip" })
+                        }
+                        className="self-start"
+                      >
+                        Skip
+                      </Button>
+                    )}
+                  </div>
                 ) : (
-                  <Button
-                    type="button"
-                    size="sm"
-                    disabled={busy}
-                    onClick={() =>
-                      log.mutate({
-                        programItemId: item.id,
-                        type: "drill_done",
-                      })
-                    }
-                  >
-                    Mark done
-                  </Button>
-                )}
-                {!done && !skipped && (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    disabled={busy}
-                    onClick={() =>
+                  <BookLogForm
+                    item={item}
+                    ownedBooks={ownedBooks}
+                    onSuccess={() => {
+                      void utils.library.get.invalidate();
+                      void utils.program.getToday.invalidate();
+                      void utils.tracker.dueReviews.invalidate();
+                    }}
+                    onSkip={() =>
                       log.mutate({ programItemId: item.id, type: "skip" })
                     }
-                  >
-                    Skip
-                  </Button>
-                )}
-              </div>
+                    busy={busy}
+                  />
+                )
+              ) : (
+                <div className="flex flex-wrap items-center gap-2 border-t border-line/80 pt-4">
+                  {done || skipped ? (
+                    <span className="text-graphite font-mono text-xs">
+                      {done ? "✓ Logged" : "Skipped"}
+                    </span>
+                  ) : item.delivery === "internal" ? null : isPuzzle(item) ? ( // Internal activities are auto-logged in-app; only allow Skip here
+                    <>
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={busy}
+                        onClick={() =>
+                          log.mutate({
+                            programItemId: item.id,
+                            type: "puzzle_attempt",
+                            correct: true,
+                          })
+                        }
+                      >
+                        Solved them
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={busy}
+                        onClick={() =>
+                          log.mutate({
+                            programItemId: item.id,
+                            type: "puzzle_attempt",
+                            correct: false,
+                          })
+                        }
+                      >
+                        Struggled
+                      </Button>
+                    </>
+                  ) : (
+                    <Button
+                      type="button"
+                      size="sm"
+                      disabled={busy}
+                      onClick={() =>
+                        log.mutate({
+                          programItemId: item.id,
+                          type: "drill_done",
+                        })
+                      }
+                    >
+                      Mark done
+                    </Button>
+                  )}
+                  {!done && !skipped && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      disabled={busy}
+                      onClick={() =>
+                        log.mutate({ programItemId: item.id, type: "skip" })
+                      }
+                    >
+                      Skip
+                    </Button>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
         );
@@ -407,6 +455,192 @@ export function Today() {
           {program.methodologyVersion}
         </span>
       </div>
+    </div>
+  );
+}
+
+interface OwnedBook {
+  id: string;
+  title: string;
+  studyUnit: string;
+  category: string;
+}
+
+function BookLogForm({
+  item,
+  ownedBooks,
+  onSuccess,
+  onSkip,
+  busy,
+}: {
+  item: TodayItem;
+  ownedBooks: OwnedBook[];
+  onSuccess: () => void;
+  onSkip: () => void;
+  busy: boolean;
+}) {
+  const [bookId, setBookId] = useState<string>(ownedBooks[0]?.id || "");
+  const [unitCount, setUnitCount] = useState<string>("");
+  const [successPct, setSuccessPct] = useState<string>("");
+  const [chapter, setChapter] = useState<string>("");
+  const [cycle, setCycle] = useState<string>("");
+  const [minutes, setMinutes] = useState<string>("");
+
+  const log = trpc.library.logSession.useMutation({
+    onSuccess: () => {
+      onSuccess();
+      setUnitCount("");
+      setChapter("");
+      setMinutes("");
+      setCycle("");
+      setSuccessPct("");
+    },
+  });
+
+  const selectedBook = ownedBooks.find((b) => b.id === bookId) ?? ownedBooks[0];
+  const unitLabel =
+    selectedBook?.studyUnit === "games" ? "Games studied" : "Exercises done";
+  const unitPlaceholder =
+    selectedBook?.studyUnit === "games" ? "e.g. 3" : "e.g. 10";
+
+  const onLog = () => {
+    const resourceRefId = bookId || ownedBooks[0]?.id;
+    if (!resourceRefId) return;
+    const count = Number(unitCount);
+    if (!unitCount || !Number.isInteger(count) || count <= 0) {
+      alert("Please enter a valid positive number for exercises/games.");
+      return;
+    }
+    const pct = successPct ? Number(successPct) : NaN;
+    log.mutate({
+      programItemId: item.id,
+      resourceRefId,
+      successRate: !isNaN(pct) && Number.isFinite(pct) ? pct / 100 : undefined,
+      durationMin: minutes ? Number(minutes) : undefined,
+      woodpeckerCycle: cycle ? Number(cycle) : undefined,
+      position: {
+        unitCount: count,
+        chapter: chapter ? Number(chapter) : undefined,
+      },
+    });
+  };
+
+  return (
+    <div className="flex flex-col gap-4 border-t border-line/80 pt-4">
+      <h3 className="font-serif text-sm font-semibold text-ink">
+        Log your study session
+      </h3>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <label className="flex flex-col gap-1.5 font-serif text-xs">
+          <span className="eyebrow !text-[0.62rem]">Book</span>
+          <select
+            value={bookId}
+            onChange={(e) => setBookId(e.target.value)}
+            className="border-input bg-paper-raised h-9 rounded-md border px-2 font-serif text-sm text-ink"
+          >
+            {ownedBooks.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.title}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1.5 font-serif text-xs">
+          <span className="eyebrow !text-[0.62rem]">
+            {unitLabel} <span className="text-red-500">*</span>
+          </span>
+          <Input
+            type="number"
+            min={1}
+            placeholder={unitPlaceholder}
+            value={unitCount}
+            onChange={(e) => setUnitCount(e.target.value)}
+            required
+            className="text-ink text-sm h-9"
+          />
+        </label>
+        <label className="flex flex-col gap-1.5 font-serif text-xs">
+          <span className="eyebrow !text-[0.62rem]">
+            Exercises solved (%) (optional)
+          </span>
+          <select
+            value={successPct}
+            onChange={(e) => setSuccessPct(e.target.value)}
+            className="border-input bg-paper-raised h-9 rounded-md border px-2 font-serif text-sm text-ink"
+          >
+            <option value="">Optional (select...)</option>
+            {["50", "60", "70", "75", "80", "85", "90", "95"].map((p) => (
+              <option key={p} value={p}>
+                {p}%
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1.5 font-serif text-xs">
+          <span className="eyebrow !text-[0.62rem]">Chapter (optional)</span>
+          <Input
+            type="number"
+            min={0}
+            value={chapter}
+            onChange={(e) => setChapter(e.target.value)}
+            className="text-ink text-sm h-9"
+          />
+        </label>
+        <label className="flex flex-col gap-1.5 font-serif text-xs">
+          <span className="eyebrow !text-[0.62rem]">Minutes (optional)</span>
+          <Input
+            type="number"
+            min={0}
+            value={minutes}
+            onChange={(e) => setMinutes(e.target.value)}
+            className="text-ink text-sm h-9"
+          />
+        </label>
+        {selectedBook?.category === "tactics" && (
+          <label className="flex flex-col gap-1.5 font-serif text-xs">
+            <span className="eyebrow !text-[0.62rem]">
+              Woodpecker cycle (optional)
+            </span>
+            <Input
+              type="number"
+              min={1}
+              value={cycle}
+              onChange={(e) => setCycle(e.target.value)}
+              className="text-ink text-sm h-9"
+            />
+          </label>
+        )}
+      </div>
+      <div className="flex items-center gap-2">
+        <Button
+          type="button"
+          disabled={log.isPending || busy}
+          onClick={onLog}
+          size="sm"
+        >
+          {log.isPending ? "Logging…" : "Log this session"}
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          disabled={log.isPending || busy}
+          onClick={onSkip}
+          size="sm"
+        >
+          Skip
+        </Button>
+      </div>
+
+      {log.data?.feedback && (
+        <p className="text-graphite border-l-2 border-evergreen/40 pl-3 font-serif text-sm leading-relaxed">
+          {log.data.feedback.verdict === "too_easy" &&
+            "That book looks a bit easy — consider a harder one."}
+          {log.data.feedback.verdict === "too_hard" &&
+            "That book looks tough right now — an easier one will help."}
+          {log.data.feedback.verdict === "calibrated" &&
+            "Nicely calibrated — that difficulty is right where learning is fastest."}
+        </p>
+      )}
     </div>
   );
 }

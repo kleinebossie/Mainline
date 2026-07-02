@@ -319,6 +319,7 @@ export interface CandidateActivity {
   rationaleKey: string;
   /** Set when a weakness signal elevated this activity (else null). */
   drivingSignal: WeaknessSignal | null;
+  owned?: boolean;
 }
 
 /** The user's stated PREFERENCES that reshape the daily mix (Seam 7). All optional — absent
@@ -483,31 +484,58 @@ export function interpretGameFeatures(
  * the Engine — so it is not threaded here in the stub.)
  */
 export function mapWeaknessToActivities(
-  input: { signals: readonly WeaknessSignal[]; band: Band },
+  input: {
+    signals: readonly WeaknessSignal[];
+    band: Band;
+    ownedRefs?: readonly string[];
+  },
   cfg: MethodologyConfig,
 ): CandidateActivity[] {
   const candidates = new Map<string, CandidateActivity>();
 
   const toCandidate = (
     def: MethodologyConfig["activities"][number],
-  ): CandidateActivity => ({
-    activityId: def.id,
-    activityType: def.activityType,
-    label: def.label,
-    resourceTheme: def.resourceTheme,
-    dimensionsTargeted: [...def.dimensions],
-    track: def.track,
-    estMinutes: def.estMinutes.value,
-    priority: def.priorityByBand[input.band]?.value ?? 0,
-    formats: def.formats ?? null,
-    rationaleKey: def.rationaleKey,
-    drivingSignal: null,
-  });
+  ): CandidateActivity => {
+    let priority = def.priorityByBand[input.band]?.value ?? 0;
+    let owned = false;
+
+    if (def.activityType === "book") {
+      const bandBooks = cfg.bookStudy.catalogByBand[input.band] ?? [];
+      const userOwned = new Set(
+        (input.ownedRefs ?? []).map((r) => r.toLowerCase()),
+      );
+      const ownsAny = bandBooks.some(
+        (b) =>
+          userOwned.has(b.id.toLowerCase()) ||
+          userOwned.has(b.title.toLowerCase()),
+      );
+      if (ownsAny) {
+        owned = true;
+        // If they own a book at their level, prioritize it so it is included on Today.
+        priority = priority > 0 ? priority : 2;
+      }
+    }
+
+    return {
+      activityId: def.id,
+      activityType: def.activityType,
+      label: def.label,
+      resourceTheme: def.resourceTheme,
+      dimensionsTargeted: [...def.dimensions],
+      track: def.track,
+      estMinutes: def.estMinutes.value,
+      priority,
+      formats: def.formats ?? null,
+      rationaleKey: def.rationaleKey,
+      drivingSignal: null,
+      owned,
+    };
+  };
 
   for (const def of cfg.activities) {
-    const p = def.priorityByBand[input.band];
-    if (!p || p.value <= 0) continue;
-    candidates.set(def.id, toCandidate(def));
+    const cand = toCandidate(def);
+    if (cand.priority <= 0) continue;
+    candidates.set(def.id, cand);
   }
 
   for (const signal of input.signals) {
@@ -936,7 +964,8 @@ export function prioritizeDailyMix(
 
       // Owned-resource bonus: reward an activity whose resource the user already owns.
       const ownedBonus =
-        ownedRefs && ownedRefs.length > 0 && candidateIsOwned(c, ownedRefs)
+        c.owned ||
+        (ownedRefs && ownedRefs.length > 0 && candidateIsOwned(c, ownedRefs))
           ? p.ownedResourceBonus.value
           : 0;
 

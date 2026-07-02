@@ -160,7 +160,11 @@ export function generateProgram(
 
   // Seam 4 → Seam 7: gather candidates for the band, elevate weaknesses, order them.
   const candidates = mapWeaknessToActivities(
-    { signals: input.weaknessSignals, band },
+    {
+      signals: input.weaknessSignals,
+      band,
+      ownedRefs: input.constraints.ownedRefs,
+    },
     cfg,
   );
   const ordered = prioritizeDailyMix(
