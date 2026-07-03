@@ -18,6 +18,12 @@ interface FakeOpts {
     payload: unknown;
     programItem: { params: unknown } | null;
   }[];
+  ratings?: unknown;
+  ownedResources?: {
+    kind: "book" | "course" | "membership" | "trainer" | "other";
+    label: string;
+    externalRef?: string;
+  }[];
 }
 
 interface CreatedItem {
@@ -59,7 +65,10 @@ function fakeDb(opts: FakeOpts) {
           ? { tacticalRatingEstimate: opts.tacticalRating }
           : null,
     },
-    chessProfileSnapshot: { findFirst: async () => null },
+    chessProfileSnapshot: {
+      findFirst: async () =>
+        opts.ratings != null ? { ratings: opts.ratings } : null,
+    },
     analysisResult: {
       findMany: async () =>
         (opts.features ?? []).map((f) => ({ rawFeatures: f })),
@@ -73,7 +82,7 @@ function fakeDb(opts: FakeOpts) {
               minutesPerDay: opts.minutesPerDay,
               daysPerWeek: 5,
               goals: [],
-              ownedResources: [],
+              ownedResources: opts.ownedResources ?? [],
               formatPrefs: { formats: [], preferredVariety: false },
               sessionStyle: null,
               ifThenPlan: null,
@@ -191,5 +200,21 @@ describe("generateAndSaveProgram + getTodayProgram (round-trip)", () => {
     const review = today!.items.find((i) => i.activityType === "spaced_review");
     expect(review).toBeDefined();
     expect(review!.params.dueItemRefs).toEqual(["fork"]);
+  });
+
+  it("uses the library band instead of tactical band to select owned books during program generation", async () => {
+    const db = fakeDb({
+      tacticalRating: 2100, // tactical band: b2000_2200
+      minutesPerDay: 45,
+      ratings: {
+        blitz: { rating: 1100 }, // library band: b800_1200
+      },
+      ownedResources: [{ kind: "book", label: "polgar_5334" }],
+    });
+    await generateAndSaveProgram(db, "u1", clock);
+    const today = await getTodayProgram(db, "u1");
+    const bookItem = today!.items.find((i) => i.activityType === "book");
+    expect(bookItem).toBeDefined();
+    expect(bookItem!.bookResource?.id).toBe("polgar_5334");
   });
 });

@@ -137,6 +137,14 @@ describe("L3: methodology config integrity", () => {
         0.85,
       );
       expect(cfg.bookStudy.woodpecker.firstCycleDays.grade).toBeDefined();
+      expect(cfg.bookStudy.ownedBookDailyPriority.grade).toBe("C");
+      expect(cfg.bookStudy.categoryDimensions["endgame"]).toContain("endgames");
+      const calculationSub = cfg.bookStudy.activitySubstitutions.find(
+        (s) => s.activityId === "calculation_drill",
+      );
+      expect(calculationSub?.preferredBookIdsByBand.b800_1200?.value).toContain(
+        "polgar_5334",
+      );
       for (const id of bandIds) {
         expect(cfg.bookStudy.catalogByBand[id]).toBeDefined();
         expect(cfg.bookStudy.blockedCategoriesByBand[id]).toBeDefined();

@@ -183,8 +183,8 @@ export function Calibration() {
 
           <p className="text-graphite font-serif text-sm leading-relaxed border-t border-line/80 pt-4">
             These are rough calibration points, not verdicts — a placeholder
-            method that estimates a few skills directly. The fuller picture comes
-            from analysing your real games.
+            method that estimates a few skills directly. The fuller picture
+            comes from analysing your real games.
           </p>
 
           <div className="flex flex-wrap gap-3 border-t border-line/80 pt-5">
@@ -264,7 +264,9 @@ export function Calibration() {
                 fen={solveState.position}
                 onMove={handleMove}
                 orientation={orientation}
-                disabled={pending || solveStatus === "solved" || solveStatus === "wrong"}
+                disabled={
+                  pending || solveStatus === "solved" || solveStatus === "wrong"
+                }
                 showEvalBar={affordances?.showEvalBar ?? false}
                 showLegalMoveDots={affordances?.showLegalMoveDots ?? false}
                 allowArrows={affordances?.allowArrows ?? true}
@@ -317,7 +319,9 @@ export function Calibration() {
         ) : (
           <>
             <div className="bg-paper/60 rounded-md border p-5 text-center">
-              <p className="eyebrow !text-[0.65rem] mb-1">Puzzle strength target</p>
+              <p className="eyebrow !text-[0.65rem] mb-1">
+                Puzzle strength target
+              </p>
               <p className="text-4xl font-mono font-bold tracking-tight text-ink tabular-nums">
                 {activeTrack.next.ratingTarget}
               </p>

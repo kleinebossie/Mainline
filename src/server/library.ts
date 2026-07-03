@@ -1,5 +1,5 @@
 // Library orchestration (BUILD.md M14 · §4.2–4.4). The deliberately-EXTERNAL layer: books,
-// courses, and real games are recommended + logged, never hosted (VISION §6). The graded
+// courses, and real games are recommended + scheduled/logged, never hosted (VISION §6). The graded
 // DECISIONS live in the pure provider functions (recommendBooks / woodpeckerSchedule /
 // bookDifficultyFeedback / modalityRecommendation); this module only gathers DB state, calls
 // them, and rolls up progress (L1: server orchestrates, it does not decide). ResourceProgress

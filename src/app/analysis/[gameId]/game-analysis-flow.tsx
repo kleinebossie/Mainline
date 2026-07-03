@@ -885,7 +885,6 @@ export function GameAnalysisFlow() {
                       : "Save Session & Finish"}
                   </Button>
                 </div>
-
               </CardContent>
             </Card>
           </div>

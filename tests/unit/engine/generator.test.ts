@@ -75,6 +75,63 @@ describe("generateProgram (golden)", () => {
     expect(tactics.confidence).toBe("low"); // band prior, not the user's own data
   });
 
+  it("replaces endgame study with an owned endgame book", () => {
+    const { items } = generateProgram({
+      band: "b1200_1600",
+      tacticalRating: 1300,
+      weaknessSignals: [],
+      dueItems: [],
+      constraints: {
+        minutesPerDay: 30,
+        ownedRefs: ["delavilla_100_endgames"],
+      },
+      clock,
+      config: cfg,
+    });
+
+    expect(items[0]!.activityId).toBe("endgame_study");
+    expect(items[0]!.activityType).toBe("book");
+    expect(items[0]!.label).toBe("Study 100 Endgames You Must Know");
+    expect(items[0]!.dimensionsTargeted).toEqual(["endgames"]);
+    expect(items[0]!.params.bookResource).toEqual({
+      id: "delavilla_100_endgames",
+      title: "100 Endgames You Must Know",
+      category: "endgame",
+      studyUnit: "exercises",
+    });
+    expect(items[0]!.params.studyMinutes).toBe(15);
+  });
+
+  it("replaces calculation/visualisation drill with Polgar 5334 when owned", () => {
+    const { items } = generateProgram({
+      band: "b800_1200",
+      tacticalRating: 1000,
+      weaknessSignals: [],
+      dueItems: [],
+      constraints: {
+        minutesPerDay: 30,
+        ownedRefs: ["polgar_5334"],
+      },
+      clock,
+      config: cfg,
+    });
+
+    const calculation = items.find((i) => i.activityId === "calculation_drill");
+    expect(calculation).toBeDefined();
+    expect(calculation?.activityType).toBe("book");
+    expect(calculation?.label).toBe(
+      "Study Chess: 5334 Problems, Combinations and Games",
+    );
+    expect(calculation?.params.bookResource).toEqual({
+      id: "polgar_5334",
+      title: "Chess: 5334 Problems, Combinations and Games",
+      category: "tactics",
+      studyUnit: "exercises",
+    });
+    expect(calculation?.params.studyMinutes).toBe(15);
+    expect(items.map((i) => i.activityId)).not.toContain("book_study");
+  });
+
   it("a weakness signal reorders the day and snapshots the signal's confidence + theme", () => {
     const signal: WeaknessSignal = {
       dimension: "board_vision",

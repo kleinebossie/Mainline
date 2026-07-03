@@ -52,7 +52,22 @@ describe("toTodayItem — external activities stay external (M14)", () => {
 
   it("the book activity is external (content is never hosted) and not a /train route", () => {
     const t = toTodayItem(
-      item({ id: "b1", activityId: "book_study", activityType: "book" }),
+      item({
+        id: "b1",
+        activityId: "book_study",
+        activityType: "book",
+        params: {
+          theme: null,
+          track: null,
+          bookResource: {
+            id: "delavilla_100_endgames",
+            title: "100 Endgames You Must Know",
+            category: "endgame",
+            studyUnit: "exercises",
+          },
+          studyMinutes: 20,
+        },
+      }),
       cfg,
       dimLabels,
       ledger,
@@ -60,5 +75,69 @@ describe("toTodayItem — external activities stay external (M14)", () => {
     );
     expect(t.delivery).toBe("external");
     expect(t.url ?? "").not.toContain("/train");
+    expect(t.label).toBe("Study 100 Endgames You Must Know");
+    expect(t.bookResource?.id).toBe("delavilla_100_endgames");
+  });
+
+  it("an owned-book replacement of an internal drill stays external", () => {
+    const t = toTodayItem(
+      item({
+        id: "c1",
+        activityId: "calculation_drill",
+        activityType: "book",
+        params: {
+          theme: null,
+          track: null,
+          bookResource: {
+            id: "polgar_5334",
+            title: "Chess: 5334 Problems, Combinations and Games",
+            category: "tactics",
+            studyUnit: "exercises",
+          },
+          studyMinutes: 15,
+        },
+      }),
+      cfg,
+      dimLabels,
+      ledger,
+      "lichess",
+    );
+    expect(t.delivery).toBe("external");
+    expect(t.url ?? "").not.toContain("/train");
+    expect(t.label).toBe("Study Chess: 5334 Problems, Combinations and Games");
+    expect(t.bookResource?.id).toBe("polgar_5334");
+  });
+
+  it("analysis opens the analysis workflow, not the board puzzle trainer", () => {
+    const t = toTodayItem(
+      item({
+        id: "a1",
+        activityId: "analyse_own_games",
+        activityType: "analyse",
+      }),
+      cfg,
+      dimLabels,
+      ledger,
+      "lichess",
+    );
+    expect(t.delivery).toBe("internal");
+    expect(t.url).toBe("/analysis");
+    expect(t.url ?? "").not.toContain("/train");
+  });
+
+  it("generic study items do not fall through to the board puzzle trainer", () => {
+    const t = toTodayItem(
+      item({
+        id: "s1",
+        activityId: "endgame_study",
+        activityType: "study",
+      }),
+      cfg,
+      dimLabels,
+      ledger,
+      "lichess",
+    );
+    expect(t.delivery).toBe("internal");
+    expect(t.url).toBeNull();
   });
 });

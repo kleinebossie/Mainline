@@ -58,6 +58,7 @@ export {
   type PracticeStructureKind,
   type WeaknessSignal,
   type CandidateActivity,
+  type CandidateBookResource,
   type BoardAffordances,
   type BookRecommendation,
   type WoodpeckerCycle,

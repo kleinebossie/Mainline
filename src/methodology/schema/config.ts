@@ -563,12 +563,22 @@ const bookRecSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
   author: z.string().min(1),
-  // A structural family tag (which kind of book) — drives the cognitive-load block rule.
+  // A structural family tag (which kind of book) - drives the cognitive-load block rule.
   category: bookCategorySchema,
   studyUnit: z.enum(["exercises", "games"]),
   // The graded "why this book at this band" focus copy (Grade C coaching consensus); carries
   // the citation so a recommendation can never render as Grade-A fact.
   recommendation: gradedValue(z.string().min(1)),
+});
+
+const activityBookSubstitutionSchema = z.object({
+  // The activity whose slot can be satisfied by an owned external book instead.
+  activityId: z.string().min(1),
+  // Structural fallback: a band-appropriate owned book in one of these categories can replace
+  // the activity if no preferred book id is owned.
+  categories: z.array(bookCategorySchema).min(1),
+  // Graded policy: which books are the preferred replacements for this activity by band.
+  preferredBookIdsByBand: z.record(gradedValue(z.array(z.string().min(1)))),
 });
 
 const bookStudySchema = z.object({
@@ -594,6 +604,17 @@ const bookStudySchema = z.object({
     // Each cycle's interval = the previous × this (0.5 ⇒ halving). Best-guess decay.
     cycleDecay: gradedValue(z.number().min(0).max(1)),
   }),
+  // When a user already owns a band-appropriate book, it can enter the timed daily mix even
+  // though generic book-study starts with a conservative priority of 0. The value is graded:
+  // "expert-picked owned book over generated drills" is plausible, not direct causal evidence.
+  ownedBookDailyPriority: gradedValue(z.number().min(0)),
+  // Structural taxonomy: which skill dimensions each book category can serve. The daily mix
+  // uses this to bind an owned endgame book to endgame work, a tactics workbook to tactics,
+  // etc., without hardcoding chess categories in app/server code.
+  categoryDimensions: z.record(z.array(z.string().min(1)).min(1)),
+  // Config-driven owned-book substitutions: an owned expert-picked book can satisfy a
+  // generated drill/study activity in the same focus, rather than adding a decoupled card.
+  activitySubstitutions: z.array(activityBookSubstitutionSchema),
   // The cognitive-load block rule (Sweller): categories that OVERLOAD a band are suppressed
   // (e.g. strategy/opening for beginners). One graded leaf per band (the list + its grade).
   blockedCategoriesByBand: z.record(gradedValue(z.array(bookCategorySchema))),
@@ -767,6 +788,14 @@ export const methodologyConfigSchema = z
       "blockedCategoriesByBand",
     ]);
     requireBands(cfg.bookStudy.catalogByBand, ["bookStudy", "catalogByBand"]);
+    cfg.bookStudy.activitySubstitutions.forEach((sub, i) => {
+      requireBands(sub.preferredBookIdsByBand, [
+        "bookStudy",
+        "activitySubstitutions",
+        i,
+        "preferredBookIdsByBand",
+      ]);
+    });
     requireBands(cfg.modality.splitByBand, ["modality", "splitByBand"]);
     requireBands(cfg.modality.otbSimulationByBand, [
       "modality",
@@ -814,6 +843,51 @@ export const methodologyConfigSchema = z
         requireDim(d, ["activities", i, "dimensions", j]),
       );
       requireRat(a.rationaleKey, ["activities", i, "rationaleKey"]);
+    });
+    Object.entries(cfg.bookStudy.categoryDimensions).forEach(
+      ([category, dimensions]) => {
+        if (!BOOK_CATEGORIES.includes(category as BookCategory)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `book category "${category}" does not resolve in BOOK_CATEGORIES`,
+            path: ["bookStudy", "categoryDimensions", category],
+          });
+        }
+        dimensions.forEach((d, j) =>
+          requireDim(d, ["bookStudy", "categoryDimensions", category, j]),
+        );
+      },
+    );
+    cfg.bookStudy.activitySubstitutions.forEach((sub, i) => {
+      if (!actIds.has(sub.activityId)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `activityId "${sub.activityId}" does not resolve in activities`,
+          path: ["bookStudy", "activitySubstitutions", i, "activityId"],
+        });
+      }
+      Object.entries(sub.preferredBookIdsByBand).forEach(([band, gv]) => {
+        const catalogIds = new Set(
+          (cfg.bookStudy.catalogByBand[band] ?? []).map((b) => b.id),
+        );
+        gv.value.forEach((bookId, j) => {
+          if (!catalogIds.has(bookId)) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: `book id "${bookId}" does not resolve in catalogByBand.${band}`,
+              path: [
+                "bookStudy",
+                "activitySubstitutions",
+                i,
+                "preferredBookIdsByBand",
+                band,
+                "value",
+                j,
+              ],
+            });
+          }
+        });
+      });
     });
     cfg.weaknessResourceRules.forEach((rule, i) => {
       requireDim(rule.dimension, ["weaknessResourceRules", i, "dimension"]);

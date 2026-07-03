@@ -9,8 +9,8 @@ import type { GradedCopy } from "@/server/library";
 // The "Library" client (BUILD.md M14). Renders the deliberately-external layer: graded book
 // recommendations (with the cognitive-load block rule already applied server-side), the
 // book-study protocol, the 2D/3D modality + OTB guidance (gated by the user's play medium),
-// a logging form that feeds the SAME adaptation loop, and rolled-up progress. Every
-// recommendation shows how strong its evidence is — never a rating promise.
+// and rolled-up progress. Study-session logging lives on Today, where scheduled external
+// work is completed. Every recommendation shows how strong its evidence is — never a rating promise.
 
 type Grade = "A" | "B" | "C" | "D";
 function asGrade(g: string): Grade {

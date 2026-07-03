@@ -303,7 +303,15 @@ export interface WeaknessSignal {
   rationaleKey: string;
 }
 
-/** A candidate activity (Seam 4) — an external-only resource + the params to run it. */
+/** A concrete external book/course resource selected from the methodology catalog. */
+export interface CandidateBookResource {
+  id: string;
+  title: string;
+  category: string;
+  studyUnit: "exercises" | "games";
+}
+
+/** A candidate activity (Seam 4) — a methodology-selected activity + params to run it. */
 export interface CandidateActivity {
   activityId: string;
   activityType: string;
@@ -319,7 +327,10 @@ export interface CandidateActivity {
   rationaleKey: string;
   /** Set when a weakness signal elevated this activity (else null). */
   drivingSignal: WeaknessSignal | null;
+  /** True when this candidate is tied to a resource the user already owns. */
   owned?: boolean;
+  /** The concrete owned book/course to study, for deliberately external book sessions. */
+  bookResource?: CandidateBookResource;
 }
 
 /** The user's stated PREFERENCES that reshape the daily mix (Seam 7). All optional — absent
@@ -483,52 +494,205 @@ export function interpretGameFeatures(
  * it. (Constraint-fit / owned-resource filtering is applied later by packing — Seam 7 +
  * the Engine — so it is not threaded here in the stub.)
  */
+function normalizeOwnedRef(ref: string): string {
+  return ref.trim().toLowerCase();
+}
+
+function bookCategoryDimensions(
+  category: string,
+  cfg: MethodologyConfig,
+): string[] {
+  return cfg.bookStudy.categoryDimensions[category] ?? [];
+}
+
+function ownedRecommendedBooks(
+  input: {
+    band: Band;
+    libraryBand?: Band;
+    ownedRefs?: readonly string[];
+  },
+  cfg: MethodologyConfig,
+): BookRecommendation[] {
+  return recommendBooks(
+    { band: input.libraryBand ?? input.band, ownedRefs: input.ownedRefs },
+    cfg,
+  ).filter((book) => book.owned);
+}
+
+function bookSelection(
+  book: BookRecommendation,
+  cfg: MethodologyConfig,
+): { book: CandidateBookResource; dimensions: string[] } {
+  return {
+    book: {
+      id: book.id,
+      title: book.title,
+      category: book.category,
+      studyUnit: book.studyUnit,
+    },
+    dimensions: bookCategoryDimensions(book.category, cfg),
+  };
+}
+
+function chooseOwnedBookForDailyMix(
+  input: {
+    signals: readonly WeaknessSignal[];
+    band: Band;
+    libraryBand?: Band;
+    ownedRefs?: readonly string[];
+  },
+  cfg: MethodologyConfig,
+  excludedBookIds: ReadonlySet<string> = new Set(),
+): { book: CandidateBookResource; dimensions: string[] } | null {
+  const owned = ownedRecommendedBooks(input, cfg).filter(
+    (book) => !excludedBookIds.has(normalizeOwnedRef(book.id)),
+  );
+  if (owned.length === 0) return null;
+
+  const signalDimensions = new Set(input.signals.map((s) => s.dimension));
+  const matching =
+    signalDimensions.size > 0
+      ? owned.find((book) =>
+          bookCategoryDimensions(book.category, cfg).some((dimension) =>
+            signalDimensions.has(dimension),
+          ),
+        )
+      : undefined;
+  const chosen = matching ?? owned[0];
+  return chosen ? bookSelection(chosen, cfg) : null;
+}
+
+function chooseSubstitutionBook(
+  substitution: MethodologyConfig["bookStudy"]["activitySubstitutions"][number],
+  input: { band: Band; libraryBand?: Band },
+  ownedBooks: readonly BookRecommendation[],
+  usedBookIds: ReadonlySet<string>,
+  cfg: MethodologyConfig,
+): { book: CandidateBookResource; dimensions: string[] } | null {
+  const available = ownedBooks.filter(
+    (book) => !usedBookIds.has(normalizeOwnedRef(book.id)),
+  );
+  const preferredIds =
+    substitution.preferredBookIdsByBand[input.libraryBand ?? input.band]
+      ?.value ?? [];
+  for (const preferredId of preferredIds) {
+    const match = available.find(
+      (book) => normalizeOwnedRef(book.id) === normalizeOwnedRef(preferredId),
+    );
+    if (match) return bookSelection(match, cfg);
+  }
+  const categoryMatch = available.find((book) =>
+    substitution.categories.some((category) => category === book.category),
+  );
+  return categoryMatch ? bookSelection(categoryMatch, cfg) : null;
+}
+
+function chooseActivityBookSubstitutions(
+  input: {
+    band: Band;
+    libraryBand?: Band;
+    ownedRefs?: readonly string[];
+  },
+  cfg: MethodologyConfig,
+): {
+  byActivityId: Map<
+    string,
+    { book: CandidateBookResource; dimensions: string[] }
+  >;
+  usedBookIds: Set<string>;
+} {
+  const ownedBooks = ownedRecommendedBooks(input, cfg);
+  const usedBookIds = new Set<string>();
+  const byActivityId = new Map<
+    string,
+    { book: CandidateBookResource; dimensions: string[] }
+  >();
+
+  for (const substitution of cfg.bookStudy.activitySubstitutions) {
+    const selection = chooseSubstitutionBook(
+      substitution,
+      input,
+      ownedBooks,
+      usedBookIds,
+      cfg,
+    );
+    if (!selection) continue;
+    byActivityId.set(substitution.activityId, selection);
+    usedBookIds.add(normalizeOwnedRef(selection.book.id));
+  }
+
+  return { byActivityId, usedBookIds };
+}
+
 export function mapWeaknessToActivities(
   input: {
     signals: readonly WeaknessSignal[];
     band: Band;
+    libraryBand?: Band;
     ownedRefs?: readonly string[];
   },
   cfg: MethodologyConfig,
 ): CandidateActivity[] {
   const candidates = new Map<string, CandidateActivity>();
+  const substitutions = chooseActivityBookSubstitutions(input, cfg);
+  const ownedBook = chooseOwnedBookForDailyMix(
+    input,
+    cfg,
+    substitutions.usedBookIds,
+  );
 
   const toCandidate = (
     def: MethodologyConfig["activities"][number],
   ): CandidateActivity => {
     let priority = def.priorityByBand[input.band]?.value ?? 0;
     let owned = false;
+    let bookResource: CandidateBookResource | undefined;
+    let dimensionsTargeted = [...def.dimensions];
+    let label = def.label;
+    let activityType = def.activityType;
+    let resourceTheme = def.resourceTheme;
+    let track = def.track;
+    let rationaleKey = def.rationaleKey;
 
-    if (def.activityType === "book") {
-      const bandBooks = cfg.bookStudy.catalogByBand[input.band] ?? [];
-      const userOwned = new Set(
-        (input.ownedRefs ?? []).map((r) => r.toLowerCase()),
-      );
-      const ownsAny = bandBooks.some(
-        (b) =>
-          userOwned.has(b.id.toLowerCase()) ||
-          userOwned.has(b.title.toLowerCase()),
-      );
-      if (ownsAny) {
-        owned = true;
-        // If they own a book at their level, prioritize it so it is included on Today.
-        priority = priority > 0 ? priority : 2;
+    const substitution = substitutions.byActivityId.get(def.id);
+    if (substitution) {
+      owned = true;
+      bookResource = substitution.book;
+      if (substitution.dimensions.length > 0) {
+        dimensionsTargeted = substitution.dimensions;
       }
+      label = `Study ${substitution.book.title}`;
+      activityType = "book";
+      resourceTheme = null;
+      track = null;
+      rationaleKey = cfg.bookStudy.activeRecallRationaleKey;
+      priority = Math.max(priority, cfg.bookStudy.ownedBookDailyPriority.value);
+    } else if (def.activityType === "book" && ownedBook) {
+      owned = true;
+      bookResource = ownedBook.book;
+      if (ownedBook.dimensions.length > 0) {
+        dimensionsTargeted = ownedBook.dimensions;
+      }
+      label = `Study ${ownedBook.book.title}`;
+      // If they own a book at their level, prioritize it so it can replace generated drill
+      // work in Today. The magnitude lives in config and is deliberately weak-evidence.
+      priority = Math.max(priority, cfg.bookStudy.ownedBookDailyPriority.value);
     }
 
     return {
       activityId: def.id,
-      activityType: def.activityType,
-      label: def.label,
-      resourceTheme: def.resourceTheme,
-      dimensionsTargeted: [...def.dimensions],
-      track: def.track,
+      activityType,
+      label,
+      resourceTheme,
+      dimensionsTargeted,
+      track,
       estMinutes: def.estMinutes.value,
       priority,
       formats: def.formats ?? null,
-      rationaleKey: def.rationaleKey,
+      rationaleKey,
       drivingSignal: null,
       owned,
+      bookResource,
     };
   };
 
@@ -651,9 +815,9 @@ export function recommendBooks(
     bs.blockedCategoriesByBand[input.band]?.value ?? [],
   );
   const catalog = bs.catalogByBand[input.band] ?? [];
-  const owned = new Set((input.ownedRefs ?? []).map((r) => r.toLowerCase()));
+  const owned = new Set((input.ownedRefs ?? []).map(normalizeOwnedRef));
   const isOwned = (b: { id: string; title: string }): boolean =>
-    owned.has(b.id.toLowerCase()) || owned.has(b.title.toLowerCase());
+    owned.has(normalizeOwnedRef(b.id)) || owned.has(normalizeOwnedRef(b.title));
   return catalog
     .filter((b) => !blocked.has(b.category))
     .map((b) => ({
@@ -987,9 +1151,17 @@ function candidateIsOwned(
   c: CandidateActivity,
   ownedRefs: readonly string[],
 ): boolean {
-  const refs = new Set(ownedRefs.map((r) => r.toLowerCase()));
-  if (refs.has(c.activityId.toLowerCase())) return true;
-  if (c.resourceTheme && refs.has(c.resourceTheme.toLowerCase())) return true;
+  const refs = new Set(ownedRefs.map(normalizeOwnedRef));
+  if (refs.has(normalizeOwnedRef(c.activityId))) return true;
+  if (c.resourceTheme && refs.has(normalizeOwnedRef(c.resourceTheme))) {
+    return true;
+  }
+  if (c.bookResource) {
+    return (
+      refs.has(normalizeOwnedRef(c.bookResource.id)) ||
+      refs.has(normalizeOwnedRef(c.bookResource.title))
+    );
+  }
   return false;
 }
 

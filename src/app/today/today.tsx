@@ -35,6 +35,23 @@ function itemDetails(item: TodayItem): string {
       ? `Re-solve ${n} position${n === 1 ? "" : "s"} you blundered — find the better move.`
       : "Drill the blunders from your own games.";
   }
+  if (item.activityType === "book") {
+    const minutes =
+      typeof p.studyMinutes === "number"
+        ? p.studyMinutes
+        : (item.estMinutes ?? null);
+    const minuteCopy =
+      minutes != null ? ` for ~${Math.round(minutes)} min` : "";
+    return p.bookResource
+      ? `Study ${p.bookResource.title}${minuteCopy}, then log the session here.`
+      : `Study a recommended book${minuteCopy}, then log the session here.`;
+  }
+  if (item.activityType === "analyse") {
+    return "Open your game review workflow, analyse one game, then mark this item done.";
+  }
+  if (item.activityType === "study") {
+    return "Use the recommended external study material for this focus, then mark it done.";
+  }
   if (item.activityType === "play_game" && typeof p.gameCount === "number") {
     return `Play ~${p.gameCount} game${p.gameCount === 1 ? "" : "s"} — sized to fit today's time.`;
   }
@@ -53,6 +70,25 @@ function itemDetails(item: TodayItem): string {
 
 function isPuzzle(item: TodayItem): boolean {
   return item.params.track !== null && item.activityType !== "spaced_review";
+}
+
+function isAutoLoggedInternal(item: TodayItem): boolean {
+  return (
+    item.delivery === "internal" &&
+    (item.activityType === "puzzle_theme" ||
+      item.activityType === "spaced_review" ||
+      item.activityType === "blunder_drill" ||
+      item.activityType === "endgame_drill")
+  );
+}
+
+function activityActionLabel(item: TodayItem): string {
+  if (item.activityType === "analyse") return "Open game review";
+  return "Start training";
+}
+
+function completionEventType(item: TodayItem): "drill_done" | "game_played" {
+  return item.activityType === "play_game" ? "game_played" : "drill_done";
 }
 
 export function Today() {
@@ -234,6 +270,9 @@ export function Today() {
         const skipped = item.status === "skipped";
         const busy = pendingItemId === item.id;
         const isBook = item.activityType === "book";
+        const scheduledBook =
+          item.bookResource ?? item.params.bookResource ?? null;
+        const bookOptions = scheduledBook ? [scheduledBook] : ownedBooks;
         return (
           <Card
             key={item.id}
@@ -272,7 +311,7 @@ export function Today() {
                   href={item.url}
                   className={buttonVariants({ variant: "default", size: "sm" })}
                 >
-                  Start training
+                  {activityActionLabel(item)}
                 </Link>
               )}
 
@@ -303,15 +342,15 @@ export function Today() {
 
               {/* M7 — log the outcome; a miss is scheduled to return spaced. */}
               {isBook && !done && !skipped ? (
-                library.isLoading ? (
+                scheduledBook == null && library.isLoading ? (
                   <p className="text-graphite font-mono text-xs pt-4 border-t border-line/80">
                     Loading owned books…
                   </p>
-                ) : ownedBooks.length === 0 ? (
+                ) : bookOptions.length === 0 ? (
                   <div className="flex flex-col gap-2 border-t border-line/80 pt-4">
                     <p className="text-graphite font-serif text-sm">
                       You don&apos;t own any recommended books at your level
-                      yet. Add books you own in the Library section or Settings.
+                      yet. Add books you own in Settings, then regenerate Today.
                     </p>
                     {!done && !skipped && (
                       <Button
@@ -331,7 +370,8 @@ export function Today() {
                 ) : (
                   <BookLogForm
                     item={item}
-                    ownedBooks={ownedBooks}
+                    ownedBooks={bookOptions}
+                    scheduledBook={scheduledBook}
                     onSuccess={() => {
                       void utils.library.get.invalidate();
                       void utils.program.getToday.invalidate();
@@ -349,7 +389,7 @@ export function Today() {
                     <span className="text-graphite font-mono text-xs">
                       {done ? "✓ Logged" : "Skipped"}
                     </span>
-                  ) : item.delivery === "internal" ? null : isPuzzle(item) ? ( // Internal activities are auto-logged in-app; only allow Skip here
+                  ) : isAutoLoggedInternal(item) ? null : isPuzzle(item) ? ( // Board-trainer activities auto-log in-app; only allow Skip here
                     <>
                       <Button
                         type="button"
@@ -389,7 +429,7 @@ export function Today() {
                       onClick={() =>
                         log.mutate({
                           programItemId: item.id,
-                          type: "drill_done",
+                          type: completionEventType(item),
                         })
                       }
                     >
@@ -469,46 +509,74 @@ interface OwnedBook {
 function BookLogForm({
   item,
   ownedBooks,
+  scheduledBook,
   onSuccess,
   onSkip,
   busy,
 }: {
   item: TodayItem;
   ownedBooks: OwnedBook[];
+  scheduledBook?: OwnedBook | null;
   onSuccess: () => void;
   onSkip: () => void;
   busy: boolean;
 }) {
-  const [bookId, setBookId] = useState<string>(ownedBooks[0]?.id || "");
+  const bookOptions = scheduledBook ? [scheduledBook] : ownedBooks;
+  const suggestedMinutes =
+    typeof item.params.studyMinutes === "number"
+      ? item.params.studyMinutes
+      : item.estMinutes;
+  const defaultMinutes =
+    suggestedMinutes != null ? String(Math.round(suggestedMinutes)) : "";
+  const firstBookId = bookOptions[0]?.id ?? "";
+
+  const [bookId, setBookId] = useState<string>(firstBookId);
   const [unitCount, setUnitCount] = useState<string>("");
   const [successPct, setSuccessPct] = useState<string>("");
   const [chapter, setChapter] = useState<string>("");
   const [cycle, setCycle] = useState<string>("");
-  const [minutes, setMinutes] = useState<string>("");
+  const [minutes, setMinutes] = useState<string>(defaultMinutes);
+
+  useEffect(() => {
+    setBookId(firstBookId);
+  }, [firstBookId]);
+
+  useEffect(() => {
+    setMinutes(defaultMinutes);
+  }, [defaultMinutes, item.id]);
 
   const log = trpc.library.logSession.useMutation({
     onSuccess: () => {
       onSuccess();
       setUnitCount("");
       setChapter("");
-      setMinutes("");
+      setMinutes(defaultMinutes);
       setCycle("");
       setSuccessPct("");
     },
   });
 
-  const selectedBook = ownedBooks.find((b) => b.id === bookId) ?? ownedBooks[0];
+  const selectedBook =
+    bookOptions.find((b) => b.id === bookId) ?? bookOptions[0];
   const unitLabel =
     selectedBook?.studyUnit === "games" ? "Games studied" : "Exercises done";
   const unitPlaceholder =
     selectedBook?.studyUnit === "games" ? "e.g. 3" : "e.g. 10";
 
   const onLog = () => {
-    const resourceRefId = bookId || ownedBooks[0]?.id;
+    const resourceRefId = bookId || firstBookId;
     if (!resourceRefId) return;
     const count = Number(unitCount);
     if (!unitCount || !Number.isInteger(count) || count <= 0) {
       alert("Please enter a valid positive number for exercises/games.");
+      return;
+    }
+    const duration = minutes ? Number(minutes) : undefined;
+    if (
+      duration !== undefined &&
+      (!Number.isFinite(duration) || duration < 0)
+    ) {
+      alert("Please enter a valid number of minutes.");
       return;
     }
     const pct = successPct ? Number(successPct) : NaN;
@@ -516,7 +584,7 @@ function BookLogForm({
       programItemId: item.id,
       resourceRefId,
       successRate: !isNaN(pct) && Number.isFinite(pct) ? pct / 100 : undefined,
-      durationMin: minutes ? Number(minutes) : undefined,
+      durationMin: duration,
       woodpeckerCycle: cycle ? Number(cycle) : undefined,
       position: {
         unitCount: count,
@@ -527,24 +595,46 @@ function BookLogForm({
 
   return (
     <div className="flex flex-col gap-4 border-t border-line/80 pt-4">
-      <h3 className="font-serif text-sm font-semibold text-ink">
-        Log your study session
-      </h3>
+      <div className="flex flex-col gap-1">
+        <h3 className="font-serif text-sm font-semibold text-ink">
+          Log your study session
+        </h3>
+        {scheduledBook && (
+          <p className="text-graphite font-serif text-sm leading-relaxed">
+            Today&apos;s external work is this book, not a generic drill. Study
+            it for the planned minutes, then log what you completed.
+          </p>
+        )}
+      </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <label className="flex flex-col gap-1.5 font-serif text-xs">
-          <span className="eyebrow !text-[0.62rem]">Book</span>
-          <select
-            value={bookId}
-            onChange={(e) => setBookId(e.target.value)}
-            className="border-input bg-paper-raised h-9 rounded-md border px-2 font-serif text-sm text-ink"
-          >
-            {ownedBooks.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.title}
-              </option>
-            ))}
-          </select>
-        </label>
+        {scheduledBook ? (
+          <div className="flex flex-col gap-1.5 rounded-md border border-line/80 bg-paper/40 p-3 font-serif text-xs">
+            <span className="eyebrow !text-[0.62rem]">Book</span>
+            <span className="text-ink text-sm leading-snug">
+              {scheduledBook.title}
+            </span>
+            {defaultMinutes && (
+              <span className="text-graphite font-mono text-[0.7rem]">
+                Planned: ~{defaultMinutes} min
+              </span>
+            )}
+          </div>
+        ) : (
+          <label className="flex flex-col gap-1.5 font-serif text-xs">
+            <span className="eyebrow !text-[0.62rem]">Book</span>
+            <select
+              value={bookId}
+              onChange={(e) => setBookId(e.target.value)}
+              className="border-input bg-paper-raised h-9 rounded-md border px-2 font-serif text-sm text-ink"
+            >
+              {ownedBooks.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.title}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <label className="flex flex-col gap-1.5 font-serif text-xs">
           <span className="eyebrow !text-[0.62rem]">
             {unitLabel} <span className="text-red-500">*</span>
@@ -618,7 +708,7 @@ function BookLogForm({
           onClick={onLog}
           size="sm"
         >
-          {log.isPending ? "Logging…" : "Log this session"}
+          {log.isPending ? "Logging…" : "Log study session"}
         </Button>
         <Button
           type="button"

@@ -235,9 +235,13 @@ export async function generateAndSaveProgram(
   }));
   const recentSuccessByTrack = await gatherRecentSuccessByTrack(db, userId);
 
+  const libraryRating = await resolveLibraryRating(db, userId, cfg);
+  const libraryBand = bandForRating(libraryRating, cfg);
+
   const result = generateProgram({
     band,
     tacticalRating,
+    libraryBand,
     weaknessSignals,
     dueItems,
     constraints: { minutesPerDay, formats, ownedRefs, depthVsBreadth },
@@ -267,6 +271,7 @@ export async function generateAndSaveProgram(
   const generationInput = {
     band,
     tacticalRating,
+    libraryBand,
     minutesPerDay,
     daysPerWeek: constraints?.daysPerWeek ?? null,
     formats,
@@ -324,6 +329,8 @@ export interface TodayItem {
   externalLabel: string | null;
   url: string | null;
   delivery: "internal" | "external";
+  /** Concrete owned book/course selected for a scheduled external book-study item. */
+  bookResource: ProgramItemParams["bookResource"] | null;
   rationaleText: string;
   evidenceGrade: string;
   evidenceTier: number;
@@ -350,6 +357,22 @@ function paramsOf(raw: unknown): ProgramItemParams & { estMinutes?: number } {
   return { theme: null, track: null };
 }
 
+function internalActivityUrl(
+  activityType: string,
+  programItemId: string,
+): string | null {
+  if (activityType === "analyse") return "/analysis";
+  if (
+    activityType === "puzzle_theme" ||
+    activityType === "spaced_review" ||
+    activityType === "blunder_drill" ||
+    activityType === "endgame_drill"
+  ) {
+    return `/train/${programItemId}`;
+  }
+  return null;
+}
+
 export function toTodayItem(
   item: ActiveProgram["items"][number],
   cfg: MethodologyConfig,
@@ -361,7 +384,11 @@ export function toTodayItem(
   const def = cfg.activities.find((a) => a.id === item.activityId);
   const theme = params.theme ?? null;
   const delivery =
-    def?.delivery?.value === "internal" ? "internal" : "external";
+    params.bookResource || item.activityType === "book"
+      ? "external"
+      : def?.delivery?.value === "internal"
+        ? "internal"
+        : "external";
   // "Play a game" resolves to a one-click deep link to the user's preferred platform
   // (Goal 3); themed puzzles keep their Lichess training-page link.
   const isPlayGame = item.activityType === "play_game";
@@ -374,11 +401,16 @@ export function toTodayItem(
     : externalUrl
       ? "Open on Lichess ↗"
       : null;
-  const url = delivery === "internal" ? `/train/${item.id}` : externalUrl;
+  const url =
+    delivery === "internal"
+      ? internalActivityUrl(item.activityType, item.id)
+      : externalUrl;
   return {
     id: item.id,
     orderIndex: item.orderIndex,
-    label: def?.label ?? item.activityId,
+    label: params.bookResource
+      ? `Study ${params.bookResource.title}`
+      : (def?.label ?? item.activityId),
     activityType: item.activityType,
     dimensionLabels: item.dimensionsTargeted.map((d) => dimLabels.get(d) ?? d),
     estMinutes:
@@ -388,6 +420,7 @@ export function toTodayItem(
     externalLabel,
     url,
     delivery,
+    bookResource: params.bookResource ?? null,
     rationaleText: item.rationaleText,
     evidenceGrade: item.evidenceGrade,
     evidenceTier: item.evidenceTier,

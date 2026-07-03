@@ -234,15 +234,83 @@ describe("mapWeaknessToActivities", () => {
     ]);
   });
 
-  it("includes book_study if the user owns a book recommended for their band", () => {
+  it("replaces calculation drill with an owned tactics workbook for the band", () => {
     const candidates = mapWeaknessToActivities(
-      { signals: [], band: "u800", ownedRefs: ["giannatos_first_workbook"] },
+      { signals: [], band: "b800_1200", ownedRefs: ["polgar_5334"] },
+      cfg,
+    );
+    const replacement = candidates.find(
+      (c) => c.activityId === "calculation_drill",
+    );
+    expect(replacement).toBeDefined();
+    expect(replacement?.activityType).toBe("book");
+    expect(replacement?.owned).toBe(true);
+    expect(replacement?.priority).toBe(
+      cfg.bookStudy.ownedBookDailyPriority.value,
+    );
+    expect(replacement?.bookResource).toEqual({
+      id: "polgar_5334",
+      title: "Chess: 5334 Problems, Combinations and Games",
+      category: "tactics",
+      studyUnit: "exercises",
+    });
+    expect(replacement?.dimensionsTargeted).toEqual([
+      "tactics",
+      "board_vision",
+    ]);
+    expect(candidates.find((c) => c.activityId === "book_study")).toBe(
+      undefined,
+    );
+  });
+
+  it("replaces endgame study with an owned endgame book", () => {
+    const candidates = mapWeaknessToActivities(
+      {
+        signals: [],
+        band: "b1200_1600",
+        ownedRefs: ["delavilla_100_endgames"],
+      },
+      cfg,
+    );
+    const replacement = candidates.find(
+      (c) => c.activityId === "endgame_study",
+    );
+    expect(replacement?.activityType).toBe("book");
+    expect(replacement?.label).toBe("Study 100 Endgames You Must Know");
+    expect(replacement?.bookResource?.title).toBe("100 Endgames You Must Know");
+    expect(replacement?.dimensionsTargeted).toEqual(["endgames"]);
+  });
+
+  it("uses the library band instead of tactical band for book substitutions when they differ", () => {
+    const candidates = mapWeaknessToActivities(
+      {
+        signals: [],
+        band: "b2000_2200",
+        libraryBand: "b800_1200",
+        ownedRefs: ["polgar_5334"],
+      },
+      cfg,
+    );
+    const replacement = candidates.find(
+      (c) => c.activityId === "calculation_drill",
+    );
+    expect(replacement).toBeDefined();
+    expect(replacement?.activityType).toBe("book");
+    expect(replacement?.owned).toBe(true);
+    expect(replacement?.bookResource?.id).toBe("polgar_5334");
+  });
+
+  it("keeps generic book study for owned books that do not substitute a drill", () => {
+    const candidates = mapWeaknessToActivities(
+      { signals: [], band: "b800_1200", ownedRefs: ["chernev_logical_chess"] },
       cfg,
     );
     const book = candidates.find((c) => c.activityId === "book_study");
     expect(book).toBeDefined();
+    expect(book?.activityType).toBe("book");
     expect(book?.owned).toBe(true);
-    expect(book?.priority).toBe(2);
+    expect(book?.bookResource?.id).toBe("chernev_logical_chess");
+    expect(book?.dimensionsTargeted).toEqual(["positional", "calculation"]);
   });
 });
 

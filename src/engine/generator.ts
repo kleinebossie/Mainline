@@ -23,6 +23,7 @@ import {
   type DueItem,
   type Grade,
   type MethodologyConfig,
+  type CandidateBookResource,
   type MixPreferences,
   type PracticeStructureKind,
   type Tier,
@@ -30,6 +31,9 @@ import {
   type WeaknessSignal,
 } from "@/methodology";
 import { packToBudget, type Divisible } from "@/engine/math/packing";
+
+/** A concrete methodology-catalog resource selected for a generated external study item. */
+export type ProgramBookResource = CandidateBookResource;
 
 /** The params blob persisted on a ProgramItem (§5.5) — how to run the external resource. */
 export interface ProgramItemParams {
@@ -46,6 +50,10 @@ export interface ProgramItemParams {
   gameCount?: number;
   /** For a spaced-review item: the due item refs to redo (Seam 6 / the redo flow, M7). */
   dueItemRefs?: string[];
+  /** For a book item: the concrete owned catalog resource the user should study today. */
+  bookResource?: ProgramBookResource;
+  /** For a book item: the minutes allocated by the hard time-budget packer. */
+  studyMinutes?: number;
 }
 
 /** One activity in the generated day, with its L3 transparency snapshot denormalised on
@@ -74,6 +82,8 @@ export interface GenerateProgramInput {
   band: Band;
   /** The user's tactical/puzzle rating — drives Seam-5 difficulty targets. */
   tacticalRating: number;
+  /** The band used to select and recommend books (based on the highest live rating). */
+  libraryBand?: Band;
   /** Graded weakness signals from Seam 3 (may be empty / insufficient-data). */
   weaknessSignals: readonly WeaknessSignal[];
   /** Spaced-review items due today (Seam 6, M7); M6 passes none. */
@@ -156,13 +166,14 @@ function gameMinutesFor(
 export function generateProgram(
   input: GenerateProgramInput,
 ): GenerateProgramResult {
-  const { config: cfg, band } = input;
+  const { config: cfg, band, libraryBand } = input;
 
   // Seam 4 → Seam 7: gather candidates for the band, elevate weaknesses, order them.
   const candidates = mapWeaknessToActivities(
     {
       signals: input.weaknessSignals,
       band,
+      libraryBand,
       ownedRefs: input.constraints.ownedRefs,
     },
     cfg,
@@ -203,6 +214,11 @@ export function generateProgram(
     } else if (c.track) {
       const per = puzzleMinutesFor(c.track, cfg);
       if (per != null) divisible = { perUnitMinutes: per, maxUnits: dose };
+    } else if (c.activityType === "book" && c.bookResource) {
+      // External book study is minute-flexible: allocate as much of the suggested session as
+      // fits today, capped by the methodology activity estimate. The cap is config; the unit
+      // is generic time-budget arithmetic.
+      divisible = { perUnitMinutes: 1, maxUnits: Math.max(1, c.estMinutes) };
     } else if (c.activityType === "play_game") {
       const per = gameMinutesFor(input.constraints.formats ?? [], cfg);
       const maxGames = vol.maxGamesPerSession?.value;
@@ -276,6 +292,12 @@ export function generateProgram(
         track: null,
         formats,
         ...(isPlayGame && p.units != null ? { gameCount: p.units } : {}),
+        ...(candidate.activityType === "book" && candidate.bookResource
+          ? {
+              bookResource: candidate.bookResource,
+              studyMinutes: estMinutes,
+            }
+          : {}),
       };
     }
 

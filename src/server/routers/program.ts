@@ -156,6 +156,8 @@ export const programRouter = router({
             )
             .map(toPuzzleSolvable);
         }
+      } else if (item.activityType !== "puzzle_theme") {
+        throw new Error("This activity does not use the board trainer");
       } else {
         // Query past puzzle attempts to get excludePuzzleIds
         const pastEvents = await ctx.prisma.activityEvent.findMany({
