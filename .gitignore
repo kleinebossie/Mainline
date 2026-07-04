@@ -44,3 +44,7 @@ next-env.d.ts
 
 # Claude Code local plan transcripts
 .claude/plans/
+
+# Temporary planning files
+/planning/TEMP_*
+
