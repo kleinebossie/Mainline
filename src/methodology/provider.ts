@@ -357,6 +357,34 @@ export interface DueItem {
   itemType: string;
 }
 
+export interface ActivityAllocationUnit {
+  perUnitMinutes: number;
+  allocationGranularityMinutes?: number;
+}
+
+/**
+ * Seam 7 — resolve the time-allocation unit a scalable activity should use. The Engine
+ * owns only the packing arithmetic; the methodology owns whether a due activity behaves
+ * like a quick failed-tactic review, a slower endgame drill, or a track-specific puzzle.
+ */
+export function allocationUnitForActivity(
+  input: { activityType: string; track: Track | null },
+  cfg: MethodologyConfig,
+): ActivityAllocationUnit | null {
+  const vol = cfg.prioritization.volume;
+  const reviewUnit =
+    vol.secondsPerReviewUnitByActivityType?.[input.activityType];
+  const trackUnit = input.track
+    ? vol.secondsPerPuzzleByTrack?.[input.track]
+    : undefined;
+  const unit = reviewUnit ?? trackUnit;
+  if (!unit) return null;
+  return {
+    perUnitMinutes: unit.value / 60,
+    allocationGranularityMinutes: vol.allocationGranularityMinutes?.value,
+  };
+}
+
 /** The servo-controlled puzzle-rating target + its evidence (Seam 5). */
 export interface PuzzleTarget {
   ratingTarget: number;

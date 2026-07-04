@@ -39,9 +39,9 @@ describe("packToBudget", () => {
     expect(packToBudget(ordered, 30).map((i) => i.item.id)).toEqual(["a", "c"]);
   });
 
-  it("always keeps at least the highest-priority item when nothing fits the budget", () => {
+  it("omits items that cannot fit the hard budget", () => {
     const ordered = [item("big", 30), item("med", 20)];
-    expect(packToBudget(ordered, 10).map((i) => i.item.id)).toEqual(["big"]);
+    expect(packToBudget(ordered, 10)).toEqual([]);
   });
 
   it("returns nothing for an empty candidate list", () => {
@@ -60,6 +60,23 @@ describe("packToBudget", () => {
     const packed = packToBudget(ordered, 6);
     expect(packed[0]!.units).toBe(8);
     expect(packed[0]!.allocatedMinutes).toBe(6);
+  });
+
+  it("rounds divisible allocations to the supplied visible granularity without exceeding budget", () => {
+    const ordered = [
+      {
+        id: "puzzles",
+        estMinutes: 0,
+        divisible: {
+          perUnitMinutes: 0.75,
+          maxUnits: 15,
+          allocationGranularityMinutes: 1,
+        },
+      },
+    ];
+    const packed = packToBudget(ordered, 12);
+    expect(packed[0]!.units).toBe(15);
+    expect(packed[0]!.allocatedMinutes).toBe(12);
   });
 
   it("caps a divisible item at its unit cap even with budget to spare", () => {

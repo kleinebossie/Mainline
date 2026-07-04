@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { loadMethodology } from "@/methodology/loader";
 import {
+  allocationUnitForActivity,
   bandForRating,
   confidenceFromSampleSize,
   interpretGameFeatures,
@@ -311,6 +312,40 @@ describe("mapWeaknessToActivities", () => {
     expect(book?.owned).toBe(true);
     expect(book?.bookResource?.id).toBe("chernev_logical_chess");
     expect(book?.dimensionsTargeted).toEqual(["positional", "calculation"]);
+  });
+});
+
+describe("allocationUnitForActivity", () => {
+  it("reads due-drill unit costs and visible granularity from graded methodology config", () => {
+    const volume = cfg.prioritization.volume;
+    const endgameLeaf =
+      volume.secondsPerReviewUnitByActivityType?.endgame_drill;
+    expect(endgameLeaf).toMatchObject({
+      value: 900,
+      grade: "C",
+      tier: 1,
+      citationKey: "stub_open_question",
+      flag: "best-guess",
+    });
+
+    expect(
+      allocationUnitForActivity(
+        { activityType: "endgame_drill", track: null },
+        cfg,
+      ),
+    ).toEqual({
+      perUnitMinutes: 15,
+      allocationGranularityMinutes: 1,
+    });
+    expect(
+      allocationUnitForActivity(
+        { activityType: "puzzle_theme", track: "pattern" },
+        cfg,
+      ),
+    ).toEqual({
+      perUnitMinutes: 0.75,
+      allocationGranularityMinutes: 1,
+    });
   });
 });
 

@@ -1359,6 +1359,40 @@
           "note": "Deep calculation/visualisation puzzles need longer (~3 min each)."
         }
       },
+      "secondsPerReviewUnitByActivityType": {
+        "spaced_review": {
+          "value": 45,
+          "grade": "C",
+          "tier": 1,
+          "citationKey": "stub_open_question",
+          "flag": "best-guess",
+          "note": "One failed-tactic review uses the same quick pattern-recognition budget as a pattern puzzle; visible allocation is rounded by allocationGranularityMinutes."
+        },
+        "blunder_drill": {
+          "value": 180,
+          "grade": "C",
+          "tier": 1,
+          "citationKey": "stub_open_question",
+          "flag": "best-guess",
+          "note": "A personal blunder drill is slower than a theme puzzle because the user reconstructs the mistake and response; best-guess until telemetry calibrates it."
+        },
+        "endgame_drill": {
+          "value": 900,
+          "grade": "C",
+          "tier": 1,
+          "citationKey": "stub_open_question",
+          "flag": "best-guess",
+          "note": "One endgame position needs a viable 15-minute block; it should be omitted rather than shown as a token sub-minute drill."
+        }
+      },
+      "allocationGranularityMinutes": {
+        "value": 1,
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "stub_open_question",
+        "flag": "best-guess",
+        "note": "Visible daily-session allocations round up to whole-minute caps while total packed minutes remain within the user's hard budget."
+      },
       "minutesPerGameByFormat": {
         "bullet": {
           "value": 3,

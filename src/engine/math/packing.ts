@@ -15,6 +15,8 @@ export interface Divisible {
   perUnitMinutes: number;
   /** Hard cap on units regardless of budget (the dose / max-games cap). */
   maxUnits: number;
+  /** Smallest increment exposed as allotted time. Supplied by methodology/caller. */
+  allocationGranularityMinutes?: number;
 }
 
 export interface Packable {
@@ -41,10 +43,22 @@ export function packToBudget<T extends Packable>(
   for (const item of ordered) {
     if (item.divisible) {
       const { perUnitMinutes, maxUnits } = item.divisible;
+      const granularity = item.divisible.allocationGranularityMinutes ?? 0;
       if (perUnitMinutes <= 0 || maxUnits <= 0) continue;
-      const units = Math.min(maxUnits, Math.floor(remaining / perUnitMinutes));
+      if (granularity < 0) continue;
+
+      let units = 0;
+      let allocatedMinutes = 0;
+      for (let next = 1; next <= maxUnits; next += 1) {
+        const nextAllocated =
+          granularity > 0
+            ? Math.ceil((next * perUnitMinutes) / granularity) * granularity
+            : next * perUnitMinutes;
+        if (nextAllocated > remaining) break;
+        units = next;
+        allocatedMinutes = nextAllocated;
+      }
       if (units >= 1) {
-        const allocatedMinutes = units * perUnitMinutes;
         picked.push({ item, units, allocatedMinutes });
         remaining -= allocatedMinutes;
       }
@@ -52,21 +66,6 @@ export function packToBudget<T extends Packable>(
       picked.push({ item, units: null, allocatedMinutes: item.estMinutes });
       remaining -= item.estMinutes;
     }
-  }
-  // Non-empty floor: if nothing fit, keep the single highest-priority item at its minimum
-  // (one unit if divisible, else the whole item). Only a sub-unit budget can exceed the
-  // limit here — a documented, near-impossible edge given the 5-minute minimum budget.
-  if (picked.length === 0 && ordered.length > 0) {
-    const first = ordered[0]!;
-    picked.push(
-      first.divisible
-        ? {
-            item: first,
-            units: 1,
-            allocatedMinutes: first.divisible.perUnitMinutes,
-          }
-        : { item: first, units: null, allocatedMinutes: first.estMinutes },
-    );
   }
   return picked;
 }

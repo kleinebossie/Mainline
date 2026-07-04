@@ -28,6 +28,7 @@ export {
   targetPuzzleRating,
   practiceStructure,
   useWorkedExample,
+  allocationUnitForActivity,
   prioritizeDailyMix,
   rationaleFor,
   // Seam 6 (scheduling) + Measurement seams (M7): the adaptation-loop reader functions.
@@ -70,6 +71,7 @@ export {
   type ScoredCandidate,
   type MixPreferences,
   type DueItem,
+  type ActivityAllocationUnit,
   type PuzzleTarget,
   type FsrsGrade,
   type FsrsState,

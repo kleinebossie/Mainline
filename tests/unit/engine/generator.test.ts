@@ -27,8 +27,8 @@ describe("generateProgram (golden)", () => {
     expect(generatedAt).toBe(1_700_000_000_000); // from the injected clock (L2)
 
     // Order by ROI prior with id tiebreak. Hard-time-limit packing (Goal 1) fits the budget
-    // with time-divisible puzzles: analyse(15, fixed) + themed_tactics(15 puzzles ×0.75 =
-    // 11.25) + calculation_drill(1 ×3 = 3) = 29.25 ≤ 30 — a third item now fits.
+    // with time-divisible puzzles: analyse(15, fixed) + themed_tactics(15 puzzles,
+    // rounded to a 12-minute visible cap) + calculation_drill(1 ×3 = 3) = 30.
     expect(items.map((i) => i.activityId)).toEqual([
       "analyse_own_games",
       "themed_tactics",
@@ -190,6 +190,47 @@ describe("generateProgram (golden)", () => {
     const puzzles = (r: ReturnType<typeof generateProgram>): number =>
       r.items.find((i) => i.activityId === "themed_tactics")?.params.count ?? 0;
     expect(puzzles(small)).toBeLessThanOrEqual(puzzles(big));
+  });
+
+  it("keeps visible allocations whole-minute and within a high budget", () => {
+    const { items } = generateProgram({
+      band: "b1600_2000",
+      tacticalRating: 1800,
+      weaknessSignals: [],
+      dueItems: [{ itemRef: "pi-endgame-1", itemType: "endgame" }],
+      constraints: { minutesPerDay: 360 },
+      clock,
+      config: cfg,
+    });
+
+    expect(items.every((i) => Number.isInteger(i.estMinutes))).toBe(true);
+    expect(items.reduce((sum, i) => sum + i.estMinutes, 0)).toBeLessThanOrEqual(
+      360,
+    );
+    const endgame = items.find((i) => i.activityType === "endgame_drill");
+    expect(endgame).toBeDefined();
+    expect(endgame?.estMinutes).toBe(15);
+    expect(endgame?.params.count).toBe(1);
+  });
+
+  it("omits an under-viable endgame drill on a tight budget instead of shrinking it", () => {
+    const { items } = generateProgram({
+      band: "b1600_2000",
+      tacticalRating: 1800,
+      weaknessSignals: [],
+      dueItems: [{ itemRef: "pi-endgame-1", itemType: "endgame" }],
+      constraints: { minutesPerDay: 10 },
+      clock,
+      config: cfg,
+    });
+
+    expect(
+      items.find((i) => i.activityType === "endgame_drill"),
+    ).toBeUndefined();
+    expect(items.every((i) => Number.isInteger(i.estMinutes))).toBe(true);
+    expect(items.reduce((sum, i) => sum + i.estMinutes, 0)).toBeLessThanOrEqual(
+      10,
+    );
   });
 
   it("always yields at least one item even on a tiny budget", () => {

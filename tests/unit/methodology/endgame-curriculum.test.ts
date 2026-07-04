@@ -74,6 +74,7 @@ describe("generateProgram — endgame_drill due-gating", () => {
     const eg = items.find((i) => i.activityType === "endgame_drill");
     expect(eg).toBeDefined();
     expect(eg?.params.dueItemRefs).toContain("pi-endgame-1");
+    expect(eg?.estMinutes).toBe(15);
     expect(eg?.dimensionsTargeted).toContain("endgames");
   });
 });

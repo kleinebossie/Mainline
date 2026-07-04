@@ -262,6 +262,15 @@ const prioritizationSchema = z.object({
     secondsPerPuzzleByTrack: z
       .record(gradedValue(z.number().positive()))
       .optional(),
+    // Review/drill unit costs by activity type. Due-gated drills are not all puzzle-like:
+    // an endgame position can require a whole viable block, while a failed tactic may be
+    // quick. Optional so older configs can still fall back to the puzzle-track unit.
+    secondsPerReviewUnitByActivityType: z
+      .record(gradedValue(z.number().positive()))
+      .optional(),
+    // Visible time blocks are rounded up to this granularity while the hard total cap is
+    // still respected. This prevents fractional Today blocks without hiding policy in UI.
+    allocationGranularityMinutes: gradedValue(z.number().positive()).optional(),
     // Expected minutes per game by format — used to cap how many games fit the budget
     // ("a logical number for the time control you play"). Optional (fallback: estMinutes).
     minutesPerGameByFormat: z

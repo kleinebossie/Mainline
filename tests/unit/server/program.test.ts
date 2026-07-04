@@ -177,8 +177,9 @@ describe("generateAndSaveProgram + getTodayProgram (round-trip)", () => {
     )!;
     expect(tactics.externalUrl).toBe("https://lichess.org/training/fork");
     expect(tactics.params.targetRating).toBe(1150);
-    // estMinutes is now the time the packer ALLOTTED (Goal 1): 15 puzzles × 0.75 min.
-    expect(tactics.estMinutes).toBe(11.25);
+    // estMinutes is the visible time cap the packer ALLOTTED (Goal 1):
+    // 15 pattern puzzles fit under a whole-minute 12 min cap.
+    expect(tactics.estMinutes).toBe(12);
     expect(tactics.params.count).toBe(15);
   });
 

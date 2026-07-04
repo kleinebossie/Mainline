@@ -12,6 +12,7 @@
 
 import type { Clock } from "@/lib/clock";
 import {
+  allocationUnitForActivity,
   mapWeaknessToActivities,
   practiceStructure,
   prioritizeDailyMix,
@@ -109,16 +110,6 @@ export interface GenerateProgramResult {
   generatedAt: number;
 }
 
-/** Minutes per puzzle for a track, from config (Goal 1 — the hard-time-limit unit cost).
- *  Null when unconfigured, so the packer falls back to the activity's whole estMinutes. */
-function puzzleMinutesFor(
-  track: string,
-  cfg: MethodologyConfig,
-): number | null {
-  const g = cfg.prioritization.volume.secondsPerPuzzleByTrack?.[track];
-  return g ? g.value / 60 : null;
-}
-
 /** The due items that belong to a review-type activity (Engine itemType routing, not a
  *  graded choice): blunder_drill takes the personal blunder positions; spaced_review takes
  *  everything else (themed puzzle reviews). Other activities own no due queue. */
@@ -204,26 +195,40 @@ export function generateProgram(
       c.activityType === "blunder_drill" ||
       c.activityType === "endgame_drill"
     ) {
-      // Review-type activities solve/play one position per unit; blunder_drill/endgame_drill
-      // have no track, so they borrow the pattern per-puzzle cost. Sized to their due queue.
+      // Review-type activities solve/play one position per unit, but their viable unit
+      // cost is methodology-owned by activity type (e.g. an endgame is not a 45s tactic).
       const due = dueItemsForActivity(c.activityType, input.dueItems);
-      const per = puzzleMinutesFor(c.track ?? "pattern", cfg);
-      if (per != null && due.length > 0) {
-        divisible = { perUnitMinutes: per, maxUnits: due.length };
+      const unit = allocationUnitForActivity(
+        { activityType: c.activityType, track: c.track },
+        cfg,
+      );
+      if (unit != null && due.length > 0) {
+        divisible = { ...unit, maxUnits: due.length };
       }
     } else if (c.track) {
-      const per = puzzleMinutesFor(c.track, cfg);
-      if (per != null) divisible = { perUnitMinutes: per, maxUnits: dose };
+      const unit = allocationUnitForActivity(
+        { activityType: c.activityType, track: c.track },
+        cfg,
+      );
+      if (unit != null) divisible = { ...unit, maxUnits: dose };
     } else if (c.activityType === "book" && c.bookResource) {
       // External book study is minute-flexible: allocate as much of the suggested session as
       // fits today, capped by the methodology activity estimate. The cap is config; the unit
       // is generic time-budget arithmetic.
-      divisible = { perUnitMinutes: 1, maxUnits: Math.max(1, c.estMinutes) };
+      divisible = {
+        perUnitMinutes: 1,
+        maxUnits: Math.max(1, c.estMinutes),
+        allocationGranularityMinutes: vol.allocationGranularityMinutes?.value,
+      };
     } else if (c.activityType === "play_game") {
       const per = gameMinutesFor(input.constraints.formats ?? [], cfg);
       const maxGames = vol.maxGamesPerSession?.value;
       if (per != null && maxGames != null) {
-        divisible = { perUnitMinutes: per, maxUnits: maxGames };
+        divisible = {
+          perUnitMinutes: per,
+          maxUnits: maxGames,
+          allocationGranularityMinutes: vol.allocationGranularityMinutes?.value,
+        };
       }
     }
     return divisible ? { ...c, divisible } : c;

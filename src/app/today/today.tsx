@@ -297,7 +297,7 @@ export function Today() {
                 </CardTitle>
                 {item.estMinutes != null && (
                   <span className="text-graphite shrink-0 font-mono text-sm tabular-nums">
-                    ~{item.estMinutes} min
+                    up to {item.estMinutes} min
                   </span>
                 )}
               </div>
@@ -615,7 +615,7 @@ function BookLogForm({
             </span>
             {defaultMinutes && (
               <span className="text-graphite font-mono text-[0.7rem]">
-                Planned: ~{defaultMinutes} min
+                Planned: up to {defaultMinutes} min
               </span>
             )}
           </div>
