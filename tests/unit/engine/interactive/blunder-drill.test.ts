@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import { deriveBlunderDrills } from "@/engine/interactive/blunder-drill";
+import { drillToSolveState } from "@/engine/interactive/puzzle";
+import { stepSolve } from "@/engine/interactive/session";
 
 // M12 — deterministic blunder → PracticeItem derivation (golden). Keeps only blunders that
 // clear the config severity floor, carry a FEN, and have a resolved best move; ply-ascending,
@@ -56,5 +58,45 @@ describe("deriveBlunderDrills", () => {
       { minCpLoss: 260 },
     );
     expect(drafts.map((d) => d.sourceRef)).toEqual(["blunder:g1:3"]);
+  });
+});
+
+describe("blunder drill solve parity", () => {
+  const startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+
+  it("returns wrong legal move feedback and resets to the drill checkpoint", () => {
+    const { solveState, orientation, setupMove } = drillToSolveState(
+      startFen,
+      ["e2e4"],
+      1000,
+    );
+
+    expect(setupMove).toBeNull();
+    expect(orientation).toBe("white");
+    expect(solveState.checkpointPosition).toBe(solveState.position);
+
+    const result = stepSolve(solveState, { san: "d4", atMs: 2500 });
+
+    expect(result.step).toBe("wrong");
+    expect(result.wrongMoveKind).toBe("legal");
+    expect(result.transientPosition).toBeDefined();
+    expect(result.transientPosition).not.toBe(solveState.position);
+    expect(result.checkpointPosition).toBe(solveState.position);
+    expect(result.state.position).toBe(solveState.position);
+    expect(result.state.cursor).toBe(0);
+    expect(result.state.startedMs).toBe(1000);
+    expect(result.solveMs).toBe(1500);
+  });
+
+  it("solves a correct blunder drill through the same state machine", () => {
+    const { solveState } = drillToSolveState(startFen, ["e2e4"], 1000);
+
+    const result = stepSolve(solveState, { san: "e4", atMs: 1800 });
+
+    expect(result.step).toBe("solved");
+    expect(result.state.cursor).toBe(1);
+    expect(result.state.attempts).toBe(0);
+    expect(result.state.checkpointPosition).toBe(result.state.position);
+    expect(result.solveMs).toBe(800);
   });
 });

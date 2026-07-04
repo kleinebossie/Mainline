@@ -57,6 +57,36 @@ describe("stepSolve pure state machine", () => {
     expect(result2.state.cursor).toBe(3);
   });
 
+  it("resets a wrong later move to the current multi-move checkpoint", () => {
+    const initialState: SolveState = {
+      position: startFen,
+      solutionLine: ["e2e4", "e7e5", "g1f3"],
+      cursor: 0,
+      startedMs: 1000,
+      attempts: 0,
+    };
+
+    const afterFirstMove = stepSolve(initialState, { san: "e4", atMs: 2000 });
+    expect(afterFirstMove.step).toBe("continue");
+    expect(afterFirstMove.state.cursor).toBe(2);
+
+    const checkpoint = afterFirstMove.state.position;
+    const wrongLaterMove = stepSolve(afterFirstMove.state, {
+      san: "d4",
+      atMs: 3000,
+    });
+
+    expect(wrongLaterMove.step).toBe("wrong");
+    expect(wrongLaterMove.wrongMoveKind).toBe("legal");
+    expect(wrongLaterMove.transientPosition).toBeDefined();
+    expect(wrongLaterMove.transientPosition).not.toBe(checkpoint);
+    expect(wrongLaterMove.checkpointPosition).toBe(checkpoint);
+    expect(wrongLaterMove.state.position).toBe(checkpoint);
+    expect(wrongLaterMove.state.cursor).toBe(2);
+    expect(wrongLaterMove.state.startedMs).toBe(1000);
+    expect(wrongLaterMove.solveMs).toBe(2000);
+  });
+
   it("handles incorrect moves by incrementing attempts without moving board", () => {
     const initialState: SolveState = {
       position: startFen,

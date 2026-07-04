@@ -7,9 +7,9 @@ import { cn } from "@/lib/utils";
 
 // The in-app board (M10 substrate). It is a thin, CONTROLLED wrapper around
 // `react-chessboard` (the mature, ubiquitous board named in BUILD.md §3): the displayed
-// position is always exactly the `fen` prop, so a rejected move snaps straight back to the
-// puzzle start instead of stranding the user on a wrong position. chess.js supplies move
-// legality + SAN/UCI; the board is generic and science-free (L1) — every affordance toggle
+// position is always exactly the `fen` prop. Solving surfaces may briefly pass a
+// transient legal-move FEN before resetting to their own checkpoint; this component only
+// supplies move legality + SAN/UCI and stays generic/science-free (L1). Every affordance toggle
 // defaults to the permissive generic board and is overridden only by graded Seam-4 config
 // on the solving surfaces (METHODOLOGY §4.4(c)).
 
@@ -179,8 +179,8 @@ export function InteractiveBoard({
     }): boolean => {
       if (!targetSquare) return false;
       attemptMove(sourceSquare, targetSquare);
-      // Always false: the board is controlled by `fen`, so it reverts the dragged piece and
-      // re-renders to whatever position the parent decides (unchanged on a rejected move).
+      // Always false: the board is controlled by `fen`, so it re-renders to whatever
+      // stable or transient position the parent decides.
       return false;
     },
     [attemptMove],

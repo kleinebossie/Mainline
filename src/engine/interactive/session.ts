@@ -7,6 +7,8 @@ export interface SolveState {
   position: string; // Current FEN
   solutionLine: San[]; // Expected moves in SAN or UCI format
   cursor: number; // Current index in solutionLine
+  checkpointPosition?: string; // Last accepted stable FEN; wrong legal moves reset here.
+  checkpointCursor?: number; // Cursor paired with checkpointPosition.
   startedMs: EpochMs; // Start time of the solve attempt
   attempts: number; // Count of wrong attempts
 }
@@ -15,6 +17,11 @@ export interface StepResult {
   state: SolveState;
   step: "correct" | "wrong" | "solved" | "continue";
   solveMs: number;
+  /** Legal-but-wrong move position; callers may show it briefly before resetting. */
+  transientPosition?: string;
+  /** Stable position the board should return to after feedback. */
+  checkpointPosition: string;
+  wrongMoveKind?: "legal" | "illegal";
 }
 
 /**
@@ -27,6 +34,8 @@ export function stepSolve(
   move: { san: San; atMs: EpochMs },
 ): StepResult {
   const solveMs = Math.max(0, move.atMs - state.startedMs);
+  const checkpointPosition = state.checkpointPosition ?? state.position;
+  const checkpointCursor = state.checkpointCursor ?? state.cursor;
 
   // If the puzzle is already solved, return it as solved
   if (state.cursor >= state.solutionLine.length) {
@@ -34,6 +43,7 @@ export function stepSolve(
       state,
       step: "solved",
       solveMs,
+      checkpointPosition,
     };
   }
 
@@ -57,10 +67,16 @@ export function stepSolve(
       return {
         state: {
           ...state,
+          position: checkpointPosition,
+          cursor: checkpointCursor,
+          checkpointPosition,
+          checkpointCursor,
           attempts: state.attempts + 1,
         },
         step: "wrong",
         solveMs,
+        checkpointPosition,
+        wrongMoveKind: "illegal",
       };
     }
   }
@@ -71,10 +87,17 @@ export function stepSolve(
     return {
       state: {
         ...state,
+        position: checkpointPosition,
+        cursor: checkpointCursor,
+        checkpointPosition,
+        checkpointCursor,
         attempts: state.attempts + 1,
       },
       step: "wrong",
       solveMs,
+      checkpointPosition,
+      transientPosition: chess.fen(),
+      wrongMoveKind: "legal",
     };
   }
 
@@ -87,10 +110,17 @@ export function stepSolve(
     return {
       state: {
         ...state,
+        position: checkpointPosition,
+        cursor: checkpointCursor,
+        checkpointPosition,
+        checkpointCursor,
         attempts: state.attempts + 1,
       },
       step: "wrong",
       solveMs,
+      checkpointPosition,
+      transientPosition: chess.fen(),
+      wrongMoveKind: "legal",
     };
   }
 
@@ -130,8 +160,11 @@ export function stepSolve(
       ...state,
       position: currentFen,
       cursor: nextCursor,
+      checkpointPosition: currentFen,
+      checkpointCursor: nextCursor,
     },
     step: isSolved ? "solved" : "continue",
     solveMs,
+    checkpointPosition: currentFen,
   };
 }

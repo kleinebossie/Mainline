@@ -215,7 +215,7 @@ export function EndgameDrillSession({
             Endgame drill · {data.item.label}
           </p>
           <h1 className="text-ink font-serif text-3xl font-bold tracking-tight">
-            {current?.label ?? "Endgame"} ({idx + 1} of {positions.length})
+            {current?.label ?? "Current endgame"}
           </h1>
         </div>
         <span className="text-graphite font-mono text-sm">
