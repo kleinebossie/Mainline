@@ -50,6 +50,7 @@ export function TrainItem({ programItemId }: TrainItemProps) {
   const [solvables, setSolvables] = useState<Solvable[]>([]);
   const [currentIdx, setCurrentIdx] = useState<number>(0);
   const [solveState, setSolveState] = useState<SolveState | null>(null);
+  const [boardPosition, setBoardPosition] = useState<string | null>(null);
   const [orientation, setOrientation] = useState<BoardOrientation>("white");
   const [solveStatus, setSolveStatus] = useState<
     "pending" | "correct" | "wrong" | "solved"
@@ -58,6 +59,7 @@ export function TrainItem({ programItemId }: TrainItemProps) {
   // Timer for elapsed solve time
   const [elapsedMs, setElapsedMs] = useState<number>(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const feedbackTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Redo Flow States
   const [firstTryPassed, setFirstTryPassed] = useState<boolean>(true);
@@ -89,25 +91,32 @@ export function TrainItem({ programItemId }: TrainItemProps) {
   // Set up solve state when the active item (by phase + index) changes.
   useEffect(() => {
     const list = phase === "retest" ? retestQueue : solvables;
+    const activeItem = list[currentIdx];
     if (
       (phase === "training" || phase === "retest") &&
-      currentIdx < list.length &&
-      list[currentIdx]
+      activeItem
     ) {
-      initSolvable(list[currentIdx]!);
+      initSolvable(activeItem);
     }
-  }, [solvables, retestQueue, currentIdx, phase]);
+    // We explicitly omit solvables and retestQueue from the dependencies to prevent
+    // updates (like appending a failed puzzle to the retestQueue during training)
+    // from resetting the ongoing solve session. We only want to re-initialize
+    // when the active puzzle's ID, index, or phase changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentIdx, phase, phase === "retest" ? retestQueue[currentIdx]?.id : solvables[currentIdx]?.id]);
 
   // Clean up timers on unmount
   useEffect(() => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
+      if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
       if (delayTimerRef.current) clearInterval(delayTimerRef.current);
     };
   }, []);
 
   const initSolvable = (s: Solvable) => {
     if (timerRef.current) clearInterval(timerRef.current);
+    if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
 
     const now = systemClock.now();
     // A puzzle has an opponent setup move (moves[0]); a blunder drill is the position the
@@ -118,6 +127,7 @@ export function TrainItem({ programItemId }: TrainItemProps) {
         : puzzleToSolveState(s.fen, s.line.join(" "), now);
 
     setSolveState(setup);
+    setBoardPosition(setup.position);
     setOrientation(playerSide);
     setSolveStatus("pending");
     setElapsedMs(0);
@@ -165,6 +175,7 @@ export function TrainItem({ programItemId }: TrainItemProps) {
     setSolveState(result.state);
 
     if (result.step === "solved") {
+      setBoardPosition(result.state.position);
       setSolveStatus("solved");
       if (timerRef.current) clearInterval(timerRef.current);
 
@@ -174,6 +185,7 @@ export function TrainItem({ programItemId }: TrainItemProps) {
       }
     } else if (result.step === "wrong") {
       setSolveStatus("wrong");
+      setBoardPosition(result.transientPosition ?? result.checkpointPosition);
 
       // First mistake triggers fail logging and registers the item for retest.
       if (phase === "training" && isFirstAttempt && firstTryPassed) {
@@ -189,11 +201,14 @@ export function TrainItem({ programItemId }: TrainItemProps) {
         setHintActive(true);
       }
 
-      setTimeout(() => {
+      const resetPosition = result.checkpointPosition;
+      feedbackTimerRef.current = setTimeout(() => {
+        setBoardPosition(resetPosition);
         setSolveStatus((prev) => (prev === "wrong" ? "pending" : prev));
       }, 1500);
     } else if (result.step === "continue" || result.step === "correct") {
       setSolveStatus("correct");
+      setBoardPosition(result.state.position);
       setTimeout(() => {
         setSolveStatus((prev) => (prev === "correct" ? "pending" : prev));
       }, 1000);
@@ -364,7 +379,7 @@ export function TrainItem({ programItemId }: TrainItemProps) {
     );
   }
 
-  if (!current || !solveState) return null;
+  if (!current || !solveState || !boardPosition) return null;
 
   const phaseLabel =
     phase === "retest"
@@ -381,8 +396,11 @@ export function TrainItem({ programItemId }: TrainItemProps) {
             {phaseLabel} · {data.item.label}
           </p>
           <h1 className="text-ink font-serif text-3xl font-bold tracking-tight">
-            {isDrill ? "Position" : "Puzzle"} {currentIdx + 1} of{" "}
-            {activeList.length}
+            {phase === "retest"
+              ? "Retest this position"
+              : isDrill
+                ? "Find the missed move"
+                : "Current puzzle"}
           </h1>
         </div>
         <span className="text-graphite font-mono text-sm">
@@ -404,10 +422,10 @@ export function TrainItem({ programItemId }: TrainItemProps) {
             </span>
           </div>
           <InteractiveBoard
-            fen={solveState.position}
+            fen={boardPosition}
             onMove={handleMove}
             orientation={orientation}
-            disabled={solveStatus === "solved"}
+            disabled={solveStatus === "solved" || solveStatus === "wrong"}
             highlightedSquares={highlightedSquares}
             showEvalBar={data.affordances.showEvalBar}
             showLegalMoveDots={data.affordances.showLegalMoveDots}
@@ -415,12 +433,9 @@ export function TrainItem({ programItemId }: TrainItemProps) {
             allowHover={data.affordances.allowHover}
             className="w-full max-w-[36rem]"
           />
-          <div className="flex justify-between w-full max-w-[36rem] px-1">
+          <div className="flex w-full max-w-[36rem] justify-start px-1">
             <span className="text-graphite font-mono text-xs">
               Elapsed: {(elapsedMs / 1000).toFixed(1)}s
-            </span>
-            <span className="text-graphite font-mono text-xs">
-              Attempts: {solveState.attempts}
             </span>
           </div>
         </div>
@@ -442,7 +457,7 @@ export function TrainItem({ programItemId }: TrainItemProps) {
               )}
               <div className="flex flex-col gap-2 rounded-md border border-line bg-paper/50 p-4">
                 <span className="text-ink font-mono text-xs font-semibold uppercase tracking-wider">
-                  Solve State:
+                  Move feedback
                 </span>
                 <span
                   className={cn(
@@ -453,10 +468,11 @@ export function TrainItem({ programItemId }: TrainItemProps) {
                     solveStatus === "pending" && "text-graphite",
                   )}
                 >
-                  {solveStatus === "solved" && "✓ Solved!"}
-                  {solveStatus === "wrong" && "✗ Wrong Move!"}
-                  {solveStatus === "correct" && "✓ Correct Move!"}
-                  {solveStatus === "pending" && "Solve the puzzle..."}
+                  {solveStatus === "solved" && "Solved"}
+                  {solveStatus === "wrong" && "Wrong move"}
+                  {solveStatus === "correct" && "Correct move"}
+                  {solveStatus === "pending" &&
+                    (isDrill ? "Find the missed move" : "Find the move")}
                 </span>
               </div>
 
@@ -464,7 +480,7 @@ export function TrainItem({ programItemId }: TrainItemProps) {
               {hintActive && (
                 <div className="flex flex-col gap-2 rounded-md border border-evergreen/20 bg-evergreen/5 p-4 transition-all settle">
                   <span className="text-evergreen font-mono text-xs font-semibold uppercase tracking-wider">
-                    Scaffolded Hint:
+                    Hint
                   </span>
                   <p className="text-sm font-serif text-ink leading-relaxed">
                     We highlighted the starting square of the correct piece.
