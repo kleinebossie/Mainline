@@ -14,6 +14,7 @@ interface FakeOpts {
   features?: unknown[];
   seededRefIds?: string[];
   dueRows?: { itemRef: string; itemType: string; due: Date }[];
+  puzzleRows?: { puzzleId: string; themes: string[] }[];
   recentAttempts?: {
     payload: unknown;
     programItem: { params: unknown } | null;
@@ -100,6 +101,12 @@ function fakeDb(opts: FakeOpts) {
       // M13: ensureEndgameDrills seeds endgame schedules; the fake just accepts the write.
       upsert: async () => undefined,
     },
+    lichessPuzzle: {
+      findMany: async ({ where }: { where: { puzzleId: { in: string[] } } }) =>
+        (opts.puzzleRows ?? []).filter((row) =>
+          where.puzzleId.in.includes(row.puzzleId),
+        ),
+    },
     // M13: ensureEndgameDrills upserts curated endgame PracticeItems before reading due items.
     practiceItem: {
       upsert: async ({ create }: { create: { sourceRef: string } }) => ({
@@ -181,6 +188,7 @@ describe("generateAndSaveProgram + getTodayProgram (round-trip)", () => {
     // 15 pattern puzzles fit under a whole-minute 12 min cap.
     expect(tactics.estMinutes).toBe(12);
     expect(tactics.params.count).toBe(15);
+    expect("dueItemRefs" in tactics.params).toBe(false);
   });
 
   it("returns null when no program has been generated", async () => {
@@ -193,14 +201,34 @@ describe("generateAndSaveProgram + getTodayProgram (round-trip)", () => {
       tacticalRating: 1300,
       minutesPerDay: 60,
       dueRows: [
-        { itemRef: "fork", itemType: "puzzle_theme", due: new Date(0) },
+        { itemRef: "puzzle-a", itemType: "puzzle", due: new Date(0) },
+        { itemRef: "puzzle-b", itemType: "puzzle", due: new Date(0) },
+      ],
+      puzzleRows: [
+        { puzzleId: "puzzle-a", themes: ["fork", "mateIn2"] },
+        { puzzleId: "puzzle-b", themes: ["fork"] },
       ],
     });
     await generateAndSaveProgram(db, "u1", clock);
     const today = await getTodayProgram(db, "u1");
     const review = today!.items.find((i) => i.activityType === "spaced_review");
     expect(review).toBeDefined();
-    expect(review!.params.dueItemRefs).toEqual(["fork"]);
+    expect(review!.reviewThemes).toEqual(["Fork", "Mate in 2"]);
+    expect("dueItemRefs" in review!.params).toBe(false);
+  });
+
+  it("falls back to neutral review details when due puzzle themes are unavailable", async () => {
+    const db = fakeDb({
+      tacticalRating: 1300,
+      minutesPerDay: 60,
+      dueRows: [{ itemRef: "opaque-id", itemType: "puzzle", due: new Date(0) }],
+    });
+    await generateAndSaveProgram(db, "u1", clock);
+    const today = await getTodayProgram(db, "u1");
+    const review = today!.items.find((i) => i.activityType === "spaced_review");
+    expect(review).toBeDefined();
+    expect(review!.reviewThemes).toEqual([]);
+    expect("dueItemRefs" in review!.params).toBe(false);
   });
 
   it("uses the library band instead of tactical band to select owned books during program generation", async () => {

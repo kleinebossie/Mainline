@@ -1,4 +1,3 @@
-import { humanizeTheme } from "@/integrations/puzzles/themes";
 import type { TodayItem, TodayProgram } from "@/server/program";
 
 export type Grade = "A" | "B" | "C" | "D";
@@ -23,8 +22,8 @@ export function sessionMinuteCap(program: TodayProgram): string {
 export function itemSummary(item: TodayItem): string {
   const p = item.params;
   if (item.activityType === "spaced_review") {
-    return p.theme
-      ? `Review due failed tactics in ${humanizeTheme(p.theme)}.`
+    return item.reviewThemes.length > 0
+      ? `Review due failed tactics: ${item.reviewThemes.join(", ")}.`
       : "Review due failed tactics.";
   }
   if (item.activityType === "blunder_drill") {

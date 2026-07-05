@@ -20,6 +20,7 @@ import {
   type RawGameFeatures,
 } from "@/lib/raw-features";
 import { lichessThemeUrl, platformPlayUrl } from "@/integrations/catalog";
+import { humanizeTheme } from "@/integrations/puzzles/themes";
 import { platformLabel } from "@/lib/format-game";
 import {
   ratingFromSnapshot,
@@ -48,6 +49,7 @@ type Db = Pick<
   | "practiceItem"
   | "scheduleState"
   | "activityEvent"
+  | "lichessPuzzle"
   | "$transaction"
 >;
 
@@ -323,7 +325,9 @@ export interface TodayItem {
   activityType: string;
   dimensionLabels: string[];
   estMinutes: number | null;
-  params: ProgramItemParams;
+  params: Omit<ProgramItemParams, "dueItemRefs">;
+  /** Human-readable display tags for due review work; raw due refs stay server/internal. */
+  reviewThemes: string[];
   externalUrl: string | null;
   /** The label for the external-link button (e.g. "Play on Lichess ↗"). */
   externalLabel: string | null;
@@ -357,6 +361,79 @@ function paramsOf(raw: unknown): ProgramItemParams & { estMinutes?: number } {
   return { theme: null, track: null };
 }
 
+function publicParams(
+  params: ProgramItemParams & { estMinutes?: number },
+  theme: string | null,
+): Omit<ProgramItemParams, "dueItemRefs"> {
+  const publicFacing = { ...params };
+  delete publicFacing.dueItemRefs;
+  return { ...publicFacing, theme };
+}
+
+const REVIEW_THEME_DISPLAY_LIMIT = 3;
+
+function rankedReviewThemes(
+  puzzleThemes: readonly (readonly string[])[],
+  fallbackTheme: string | null,
+): string[] {
+  const counts = new Map<string, { count: number; firstSeen: number }>();
+  let firstSeen = 0;
+  for (const themes of puzzleThemes) {
+    for (const theme of themes) {
+      const existing = counts.get(theme);
+      if (existing) {
+        existing.count += 1;
+      } else {
+        counts.set(theme, { count: 1, firstSeen });
+        firstSeen += 1;
+      }
+    }
+  }
+  if (counts.size === 0 && fallbackTheme) {
+    counts.set(fallbackTheme, { count: 1, firstSeen: 0 });
+  }
+  return [...counts.entries()]
+    .sort((a, b) => b[1].count - a[1].count || a[1].firstSeen - b[1].firstSeen)
+    .slice(0, REVIEW_THEME_DISPLAY_LIMIT)
+    .map(([theme]) => humanizeTheme(theme));
+}
+
+async function reviewThemesByItemId(
+  db: Db,
+  items: readonly ActiveProgram["items"][number][],
+): Promise<Map<string, string[]>> {
+  const reviewItems = items.filter(
+    (item) => item.activityType === "spaced_review",
+  );
+  const refs = [
+    ...new Set(
+      reviewItems.flatMap((item) => {
+        const dueItemRefs = paramsOf(item.params).dueItemRefs ?? [];
+        return dueItemRefs.filter((ref) => typeof ref === "string");
+      }),
+    ),
+  ];
+  const puzzles =
+    refs.length > 0
+      ? await db.lichessPuzzle.findMany({
+          where: { puzzleId: { in: refs } },
+          select: { puzzleId: true, themes: true },
+        })
+      : [];
+  const puzzleById = new Map(puzzles.map((p) => [p.puzzleId, p]));
+
+  return new Map(
+    reviewItems.map((item) => {
+      const params = paramsOf(item.params);
+      const dueItemRefs = params.dueItemRefs ?? [];
+      const puzzleThemes = dueItemRefs
+        .map((ref) => puzzleById.get(ref)?.themes)
+        .filter((themes): themes is string[] => Array.isArray(themes));
+      return [item.id, rankedReviewThemes(puzzleThemes, params.theme ?? null)];
+    }),
+  );
+}
+
 function internalActivityUrl(
   activityType: string,
   programItemId: string,
@@ -379,6 +456,7 @@ export function toTodayItem(
   dimLabels: Map<string, string>,
   ledger: Map<string, string>,
   primaryPlatform: string | null,
+  reviewThemes: readonly string[] = [],
 ): TodayItem {
   const params = paramsOf(item.params);
   const def = cfg.activities.find((a) => a.id === item.activityId);
@@ -415,7 +493,8 @@ export function toTodayItem(
     dimensionLabels: item.dimensionsTargeted.map((d) => dimLabels.get(d) ?? d),
     estMinutes:
       typeof params.estMinutes === "number" ? params.estMinutes : null,
-    params: { ...params, theme },
+    params: publicParams(params, theme),
+    reviewThemes: [...reviewThemes],
     externalUrl,
     externalLabel,
     url,
@@ -507,6 +586,7 @@ export async function getTodayProgram(
 
   const dimLabels = new Map(cfg.dimensions.map((d) => [d.id, d.label]));
   const ledger = new Map(cfg.evidenceLedger.map((a) => [a.key, a.source]));
+  const reviewThemes = await reviewThemesByItemId(db, program.items);
 
   return {
     id: program.id,
@@ -517,7 +597,14 @@ export async function getTodayProgram(
       processGoal: rationaleFor("process_goal", cfg).value,
     },
     items: program.items.map((it) =>
-      toTodayItem(it, cfg, dimLabels, ledger, primaryPlatform),
+      toTodayItem(
+        it,
+        cfg,
+        dimLabels,
+        ledger,
+        primaryPlatform,
+        reviewThemes.get(it.id) ?? [],
+      ),
     ),
   };
 }

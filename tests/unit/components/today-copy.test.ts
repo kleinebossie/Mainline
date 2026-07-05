@@ -16,7 +16,8 @@ function item(overrides: Partial<TodayItem>): TodayItem {
     activityType: "spaced_review",
     dimensionLabels: ["Tactics"],
     estMinutes: 0.75,
-    params: { theme: null, track: null, dueItemRefs: ["099Vg", "0cbN7"] },
+    params: { theme: null, track: null },
+    reviewThemes: [],
     externalUrl: null,
     externalLabel: null,
     url: "/train/item-1",
@@ -51,10 +52,20 @@ describe("Today copy helpers", () => {
     expect(sessionMinuteCap(program)).toBe("up to 15 min");
   });
 
-  it("does not expose raw due refs or quantity pressure in Today summaries", () => {
+  it("uses server-shaped review themes in Today summaries", () => {
     const summary = itemSummary(
       item({
-        params: { theme: null, track: null, dueItemRefs: ["099Vg", "0cbN7"] },
+        reviewThemes: ["Fork", "Mate in 2"],
+      }),
+    );
+    expect(summary).toBe("Review due failed tactics: Fork, Mate in 2.");
+  });
+
+  it("uses neutral review copy without raw ids or quantity pressure", () => {
+    const summary = itemSummary(
+      item({
+        params: { theme: null, track: null },
+        reviewThemes: [],
       }),
     );
     expect(summary).toBe("Review due failed tactics.");
