@@ -2527,6 +2527,24 @@
       "soften": false
     },
     {
+      "key": "progress_surface",
+      "whenShown": "progress dashboard",
+      "value": "Progress here means process signals: consistency, completed work, review health, and skill estimates with uncertainty. The point is to make steady practice easier, not to keep you chasing a feed.",
+      "grade": "A",
+      "tier": 2,
+      "citationKey": "deci1999",
+      "soften": false
+    },
+    {
+      "key": "rating_noise",
+      "whenShown": "rating signal",
+      "value": "A rating is a range, not a verdict. We treat short-term swings as noise unless the new confidence interval clears the old one.",
+      "grade": "A",
+      "tier": 1,
+      "citationKey": "glickman2012",
+      "soften": false
+    },
+    {
       "key": "skill_update",
       "whenShown": "after logging results",
       "value": "We re-estimate each skill from your logged results. Early estimates are rough — we show them with their uncertainty, never as a verdict.",

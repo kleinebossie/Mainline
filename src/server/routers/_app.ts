@@ -10,6 +10,7 @@ import { engagementRouter } from "@/server/routers/engagement";
 import { importRouter } from "@/server/routers/import";
 import { libraryRouter } from "@/server/routers/library";
 import { programRouter } from "@/server/routers/program";
+import { progressRouter } from "@/server/routers/progress";
 import { trackerRouter } from "@/server/routers/tracker";
 import { router } from "@/server/trpc";
 
@@ -24,6 +25,7 @@ export const appRouter = router({
   engagement: engagementRouter,
   account: accountRouter,
   library: libraryRouter,
+  progress: progressRouter,
 });
 
 export type AppRouter = typeof appRouter;
