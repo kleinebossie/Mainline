@@ -5,23 +5,15 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { AccountMenu } from "@/components/account-menu";
+import { NAV } from "@/components/navigation";
 import { cn } from "@/lib/utils";
 
 // The app shell — one slim mono top bar across every signed-in surface, so the product
 // reads as a single instrument instead of a stack of pages. The wordmark carries the
 // annotation mark (·!) that is the brand's whole idea: a graded, honest line.
 //
-// IA: the primary bar holds the things you DO — Today (train), Analysis, Library.
-// Everything that is account/config rather than training (Setup, Settings, Connections,
-// export, sign out) lives in the AccountMenu (⚙), so the bar never grows a new tab
-// every time a setting appears.
-
-const NAV = [
-  { href: "/today", label: "Today" },
-  { href: "/analysis", label: "Analysis" },
-  { href: "/library", label: "Library" },
-  { href: "/about", label: "About" },
-];
+// IA: primary training surfaces live in the top bar. Progress is restored as a top-level
+// process surface, while secondary About copy can yield on the smallest screens.
 
 export function Wordmark({ className }: { className?: string }) {
   return (
@@ -44,10 +36,10 @@ function TopBar() {
   const pathname = usePathname();
   return (
     <header className="bg-paper/80 sticky top-0 z-30 border-b border-line/80 backdrop-blur-sm">
-      <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-4 px-6">
-        <Wordmark />
-        <div className="flex items-center gap-1 sm:gap-2">
-          <nav className="flex items-center gap-1 sm:gap-2">
+      <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-2 px-3 sm:gap-4 sm:px-6">
+        <Wordmark className="shrink-0" />
+        <div className="flex min-w-0 items-center gap-1 sm:gap-2">
+          <nav className="flex min-w-0 items-center gap-0.5 whitespace-nowrap sm:gap-2">
             {NAV.map((item) => {
               const active =
                 pathname === item.href || pathname.startsWith(item.href + "/");
@@ -57,7 +49,8 @@ function TopBar() {
                   href={item.href}
                   aria-current={active ? "page" : undefined}
                   className={cn(
-                    "relative rounded-sm px-2 py-1.5 font-mono text-xs tracking-tight transition-colors sm:text-[0.8rem]",
+                    "relative rounded-sm px-1.5 py-1.5 font-mono text-[0.68rem] tracking-tight transition-colors sm:px-2 sm:text-[0.8rem]",
+                    item.secondary && "hidden sm:inline-flex",
                     active
                       ? "text-ink"
                       : "text-graphite hover:text-ink hover:bg-ink/[0.04]",
