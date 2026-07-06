@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { trpc } from "@/lib/trpc/react";
 import { cn } from "@/lib/utils";
 import type { AppRouter } from "@/server/routers/_app";
@@ -182,67 +183,174 @@ function RatingSignal({
   if (!rating) {
     return (
       <p className="rounded-md border bg-card p-4 text-sm text-graphite shadow-sheet">
-        No rating snapshots with deviation data yet. Connect and sync an
-        account to show uncertainty bands.
+        No rating data available. Set your primary platform and choose time
+        controls in Settings to start tracking rating signals.
       </p>
     );
   }
 
-  const latestLower = Math.round(rating.latest.range.lower);
-  const latestUpper = Math.round(rating.latest.range.upper);
-  const baseline =
-    rating.baseline &&
-    `${Math.round(rating.baseline.range.lower)}-${Math.round(
-      rating.baseline.range.upper,
-    )}`;
+  const showPlatformSetup = !rating.platformSet;
+  const showFormatsSetup = rating.platformSet && !rating.formatsSet;
 
   return (
     <div className="rounded-md border bg-card p-4 shadow-sheet">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      {/* Header */}
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-line/60 pb-4">
         <div>
           <p className="eyebrow">Rating noise</p>
-          <h2 className="mt-2 font-serif text-2xl font-semibold">
-            {rating.realProgress
-              ? "Signal cleared the old range"
-              : "Still inside the noise band"}
-          </h2>
-        </div>
-        <span className="rounded-sm border border-line bg-paper/70 px-2 py-1 font-mono text-[0.7rem] uppercase text-graphite">
-          {rating.platform} · {rating.format}
-        </span>
-      </div>
-
-      <div className="mt-5 grid gap-3 sm:grid-cols-2">
-        <div className="rounded-sm border border-line bg-paper/60 p-3">
-          <p className="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-graphite">
-            Current 95% range
-          </p>
-          <p className="mt-1 font-mono text-xl font-semibold tabular-nums">
-            {latestLower}-{latestUpper}
+          <p className="mt-1 font-serif text-lg font-semibold">
+            {rating.platformLabel}
           </p>
         </div>
-        <div className="rounded-sm border border-line bg-paper/60 p-3">
-          <p className="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-graphite">
-            Baseline range
-          </p>
-          <p className="mt-1 font-mono text-xl font-semibold tabular-nums">
-            {baseline ?? "Not stable yet"}
-          </p>
+        <div className="flex flex-wrap gap-2">
+          {showPlatformSetup && (
+            <Link
+              href="/settings"
+              className="inline-flex items-center gap-1 rounded-sm border border-line bg-paper/70 px-2.5 py-1 font-mono text-[0.7rem] uppercase text-graphite transition-colors hover:border-ink/20 hover:bg-paper"
+            >
+              Set your platform →
+            </Link>
+          )}
+          {showFormatsSetup && (
+            <Link
+              href="/settings"
+              className="inline-flex items-center gap-1 rounded-sm border border-line bg-paper/70 px-2.5 py-1 font-mono text-[0.7rem] uppercase text-graphite transition-colors hover:border-ink/20 hover:bg-paper"
+            >
+              Choose time controls →
+            </Link>
+          )}
         </div>
       </div>
 
-      <p className="mt-4 text-sm leading-relaxed text-graphite">
-        {rating.plateau.reason === "plateau"
-          ? "The recent range has not set a new high, so the adaptation loop can change the stimulus instead of adding volume."
-          : rating.plateau.reason === "new_high"
-            ? "The recent range set a new high, but we still treat rating as a noisy secondary signal."
-            : "There is not enough stable rating history to call a plateau or a real gain."}
-      </p>
-      {rating.expectation ? (
-        <p className="mt-3 border-l-2 border-evergreen/45 pl-3 text-sm leading-relaxed text-graphite">
-          {rating.expectation.text}
+      {/* Format rows */}
+      {rating.formats.length === 0 ? (
+        <p className="mt-4 text-sm text-graphite">
+          No time controls selected. Choose formats in Settings to see rating
+          signals.
         </p>
-      ) : null}
+      ) : (
+        <div>
+          {rating.formats.map((format, index) => {
+            const lower = Math.round(format.latest.range.lower);
+            const upper = Math.round(format.latest.range.upper);
+            const midpoint = Math.round((lower + upper) / 2);
+            const ciWidth = upper - lower;
+            // Band width: ~0.5px per point of uncertainty, clamped to 24–160px
+            const bandWidth = Math.min(Math.max(ciWidth * 0.5, 24), 160);
+
+            const baselineText = format.baseline
+              ? `${Math.round(format.baseline.range.lower)} – ${Math.round(format.baseline.range.upper)}`
+              : null;
+
+            const progressLabel = format.realProgress
+              ? "Signal cleared old range"
+              : format.plateau.reason === "plateau"
+                ? "Plateau — no recent improvement"
+                : format.plateau.reason === "new_high"
+                  ? "New peak — range shifted up"
+                  : "Calibrating — need more games";
+
+            return (
+              <div
+                key={format.format}
+                className={cn(
+                  index > 0 && "border-t border-line/40",
+                  "py-4",
+                )}
+              >
+                {/* Row 1: label, rating + rd, CI */}
+                <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+                  {/* Time control */}
+                  <span className="font-serif text-base font-semibold min-w-[4.5rem]">
+                    {format.label}
+                  </span>
+
+                  {/* Rating estimate */}
+                  <span className="font-mono text-xl font-semibold tabular-nums text-ink">
+                    ~{midpoint}
+                  </span>
+                  <span className="font-mono text-[0.65rem] text-graphite tabular-nums">
+                    ± {format.latest.rd} RD
+                  </span>
+
+                  {/* CI band */}
+                  <div className="hidden items-center gap-2 sm:flex">
+                    <div className="relative flex items-center">
+                      <div
+                        className="h-[4px] rounded-full bg-graphite/25"
+                        style={{ width: `${bandWidth}px` }}
+                      />
+                      <div className="absolute left-1/2 top-1/2 h-[6px] w-[6px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-ink/60" />
+                    </div>
+                  </div>
+
+                  {/* CI range with label */}
+                  <span className="font-mono text-[0.7rem] tabular-nums">
+                    <span className="text-graphite/60">95% CI </span>
+                    <span className="text-graphite">
+                      {lower} – {upper}
+                    </span>
+                  </span>
+
+                  {/* Baseline with label — right side on desktop */}
+                  <span className="ml-auto hidden font-mono text-[0.68rem] tabular-nums sm:inline">
+                    {baselineText ? (
+                      <>
+                        <span className="text-graphite/60">baseline </span>
+                        <span className="text-graphite/75">
+                          {baselineText}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-graphite/45">
+                        no baseline yet
+                      </span>
+                    )}
+                  </span>
+                </div>
+
+                {/* Row 2: baseline (mobile) + progress status */}
+                <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
+                  {/* Baseline — mobile only (hidden on sm+) */}
+                  <span className="font-mono text-[0.68rem] tabular-nums sm:hidden">
+                    {baselineText ? (
+                      <>
+                        <span className="text-graphite/60">baseline </span>
+                        <span className="text-graphite/75">
+                          {baselineText}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-graphite/45">
+                        no baseline yet
+                      </span>
+                    )}
+                  </span>
+
+                  {/* Progress signal */}
+                  <span
+                    className={cn(
+                      "font-mono text-[0.68rem]",
+                      format.realProgress
+                        ? "text-evergreen"
+                        : "text-graphite/65",
+                    )}
+                  >
+                    {progressLabel}
+                  </span>
+                </div>
+
+                {/* Expectation text */}
+                {format.expectation && (
+                  <p className="mt-2 border-l-2 border-line/60 pl-3 text-sm leading-relaxed text-graphite/75">
+                    {format.expectation.text}
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

@@ -27,6 +27,13 @@ function fakeDb() {
   ];
 
   return {
+    user: {
+      findUnique: async ({ where }: { where: { id: string } }) =>
+        where.id === "u1" ? { primaryPlatform: null } : null,
+    },
+    constraintSet: {
+      findFirst: async () => null,
+    },
     activityEvent: {
       findMany: async ({
         where,
@@ -110,12 +117,20 @@ describe("getProgressSummary", () => {
     const summary = await getProgressSummary(fakeDb(), "u1", clock);
 
     expect(summary.rating).not.toBeNull();
-    expect(summary.rating!.latest).not.toHaveProperty("rating");
-    expect(summary.rating!.latest.range).toEqual({
+    expect(summary.rating!.platform).toBe("lichess");
+    expect(summary.rating!.platformLabel).toBe("Lichess");
+    expect(summary.rating!.platformSet).toBe(false);
+    expect(summary.rating!.formatsSet).toBe(false);
+    expect(summary.rating!.formats).toHaveLength(1);
+    expect(summary.rating!.formats[0]!.format).toBe("rapid");
+    expect(summary.rating!.formats[0]!.latest).not.toHaveProperty("rating");
+    expect(summary.rating!.formats[0]!.latest.range).toEqual({
       lower: 1392.8,
       upper: 1667.2,
     });
-    expect(summary.rating!.realProgress).toBe(false);
-    expect(summary.rating!.expectation?.text).toContain("several months");
+    expect(summary.rating!.formats[0]!.realProgress).toBe(false);
+    expect(summary.rating!.formats[0]!.expectation?.text).toContain(
+      "several months",
+    );
   });
 });

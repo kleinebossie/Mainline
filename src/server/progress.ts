@@ -19,16 +19,20 @@ import { glickoConfidenceInterval } from "@/engine/math/glicko";
 import { getEngagementSummary } from "@/server/engagement";
 import { DAY_MS, systemClock, type Clock } from "@/lib/clock";
 import { activityEventPayloadSchema } from "@/lib/tracker";
+import { CHESS_FORMATS, formatPrefsSchema } from "@/lib/constraints";
+import { platformLabel } from "@/lib/format-game";
 
 type Db = Pick<
   PrismaClient,
   | "activityEvent"
   | "chessProfileSnapshot"
+  | "constraintSet"
   | "notificationPref"
   | "programItem"
   | "rewardEvent"
   | "scheduleState"
   | "skillState"
+  | "user"
 >;
 
 export interface ProgressEvidence {
@@ -43,6 +47,39 @@ export interface ProgressEvidence {
 interface RatingSeriesPoint extends RatingPoint {
   platform: string;
   format: string;
+}
+
+interface RatingFormatSignal {
+  format: string;
+  label: string;
+  capturedAt: Date;
+  latestStable: boolean;
+  baseline: {
+    capturedAt: Date;
+    range: { lower: number; upper: number };
+  } | null;
+  latest: {
+    range: { lower: number; upper: number };
+    rd: number;
+  };
+  realProgress: boolean;
+  plateau: { reason: "plateau" | "new_high" | "insufficient" };
+  expectation: { text: string } | null;
+}
+
+export interface RatingResponse {
+  platform: string;
+  platformLabel: string;
+  platformSet: boolean;
+  formatsSet: boolean;
+  formats: RatingFormatSignal[];
+  ciMultiplier: number;
+  ciEvidence: {
+    evidenceGrade: string;
+    evidenceTier: number;
+    citationKey: string;
+    citationSource: string | null;
+  };
 }
 
 function ledgerMap(cfg: MethodologyConfig): Map<string, string> {
@@ -92,29 +129,6 @@ function ratingSeriesFromSnapshot(snapshot: {
     }
   }
   return out;
-}
-
-function chooseRatingSeries(
-  points: readonly RatingSeriesPoint[],
-  cfg: MethodologyConfig,
-): RatingSeriesPoint[] {
-  const groups = new Map<string, RatingSeriesPoint[]>();
-  for (const point of points) {
-    const key = `${point.platform}:${point.format}`;
-    groups.set(key, [...(groups.get(key) ?? []), point]);
-  }
-
-  return [...groups.values()]
-    .map((series) => [...series].sort((a, b) => a.at - b.at))
-    .sort((a, b) => {
-      const latestA = a[a.length - 1]!.at;
-      const latestB = b[b.length - 1]!.at;
-      if (latestA !== latestB) return latestB - latestA;
-      const stableA = a.filter((p) => isStableBaseline(p.rd, cfg)).length;
-      const stableB = b.filter((p) => isStableBaseline(p.rd, cfg)).length;
-      if (stableA !== stableB) return stableB - stableA;
-      return b.length - a.length;
-    })[0] ?? [];
 }
 
 function minutesFromPayload(payload: unknown): number {
@@ -212,26 +226,110 @@ export async function getProgressSummary(
     sampleSize: state.sampleSize,
   }));
 
-  const ratingSeries = chooseRatingSeries(
-    ratingSnapshots.flatMap(ratingSeriesFromSnapshot),
-    cfg,
-  );
-  const ratingHistory: RatingPoint[] = ratingSeries.map((p) => ({
-    at: p.at,
-    rating: p.rating,
-    rd: p.rd,
-  }));
-  const latestRating = ratingSeries[ratingSeries.length - 1] ?? null;
-  const stable = ratingSeries.filter((p) => isStableBaseline(p.rd, cfg));
-  const baseline = stable[0] ?? null;
-  const latestStable = latestRating
-    ? isStableBaseline(latestRating.rd, cfg)
-    : false;
+  // --- Resolve primary platform ---
+  const userRow = await db.user.findUnique({
+    where: { id: userId },
+    select: { primaryPlatform: true },
+  });
+  const explicitPlatform = userRow?.primaryPlatform ?? null;
+
+  // --- Resolve format preferences from current constraint set ---
+  let resolvedFormats: string[] = [];
+  let formatsSet = false;
+  {
+    const constraintRow = await db.constraintSet.findFirst({
+      where: { userId, isCurrent: true },
+      orderBy: { version: "desc" },
+    });
+    if (constraintRow) {
+      const parsed = formatPrefsSchema.safeParse(constraintRow.formatPrefs);
+      if (parsed.success && parsed.data.formats.length > 0) {
+        resolvedFormats = parsed.data.formats;
+        formatsSet = true;
+      }
+    }
+  }
+  if (resolvedFormats.length === 0) {
+    resolvedFormats = [...CHESS_FORMATS];
+  }
+
+  // --- Determine the platform to use ---
+  let resolvedPlatform: string;
+  let platformSet: boolean;
+  if (explicitPlatform) {
+    resolvedPlatform = explicitPlatform;
+    platformSet = true;
+  } else if (ratingSnapshots.length > 0) {
+    // Use the platform of the most recent snapshot
+    const sorted = [...ratingSnapshots].sort(
+      (a, b) => b.capturedAt.getTime() - a.capturedAt.getTime(),
+    );
+    resolvedPlatform = sorted[0]!.platform;
+    platformSet = false;
+  } else {
+    // No snapshots at all; fall back
+    resolvedPlatform = "lichess";
+    platformSet = false;
+  }
+
+  // Filter out classical for Chess.com
+  if (resolvedPlatform === "chesscom") {
+    resolvedFormats = resolvedFormats.filter((f) => f !== "classical");
+  }
+
+  // --- Gather all rating points (existing extraction) ---
+  const allPoints = ratingSnapshots.flatMap(ratingSeriesFromSnapshot);
   const ciMultiplier = cfg.measurement.ciMultiplier.value;
-  const ratingBand = latestRating ? bandForRating(latestRating.rating, cfg) : null;
-  const expectation = ratingBand ? expectationForBand(ratingBand, cfg) : null;
-  const plateau = detectPlateau({ history: ratingHistory }, cfg);
-  const realProgress = isProgressReal({ history: ratingHistory }, cfg);
+
+  // --- Per-format rating signals ---
+  const formatSignals: RatingFormatSignal[] = [];
+  for (const format of resolvedFormats) {
+    const formatPoints: RatingPoint[] = allPoints
+      .filter((p) => p.platform === resolvedPlatform && p.format === format)
+      .map((p) => ({ at: p.at, rating: p.rating, rd: p.rd }))
+      .sort((a, b) => a.at - b.at);
+
+    if (formatPoints.length === 0) continue;
+
+    const latestPoint = formatPoints[formatPoints.length - 1]!;
+    const stable = formatPoints.filter((p) => isStableBaseline(p.rd, cfg));
+    const baseline = stable[0] ?? null;
+    const latestStableFlag = isStableBaseline(latestPoint.rd, cfg);
+    const plateau = detectPlateau({ history: formatPoints }, cfg);
+    const realProgress = isProgressReal({ history: formatPoints }, cfg);
+    const band = bandForRating(latestPoint.rating, cfg);
+    const expectation = expectationForBand(band, cfg);
+
+    formatSignals.push({
+      format,
+      label: format.charAt(0).toUpperCase() + format.slice(1),
+      capturedAt: new Date(latestPoint.at),
+      latestStable: latestStableFlag,
+      baseline: baseline
+        ? {
+            capturedAt: new Date(baseline.at),
+            range: glickoConfidenceInterval(
+              baseline.rating,
+              baseline.rd,
+              ciMultiplier,
+            ),
+          }
+        : null,
+      latest: {
+        range: glickoConfidenceInterval(
+          latestPoint.rating,
+          latestPoint.rd,
+          ciMultiplier,
+        ),
+        rd: latestPoint.rd,
+      },
+      realProgress,
+      plateau: { reason: plateau.reason },
+      expectation: { text: expectation.text },
+    });
+  }
+
+  const hasAnySnapshot = ratingSnapshots.length > 0;
 
   return {
     methodologyVersion: cfg.version,
@@ -260,33 +358,13 @@ export async function getProgressSummary(
       itemTypes: reviewTypes,
     },
     skills: skillSignals,
-    rating: latestRating
+    rating: hasAnySnapshot
       ? {
-          platform: latestRating.platform,
-          format: latestRating.format,
-          capturedAt: new Date(latestRating.at),
-          latestStable,
-          baseline: baseline
-            ? {
-                capturedAt: new Date(baseline.at),
-                range: glickoConfidenceInterval(
-                  baseline.rating,
-                  baseline.rd,
-                  ciMultiplier,
-                ),
-              }
-            : null,
-          latest: {
-            range: glickoConfidenceInterval(
-              latestRating.rating,
-              latestRating.rd,
-              ciMultiplier,
-            ),
-            rd: latestRating.rd,
-          },
-          realProgress,
-          plateau,
-          expectation,
+          platform: resolvedPlatform,
+          platformLabel: platformLabel(resolvedPlatform),
+          platformSet,
+          formatsSet,
+          formats: formatSignals,
           ciMultiplier,
           ciEvidence: {
             evidenceGrade: cfg.measurement.ciMultiplier.grade,
