@@ -27,15 +27,18 @@ const GRADE_CLASS: Record<string, string> = {
 function EvidenceNote({
   title,
   evidence,
+  className,
 }: {
   title: string;
   evidence: Evidence;
+  className?: string;
 }) {
   return (
     <aside
       className={cn(
         "rounded-md border p-3.5",
         GRADE_CLASS[evidence.evidenceGrade] ?? "border-line bg-card",
+        className,
       )}
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -60,13 +63,15 @@ function StatTile({
   label,
   value,
   detail,
+  className,
 }: {
   label: string;
   value: string;
   detail: string;
+  className?: string;
 }) {
   return (
-    <div className="rounded-md border bg-card p-4 shadow-sheet">
+    <div className={cn("rounded-md border bg-card p-4 shadow-sheet", className)}>
       <p className="eyebrow">{label}</p>
       <p className="mt-2 font-mono text-3xl font-semibold tabular-nums text-ink">
         {value}
@@ -177,12 +182,19 @@ function SkillSignals({
 
 function RatingSignal({
   rating,
+  className,
 }: {
   rating: ProgressSummary["rating"];
+  className?: string;
 }) {
   if (!rating) {
     return (
-      <p className="rounded-md border bg-card p-4 text-sm text-graphite shadow-sheet">
+      <p
+        className={cn(
+          "rounded-md border bg-card p-4 text-sm text-graphite shadow-sheet",
+          className,
+        )}
+      >
         No rating data available. Set your primary platform and choose time
         controls in Settings to start tracking rating signals.
       </p>
@@ -193,7 +205,7 @@ function RatingSignal({
   const showFormatsSetup = rating.platformSet && !rating.formatsSet;
 
   return (
-    <div className="rounded-md border bg-card p-4 shadow-sheet">
+    <div className={cn("rounded-md border bg-card p-4 shadow-sheet", className)}>
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-line/60 pb-4">
         <div>
@@ -383,102 +395,116 @@ export function ProgressDashboard() {
         : "Reviews waiting";
 
   return (
-    <div className="settle flex flex-col gap-8">
-      <section className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-        <div className="rounded-lg border bg-card p-5 shadow-sheet">
-          <div className="flex flex-wrap items-baseline justify-between gap-3">
-            <p className="eyebrow">Consistency</p>
-            <span className="font-mono text-xs text-graphite">
-              {data.consistency.streak.activeDayCount} active day
-              {data.consistency.streak.activeDayCount === 1 ? "" : "s"} ·{" "}
-              {data.consistency.streak.windowDays}-day window
-            </span>
-          </div>
-          <p className="mt-2 font-serif text-2xl font-semibold">
-            {data.consistency.streak.day > 0
-              ? `Day ${data.consistency.streak.day} of ${data.consistency.streak.cap}`
-              : "Ready for a fresh cycle"}
-          </p>
-          <div className="mt-5">
-            <ConsistencyGrid grid={data.consistency.grid} />
-          </div>
-        </div>
-
-        <EvidenceNote
-          title="Why this dashboard exists"
-          evidence={data.evidence.progressSurface}
-        />
-      </section>
-
-      <section className="grid gap-4 sm:grid-cols-3">
-        <StatTile
-          label="Blocks completed"
-          value={String(data.work.completedBlocks)}
-          detail={`Last ${data.work.windowDays}-day cycle; skips stay non-shaming (${data.work.skippedBlocks} skipped).`}
-        />
-        <StatTile
-          label="Minutes logged"
-          value={String(data.work.minutesLogged)}
-          detail="Logged process time, not a promise of rating movement."
-        />
-        <StatTile
-          label="Reviews due"
-          value={String(data.reviews.dueCount)}
-          detail={dueDetail}
-        />
-      </section>
-
-      <section className="grid gap-6 lg:grid-cols-[0.85fr_1.15fr]">
-        <div className="flex flex-col gap-4">
-          <div className="rounded-md border bg-card p-4 shadow-sheet">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 className="eyebrow">Review health</h2>
-              <span
-                className={cn(
-                  "rounded-sm border px-2 py-1 font-mono text-[0.68rem] uppercase",
-                  data.reviews.dueCount === 0
-                    ? "border-evergreen/40 bg-evergreen/10 text-evergreen"
-                    : "border-amber/45 bg-amber/10 text-ink",
-                )}
-              >
-                {data.reviews.dueCount === 0 ? "clear" : "due"}
-              </span>
+    <div className="settle flex flex-col gap-6">
+      {/* Outer container grouping all dashboard widgets into a large box */}
+      <div className="rounded-xl border border-line bg-card/35 p-6 shadow-sheet backdrop-blur-[2px] flex flex-col gap-6">
+        {/* Row 1: Consistency Grid & Dashboard Rationale */}
+        <section className="grid grid-cols-1 md:grid-cols-12 gap-6">
+          <div className="md:col-span-7 rounded-lg border bg-card p-5 shadow-sheet flex flex-col justify-between">
+            <div>
+              <div className="flex flex-wrap items-baseline justify-between gap-3">
+                <p className="eyebrow">Consistency</p>
+                <span className="font-mono text-xs text-graphite">
+                  {data.consistency.streak.activeDayCount} active day
+                  {data.consistency.streak.activeDayCount === 1 ? "" : "s"} ·{" "}
+                  {data.consistency.streak.windowDays}-day window
+                </span>
+              </div>
+              <p className="mt-2 font-serif text-2xl font-semibold">
+                {data.consistency.streak.day > 0
+                  ? `Day ${data.consistency.streak.day} of ${data.consistency.streak.cap}`
+                  : "Ready for a fresh cycle"}
+              </p>
             </div>
-            <div className="mt-4">
-              <ReviewTypeList itemTypes={data.reviews.itemTypes} />
+            <div className="mt-5">
+              <ConsistencyGrid grid={data.consistency.grid} />
             </div>
           </div>
-          <EvidenceNote title="Review policy" evidence={data.evidence.review} />
-        </div>
 
-        <div className="flex flex-col gap-4">
-          <div>
-            <h2 className="eyebrow border-b border-line/80 pb-3">
-              Skill signals
-            </h2>
-            <div className="mt-4">
+          <EvidenceNote
+            title="Why this dashboard exists"
+            evidence={data.evidence.progressSurface}
+            className="md:col-span-5 flex flex-col justify-between"
+          />
+        </section>
+
+        {/* Row 2: Standardized Quick Stats */}
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <StatTile
+            label="Blocks completed"
+            value={String(data.work.completedBlocks)}
+            detail={`Last ${data.work.windowDays}-day cycle; skips stay non-shaming (${data.work.skippedBlocks} skipped).`}
+          />
+          <StatTile
+            label="Minutes logged"
+            value={String(data.work.minutesLogged)}
+            detail="Logged process time, not a promise of rating movement."
+          />
+          <StatTile
+            label="Reviews due"
+            value={String(data.reviews.dueCount)}
+            detail={dueDetail}
+          />
+        </section>
+
+        {/* Row 3: Spaced Review Health & Detailed Skill Signals */}
+        <section className="grid grid-cols-1 md:grid-cols-12 gap-6">
+          {/* Review Health Column */}
+          <div className="md:col-span-5 flex flex-col gap-6">
+            <div className="rounded-md border bg-card p-4 shadow-sheet flex-1 flex flex-col justify-between">
+              <div>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <h2 className="eyebrow">Review health</h2>
+                  <span
+                    className={cn(
+                      "rounded-sm border px-2 py-1 font-mono text-[0.68rem] uppercase",
+                      data.reviews.dueCount === 0
+                        ? "border-evergreen/40 bg-evergreen/10 text-evergreen"
+                        : "border-amber/45 bg-amber/10 text-ink",
+                    )}
+                  >
+                    {data.reviews.dueCount === 0 ? "clear" : "due"}
+                  </span>
+                </div>
+                <div className="mt-4">
+                  <ReviewTypeList itemTypes={data.reviews.itemTypes} />
+                </div>
+              </div>
+            </div>
+            <EvidenceNote title="Review policy" evidence={data.evidence.review} />
+          </div>
+
+          {/* Skill Signals Column */}
+          <div className="md:col-span-7 flex flex-col gap-6 justify-between">
+            <div className="flex flex-col gap-4">
+              <h2 className="eyebrow border-b border-line/80 pb-3">
+                Skill signals
+              </h2>
               <SkillSignals skills={data.skills} />
             </div>
+            <EvidenceNote title="Skill estimates" evidence={data.evidence.skill} />
           </div>
-          <EvidenceNote title="Skill estimates" evidence={data.evidence.skill} />
-        </div>
-      </section>
+        </section>
 
-      <section className="grid gap-4 lg:grid-cols-[1fr_0.8fr]">
-        <RatingSignal rating={data.rating} />
-        <div className="flex flex-col gap-4">
-          <EvidenceNote
-            title="Rating caveat"
-            evidence={data.evidence.ratingNoise}
-          />
-          <EvidenceNote
-            title="No rating promise"
-            evidence={data.evidence.expectations}
-          />
-        </div>
-      </section>
+        {/* Row 4: Rating Signals & Noise Warnings */}
+        <section className="grid grid-cols-1 md:grid-cols-12 gap-6">
+          <RatingSignal rating={data.rating} className="md:col-span-7" />
+          <div className="md:col-span-5 flex flex-col gap-6 justify-between">
+            <EvidenceNote
+              title="Rating caveat"
+              evidence={data.evidence.ratingNoise}
+              className="flex-1"
+            />
+            <EvidenceNote
+              title="No rating promise"
+              evidence={data.evidence.expectations}
+              className="flex-1"
+            />
+          </div>
+        </section>
+      </div>
 
-      <p className="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-graphite">
+      <p className="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-graphite ml-2">
         Methodology {data.methodologyVersion}
       </p>
     </div>
