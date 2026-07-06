@@ -1,10 +1,12 @@
 "use client";
 
+import type { ReactNode } from "react";
+
 import { trpc } from "@/lib/trpc/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GradeMark } from "@/components/evidence";
 import { TransparencyCard } from "@/components/transparency-card";
-import type { GradedCopy } from "@/server/library";
+import type { GradedCopy, LibraryView } from "@/server/library";
 
 // The "Library" client (BUILD.md M14). Renders the deliberately-external layer: graded book
 // recommendations (with the cognitive-load block rule already applied server-side), the
@@ -18,7 +20,13 @@ function asGrade(g: string): Grade {
 }
 
 /** A graded "why" block rendered as the brand's TransparencyCard (confidence is a band prior). */
-function Why({ copy }: { copy: GradedCopy }) {
+function Why({
+  copy,
+  defaultCollapsed,
+}: {
+  copy: GradedCopy;
+  defaultCollapsed?: boolean;
+}) {
   return (
     <TransparencyCard
       rationaleText={copy.text}
@@ -29,7 +37,136 @@ function Why({ copy }: { copy: GradedCopy }) {
       confidence="low"
       soften={copy.soften}
       flag={copy.flag}
+      defaultCollapsed={defaultCollapsed}
     />
+  );
+}
+
+type Protocol = LibraryView["protocol"];
+
+function ProtocolStep({
+  step,
+  title,
+  children,
+}: {
+  step: number;
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <li className="grid grid-cols-[2rem_minmax(0,1fr)] gap-3">
+      <span
+        aria-hidden
+        className="border-evergreen/35 bg-paper/80 text-evergreen flex h-8 w-8 items-center justify-center rounded-sm border font-mono text-xs tabular-nums"
+      >
+        {step}
+      </span>
+      <div className="min-w-0 border-b border-line/70 pb-4 last:border-b-0">
+        <h3 className="text-ink font-serif text-base font-semibold leading-snug">
+          {title}
+        </h3>
+        <div className="text-graphite mt-1 font-serif text-sm leading-relaxed">
+          {children}
+        </div>
+      </div>
+    </li>
+  );
+}
+
+function BookStudyProtocol({ protocol }: { protocol: Protocol }) {
+  const hasWoodpecker = protocol.woodpecker.cycles.length > 0;
+
+  return (
+    <Card gutter={asGrade(protocol.activeRecall.grade)}>
+      <CardHeader>
+        <CardTitle>How to study a book</CardTitle>
+        <p className="text-graphite font-serif text-sm leading-relaxed">
+          Use the book you own. Mainline gives the workflow and the log; the
+          actual pages stay in the book.
+        </p>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-6">
+        <ol className="flex flex-col gap-4">
+          <ProtocolStep step={1} title="Pick today's unit">
+            Follow the book&apos;s own chapter, exercise, or game order. Stop
+            when the assigned session time is done; do not turn it into a
+            marathon.
+          </ProtocolStep>
+          <ProtocolStep step={2} title="Cover the answer">
+            Set the position, hide the solution, and calculate before reading.
+            Say or write your candidate move and plan, then check after up to{" "}
+            <span className="text-ink font-mono tabular-nums">
+              {protocol.activeRecall.timeLimitMin} min
+            </span>
+            .
+          </ProtocolStep>
+          <ProtocolStep step={3} title="Check and mark outcome">
+            Mark the attempt as correct, almost, or missed, or log a success
+            percentage. Aim for{" "}
+            <span className="text-ink font-mono tabular-nums">
+              {protocol.calibration.targetPct}%
+            </span>{" "}
+            success. Below{" "}
+            <span className="text-ink font-mono tabular-nums">
+              {protocol.calibration.lowerPct}%
+            </span>{" "}
+            suggests the book may be too hard; above{" "}
+            <span className="text-ink font-mono tabular-nums">
+              {protocol.calibration.upperPct}%
+            </span>{" "}
+            suggests it may be too easy.
+          </ProtocolStep>
+          <ProtocolStep step={4} title="Log the position">
+            Record the chapter, exercise or game number, minutes, and success
+            rate. For tactics workbooks, add the Woodpecker cycle number so the
+            next repeat stays in sequence.
+          </ProtocolStep>
+          {hasWoodpecker && (
+            <ProtocolStep step={5} title="Use spaced Woodpecker cycles">
+              A Woodpecker cycle means re-solving the same set later, faster:
+              work through it carefully first, then repeat it after spaced gaps
+              with a tighter clock. This builds fluency and pattern recognition;
+              it is not proof of rating gain.
+            </ProtocolStep>
+          )}
+        </ol>
+
+        {hasWoodpecker && (
+          <div className="border-evergreen/30 bg-evergreen/5 rounded-md border p-4">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h3 className="font-serif text-base font-semibold">
+                Woodpecker spacing
+              </h3>
+              <span className="text-graphite font-mono text-[0.7rem] uppercase tracking-[0.12em]">
+                at least {protocol.woodpecker.recommendedMinCycles} cycles
+              </span>
+            </div>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {protocol.woodpecker.cycles.map((cycle) => (
+                <div
+                  key={cycle.cycle}
+                  className="rounded-sm border border-line/80 bg-paper/70 px-3 py-2"
+                >
+                  <p className="text-ink font-mono text-xs tabular-nums">
+                    Cycle {cycle.cycle}
+                  </p>
+                  <p className="text-graphite mt-1 font-serif text-sm">
+                    Re-solve after {cycle.intervalDays} day
+                    {cycle.intervalDays === 1 ? "" : "s"}.
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="flex flex-col gap-3">
+          <Why copy={protocol.activeRecall} />
+          <Why copy={protocol.calibration} />
+          <Why copy={protocol.woodpecker} />
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -105,56 +242,7 @@ export function Library() {
 
       {/* --- Book-study protocol --- */}
       <section className="flex flex-col gap-4">
-        <Card gutter={asGrade(data.protocol.activeRecall.grade)}>
-          <CardHeader>
-            <CardTitle>How to study a book</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3">
-            <ul className="flex flex-col gap-2 font-serif text-sm leading-relaxed">
-              <li className="flex items-start gap-2">
-                <span
-                  aria-hidden
-                  className="text-evergreen font-mono text-xs shrink-0 pt-1"
-                >
-                  ▸
-                </span>
-                <span>
-                  Cover the answer, set the position up, and calculate for up to
-                  ~{data.protocol.activeRecall.timeLimitMin} min before you
-                  check.
-                </span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span
-                  aria-hidden
-                  className="text-evergreen font-mono text-xs shrink-0 pt-1"
-                >
-                  ▸
-                </span>
-                <span>
-                  Aim for ~{data.protocol.calibration.targetPct}% success (
-                  {data.protocol.calibration.lowerPct}–
-                  {data.protocol.calibration.upperPct}% range).
-                </span>
-              </li>
-              {data.protocol.woodpecker.cycles.length > 0 && (
-                <li className="flex items-start gap-2">
-                  <span
-                    aria-hidden
-                    className="text-evergreen font-mono text-xs shrink-0 pt-1"
-                  >
-                    ▸
-                  </span>
-                  <span>
-                    For tactics books: complete at least{" "}
-                    {data.protocol.woodpecker.recommendedMinCycles} woodpecker
-                    cycles, re-solving the same set with a shrinking gap.
-                  </span>
-                </li>
-              )}
-            </ul>
-          </CardContent>
-        </Card>
+        <BookStudyProtocol protocol={data.protocol} />
       </section>
 
       {/* --- Recommended books --- */}

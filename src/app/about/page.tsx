@@ -130,7 +130,32 @@ export default function AboutPage() {
         </section>
 
         {/* ────────────────────────────────────────────────────────────────
-            3. What Mainline isn't — the boundaries
+            3. Engagement and progress — why the loop exists
+            ──────────────────────────────────────────────────────────── */}
+        <section className="flex flex-col gap-5">
+          <div className="flex flex-col gap-2 border-b border-line/80 pb-3">
+            <p className="eyebrow">Engagement and progress</p>
+            <h2 className="font-serif text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">
+              Built to support consistency, not to extract attention.
+            </h2>
+          </div>
+          <p className="text-graphite max-w-2xl font-serif text-base leading-relaxed">
+            Progress in Mainline means training signals: whether you are showing
+            up, completing the planned work, keeping reviews healthy, and
+            building skill estimates with uncertainty. Rating is noisy, and no
+            activity here is treated as proven to cause rating gain.
+          </p>
+          <p className="text-graphite max-w-2xl font-serif text-base leading-relaxed">
+            The engagement layer exists because consistency is part of training.
+            It uses forgiving reminders, capped streak cycles, and competence
+            feedback to make practice easier to resume. It does not use ads,
+            leaderboards, shame, unbreakable streaks, or paywalled training
+            quality.
+          </p>
+        </section>
+
+        {/* ────────────────────────────────────────────────────────────────
+            4. What Mainline isn't — the boundaries
             ──────────────────────────────────────────────────────────── */}
         <section className="flex flex-col gap-5">
           <div className="flex flex-col gap-2 border-b border-line/80 pb-3">
@@ -157,7 +182,7 @@ export default function AboutPage() {
         </section>
 
         {/* ────────────────────────────────────────────────────────────────
-            4. How evidence is graded — the framework
+            5. How evidence is graded — the framework
             ──────────────────────────────────────────────────────────── */}
         <section className="flex flex-col gap-5">
           <div className="flex flex-col gap-2 border-b border-line/80 pb-3">
@@ -205,7 +230,7 @@ export default function AboutPage() {
         </section>
 
         {/* ────────────────────────────────────────────────────────────────
-            5. Current state — honest about where the science is
+            6. Current state — honest about where the science is
             ──────────────────────────────────────────────────────────── */}
         <section className="flex flex-col gap-5">
           <div className="flex flex-col gap-2 border-b border-line/80 pb-3">
