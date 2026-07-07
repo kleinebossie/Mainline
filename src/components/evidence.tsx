@@ -33,7 +33,7 @@ const GRADE: Record<
   D: {
     glyph: "??",
     label: "Grade D",
-    note: "Popular but unsupported — avoid",
+    note: "Popular but unsupported; avoid",
     cls: "text-grade-d border-grade-d/40 bg-grade-d/10",
   },
 };
