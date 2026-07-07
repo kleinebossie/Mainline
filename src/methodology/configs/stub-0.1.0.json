@@ -2401,7 +2401,7 @@
     {
       "key": "blunder_drill",
       "whenShown": "a personalised blunder drill in the daily session",
-      "value": "These are the exact positions where you blundered in your own games — re-solving them, spaced over days, is the most science-backed way to stop repeating a mistake. The spacing effect is strong in general learning; its use on whole chess positions is our own extrapolation, not proven.",
+      "value": "These are the exact positions where you blundered in your own games. Re-solving them, spaced over days, is the most science-backed way to stop repeating a mistake. The spacing effect is strong in general learning; its use on whole chess positions is our own extrapolation, not proven.",
       "grade": "C",
       "tier": 2,
       "citationKey": "cepeda2006",
@@ -2430,7 +2430,7 @@
     {
       "key": "play_games",
       "whenShown": "a play-games item",
-      "value": "Playing full-length games is the strongest single correlate of rating in the data. That's correlation, not proof — but it's where real skill is tested.",
+      "value": "Playing full-length games is the strongest single correlate of rating in the data. That's correlation, not proof, but it's where real skill is tested.",
       "grade": "B",
       "tier": 1,
       "citationKey": "howard2012",
@@ -2448,7 +2448,7 @@
     {
       "key": "redo_failed",
       "whenShown": "a spaced-review item",
-      "value": "Re-solving your misses, spaced over days, is the most science-backed way to make patterns stick — proven mostly on flashcards, not chess yet.",
+      "value": "Re-solving your misses, spaced over days, is the most science-backed way to make patterns stick. It's proven mostly on flashcards, not chess yet.",
       "grade": "C",
       "tier": 2,
       "citationKey": "roediger2006",
@@ -2457,7 +2457,7 @@
     {
       "key": "analyse_own_games",
       "whenShown": "analysis module entry",
-      "value": "Analysing your own games is the single strongest vehicle for building pattern recognition — but how you analyse matters enormously. We guide you through a science-backed process: think first, engine second.",
+      "value": "Analysing your own games is the single strongest vehicle for building pattern recognition, but how you analyse matters enormously. We guide you through a science-backed process: think first, engine second.",
       "grade": "B",
       "tier": 1,
       "citationKey": "yiannakoulias2026",
@@ -2475,7 +2475,7 @@
     {
       "key": "calculation_focus",
       "whenShown": "a calculation drill",
-      "value": "Slow, calculate-to-the-end puzzles train depth. Aim for ~50–60% success — these are meant to be hard.",
+      "value": "Slow, calculate-to-the-end puzzles train depth. Aim for ~50–60% success: these are meant to be hard.",
       "grade": "C",
       "tier": 1,
       "citationKey": "stub_open_question",
@@ -2484,7 +2484,7 @@
     {
       "key": "interleaving",
       "whenShown": "a mixed-theme set",
-      "value": "Mixed themes feel harder, and that's the point — in a real game nobody tells you what to look for.",
+      "value": "Mixed themes feel harder, and that's the point: in a real game nobody tells you what to look for.",
       "grade": "C",
       "tier": 2,
       "citationKey": "rohrer2010",
@@ -2493,7 +2493,7 @@
     {
       "key": "weekly_volume",
       "whenShown": "program setup",
-      "value": "A little most days beats cramming — one of the most reliable findings in learning science. We keep sessions short so fatigue doesn't wreck accuracy.",
+      "value": "A little most days beats cramming, one of the most reliable findings in learning science. We keep sessions short so fatigue doesn't wreck accuracy.",
       "grade": "C",
       "tier": 2,
       "citationKey": "cepeda2006",
@@ -2502,7 +2502,7 @@
     {
       "key": "process_goal",
       "whenShown": "the daily target",
-      "value": "Your goal today is what you can control — finishing these reps — not your rating. Research on athletes shows process goals beat outcome goals for results and confidence.",
+      "value": "Your goal today is what you can control: finishing these reps, not your rating. Research on athletes shows process goals beat outcome goals for results and confidence.",
       "grade": "A",
       "tier": 2,
       "citationKey": "williamson2022",
@@ -2520,7 +2520,7 @@
     {
       "key": "expectations_timeline",
       "whenShown": "progress / onboarding",
-      "value": "Climbing 100 points takes a month or two near 1000, but often years around 1800 — that's normal, not you stalling. We measure you against your own past, never an average.",
+      "value": "Climbing 100 points takes a month or two near 1000, but often years around 1800. That's normal, not you stalling. We measure you against your own past, never an average.",
       "grade": "A",
       "tier": 1,
       "citationKey": "lichess_etl",
@@ -2547,7 +2547,7 @@
     {
       "key": "skill_update",
       "whenShown": "after logging results",
-      "value": "We re-estimate each skill from your logged results. Early estimates are rough — we show them with their uncertainty, never as a verdict.",
+      "value": "We re-estimate each skill from your logged results. Early estimates are rough; we show them with their uncertainty, never as a verdict.",
       "grade": "C",
       "tier": 1,
       "citationKey": "stub_open_question",
@@ -2556,7 +2556,7 @@
     {
       "key": "plateau",
       "whenShown": "a flat rating trend",
-      "value": "Your rating hasn't cleared its noise band in a while. At your level that's statistically normal — the fix is changing the stimulus (harder sweet-spot puzzles, your recurring mistakes), not just doing more.",
+      "value": "Your rating hasn't cleared its noise band in a while. At your level that's statistically normal. The fix is changing the stimulus (harder sweet-spot puzzles, your recurring mistakes), not just doing more.",
       "grade": "B",
       "tier": 1,
       "citationKey": "lichess_etl",
@@ -2565,7 +2565,7 @@
     {
       "key": "streak_tick",
       "whenShown": "after a day's training",
-      "value": "You've trained another day. We cap the streak at a week on purpose and reset it gently — consistency over weeks is what counts, and one missed day never wipes your progress.",
+      "value": "You've trained another day. We cap the streak at a week on purpose and reset it gently. Consistency over weeks is what counts, and one missed day never wipes your progress.",
       "grade": "B",
       "tier": 2,
       "citationKey": "silverman_barasch2023",
@@ -2574,7 +2574,7 @@
     {
       "key": "competence_milestone",
       "whenShown": "crossing a work milestone",
-      "value": "Milestone reached. These badges mark genuine work you've put in — never just time spent or money paid — because rewards tied to an already-interesting task can quietly sap the motivation to do it.",
+      "value": "Milestone reached. These badges mark genuine work you've put in, never just time spent or money paid, because rewards tied to an already-interesting task can quietly sap the motivation to do it.",
       "grade": "B",
       "tier": 2,
       "citationKey": "deci1999",
@@ -2583,7 +2583,7 @@
     {
       "key": "recovery_prompt",
       "whenShown": "after a missed day",
-      "value": "You didn't lose your progress for missing a day. A habit takes on the order of two months to automate, and one skipped day barely dents that — punitive streak-resets mostly just make people quit. Pick it back up today.",
+      "value": "You didn't lose your progress for missing a day. A habit takes on the order of two months to automate, and one skipped day barely dents that. Punitive streak-resets mostly just make people quit. Pick it back up today.",
       "grade": "B",
       "tier": 2,
       "citationKey": "lally2010",
@@ -2592,7 +2592,7 @@
     {
       "key": "consistency_grid",
       "whenShown": "the consistency grid",
-      "value": "This grid shows your effort over time, not a fragile streak. Aim to fill in most days — perfect attendance isn't the goal, and the long view is what builds a habit.",
+      "value": "This grid shows your effort over time, not a fragile streak. Aim to fill in most days. Perfect attendance isn't the goal, and the long view is what builds a habit.",
       "grade": "B",
       "tier": 2,
       "citationKey": "lally2010",
@@ -2601,7 +2601,7 @@
     {
       "key": "analysis_engine_delay",
       "whenShown": "engine hidden during Step 2",
-      "value": "The engine is off on purpose. Turning it on first is like reading the answer key before trying the problem — you recognise the answer but don't learn the method. By thinking first, you train the exact brain pathways you need during your next game.",
+      "value": "The engine is off on purpose. Turning it on first is like reading the answer key before trying the problem: you recognise the answer but don't learn the method. By thinking first, you train the exact brain pathways you need during your next game.",
       "grade": "A",
       "tier": 2,
       "citationKey": "bjork2011",
@@ -2619,7 +2619,7 @@
     {
       "key": "analysis_guess_tolerance",
       "whenShown": "alternative-move verdict in Step 3",
-      "value": "We don't require the engine's literal top move. Any alternative that recovers most of what you lost, and stays inside this level's visibility threshold, counts as correct — practical chess usually has more than one right answer.",
+      "value": "We don't require the engine's literal top move. Any alternative that recovers most of what you lost, and stays inside this level's visibility threshold, counts as correct. Practical chess usually has more than one right answer.",
       "grade": "C",
       "tier": 1,
       "citationKey": "stub_open_question",
@@ -2656,7 +2656,7 @@
     {
       "key": "analysis_entropy",
       "whenShown": "high-entropy position shown",
-      "value": "This position is chaotic — even the engine gives several nearly-equal options. We're flagging it so you know: this isn't a clear mistake, it's a genuinely complex situation where multiple moves were reasonable.",
+      "value": "This position is chaotic; even the engine gives several nearly-equal options. We're flagging it so you know: this isn't a clear mistake, it's a genuinely complex situation where multiple moves were reasonable.",
       "grade": "B",
       "tier": 1,
       "citationKey": "luu2025",
@@ -2675,7 +2675,7 @@
     {
       "key": "book_difficulty_calibration",
       "whenShown": "logging a book session's success rate",
-      "value": "We aim for roughly a 15% miss rate. If a book feels too easy or too hard, your brain stops learning efficiently — tell us how the exercises went and we'll nudge the difficulty.",
+      "value": "We aim for roughly a 15% miss rate. If a book feels too easy or too hard, your brain stops learning efficiently. Tell us how the exercises went and we'll nudge the difficulty.",
       "grade": "B",
       "tier": 2,
       "citationKey": "wilson2019",
@@ -2702,7 +2702,7 @@
     {
       "key": "otb_tournament_simulation",
       "whenShown": "an OTB tournament-simulation recommendation",
-      "value": "Rehearsing tournament conditions — a physical board, no arrows, writing your moves, strict touch-move — inoculates you against over-the-board stress. Online play without that pressure shows nearly 17% more error.",
+      "value": "Rehearsing tournament conditions (a physical board, no arrows, writing your moves, strict touch-move) inoculates you against over-the-board stress. Online play without that pressure shows nearly 17% more error.",
       "grade": "A",
       "tier": 1,
       "citationKey": "kunn2021",
@@ -3409,7 +3409,7 @@
           "category": "tactics",
           "studyUnit": "exercises",
           "recommendation": {
-            "value": "Single-move tactics and fundamental checkmate patterns — the board vision everything else is built on.",
+            "value": "Single-move tactics and fundamental checkmate patterns: the board vision everything else is built on.",
             "grade": "C",
             "tier": 1,
             "citationKey": "best_books",
@@ -3423,7 +3423,7 @@
           "category": "tactics",
           "studyUnit": "exercises",
           "recommendation": {
-            "value": "Spaced, repetitive back-rank and mating-pattern drills — gentle and motivating for a first book.",
+            "value": "Spaced, repetitive back-rank and mating-pattern drills, gentle and motivating for a first book.",
             "grade": "C",
             "tier": 1,
             "citationKey": "best_books",
@@ -3453,7 +3453,7 @@
           "category": "tactics",
           "studyUnit": "exercises",
           "recommendation": {
-            "value": "High-volume mate-in-2 pattern automation — ideal raw material for Woodpecker cycles.",
+            "value": "High-volume mate-in-2 pattern automation, ideal raw material for Woodpecker cycles.",
             "grade": "C",
             "tier": 1,
             "citationKey": "best_books",
@@ -3481,7 +3481,7 @@
           "category": "games",
           "studyUnit": "games",
           "recommendation": {
-            "value": "Every move explained in words — a first taste of planning without heavy strategic load.",
+            "value": "Every move explained in words: a first taste of planning without heavy strategic load.",
             "grade": "C",
             "tier": 1,
             "citationKey": "best_books",
@@ -3497,7 +3497,7 @@
           "category": "strategy",
           "studyUnit": "games",
           "recommendation": {
-            "value": "Names and corrects the thinking errors that stall club players — imbalances over memorisation.",
+            "value": "Names and corrects the thinking errors that stall club players: imbalances over memorisation.",
             "grade": "C",
             "tier": 1,
             "citationKey": "best_books",
@@ -3525,7 +3525,7 @@
           "category": "endgame",
           "studyUnit": "exercises",
           "recommendation": {
-            "value": "The theoretical endgames worth memorising at this level — study with active recall, then space them.",
+            "value": "The theoretical endgames worth memorising at this level. Study with active recall, then space them.",
             "grade": "C",
             "tier": 1,
             "citationKey": "best_books",
@@ -3541,7 +3541,7 @@
           "category": "strategy",
           "studyUnit": "games",
           "recommendation": {
-            "value": "A full method for reading imbalances and forming plans — the positional backbone for this band.",
+            "value": "A full method for reading imbalances and forming plans: the positional backbone for this band.",
             "grade": "C",
             "tier": 1,
             "citationKey": "best_books",
@@ -3555,7 +3555,7 @@
           "category": "strategy",
           "studyUnit": "games",
           "recommendation": {
-            "value": "Learn the typical pawn structures and the plans that go with them — connects openings to middlegames.",
+            "value": "Learn the typical pawn structures and the plans that go with them, connecting openings to middlegames.",
             "grade": "C",
             "tier": 1,
             "citationKey": "best_books",
@@ -3569,7 +3569,7 @@
           "category": "tactics",
           "studyUnit": "exercises",
           "recommendation": {
-            "value": "A built-in cyclic tactics set — re-solve with a shrinking clock to turn calculation into recognition.",
+            "value": "A built-in cyclic tactics set: re-solve with a shrinking clock to turn calculation into recognition.",
             "grade": "C",
             "tier": 1,
             "citationKey": "best_books",
@@ -3583,7 +3583,7 @@
           "category": "strategy",
           "studyUnit": "games",
           "recommendation": {
-            "value": "The geometry of the kingside attack — study the model games with the board set up and moves covered.",
+            "value": "The geometry of the kingside attack: study the model games with the board set up and moves covered.",
             "grade": "C",
             "tier": 1,
             "citationKey": "best_books",
@@ -3599,7 +3599,7 @@
           "category": "endgame",
           "studyUnit": "exercises",
           "recommendation": {
-            "value": "High-precision theoretical endgames — the reference, worked actively, not just read.",
+            "value": "High-precision theoretical endgames: the reference, worked actively, not just read.",
             "grade": "C",
             "tier": 1,
             "citationKey": "best_books",
@@ -3627,7 +3627,7 @@
           "category": "strategy",
           "studyUnit": "games",
           "recommendation": {
-            "value": "Elite positional transformations explained by a world-class player — high cognitive friction by design.",
+            "value": "Elite positional transformations explained by a world-class player, with high cognitive friction by design.",
             "grade": "C",
             "tier": 1,
             "citationKey": "best_books",
@@ -3643,7 +3643,7 @@
           "category": "calculation",
           "studyUnit": "exercises",
           "recommendation": {
-            "value": "Elite calculation puzzles for micro-weakness optimisation — stretch the error target to 30–40%.",
+            "value": "Elite calculation puzzles for micro-weakness optimisation: stretch the error target to 30–40%.",
             "grade": "C",
             "tier": 1,
             "citationKey": "best_books",
@@ -3657,7 +3657,7 @@
           "category": "games",
           "studyUnit": "games",
           "recommendation": {
-            "value": "Deep classical annotations — study the decision-making, not just the moves.",
+            "value": "Deep classical annotations: study the decision-making, not just the moves.",
             "grade": "C",
             "tier": 1,
             "citationKey": "best_books",
@@ -3786,7 +3786,7 @@
     },
     "otbSimulationByBand": {
       "u800": {
-        "value": "Optional at this level — build volume on a screen first.",
+        "value": "Optional at this level. Build volume on a screen first.",
         "grade": "C",
         "tier": 1,
         "citationKey": "kunn2021",
@@ -3829,7 +3829,7 @@
       }
     },
     "physicalBoardAdvice": {
-      "value": "Set sharp positions up on a real board and calculate over the wood — it builds the 3D vision a screen can't.",
+      "value": "Set sharp positions up on a real board and calculate over the wood. It builds the 3D vision a screen can't.",
       "grade": "C",
       "tier": 1,
       "citationKey": "schneider2025",

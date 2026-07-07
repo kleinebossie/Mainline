@@ -1764,7 +1764,7 @@ export function filterEngineLines(
     const visible = line.mate || Math.abs(line.evaluation) >= thresholdCp;
     let reason = "";
     if (!visible) {
-      reason = `Below the ${thresholdCp}cp visibility threshold for this level — beyond your Region of Proximal Learning.`;
+      reason = `Below the ${thresholdCp}cp visibility threshold for this level; beyond your Region of Proximal Learning.`;
     } else if (chaotic) {
       reason =
         "Position is high-entropy (chaotic): several moves are nearly equal.";
