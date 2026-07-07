@@ -424,9 +424,9 @@ function Form({
               handleResourceKindChange(e.target.value as OwnedResource["kind"])
             }
             aria-label="Resource type"
-            className="border-input bg-paper-raised text-ink h-10 rounded-md border px-3 font-mono text-sm focus:ring-evergreen focus:outline-none focus:ring-2"
-          >
-            {OWNED_RESOURCE_KINDS.map((k) => (
+className="border-input bg-paper-raised ring-offset-paper focus-visible:ring-ring text-ink h-10 rounded-md border px-3 font-mono text-sm transition-colors focus-visible:border-evergreen focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+            >
+              {OWNED_RESOURCE_KINDS.map((k) => (
               <option key={k} value={k}>
                 {RESOURCE_KIND_LABELS[k]}
               </option>
@@ -442,7 +442,7 @@ function Form({
                 setNewResourceLabel(book ? book.title : "");
               }}
               aria-label="Select recommended book"
-              className="border-input bg-paper-raised text-ink h-10 rounded-md border px-3 font-serif text-sm focus:ring-evergreen focus:outline-none focus:ring-2 flex-1"
+              className="border-input bg-paper-raised ring-offset-paper focus-visible:ring-ring text-ink h-10 rounded-md border px-3 font-mono text-sm transition-colors focus-visible:border-evergreen focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none flex-1"
             >
               {libraryQuery.isLoading ? (
                 <option value="">Loading recommended books...</option>

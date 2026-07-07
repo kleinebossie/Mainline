@@ -247,7 +247,7 @@ export default function TrainPage() {
     <PageShell width="default">
       <div className="flex flex-col gap-6 py-6 settle">
         <div className="flex flex-col gap-1.5">
-          <h1 className="text-ink font-serif text-3xl font-bold tracking-tight">
+          <h1 className="font-serif text-3xl font-semibold tracking-tight">
             Interactive Substrate Demo
           </h1>
           <p className="text-graphite font-serif text-sm">

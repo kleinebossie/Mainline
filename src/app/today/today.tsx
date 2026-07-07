@@ -184,7 +184,7 @@ function EmptyTodayCard({
   onRegenerate: () => void;
 }) {
   return (
-    <Card gutter="A" className="p-5">
+    <Card gutter="A" className="p-6">
       <div className="flex flex-col gap-4">
         <div>
           <h2 className="font-serif text-xl font-semibold text-ink">
@@ -831,7 +831,7 @@ function BookLogForm({
             <select
               value={bookId}
               onChange={(e) => setBookId(e.target.value)}
-              className="border-input bg-paper-raised h-9 rounded-md border px-2 font-serif text-sm text-ink"
+              className="border-input bg-paper-raised ring-offset-paper focus-visible:ring-ring h-10 rounded-md border px-3 font-mono text-sm text-ink transition-colors focus-visible:border-evergreen focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
             >
               {ownedBooks.map((b) => (
                 <option key={b.id} value={b.id}>
@@ -843,7 +843,7 @@ function BookLogForm({
         )}
         <label className="flex flex-col gap-1.5 font-serif text-xs">
           <span className="eyebrow !text-[0.62rem]">
-            {unitLabel} <span className="text-red-500">*</span>
+            {unitLabel} <span className="text-clay">*</span>
           </span>
           <Input
             type="number"
@@ -862,9 +862,9 @@ function BookLogForm({
           <select
             value={successPct}
             onChange={(e) => setSuccessPct(e.target.value)}
-            className="border-input bg-paper-raised h-9 rounded-md border px-2 font-serif text-sm text-ink"
-          >
-            <option value="">Optional (select...)</option>
+className="border-input bg-paper-raised ring-offset-paper focus-visible:ring-ring h-10 rounded-md border px-3 font-mono text-sm text-ink transition-colors focus-visible:border-evergreen focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+            >
+              <option value="">Optional (select...)</option>
             {["50", "60", "70", "75", "80", "85", "90", "95"].map((p) => (
               <option key={p} value={p}>
                 {p}%
