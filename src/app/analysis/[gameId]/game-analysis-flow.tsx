@@ -759,7 +759,7 @@ export function GameAnalysisFlow() {
                             {analysis.topMoves.map((m, idx) => (
                               <div
                                 key={idx}
-                                className="flex items-center justify-between gap-2 rounded-md border border-line bg-card p-3"
+                                className="flex items-center justify-between gap-2 rounded-lg border border-line bg-card p-3"
                               >
                                 <span className="font-mono text-sm font-bold text-ink">
                                   {idx + 1}. {m.san}
@@ -844,7 +844,7 @@ export function GameAnalysisFlow() {
                       spacing algorithm.
                     </p>
 
-                    <div className="flex flex-col gap-3 rounded-md border bg-card p-4">
+                    <div className="flex flex-col gap-3 rounded-lg border bg-card p-4">
                       <h4 className="text-graphite font-mono text-xs font-semibold uppercase">
                         SRS puzzles to create:
                       </h4>

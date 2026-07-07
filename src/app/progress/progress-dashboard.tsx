@@ -71,7 +71,7 @@ function StatTile({
   className?: string;
 }) {
   return (
-    <div className={cn("rounded-md border bg-card p-4 shadow-sheet", className)}>
+    <div className={cn("rounded-lg border bg-card p-4 shadow-sheet", className)}>
       <p className="eyebrow">{label}</p>
       <p className="mt-2 font-mono text-3xl font-semibold tabular-nums text-ink">
         {value}
@@ -138,7 +138,7 @@ function SkillSignals({
 }) {
   if (skills.length === 0) {
     return (
-      <p className="rounded-md border bg-card p-4 text-sm text-graphite shadow-sheet">
+      <p className="rounded-lg border bg-card p-4 text-sm text-graphite shadow-sheet">
         Complete in-app training blocks to build skill estimates. Empty is
         better than pretending we know.
       </p>
@@ -153,7 +153,7 @@ function SkillSignals({
         return (
           <div
             key={skill.dimension}
-            className="rounded-md border bg-card p-4 shadow-sheet"
+            className="rounded-lg border bg-card p-4 shadow-sheet"
           >
             <div className="flex flex-wrap items-start justify-between gap-2">
               <p className="font-serif text-base font-semibold">
@@ -191,7 +191,7 @@ function RatingSignal({
     return (
       <p
         className={cn(
-          "rounded-md border bg-card p-4 text-sm text-graphite shadow-sheet",
+          "rounded-lg border bg-card p-4 text-sm text-graphite shadow-sheet",
           className,
         )}
       >
@@ -205,7 +205,7 @@ function RatingSignal({
   const showFormatsSetup = rating.platformSet && !rating.formatsSet;
 
   return (
-    <div className={cn("rounded-md border bg-card p-4 shadow-sheet", className)}>
+    <div className={cn("rounded-lg border bg-card p-4 shadow-sheet", className)}>
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-line/60 pb-4">
         <div>
@@ -380,7 +380,7 @@ export function ProgressDashboard() {
 
   if (!summary.data) {
     return (
-      <p className="rounded-md border bg-card p-4 text-sm text-graphite shadow-sheet">
+      <p className="rounded-lg border bg-card p-4 text-sm text-graphite shadow-sheet">
         No progress data is available yet.
       </p>
     );
@@ -451,7 +451,7 @@ export function ProgressDashboard() {
         <section className="grid grid-cols-1 md:grid-cols-12 gap-6">
           {/* Review Health Column */}
           <div className="md:col-span-5 flex flex-col gap-6">
-            <div className="rounded-md border bg-card p-4 shadow-sheet flex-1 flex flex-col justify-between">
+            <div className="rounded-lg border bg-card p-4 shadow-sheet flex-1 flex flex-col justify-between">
               <div>
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <h2 className="eyebrow">Review health</h2>

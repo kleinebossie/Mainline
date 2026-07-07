@@ -75,7 +75,7 @@ export function ConnectionsManager() {
             {list.data.map((conn) => (
               <li
                 key={conn.id}
-                className="bg-card flex items-center justify-between gap-4 rounded-md border p-3.5 shadow-sheet"
+                className="bg-card flex items-center justify-between gap-4 rounded-lg border p-4 shadow-sheet"
               >
                 <span className="text-sm">
                   <span className="font-serif text-base font-medium">
