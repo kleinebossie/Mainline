@@ -257,10 +257,10 @@ function RatingSignal({
             const progressLabel = format.realProgress
               ? "Signal cleared old range"
               : format.plateau.reason === "plateau"
-                ? "Plateau — no recent improvement"
+                ? "Plateau: no recent improvement"
                 : format.plateau.reason === "new_high"
-                  ? "New peak — range shifted up"
-                  : "Calibrating — need more games";
+                  ? "New peak: range shifted up"
+                  : "Calibrating: need more games";
 
             return (
               <div

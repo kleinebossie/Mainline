@@ -23,9 +23,9 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Mainline — the honest chess training program",
+  title: "Mainline: the honest chess training program",
   description:
-    "Mainline — a personalized, science-based, no-BS chess training program. Every recommendation is graded and explained; it never promises you a rating.",
+    "Mainline is a personalized, science-based, no-BS chess training program. Every recommendation is graded and explained; it never promises you a rating.",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

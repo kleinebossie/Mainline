@@ -22,14 +22,14 @@ const RESULT_CLR: Record<string, string> = {
 
 function renderRatings(ratings: unknown) {
   if (!ratings || typeof ratings !== "object") {
-    return <span className="text-graphite font-mono text-xs">—</span>;
+    return null;
   }
   const entries = Object.entries(
     ratings as Record<string, { rating?: number }>,
   ).filter(([, v]) => typeof v?.rating === "number");
 
   if (entries.length === 0) {
-    return <span className="text-graphite font-mono text-xs">—</span>;
+    return null;
   }
 
   return (
@@ -139,7 +139,7 @@ export function Dashboard() {
                 </span>
                 <span className="font-mono text-xs tabular-nums">
                   <span className={g.result ? RESULT_CLR[g.result] : ""}>
-                    {g.result ? (RESULT_LABEL[g.result] ?? g.result) : "—"}
+                    {g.result ? (RESULT_LABEL[g.result] ?? g.result) : ""}
                   </span>
                   {g.userRatingAtGame ? (
                     <span className="text-graphite">

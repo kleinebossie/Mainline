@@ -233,7 +233,7 @@ export function AnalysisDashboard() {
 
           {library?.primaryPlatform == null && platforms.length > 1 && (
             <p className="text-graphite font-serif text-xs italic">
-              Pick a platform tab to set it as your primary — we&apos;ll default
+              Pick a platform tab to set it as your primary. We&apos;ll default
               here next time.
             </p>
           )}
@@ -398,7 +398,7 @@ export function AnalysisDashboard() {
               <span className="font-mono font-semibold">
                 {ratio.lossPct}% losses
               </span>{" "}
-              — {ratio.focusDescription}.
+              : {ratio.focusDescription}.
             </p>
           </section>
         )}

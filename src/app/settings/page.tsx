@@ -17,14 +17,14 @@ export default async function SettingsPage() {
     <PageShell
       eyebrow="Tune your training & account"
       title="Settings"
-      lede="Change anything, anytime — your constraints feed the next session the moment you save."
+      lede="Change anything, anytime. Your constraints feed the next session the moment you save."
     >
       <div className="flex flex-col gap-14">
         <section className="flex flex-col gap-4">
           <h2 className="eyebrow border-b border-line/80 pb-3">Your plan</h2>
           <p className="text-graphite text-sm leading-relaxed font-serif">
             Time, goals, formats and your if-then plan. Saving updates the
-            program — regenerate Today to see it reflected.
+            program. Regenerate Today to see it reflected.
           </p>
           <ConstraintsForm
             continueHref="/today"

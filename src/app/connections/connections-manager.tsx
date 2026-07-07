@@ -36,7 +36,7 @@ export function ConnectionsManager() {
       <section className="flex flex-col gap-4">
         <h2 className="eyebrow border-b border-line/80 pb-3">Chess.com</h2>
         <p className="text-graphite text-sm leading-relaxed font-serif">
-          Link by username (read-only public data — no password or token
+          Link by username (read-only public data; no password or token
           stored).
         </p>
         <form

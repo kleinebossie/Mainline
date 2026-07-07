@@ -9,7 +9,7 @@ const GRADE_KEY = [
     glyph: "‼",
     grade: "A",
     label: "Strong, replicated",
-    note: "Used for robust, replicated findings — e.g. the retrieval-practice effect or the spacing effect.",
+    note: "Used for robust, replicated findings, e.g. the retrieval-practice effect or the spacing effect.",
   },
   {
     glyph: "!",
@@ -26,7 +26,7 @@ const GRADE_KEY = [
   {
     glyph: "??",
     grade: "D",
-    label: "Myth — avoided",
+    label: "Myth: avoided",
     note: "Popular chess-improvement advice the app actively avoids because the evidence contradicts it.",
   },
 ] as const;
@@ -57,7 +57,7 @@ const EXCLUSIONS = [
   },
   {
     what: "No self-report skill diagnosis",
-    why: "Dunning-Kruger is real in chess (Grade A/1). The app diagnoses you behaviorally — from your games and your puzzle performance — never by asking you to rate yourself.",
+    why: "Dunning-Kruger is real in chess (Grade A/1). The app diagnoses you behaviorally from your games and your puzzle performance, never by asking you to rate yourself.",
   },
   {
     what: "No infinite streaks",
@@ -83,7 +83,7 @@ export default function AboutPage() {
       eyebrow="About Mainline"
       title="The honest line"
       lede={
-        "Mainline is a personalized, science-based chess training program that adapts as you play — with every claim graded the same way recommendations are graded in the app."
+        "Mainline is a personalized, science-based chess training program that adapts as you play, with every claim graded the same way recommendations are graded in the app."
       }
       width="wide"
     >
@@ -97,12 +97,12 @@ export default function AboutPage() {
             No training activity has been proven to cause a measured chess
             rating gain.{" "}
             <span className="text-graphite italic">
-              Mainline helps you train smarter on the best available evidence —
-              it never promises you a rating.
+              Mainline helps you train smarter on the best available evidence.
+              It never promises you a rating.
             </span>
           </blockquote>
           <p className="text-graphite max-w-2xl font-serif text-base leading-relaxed">
-            Every chess-specific study is observational or correlational — we
+            Every chess-specific study is observational or correlational: we
             know what strong players do differently, but we cannot prove that
             copying those activities will raise your rating. Mainline is built
             around that fact, not around hiding it.
@@ -124,8 +124,8 @@ export default function AboutPage() {
             spaced-repetition deck. This app sits one layer up: it is the{" "}
             <strong className="text-ink">orchestration layer</strong> that
             decides{" "}
-            <em>what you should work on, with which resources, and why</em> —
-            and revises that plan continuously as you train and play.
+            <em>what you should work on, with which resources, and why</em>,
+            then revises that plan continuously as you train and play.
           </p>
         </section>
 
@@ -193,7 +193,7 @@ export default function AboutPage() {
           </div>
           <p className="text-graphite max-w-2xl font-serif text-base leading-relaxed">
             Every recommendation, methodology value, and claim on this page
-            carries a grade — a placeholder can never pose as established fact.
+            carries a grade: a placeholder can never pose as established fact.
           </p>
 
           {/* Four grades */}
@@ -242,10 +242,10 @@ export default function AboutPage() {
           <div className="bg-paper/60 rounded-md border border-dashed border-amber/50 p-5">
             <p className="text-ink font-serif text-base leading-relaxed">
               The methodology configuration currently shipping is a{" "}
-              <span className="font-mono text-sm font-semibold">stub</span> —
-              safe placeholder values that make the whole loop run end-to-end.
+              <span className="font-mono text-sm font-semibold">stub</span>
+              with safe placeholder values that make the whole loop run end-to-end.
               The real research will replace the stub without re-architecting
-              anything — that is the point of the separation.
+              anything. That is the point of the separation.
             </p>
           </div>
         </section>

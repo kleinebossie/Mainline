@@ -99,7 +99,7 @@ export function AnalysisRunner() {
       </div>
 
       <p className="text-graphite text-sm leading-relaxed font-serif">
-        Runs entirely in your browser (Stockfish WASM) — your games never leave
+        Runs entirely in your browser (Stockfish WASM). Your games never leave
         your device for analysis. These are raw engine measurements only; the
         program engine turns them into training in a later step.
       </p>

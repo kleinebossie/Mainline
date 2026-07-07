@@ -139,7 +139,7 @@ export function Calibration() {
           </CardTitle>
           <p className="text-graphite font-mono text-sm mt-1">
             A behavioural read across {trackCount} dimension
-            {trackCount === 1 ? "" : "s"} — uncertainty shrinks with more games
+            {trackCount === 1 ? "" : "s"}. Uncertainty shrinks with more games
             and reviews.
           </p>
         </CardHeader>
@@ -182,7 +182,7 @@ export function Calibration() {
           </div>
 
           <p className="text-graphite font-serif text-sm leading-relaxed border-t border-line/80 pt-4">
-            These are rough calibration points, not verdicts — a placeholder
+            These are rough calibration points, not verdicts. They come from a placeholder
             method that estimates a few skills directly. The fuller picture
             comes from analysing your real games.
           </p>

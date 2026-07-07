@@ -13,7 +13,7 @@ const GRADE_KEY = [
   { glyph: "‼", grade: "A", label: "Strong, replicated" },
   { glyph: "!", grade: "B", label: "Suggestive, limited" },
   { glyph: "?!", grade: "C", label: "Theory / best-guess" },
-  { glyph: "??", grade: "D", label: "Myth — avoided" },
+  { glyph: "??", grade: "D", label: "Myth: avoided" },
 ] as const;
 
 const GRADE_CLR: Record<string, string> = {
@@ -63,7 +63,7 @@ export default async function Home() {
 
             <p className="text-paper/70 max-w-md text-base leading-relaxed">
               A personalized training program built from your real games and
-              your real constraints — then adapted as you play. Every
+              your real constraints, then adapted as you play. Every
               recommendation shows its reasoning and exactly how strong the
               evidence is.
             </p>
@@ -93,7 +93,7 @@ export default async function Home() {
               </span>
             </p>
             <h2 className="mt-2 font-serif text-2xl font-semibold tracking-tight">
-              Tactics — knight forks
+              Tactics: knight forks
             </h2>
             <p className="text-graphite mt-1 font-mono text-xs">
               target ~1450 · 8 puzzles · worked example first
@@ -128,7 +128,7 @@ export default async function Home() {
               Borrowed from the board: every claim is annotated.
             </h2>
             <p className="text-graphite leading-relaxed">
-              Chess players already grade moves — a brilliant move, a blunder.
+              Chess players already grade moves: a brilliant move, a blunder.
               Mainline grades its own advice the same way, so you always know
               whether you&apos;re following strong evidence or a best guess. We
               never dress a guess up as a fact.
@@ -174,7 +174,7 @@ export default async function Home() {
         <p className="text-graphite mt-12 max-w-2xl border-l-2 border-evergreen/40 pl-4 font-serif text-lg italic leading-relaxed">
           The hardest, most honest fact in chess training: no activity has ever
           been proven to cause a measured rating gain. Mainline helps you train
-          smarter on the best available evidence — it never sells you certainty.
+          smarter on the best available evidence. It never sells you certainty.
         </p>
       </section>
 

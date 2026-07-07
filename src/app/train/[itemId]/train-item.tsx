@@ -357,14 +357,14 @@ export function TrainItem({ programItemId }: TrainItemProps) {
             <blockquote className="border-l-4 border-evergreen/40 pl-4 py-1 text-left text-sm text-graphite italic font-serif leading-relaxed">
               &ldquo;{data.redoFlow.rationale.value}&rdquo;
               <cite className="block text-right text-xs mt-1 font-mono not-italic opacity-80">
-                — Evidence {data.redoFlow.rationale.grade} · tier{" "}
+                Evidence {data.redoFlow.rationale.grade} · tier{" "}
                 {data.redoFlow.rationale.tier}
               </cite>
             </blockquote>
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4 border-t border-line">
               <Button variant="outline" size="sm" onClick={skipDelay}>
-                I&apos;ve waited {delayMinutes} min — retest now
+                I&apos;ve waited {delayMinutes} min. Retest now
               </Button>
               <Link
                 href="/today"

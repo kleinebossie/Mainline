@@ -29,12 +29,12 @@ function ConsistencyGrid({
     <div
       className="grid grid-flow-col grid-rows-7 gap-[3px]"
       role="img"
-      aria-label="Consistency grid — days you trained over the last weeks"
+      aria-label="Consistency grid: days you trained over the last weeks"
     >
       {grid.map((cell) => (
         <span
           key={cell.date.toISOString()}
-          title={`${cell.date.toLocaleDateString()} — ${cell.active ? "trained" : "no activity"}`}
+          title={`${cell.date.toLocaleDateString()}: ${cell.active ? "trained" : "no activity"}`}
           className={cn(
             "h-3 w-3 rounded-[2px]",
             cell.active ? "bg-evergreen" : "bg-ink/10",
@@ -87,7 +87,7 @@ function ReminderForm({
           className="h-8 w-20"
         />
         <span className="text-graphite font-mono text-[0.7rem]">
-          capped at {cap}/day — no nagging, ever
+          capped at {cap}/day. No nagging, ever
         </span>
       </div>
       <Button
@@ -224,7 +224,7 @@ export function EngagementPanel() {
         ) : (
           <p className="text-graphite text-sm">
             Nothing yet. Complete a session and your first recognition shows up
-            here — for genuine work, never just time spent.
+            here, for genuine work, never just time spent.
           </p>
         )}
       </section>

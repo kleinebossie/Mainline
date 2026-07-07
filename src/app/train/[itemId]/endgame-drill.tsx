@@ -188,7 +188,7 @@ export function EndgameDrillSession({
           <CardContent className="flex flex-col gap-4">
             <p className="text-graphite font-serif text-sm leading-relaxed">
               {positions.length === 0
-                ? "There are no endgame positions due right now — they'll return on their spaced schedule."
+                ? "There are no endgame positions due right now. They'll return on their spaced schedule."
                 : "Nice work. Each result has been logged and rescheduled by the spaced-repetition planner."}
             </p>
             <Button
@@ -268,10 +268,10 @@ export function EndgameDrillSession({
                   </span>
                   <p className="text-sm font-serif text-ink leading-relaxed">
                     {verdict === "win"
-                      ? "This is a theoretical win — convert it."
+                      ? "This is a theoretical win. Convert it."
                       : verdict === "draw"
-                        ? "This is a theoretical draw — hold it."
-                        : "This is theoretically lost for you — try to hold on."}
+                        ? "This is a theoretical draw. Hold it."
+                        : "This is theoretically lost for you. Try to hold on."}
                     {tb.data?.dtz != null && ` (DTZ ${Math.abs(tb.data.dtz)}).`}
                   </p>
                 </div>

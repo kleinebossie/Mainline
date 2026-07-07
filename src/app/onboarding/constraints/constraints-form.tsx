@@ -37,9 +37,9 @@ const RESOURCE_KIND_LABELS: Record<OwnedResource["kind"], string> = {
 };
 
 const DEPTH_LABELS: Record<SessionStyle["depthVsBreadth"], string> = {
-  depth: "Go deep — fewer topics, harder",
+  depth: "Go deep: fewer topics, harder",
   balanced: "Balanced",
-  breadth: "Go broad — more variety",
+  breadth: "Go broad: more variety",
 };
 
 // Goal kinds offered as checkboxes (label is UI copy; the schema stores { kind, label }).
@@ -243,7 +243,7 @@ function Form({
           />
           <span className="text-graphite font-serif text-xs font-normal leading-relaxed">
             This is a <span className="text-ink font-medium">hard maximum</span>
-            . Sessions are sized to stay at or under it — never over. 5–1440 min
+            . Sessions are sized to stay at or under it, never over. 5–1440 min
             (up to 24 hours).
           </span>
         </label>
@@ -358,7 +358,7 @@ function Form({
         </legend>
         <p className="text-graphite font-serif text-sm leading-relaxed -mt-1 mb-1">
           We&apos;ll send you straight here when today&apos;s plan says to play
-          a game — one click, less friction.
+          a game: one click, less friction.
         </p>
         <div className="flex flex-wrap gap-x-6 gap-y-2">
           {(["lichess", "chesscom"] as const).map((p) => (

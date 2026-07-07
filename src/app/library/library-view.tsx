@@ -182,7 +182,7 @@ export function Library() {
   if (!data) {
     return (
       <p className="text-graphite font-mono text-sm">
-        Finish onboarding first — we tailor these to your level and how you
+        Finish onboarding first; we tailor these to your level and how you
         play.
       </p>
     );
@@ -229,7 +229,7 @@ export function Library() {
               </>
             ) : (
               <p className="text-graphite font-serif text-sm leading-relaxed">
-                You train online, so a screen-first split is right — it
+                You train online, so a screen-first split is right: it
                 maximises how many patterns you see per hour. If you ever play
                 over-the-board, switch your play medium in Setup and we&apos;ll
                 add physical-board work.
@@ -251,7 +251,7 @@ export function Library() {
           Recommended for you
         </h2>
         <p className="text-graphite font-serif text-sm leading-relaxed -mt-2">
-          We never host these — they stay where you bought or borrowed them.
+          We never host these. They stay where you bought or borrowed them.
           Books that would overload your level are left out on purpose.
         </p>
         {data.books.length === 0 ? (

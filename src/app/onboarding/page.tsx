@@ -15,7 +15,7 @@ export default async function OnboardingPage() {
     <PageShell
       eyebrow="Onboarding"
       title="Set up your training"
-      lede="A few quick steps. You can stop and come back at any time — your progress is saved."
+      lede="A few quick steps. You can stop and come back at any time. Your progress is saved."
     >
       <OnboardingSteps />
     </PageShell>

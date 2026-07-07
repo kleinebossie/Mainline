@@ -232,7 +232,7 @@ export default function TrainPage() {
     } else {
       setSparHistory((prev) => [
         ...prev,
-        "(Engine not initialized — play both sides or click Boot Engine)",
+        "(Engine not initialized. Play both sides or click Boot Engine)",
       ]);
     }
   };

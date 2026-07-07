@@ -79,7 +79,7 @@ export function Reveal() {
           </CardTitle>
           <p className="text-graphite font-mono text-sm mt-1">
             A behavioural read across {tracks.length} dimension
-            {tracks.length === 1 ? "" : "s"} — uncertainty shrinks with more
+            {tracks.length === 1 ? "" : "s"}. Uncertainty shrinks with more
             games and reviews.
           </p>
         </CardHeader>
@@ -132,7 +132,7 @@ export function Reveal() {
             </div>
             <p className="text-ink font-serif text-[0.95rem] leading-relaxed">
               These are rough calibration points, not verdicts. The fuller
-              picture — your real leaks — comes from your games, below.
+              picture, your real leaks, comes from your games, below.
             </p>
           </div>
         </CardContent>
@@ -168,7 +168,7 @@ export function Reveal() {
             <p className="text-graphite text-sm leading-relaxed font-serif">
               Across {signals.data.gamesAnalysed} analysed game
               {signals.data.gamesAnalysed === 1 ? "" : "s"}, nothing yet rises
-              clearly above the noise — we won&apos;t invent a weakness. As more
+              clearly above the noise. We won&apos;t invent a weakness. As more
               games are analysed, real signals will surface.
             </p>
           ) : (
@@ -205,7 +205,7 @@ export function Reveal() {
             Step through one of your games
           </CardTitle>
           <p className="text-graphite font-mono text-sm mt-1">
-            The honest picture isn&apos;t a number — it&apos;s the moment it
+            The honest picture isn&apos;t a number: it&apos;s the moment it
             turned. Walk the turning points and find better moves for your
             mistakes.
           </p>
@@ -229,7 +229,7 @@ export function Reveal() {
             </div>
           ) : (
             <p className="text-graphite text-sm leading-relaxed font-serif">
-              Scan a game first — then you&apos;ll be able to review it, walk
+              Scan a game first: then you&apos;ll be able to review it, walk
               the turning points, and drill your mistakes.
             </p>
           )}
@@ -257,7 +257,7 @@ export function Reveal() {
             </ul>
           ) : (
             <p className="text-graphite text-sm leading-relaxed font-serif">
-              You haven&apos;t set goals yet — you can add them any time in
+              You haven&apos;t set goals yet: you can add them any time in
               Settings.
             </p>
           )}
@@ -267,7 +267,7 @@ export function Reveal() {
             <span className="text-ink font-medium">games</span> for the
             diagnosis and your{" "}
             <span className="text-ink font-medium">goals</span> for what to
-            emphasise — and we always show the evidence.
+            emphasise, and we always show the evidence.
           </p>
           <div className="flex flex-wrap items-center gap-3 border-t border-line/80 pt-5">
             <Link href="/today" className={buttonVariants()}>

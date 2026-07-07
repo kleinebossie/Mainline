@@ -580,7 +580,7 @@ export function GameAnalysisFlow() {
                   !skipCalibration && (
                     <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line/60 pt-3">
                       <p className="text-grade-d font-serif text-xs">
-                        Skipping this reflection isn&apos;t recommended — see
+                        Skipping this reflection isn&apos;t recommended. See
                         the rationale below.
                       </p>
                       <Button
@@ -629,7 +629,7 @@ export function GameAnalysisFlow() {
                 <p className="text-ink font-serif text-base leading-relaxed">
                   We didn&apos;t find a mistake large enough to be worth
                   reproducing in this game at your rating. That&apos;s a good
-                  sign — there&apos;s no single move that decided it.
+                  sign; there&apos;s no single move that decided it.
                 </p>
                 <div className="flex justify-end">
                   <Button onClick={() => setStep(3)}>Finish review</Button>
@@ -706,7 +706,7 @@ export function GameAnalysisFlow() {
                               {analysis.gameMoveSan}
                             </span>
                             {analysis.gameWinProbDrop < 0.05
-                              ? " — you stayed clearly ahead; the engine just had a cleaner finish."
+                              ? ": you stayed clearly ahead; the engine just had a cleaner finish."
                               : `, dropping ~${pctWinChance(analysis.gameWinProbDrop)}% win chance.`}
                           </p>
                         )}
@@ -721,7 +721,7 @@ export function GameAnalysisFlow() {
                         {!grading && solved && lastAttempt && (
                           <div className="rounded-md border border-grade-a/30 bg-grade-a/10 p-3">
                             <p className="text-grade-a font-mono text-xs font-bold uppercase">
-                              ✓ Found it — {lastAttempt.san}
+                              ✓ Found it: {lastAttempt.san}
                             </p>
                             <p className="mt-1 font-serif text-sm text-ink">
                               {lastAttempt.pctBetter != null
@@ -734,7 +734,7 @@ export function GameAnalysisFlow() {
                         {!grading && !solved && !revealed && lastAttempt && (
                           <div className="rounded-md border border-line bg-ink/[0.03] p-3">
                             <p className="text-grade-d font-mono text-xs font-bold uppercase">
-                              Not the strongest — {lastAttempt.san}
+                              Not the strongest: {lastAttempt.san}
                             </p>
                             <p className="mt-1 font-serif text-sm text-ink">
                               That move still gives up ~

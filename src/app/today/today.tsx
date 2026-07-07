@@ -139,7 +139,7 @@ export function Today() {
 
       {log.data && log.data.scheduledReviews > 0 && (
         <p className="text-graphite border-l-2 border-evergreen/40 pl-3 font-mono text-xs leading-relaxed">
-          Training logged — review work queued to come back spaced over the next
+          Training logged. Review work queued to come back spaced over the next
           days.
         </p>
       )}
@@ -255,7 +255,7 @@ function TodayHeader({
       </p>
       {due > 0 && (
         <p className="text-evergreen mt-3 font-mono text-xs">
-          Review queue has work ready — regenerate to pull it into this session.
+          Review queue has work ready. Regenerate to pull it into this session.
         </p>
       )}
     </section>
@@ -930,11 +930,11 @@ function BookLogForm({
       {log.data?.feedback && (
         <p className="text-graphite border-l-2 border-evergreen/40 pl-3 font-serif text-sm leading-relaxed">
           {log.data.feedback.verdict === "too_easy" &&
-            "That book looks a bit easy — consider a harder one."}
+            "That book looks a bit easy. Consider a harder one."}
           {log.data.feedback.verdict === "too_hard" &&
-            "That book looks tough right now — an easier one will help."}
+            "That book looks tough right now. An easier one will help."}
           {log.data.feedback.verdict === "calibrated" &&
-            "Nicely calibrated — that difficulty is right where learning is fastest."}
+            "Nicely calibrated. That difficulty is right where learning is fastest."}
         </p>
       )}
     </div>

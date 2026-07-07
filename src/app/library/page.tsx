@@ -17,7 +17,7 @@ export default async function LibraryPage() {
     <PageShell
       eyebrow="Books, courses & over-the-board"
       title="Library"
-      lede="The parts of training we keep deliberately external — recommended, never hosted. Study them the right way, log what you do, and the rest of your plan adapts around it."
+      lede="The parts of training we keep deliberately external: recommended, never hosted. Study them the right way, log what you do, and the rest of your plan adapts around it."
     >
       <Library />
     </PageShell>

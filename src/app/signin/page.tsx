@@ -24,7 +24,7 @@ export default async function SignInPage() {
           </h1>
           <p className="text-graphite text-sm leading-relaxed">
             Connect a chess account and Mainline builds your training program
-            from your real games — no password is ever stored.
+            from your real games. No password is ever stored.
           </p>
         </div>
 
@@ -60,7 +60,7 @@ export default async function SignInPage() {
           )}
 
           <p className="text-graphite mt-5 border-t border-line/80 pt-4 text-center font-mono text-[0.7rem] leading-relaxed">
-            Read-only access. Your games and outcomes are yours — exportable and
+            Read-only access. Your games and outcomes are yours: exportable and
             deletable at any time.
           </p>
         </div>
