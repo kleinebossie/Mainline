@@ -37,9 +37,9 @@ function item(overrides: Partial<TodayItem>): TodayItem {
 
 describe("Today copy helpers", () => {
   it("formats visible time as rounded hard caps", () => {
-    expect(formatMinuteCap(0.75)).toBe("up to 1 min");
-    expect(formatMinuteCap(15)).toBe("up to 15 min");
-    expect(formatMinuteCap(15.1)).toBe("up to 16 min");
+    expect(formatMinuteCap(0.75)).toBe("Up to 1 min");
+    expect(formatMinuteCap(15)).toBe("Up to 15 min");
+    expect(formatMinuteCap(15.1)).toBe("Up to 16 min");
   });
 
   it("sums the session cap without fractional minutes", () => {
@@ -49,7 +49,7 @@ describe("Today copy helpers", () => {
         item({ id: "item-2", estMinutes: 0.75 }),
       ],
     } as TodayProgram;
-    expect(sessionMinuteCap(program)).toBe("up to 15 min");
+    expect(sessionMinuteCap(program)).toBe("Up to 15 min");
   });
 
   it("uses server-shaped review themes in Today summaries", () => {

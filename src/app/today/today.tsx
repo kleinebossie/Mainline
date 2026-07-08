@@ -224,9 +224,10 @@ function TodayHeader({
   timeValid: boolean;
   onRegenerate: () => void;
 }) {
+  const [goalOpen, setGoalOpen] = useState(false);
   return (
     <section className="bg-card focus-card rounded-lg border p-4 shadow-sheet settle sm:p-5">
-      <div className="flex min-w-0 flex-wrap items-start justify-between gap-4">
+      <div className="flex min-w-0 flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div className="min-w-0 flex-1">
           <p className="eyebrow">Today&apos;s prescription</p>
           <div className="mt-2 flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
@@ -247,12 +248,41 @@ function TodayHeader({
           compact
         />
       </div>
-      <p className="mt-3 font-serif text-base leading-snug text-ink">
-        {program.honesty.processGoal}
-      </p>
-      <p className="text-graphite mt-2 text-sm leading-relaxed">
-        {program.honesty.expectations}
-      </p>
+
+      <div className="mt-3">
+        <button
+          type="button"
+          onClick={() => setGoalOpen((open) => !open)}
+          className="eyebrow flex cursor-pointer items-center gap-2"
+        >
+          <span aria-hidden className="text-evergreen not-italic">
+            ∴
+          </span>
+          Today&apos;s goal
+          <span aria-hidden className="text-xs">
+            {goalOpen ? "▼" : "▶"}
+          </span>
+        </button>
+        {goalOpen && (
+          <p className="text-ink mt-2 font-serif text-[0.95rem] leading-relaxed">
+            {program.honesty.processGoal}
+          </p>
+        )}
+      </div>
+
+      <TransparencyCard
+        rationaleText={program.honesty.expectations}
+        evidenceGrade={program.honesty.expectationsEvidence.evidenceGrade}
+        evidenceTier={program.honesty.expectationsEvidence.evidenceTier}
+        citationKey={program.honesty.expectationsEvidence.citationKey}
+        citationSource={program.honesty.expectationsEvidence.citationSource}
+        confidence={program.honesty.expectationsEvidence.confidence}
+        soften={program.honesty.expectationsEvidence.soften}
+        flag={program.honesty.expectationsEvidence.flag}
+        hideToggle
+        className="mt-5"
+      />
+
       {due > 0 && (
         <p className="text-evergreen mt-3 font-mono text-xs">
           Review queue has work ready. Regenerate to pull it into this session.
@@ -279,7 +309,7 @@ function TimeEdit({
 }) {
   return (
     <div
-      className={cn("flex min-w-0 flex-col gap-2", compact && "sm:items-end")}
+      className={cn("flex min-w-0 flex-col gap-2", compact && "w-full sm:w-auto sm:items-end")}
     >
       <label htmlFor="today-time-input" className="font-serif text-sm text-ink">
         How much time do you have today?

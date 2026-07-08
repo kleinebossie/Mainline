@@ -7,8 +7,8 @@ export function asGrade(g: string): Grade {
 }
 
 export function formatMinuteCap(minutes: number | null | undefined): string {
-  if (minutes == null) return "up to available time";
-  return `up to ${Math.max(1, Math.ceil(minutes))} min`;
+  if (minutes == null) return "Up to available time";
+  return `Up to ${Math.max(1, Math.ceil(minutes))} min`;
 }
 
 export function sessionMinuteCap(program: TodayProgram): string {

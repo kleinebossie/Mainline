@@ -25,6 +25,8 @@ export interface TransparencyCardProps {
   flag?: string;
   className?: string;
   defaultCollapsed?: boolean;
+  /** When true, the toggle button is hidden and the content is always visible. */
+  hideToggle?: boolean;
 }
 
 export function TransparencyCard({
@@ -38,9 +40,11 @@ export function TransparencyCard({
   flag,
   className,
   defaultCollapsed = true,
+  hideToggle = false,
 }: TransparencyCardProps) {
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const isPlaceholder = flag === "stub" || flag === "best-guess";
+  const expanded = hideToggle || !collapsed;
 
   return (
     <div
@@ -50,24 +54,26 @@ export function TransparencyCard({
       )}
       role="note"
     >
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <button
-          type="button"
-          onClick={() => setCollapsed((prev) => !prev)}
-          className="eyebrow flex cursor-pointer items-center gap-2"
-        >
-          <span aria-hidden className="text-evergreen not-italic">
-            ∴
-          </span>
-          Why this?
-          <span aria-hidden className="text-xs">
-            {collapsed ? "▶" : "▼"}
-          </span>
-        </button>
-        {isPlaceholder && <PlaceholderTag />}
-      </div>
+      {!hideToggle && (
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <button
+            type="button"
+            onClick={() => setCollapsed((prev) => !prev)}
+            className="eyebrow flex cursor-pointer items-center gap-2"
+          >
+            <span aria-hidden className="text-evergreen not-italic">
+              ∴
+            </span>
+            Why this?
+            <span aria-hidden className="text-xs">
+              {collapsed ? "▶" : "▼"}
+            </span>
+          </button>
+          {isPlaceholder && <PlaceholderTag />}
+        </div>
+      )}
 
-      {!collapsed && (
+      {expanded && (
         <>
           <p className="text-ink mt-2 font-serif text-[0.95rem] leading-relaxed">
             {rationaleText}

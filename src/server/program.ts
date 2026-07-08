@@ -345,12 +345,27 @@ export interface TodayItem {
   status: string;
 }
 
+export interface HonestyEvidence {
+  evidenceGrade: string;
+  evidenceTier: number;
+  citationKey: string;
+  citationSource: string | null;
+  confidence: string;
+  soften: boolean;
+  flag?: string;
+}
+
 export interface TodayProgram {
   id: string;
   createdAt: Date;
   methodologyVersion: string;
   /** Always-on honesty copy (Seam 8) shown above the session. */
-  honesty: { expectations: string; processGoal: string };
+  honesty: {
+    expectations: string;
+    processGoal: string;
+    expectationsEvidence: HonestyEvidence;
+    processGoalEvidence: HonestyEvidence;
+  };
   items: TodayItem[];
 }
 
@@ -588,13 +603,34 @@ export async function getTodayProgram(
   const ledger = new Map(cfg.evidenceLedger.map((a) => [a.key, a.source]));
   const reviewThemes = await reviewThemesByItemId(db, program.items);
 
+  const expectationsRationale = rationaleFor("expectations", cfg);
+  const processGoalRationale = rationaleFor("process_goal", cfg);
+
   return {
     id: program.id,
     createdAt: program.createdAt,
     methodologyVersion: program.methodologyVersion,
     honesty: {
-      expectations: rationaleFor("expectations", cfg).value,
-      processGoal: rationaleFor("process_goal", cfg).value,
+      expectations: expectationsRationale.value,
+      processGoal: processGoalRationale.value,
+      expectationsEvidence: {
+        evidenceGrade: expectationsRationale.grade,
+        evidenceTier: expectationsRationale.tier,
+        citationKey: expectationsRationale.citationKey,
+        citationSource: ledger.get(expectationsRationale.citationKey) ?? null,
+        confidence: "low",
+        soften: expectationsRationale.soften,
+        flag: expectationsRationale.flag,
+      },
+      processGoalEvidence: {
+        evidenceGrade: processGoalRationale.grade,
+        evidenceTier: processGoalRationale.tier,
+        citationKey: processGoalRationale.citationKey,
+        citationSource: ledger.get(processGoalRationale.citationKey) ?? null,
+        confidence: "low",
+        soften: processGoalRationale.soften,
+        flag: processGoalRationale.flag,
+      },
     },
     items: program.items.map((it) =>
       toTodayItem(
