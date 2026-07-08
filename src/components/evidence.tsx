@@ -93,7 +93,9 @@ const CONFIDENCE: Record<string, { filled: number; note: string }> = {
 
 /**
  * ConfidenceBar — how much of *your* data backs a call, drawn like an engine's depth/eval
- * meter. Four segments; empty segments are honest about what we don't know yet.
+ * meter. Four segments; empty segments are honest about what we don't know yet. The note
+ * is surfaced inline (not only via the `title` tooltip) so the meaning is legible on
+ * touch devices and at a glance, without a hover gesture or a trip to the About page.
  */
 export function ConfidenceBar({
   confidence,
@@ -105,25 +107,30 @@ export function ConfidenceBar({
   const meta = CONFIDENCE[confidence] ?? CONFIDENCE.low!;
   return (
     <span
-      className={cn("inline-flex items-center gap-2", className)}
+      className={cn("inline-flex flex-col items-start gap-0.5", className)}
       title={meta.note}
     >
-      <span className="eyebrow !text-[0.62rem] !tracking-[0.14em]">
-        Confidence
+      <span className="inline-flex items-center gap-2">
+        <span className="eyebrow !text-[0.62rem] !tracking-[0.14em]">
+          Confidence
+        </span>
+        <span className="flex items-center gap-[3px]" aria-hidden>
+          {[0, 1, 2, 3].map((i) => (
+            <span
+              key={i}
+              className={cn(
+                "h-3 w-[6px] rounded-[1px]",
+                i < meta.filled ? "bg-evergreen" : "bg-ink/15",
+              )}
+            />
+          ))}
+        </span>
+        <span className="text-graphite font-mono text-xs lowercase">
+          {confidence}
+        </span>
       </span>
-      <span className="flex items-center gap-[3px]" aria-hidden>
-        {[0, 1, 2, 3].map((i) => (
-          <span
-            key={i}
-            className={cn(
-              "h-3 w-[6px] rounded-[1px]",
-              i < meta.filled ? "bg-evergreen" : "bg-ink/15",
-            )}
-          />
-        ))}
-      </span>
-      <span className="text-graphite font-mono text-xs lowercase">
-        {confidence}
+      <span className="text-graphite font-serif text-[0.7rem] italic leading-tight">
+        {meta.note}
       </span>
     </span>
   );

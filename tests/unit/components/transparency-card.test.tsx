@@ -32,4 +32,19 @@ describe("TransparencyCard", () => {
     );
     expect(html).not.toContain("Placeholder");
   });
+
+  it("surfaces the confidence note inline, not only via the title tooltip", () => {
+    const html = renderToStaticMarkup(
+      <TransparencyCard
+        rationaleText="This is a tested rationale."
+        evidenceGrade="B"
+        evidenceTier={1}
+        citationKey="test"
+        confidence="low"
+        soften={false}
+        defaultCollapsed={false}
+      />,
+    );
+    expect(html).toContain("a band prior, not your own data yet");
+  });
 });

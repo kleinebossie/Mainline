@@ -38,6 +38,33 @@ const GRADE_CLR: Record<string, string> = {
   D: "text-grade-d",
 };
 
+const CONFIDENCE_KEY = [
+  {
+    level: "Insufficient",
+    filled: 0,
+    label: "Not enough of your data yet",
+    note: "We don't have enough of your games or reviews to make this call. The app says so plainly instead of inventing a verdict.",
+  },
+  {
+    level: "Low",
+    filled: 1,
+    label: "A band prior, not your own data yet",
+    note: "The recommendation rests on what players at your level tend to need, not on what we've seen from you. It will sharpen as your data accrues.",
+  },
+  {
+    level: "Medium",
+    filled: 2,
+    label: "Some of your own data",
+    note: "Partially grounded in your games or reviews. A working hypothesis, still refining.",
+  },
+  {
+    level: "High",
+    filled: 4,
+    label: "Well-backed by your own data",
+    note: "Drawn from enough of your own play to read as yours, not as a population average.",
+  },
+] as const;
+
 const EXCLUSIONS = [
   {
     what: "No LLM/AI at runtime",
@@ -227,6 +254,57 @@ export default function AboutPage() {
               </div>
             ))}
           </div>
+
+          <p className="text-graphite max-w-2xl font-serif text-base leading-relaxed border-l-2 border-evergreen/40 pl-4">
+            <strong className="text-ink">Grade</strong> answers{" "}
+            <em>how strong the science is</em>. A second axis,{" "}
+            <strong className="text-ink">confidence</strong>, answers a
+            different question: <em>how much of your own data backs this
+            specific call to you.</em> The same Grade-A finding can land with{" "}
+            <em>low</em> confidence, as when we know spaced repetition works
+            but you&apos;ve only imported three games. Or it can land with{" "}
+            <em>high</em> confidence, well-backed by your own play. The
+            distinction keeps a band prior from masquerading as a
+            personalised verdict.
+          </p>
+
+          {/* Four confidence levels */}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {CONFIDENCE_KEY.map((c) => (
+              <div
+                key={c.level}
+                className="bg-card rounded-lg border p-5 shadow-sheet"
+              >
+                <div className="flex items-center gap-3">
+                  <span
+                    aria-hidden
+                    className="flex items-center gap-[3px]"
+                  >
+                    {[0, 1, 2, 3].map((i) => (
+                      <span
+                        key={i}
+                        className={cn(
+                          "h-3 w-[6px] rounded-[1px]",
+                          i < c.filled
+                            ? "bg-evergreen"
+                            : "bg-ink/15",
+                        )}
+                      />
+                    ))}
+                  </span>
+                  <span className="font-mono text-xs font-semibold uppercase tracking-[0.12em]">
+                    {c.level}
+                  </span>
+                </div>
+                <p className="text-ink mt-2 font-serif text-sm font-medium">
+                  {c.label}
+                </p>
+                <p className="text-graphite mt-1 font-serif text-sm leading-relaxed">
+                  {c.note}
+                </p>
+              </div>
+            ))}
+          </div>
         </section>
 
         {/* ────────────────────────────────────────────────────────────────
@@ -242,7 +320,7 @@ export default function AboutPage() {
           <div className="bg-paper/60 rounded-md border border-dashed border-amber/50 p-5">
             <p className="text-ink font-serif text-base leading-relaxed">
               The methodology configuration currently shipping is a{" "}
-              <span className="font-mono text-sm font-semibold">stub</span>
+              <span className="font-mono text-sm font-semibold">stub</span>{" "}
               with safe placeholder values that make the whole loop run end-to-end.
               The real research will replace the stub without re-architecting
               anything. That is the point of the separation.

@@ -129,6 +129,7 @@ These come from `VISION.md` and the research brief; honor them in any code or re
   promise rating gains.
 - **English** for documents and code. Free-infrastructure tiers only (Phase 1 targets personal use →
   closed free beta).
+- **No em-dashes (`—`)** in code, comments, copy, or docs. They are a telltale sign of AI authorship. Use commas, colons, semicolons, or split into separate sentences so grammar stays correct.
 
 ## Verification & current build status
 

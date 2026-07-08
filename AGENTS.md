@@ -57,3 +57,4 @@ npm run prisma:migrate           # Run on setup and schema changes
 - **Database & Limits**: Puzzle database is huge. Do not run heavy queries on `LichessPuzzle` without filtering. Cache tablebase calls in `TablebaseCache` (limited to ≤7 pieces) to respect external APIs.
 - **CI Pipeline**: Order is strictly: `typecheck → lint → unit → guards → build → e2e`. All must pass before merging.
 - **No Runtime AI**: Never introduce LLM/AI inside the application logic.
+- **No Em-Dashes**: Never use em-dashes (`—`) in code, comments, copy, or docs. They are a telltale sign of AI authorship. Use commas, colons, semicolons, or split into separate sentences to keep grammar correct.
