@@ -5,7 +5,10 @@ import { PageShell } from "@/components/app-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Chess } from "chess.js";
-import { InteractiveBoard } from "@/components/interactive-board";
+import {
+  BOARD_SIZE_CLASS,
+  InteractiveBoard,
+} from "@/components/interactive-board";
 import { stepSolve, type SolveState } from "@/engine/interactive/session";
 import { createEnginePlay } from "@/engine/interactive/engine-play";
 import {
@@ -244,7 +247,7 @@ export default function TrainPage() {
   };
 
   return (
-    <PageShell width="default">
+    <PageShell width="wide">
       <div className="flex flex-col gap-6 py-6 settle">
         <div className="flex flex-col gap-1.5">
           <h1 className="font-serif text-3xl font-semibold tracking-tight">
@@ -312,10 +315,10 @@ export default function TrainPage() {
                 (mode === "spar" && engineLoading) ||
                 (mode === "endgame" && endgameResult !== null)
               }
-              className="w-full max-w-[36rem]"
+              className={BOARD_SIZE_CLASS}
             />
             {mode === "puzzle" && (
-              <div className="flex justify-between w-full max-w-[36rem] px-1">
+              <div className={`${BOARD_SIZE_CLASS} flex justify-between px-1`}>
                 <span className="text-graphite font-mono text-xs">
                   Elapsed: {(elapsedMs / 1000).toFixed(1)}s
                 </span>

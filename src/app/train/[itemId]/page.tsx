@@ -15,7 +15,7 @@ export default async function TrainItemPage({ params }: TrainItemPageProps) {
   const { itemId } = await params;
 
   return (
-    <PageShell width="default">
+    <PageShell width="wide">
       <TrainItem programItemId={itemId} />
     </PageShell>
   );

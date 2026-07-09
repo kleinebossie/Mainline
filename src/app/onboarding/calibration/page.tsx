@@ -13,6 +13,7 @@ export default async function CalibrationPage() {
 
   return (
     <PageShell
+      width="wide"
       eyebrow="Step 2 of onboarding"
       title="Tactical calibration"
       lede="We don't ask you to rate yourself. Self-assessment is unreliable (Dunning-Kruger). This short check estimates your tactical level from how you actually solve."

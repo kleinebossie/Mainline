@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { StatusMessage } from "@/components/ui/status-message";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  BOARD_SIZE_CLASS,
   InteractiveBoard,
   type BoardMove,
 } from "@/components/interactive-board";
@@ -675,9 +676,11 @@ export function GameAnalysisFlow() {
                     analysisStatus !== "ready" || grading || solved || revealed
                   }
                   highlightedSquares={highlightedSquares}
-                  className="w-full max-w-[32rem]"
+                  className={BOARD_SIZE_CLASS}
                 />
-                <div className="flex max-w-[32rem] items-center justify-between px-1">
+                <div
+                  className={`${BOARD_SIZE_CLASS} flex items-center justify-between px-1`}
+                >
                   <span className="text-graphite font-mono text-xs">
                     Moment {currentMomentIdx + 1} of{" "}
                     {session.criticalMoments.length}

@@ -26,6 +26,9 @@ const HOVER_RING = "inset 0 0 0 3px rgba(111, 138, 125, 0.6)";
 const CHECK_FILL =
   "radial-gradient(circle, rgba(176, 58, 46, 0.85) 0%, rgba(176, 58, 46, 0.3) 50%, transparent 72%)";
 
+/** Canonical responsive measure for every chessboard in the app. */
+export const BOARD_SIZE_CLASS = "w-full max-w-[32rem]";
+
 export interface BoardMove {
   from: string;
   to: string;
@@ -45,7 +48,7 @@ export interface InteractiveBoardProps {
   disabled?: boolean;
   /** Squares to wash (e.g. a scaffolded hint or last-move). */
   highlightedSquares?: string[];
-  /** Container className — controls the board SIZE (the board fills its container). */
+  /** Optional layout classes. The board always uses the shared responsive measure. */
   className?: string;
   /** Distinct id when several boards share a page. */
   id?: string;
@@ -270,7 +273,9 @@ export function InteractiveBoard({
   );
 
   return (
-    <div className={cn("flex items-stretch gap-2", className)}>
+    <div
+      className={cn("flex items-stretch gap-2", className, BOARD_SIZE_CLASS)}
+    >
       {showEvalBar && evalCp != null && <EvalBar cp={evalCp} />}
       <div className="relative aspect-square min-w-0 flex-1 select-none overflow-hidden rounded-lg">
         {mounted ? (

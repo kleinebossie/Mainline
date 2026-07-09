@@ -8,7 +8,10 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GradeMark } from "@/components/evidence";
 import { StatusMessage } from "@/components/ui/status-message";
-import { InteractiveBoard } from "@/components/interactive-board";
+import {
+  BOARD_SIZE_CLASS,
+  InteractiveBoard,
+} from "@/components/interactive-board";
 import { stepSolve, type SolveState } from "@/engine/interactive/session";
 import {
   puzzleToSolveState,
@@ -261,7 +264,9 @@ export function Calibration() {
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem] items-start mt-2">
             {/* Chessboard View */}
             <div className="flex flex-col items-center gap-3">
-              <div className="flex w-full max-w-[34rem] items-center justify-between px-1">
+              <div
+                className={`${BOARD_SIZE_CLASS} flex items-center justify-between px-1`}
+              >
                 <span className="eyebrow !text-[0.6rem]">
                   {orientation === "white" ? "White" : "Black"} to move
                 </span>
@@ -280,9 +285,9 @@ export function Calibration() {
                 showLegalMoveDots={affordances?.showLegalMoveDots ?? false}
                 allowArrows={affordances?.allowArrows ?? true}
                 allowHover={affordances?.allowHover ?? true}
-                className="w-full max-w-[34rem]"
+                className={BOARD_SIZE_CLASS}
               />
-              <div className="flex justify-between w-full max-w-[34rem] px-1">
+              <div className={`${BOARD_SIZE_CLASS} flex justify-between px-1`}>
                 <span className="text-graphite font-mono text-xs">
                   Attempts: {solveState.attempts}
                 </span>

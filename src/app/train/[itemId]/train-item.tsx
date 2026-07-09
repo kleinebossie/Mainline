@@ -9,7 +9,10 @@ import type { AppRouter } from "@/server/routers/_app";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusMessage } from "@/components/ui/status-message";
-import { InteractiveBoard } from "@/components/interactive-board";
+import {
+  BOARD_SIZE_CLASS,
+  InteractiveBoard,
+} from "@/components/interactive-board";
 import { EndgameDrillSession } from "@/app/train/[itemId]/endgame-drill";
 import { stepSolve, type SolveState } from "@/engine/interactive/session";
 import {
@@ -423,7 +426,9 @@ export function TrainItem({ programItemId }: TrainItemProps) {
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] items-start">
         {/* Chessboard View */}
         <div className="flex flex-col items-center gap-3">
-          <div className="flex w-full max-w-[36rem] items-center justify-between px-1">
+          <div
+            className={`${BOARD_SIZE_CLASS} flex items-center justify-between px-1`}
+          >
             <span className="eyebrow !text-[0.6rem]">
               {orientation === "white" ? "White" : "Black"} to move
             </span>
@@ -441,9 +446,9 @@ export function TrainItem({ programItemId }: TrainItemProps) {
             showLegalMoveDots={data.affordances.showLegalMoveDots}
             allowArrows={data.affordances.allowArrows}
             allowHover={data.affordances.allowHover}
-            className="w-full max-w-[36rem]"
+            className={BOARD_SIZE_CLASS}
           />
-          <div className="flex w-full max-w-[36rem] justify-start px-1">
+          <div className={`${BOARD_SIZE_CLASS} flex justify-start px-1`}>
             <span className="text-graphite font-mono text-xs">
               Elapsed: {(elapsedMs / 1000).toFixed(1)}s
             </span>
