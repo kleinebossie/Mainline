@@ -7,6 +7,7 @@ import { useState } from "react";
 
 import { trpc } from "@/lib/trpc/react";
 import { Button } from "@/components/ui/button";
+import { StatusMessage } from "@/components/ui/status-message";
 import { signOutAction } from "@/server/auth-actions";
 
 export function AccountActions() {
@@ -14,6 +15,7 @@ export function AccountActions() {
   const [exporting, setExporting] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const del = trpc.account.deleteAccount.useMutation({
     onSuccess: () => {
@@ -26,6 +28,7 @@ export function AccountActions() {
   async function exportData() {
     setExporting(true);
     setError(null);
+    setNotice(null);
     try {
       const data = await utils.account.exportData.fetch();
       const blob = new Blob([JSON.stringify(data, null, 2)], {
@@ -37,6 +40,7 @@ export function AccountActions() {
       a.download = `mainline-export-${new Date().toISOString().slice(0, 10)}.json`;
       a.click();
       URL.revokeObjectURL(url);
+      setNotice("Your JSON export is ready.");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Export failed.");
     } finally {
@@ -68,16 +72,18 @@ export function AccountActions() {
             variant="destructive"
             onClick={() => {
               setError(null);
+              setNotice(null);
               setConfirming(true);
             }}
           >
             Delete my account
           </Button>
         ) : (
-          <span className="flex flex-wrap items-center gap-3">
-            <span className="text-clay font-mono text-xs" role="alert">
-              This erases your account and all training data. Sure?
-            </span>
+          <div className="flex flex-wrap items-center gap-3">
+            <StatusMessage tone="error" className="basis-full">
+              This permanently erases your account, connections, and training
+              data. This cannot be undone.
+            </StatusMessage>
             <Button
               type="button"
               variant="destructive"
@@ -96,15 +102,12 @@ export function AccountActions() {
             >
               Cancel
             </Button>
-          </span>
+          </div>
         )}
       </div>
 
-      {error && (
-        <p className="text-clay font-mono text-sm" role="alert">
-          {error}
-        </p>
-      )}
+      {notice && <StatusMessage tone="success">{notice}</StatusMessage>}
+      {error && <StatusMessage tone="error">{error}</StatusMessage>}
     </section>
   );
 }

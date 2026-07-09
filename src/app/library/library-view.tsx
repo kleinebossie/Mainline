@@ -6,6 +6,7 @@ import { trpc } from "@/lib/trpc/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GradeMark } from "@/components/evidence";
 import { TransparencyCard } from "@/components/transparency-card";
+import { StatusMessage } from "@/components/ui/status-message";
 import type { GradedCopy, LibraryView } from "@/server/library";
 
 // The "Library" client (BUILD.md M14). Renders the deliberately-external layer: graded book
@@ -174,17 +175,21 @@ export function Library() {
   const library = trpc.library.get.useQuery();
 
   if (library.isLoading) {
+    return <StatusMessage tone="loading">Loading your library…</StatusMessage>;
+  }
+  if (library.error) {
     return (
-      <p className="text-graphite font-mono text-sm">Loading your library…</p>
+      <StatusMessage tone="error" heading="Library unavailable">
+        We could not load your recommendations. Refresh the page and try again.
+      </StatusMessage>
     );
   }
   const data = library.data;
   if (!data) {
     return (
-      <p className="text-graphite font-mono text-sm">
-        Finish onboarding first; we tailor these to your level and how you
-        play.
-      </p>
+      <StatusMessage tone="neutral" heading="Library not tailored yet">
+        Finish onboarding first; we tailor these to your level and how you play.
+      </StatusMessage>
     );
   }
 
@@ -203,7 +208,7 @@ export function Library() {
         </h2>
         <Card gutter={asGrade(data.modality.split.grade)}>
           <CardHeader>
-            <CardTitle className="flex items-baseline justify-between gap-3">
+            <CardTitle className="flex flex-wrap items-baseline justify-between gap-3">
               <span>Your modality split</span>
               <span className="text-graphite font-mono text-sm tabular-nums">
                 {data.modality.digitalPct}% screen · {data.modality.physicalPct}
@@ -229,8 +234,8 @@ export function Library() {
               </>
             ) : (
               <p className="text-graphite font-serif text-sm leading-relaxed">
-                You train online, so a screen-first split is right: it
-                maximises how many patterns you see per hour. If you ever play
+                You train online, so a screen-first split is right: it maximises
+                how many patterns you see per hour. If you ever play
                 over-the-board, switch your play medium in Setup and we&apos;ll
                 add physical-board work.
               </p>
@@ -255,9 +260,9 @@ export function Library() {
           Books that would overload your level are left out on purpose.
         </p>
         {data.books.length === 0 ? (
-          <p className="text-graphite font-mono text-sm">
-            No book recommendations at your level yet.
-          </p>
+          <StatusMessage tone="neutral" heading="No recommendations yet">
+            There are no book recommendations for your current setup yet.
+          </StatusMessage>
         ) : (
           data.books.map((b) => (
             <Card key={b.id} gutter={asGrade(b.evidenceGrade)} provisional>

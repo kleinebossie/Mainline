@@ -108,6 +108,7 @@
   h3 {
     font-feature-settings: "ss01";
     letter-spacing: -0.015em;
+    text-wrap: balance;
   }
 
   /* honest data should always align; the machine readout is tabular */
@@ -118,13 +119,26 @@
   ::selection {
     background-color: hsl(var(--evergreen) / 0.22);
   }
+
+  a:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 3px;
+  }
 }
 
 @layer components {
   /* The eyebrow — a small mono label that names a section like a notation header. */
   .eyebrow {
-    @apply text-graphite font-mono text-[0.7rem] font-medium uppercase;
+    @apply text-graphite font-mono text-[0.7rem] font-medium uppercase leading-tight;
     letter-spacing: 0.18em;
+  }
+
+  /* Choice controls share one generous hit area and a visible group focus state. */
+  .choice-control {
+    @apply text-ink flex min-h-10 cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 font-serif text-sm transition-colors hover:bg-ink/[0.035] focus-within:bg-paper-raised focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-paper;
+  }
+  .choice-control input {
+    @apply border-input accent-evergreen h-4 w-4 shrink-0 bg-paper-raised;
   }
 
   /*

@@ -9,6 +9,7 @@ import type { inferRouterOutputs } from "@trpc/server";
 import type { AppRouter } from "@/server/routers/_app";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { StatusMessage } from "@/components/ui/status-message";
 import { InteractiveBoard } from "@/components/interactive-board";
 import { createEnginePlay } from "@/engine/interactive/engine-play";
 import {
@@ -65,6 +66,7 @@ export function EndgameDrillSession({
     outcome: EndgameOutcome;
     reason: string;
   } | null>(null);
+  const [engineError, setEngineError] = useState<string | null>(null);
   const startRef = useRef<number>(systemClock.now());
   const pliesRef = useRef<number>(0);
 
@@ -98,6 +100,7 @@ export function EndgameDrillSession({
     setFen(current.fen);
     setStatus("playing");
     setResult(null);
+    setEngineError(null);
     pliesRef.current = 0;
     startRef.current = systemClock.now();
   }, [current]);
@@ -161,6 +164,9 @@ export function EndgameDrillSession({
           setStatus("playing");
         } catch {
           // Engine failed — let the player keep moving (or give up).
+          setEngineError(
+            "The local chess engine could not reply. You can continue the position or finish the drill.",
+          );
           setStatus("playing");
         }
       });
@@ -182,14 +188,14 @@ export function EndgameDrillSession({
             <CardTitle className="font-serif text-2xl font-bold">
               {positions.length === 0
                 ? "No endgame drills due"
-                : "Endgame session complete!"}
+                : "Endgame session complete"}
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <p className="text-graphite font-serif text-sm leading-relaxed">
               {positions.length === 0
                 ? "There are no endgame positions due right now. They'll return on their spaced schedule."
-                : "Nice work. Each result has been logged and rescheduled by the spaced-repetition planner."}
+                : "Each result has been logged and rescheduled for a future review."}
             </p>
             <Button
               onClick={() => router.push("/today")}
@@ -209,7 +215,7 @@ export function EndgameDrillSession({
 
   return (
     <div className="flex flex-col gap-6 py-6 settle">
-      <div className="flex items-baseline justify-between gap-3 border-b border-line pb-3">
+      <div className="flex flex-col gap-2 border-b border-line pb-3 sm:flex-row sm:items-baseline sm:justify-between">
         <div className="flex flex-col gap-1">
           <p className="eyebrow !text-[0.65rem] uppercase tracking-wider">
             Endgame drill · {data.item.label}
@@ -218,7 +224,7 @@ export function EndgameDrillSession({
             {current?.label ?? "Current endgame"}
           </h1>
         </div>
-        <span className="text-graphite font-mono text-sm">
+        <span className="text-graphite font-mono text-sm sm:text-right">
           You play {orientation}
         </span>
       </div>
@@ -259,6 +265,18 @@ export function EndgameDrillSession({
                 Convert this endgame against the engine. The result is judged on
                 whether you achieve the objective.
               </p>
+
+              {engineError && (
+                <StatusMessage tone="error" heading="Engine unavailable">
+                  {engineError}
+                </StatusMessage>
+              )}
+
+              {logMutation.error && (
+                <StatusMessage tone="error" heading="Result not saved">
+                  {logMutation.error.message}
+                </StatusMessage>
+              )}
 
               {/* Tablebase ground truth (optional oracle). */}
               {verdict && (
@@ -305,8 +323,16 @@ export function EndgameDrillSession({
 
               <div className="flex flex-col gap-2 border-t border-line/80 pt-4">
                 {status === "done" ? (
-                  <Button onClick={goNext} className="w-full">
-                    {idx + 1 < positions.length ? "Next endgame" : "Finish"}
+                  <Button
+                    onClick={goNext}
+                    className="w-full"
+                    disabled={logMutation.isPending}
+                  >
+                    {logMutation.isPending
+                      ? "Saving result…"
+                      : idx + 1 < positions.length
+                        ? "Next endgame"
+                        : "Finish"}
                   </Button>
                 ) : (
                   <Button

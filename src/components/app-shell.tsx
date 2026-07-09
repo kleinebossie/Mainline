@@ -20,7 +20,7 @@ export function Wordmark({ className }: { className?: string }) {
     <Link
       href="/today"
       className={cn(
-        "group inline-flex items-baseline gap-1 font-mono text-sm font-bold uppercase tracking-[0.2em] text-ink",
+        "group inline-flex items-baseline gap-1 rounded-sm font-mono text-sm font-bold uppercase tracking-[0.2em] text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-paper",
         className,
       )}
     >
@@ -36,35 +36,38 @@ function TopBar() {
   const pathname = usePathname();
   return (
     <header className="bg-paper/80 sticky top-0 z-30 border-b border-line/80 backdrop-blur-sm">
-      <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-2 px-3 sm:gap-4 sm:px-6">
+      <div className="mx-auto flex min-h-14 max-w-5xl flex-wrap items-center gap-x-2 px-4 sm:grid sm:h-14 sm:grid-cols-[1fr_auto_1fr] sm:gap-4 sm:px-6">
         <Wordmark className="shrink-0" />
-        <div className="flex min-w-0 items-center gap-1 sm:gap-2">
-          <nav className="flex min-w-0 items-center gap-0.5 whitespace-nowrap sm:gap-2">
-            {NAV.map((item) => {
-              const active =
-                pathname === item.href || pathname.startsWith(item.href + "/");
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  aria-current={active ? "page" : undefined}
-                  className={cn(
-                    "relative rounded-sm px-1.5 py-1.5 font-mono text-[0.68rem] tracking-tight transition-colors sm:px-2 sm:text-[0.8rem]",
-                    item.secondary && "hidden sm:inline-flex",
-                    active
-                      ? "text-ink"
-                      : "text-graphite hover:text-ink hover:bg-ink/[0.04]",
-                  )}
-                >
-                  {item.label}
-                  {active && (
-                    <span className="bg-evergreen absolute inset-x-2 -bottom-px h-0.5 rounded-full" />
-                  )}
-                </Link>
-              );
-            })}
-          </nav>
-          <span className="ml-1 h-5 w-px bg-line/80" aria-hidden />
+        <nav
+          aria-label="Primary navigation"
+          className="order-3 -mx-4 flex w-[calc(100%+2rem)] border-t border-line/70 sm:order-none sm:mx-0 sm:w-auto sm:justify-self-center sm:border-t-0"
+        >
+          {NAV.map((item) => {
+            const active =
+              pathname === item.href || pathname.startsWith(item.href + "/");
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "relative flex min-h-10 flex-1 items-center justify-center whitespace-nowrap rounded-sm px-2 py-2 font-mono text-[0.68rem] tracking-tight transition-colors focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset sm:min-h-0 sm:flex-none sm:px-2 sm:py-1.5 sm:text-[0.8rem]",
+                  item.secondary && "hidden sm:inline-flex",
+                  active
+                    ? "text-ink"
+                    : "text-graphite hover:bg-ink/[0.04] hover:text-ink",
+                )}
+              >
+                {item.label}
+                {active && (
+                  <span className="bg-evergreen absolute inset-x-3 bottom-0 h-0.5 rounded-full sm:inset-x-2 sm:-bottom-px" />
+                )}
+              </Link>
+            );
+          })}
+        </nav>
+        <div className="ml-auto flex shrink-0 items-center gap-2 sm:ml-0 sm:justify-self-end">
+          <span className="hidden h-5 w-px bg-line/80 sm:block" aria-hidden />
           <AccountMenu />
         </div>
       </div>
@@ -94,15 +97,15 @@ export function PageShell({
       <TopBar />
       <main
         className={cn(
-          "mx-auto px-6 py-10 sm:py-14",
+          "mx-auto px-4 py-8 sm:px-6 sm:py-12",
           width === "wide" ? "max-w-5xl" : "max-w-2xl",
         )}
       >
         {(eyebrow || title || lede) && (
-          <header className="settle mb-8 flex flex-col gap-3">
+          <header className="settle mb-8 flex flex-col gap-3 sm:mb-10">
             {eyebrow && <p className="eyebrow">{eyebrow}</p>}
             {title && (
-              <h1 className="font-serif text-4xl font-semibold leading-[1.05] tracking-tight sm:text-5xl">
+              <h1 className="font-serif text-[2.35rem] font-semibold leading-[1.05] tracking-tight sm:text-5xl">
                 {title}
               </h1>
             )}

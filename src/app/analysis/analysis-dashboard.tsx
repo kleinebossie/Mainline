@@ -6,6 +6,7 @@ import { trpc } from "@/lib/trpc/react";
 import { PageShell } from "@/components/app-shell";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { StatusMessage } from "@/components/ui/status-message";
 import { cn } from "@/lib/utils";
 import {
   resultLabel,
@@ -197,7 +198,7 @@ export function AnalysisDashboard() {
             <div className="flex items-center gap-2">
               {platforms.length > 0 && (
                 <div
-                  role="tablist"
+                  role="group"
                   aria-label="Primary platform"
                   className="flex items-center gap-0.5 rounded-md border border-line bg-card p-0.5"
                 >
@@ -205,11 +206,10 @@ export function AnalysisDashboard() {
                     <button
                       key={p}
                       type="button"
-                      role="tab"
-                      aria-selected={selectedPlatform === p}
+                      aria-pressed={selectedPlatform === p}
                       onClick={() => choosePlatform(p)}
                       className={cn(
-                        "rounded px-2.5 py-1 font-mono text-xs transition-colors",
+                        "min-h-8 rounded px-2.5 py-1 font-mono text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-paper",
                         selectedPlatform === p
                           ? "bg-evergreen text-paper"
                           : "text-graphite hover:text-ink",
@@ -238,6 +238,18 @@ export function AnalysisDashboard() {
             </p>
           )}
 
+          {sync.error && (
+            <StatusMessage tone="error" heading="Games not synced">
+              {sync.error.message}
+            </StatusMessage>
+          )}
+
+          {setPrimary.error && (
+            <StatusMessage tone="error" heading="Platform not saved">
+              {setPrimary.error.message}
+            </StatusMessage>
+          )}
+
           {selectedPlatform && games.length > 0 && (
             <div className="flex flex-wrap items-center gap-2">
               <Button
@@ -263,17 +275,29 @@ export function AnalysisDashboard() {
               )}
               {(batchStatus === "error" || batchStatus === "partial") &&
                 batchError && (
-                  <span className="text-grade-d font-mono text-xs" role="alert">
+                  <StatusMessage tone="error" className="basis-full">
                     {batchError}
-                  </span>
+                  </StatusMessage>
                 )}
             </div>
           )}
 
           {libraryQuery.isLoading ? (
-            <p className="text-graphite font-mono text-sm">
-              Loading your games…
-            </p>
+            <StatusMessage tone="loading">Loading your games…</StatusMessage>
+          ) : libraryQuery.error ? (
+            <StatusMessage tone="error" heading="Games unavailable">
+              <div className="flex flex-wrap items-center gap-3">
+                <span>We could not load your imported games.</span>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => void libraryQuery.refetch()}
+                >
+                  Try again
+                </Button>
+              </div>
+            </StatusMessage>
           ) : games.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center gap-3 py-6 text-center">
@@ -309,7 +333,7 @@ export function AnalysisDashboard() {
               {games.map((g) => (
                 <div
                   key={g.id}
-                  className="flex items-center justify-between gap-4 rounded-lg border border-line bg-card px-4 py-3 shadow-sheet transition-all hover:-translate-y-px"
+                  className="flex flex-col gap-3 rounded-lg border border-line bg-card px-4 py-3 shadow-sheet transition-colors hover:border-ink/20 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div className="flex min-w-0 flex-col gap-1">
                     <div className="flex flex-wrap items-center gap-2">
@@ -359,7 +383,7 @@ export function AnalysisDashboard() {
                       href={`/analysis/${g.id}`}
                       className={cn(
                         buttonVariants({ size: "sm", variant: "default" }),
-                        "shrink-0",
+                        "self-start shrink-0 sm:self-auto",
                       )}
                     >
                       Review Game
@@ -370,7 +394,7 @@ export function AnalysisDashboard() {
                     <Button
                       size="sm"
                       variant="outline"
-                      className="shrink-0"
+                      className="self-start shrink-0 sm:self-auto"
                       disabled={
                         analyzingGameId !== null || batchStatus === "running"
                       }

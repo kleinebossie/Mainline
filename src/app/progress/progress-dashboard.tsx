@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { trpc } from "@/lib/trpc/react";
 import { cn } from "@/lib/utils";
+import { StatusMessage } from "@/components/ui/status-message";
 import type { AppRouter } from "@/server/routers/_app";
 import type { inferRouterOutputs } from "@trpc/server";
 
@@ -71,7 +72,9 @@ function StatTile({
   className?: string;
 }) {
   return (
-    <div className={cn("rounded-lg border bg-card p-4 shadow-sheet", className)}>
+    <div
+      className={cn("rounded-lg border bg-card p-4 shadow-sheet", className)}
+    >
       <p className="eyebrow">{label}</p>
       <p className="mt-2 font-mono text-3xl font-semibold tabular-nums text-ink">
         {value}
@@ -109,7 +112,9 @@ function ConsistencyGrid({
 function ReviewTypeList({ itemTypes }: { itemTypes: Record<string, number> }) {
   const entries = Object.entries(itemTypes);
   if (entries.length === 0) {
-    return <p className="text-sm text-graphite">No reviews are due right now.</p>;
+    return (
+      <p className="text-sm text-graphite">No reviews are due right now.</p>
+    );
   }
   return (
     <ul className="flex flex-wrap gap-2">
@@ -138,10 +143,10 @@ function SkillSignals({
 }) {
   if (skills.length === 0) {
     return (
-      <p className="rounded-lg border bg-card p-4 text-sm text-graphite shadow-sheet">
+      <StatusMessage tone="neutral">
         Complete in-app training blocks to build skill estimates. Empty is
         better than pretending we know.
-      </p>
+      </StatusMessage>
     );
   }
 
@@ -189,15 +194,14 @@ function RatingSignal({
 }) {
   if (!rating) {
     return (
-      <p
-        className={cn(
-          "rounded-lg border bg-card p-4 text-sm text-graphite shadow-sheet",
-          className,
-        )}
+      <StatusMessage
+        tone="neutral"
+        className={className}
+        heading="No rating data"
       >
         No rating data available. Set your primary platform and choose time
         controls in Settings to start tracking rating signals.
-      </p>
+      </StatusMessage>
     );
   }
 
@@ -205,7 +209,9 @@ function RatingSignal({
   const showFormatsSetup = rating.platformSet && !rating.formatsSet;
 
   return (
-    <div className={cn("rounded-lg border bg-card p-4 shadow-sheet", className)}>
+    <div
+      className={cn("rounded-lg border bg-card p-4 shadow-sheet", className)}
+    >
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-line/60 pb-4">
         <div>
@@ -265,10 +271,7 @@ function RatingSignal({
             return (
               <div
                 key={format.format}
-                className={cn(
-                  index > 0 && "border-t border-line/40",
-                  "py-4",
-                )}
+                className={cn(index > 0 && "border-t border-line/40", "py-4")}
               >
                 {/* Row 1: label, rating + rd, CI */}
                 <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
@@ -309,14 +312,10 @@ function RatingSignal({
                     {baselineText ? (
                       <>
                         <span className="text-graphite/60">baseline </span>
-                        <span className="text-graphite/75">
-                          {baselineText}
-                        </span>
+                        <span className="text-graphite/75">{baselineText}</span>
                       </>
                     ) : (
-                      <span className="text-graphite/45">
-                        no baseline yet
-                      </span>
+                      <span className="text-graphite/45">no baseline yet</span>
                     )}
                   </span>
                 </div>
@@ -328,14 +327,10 @@ function RatingSignal({
                     {baselineText ? (
                       <>
                         <span className="text-graphite/60">baseline </span>
-                        <span className="text-graphite/75">
-                          {baselineText}
-                        </span>
+                        <span className="text-graphite/75">{baselineText}</span>
                       </>
                     ) : (
-                      <span className="text-graphite/45">
-                        no baseline yet
-                      </span>
+                      <span className="text-graphite/45">no baseline yet</span>
                     )}
                   </span>
 
@@ -372,17 +367,23 @@ export function ProgressDashboard() {
 
   if (summary.isLoading) {
     return (
-      <p className="font-mono text-sm text-graphite">
-        Loading training signals...
-      </p>
+      <StatusMessage tone="loading">Loading training signals…</StatusMessage>
+    );
+  }
+
+  if (summary.error) {
+    return (
+      <StatusMessage tone="error" heading="Progress unavailable">
+        We could not load your training signals. Refresh the page and try again.
+      </StatusMessage>
     );
   }
 
   if (!summary.data) {
     return (
-      <p className="rounded-lg border bg-card p-4 text-sm text-graphite shadow-sheet">
+      <StatusMessage tone="neutral">
         No progress data is available yet.
-      </p>
+      </StatusMessage>
     );
   }
 
@@ -396,8 +397,7 @@ export function ProgressDashboard() {
 
   return (
     <div className="settle flex flex-col gap-6">
-      {/* Outer container grouping all dashboard widgets into a large box */}
-      <div className="rounded-xl border border-line bg-card/35 p-6 shadow-sheet backdrop-blur-[2px] flex flex-col gap-6">
+      <div className="flex flex-col gap-6">
         {/* Row 1: Consistency Grid & Dashboard Rationale */}
         <section className="grid grid-cols-1 md:grid-cols-12 gap-6">
           <div className="md:col-span-7 rounded-lg border bg-card p-5 shadow-sheet flex flex-col justify-between">
@@ -406,8 +406,9 @@ export function ProgressDashboard() {
                 <p className="eyebrow">Consistency</p>
                 <span className="font-mono text-xs text-graphite">
                   {data.consistency.streak.activeDayCount} active day
-                  {data.consistency.streak.activeDayCount === 1 ? "" : "s"} ·{" "}
-                  {data.consistency.streak.windowDays}-day window
+                  {data.consistency.streak.activeDayCount === 1
+                    ? ""
+                    : "s"} · {data.consistency.streak.windowDays}-day window
                 </span>
               </div>
               <p className="mt-2 font-serif text-2xl font-semibold">
@@ -471,7 +472,10 @@ export function ProgressDashboard() {
                 </div>
               </div>
             </div>
-            <EvidenceNote title="Review policy" evidence={data.evidence.review} />
+            <EvidenceNote
+              title="Review policy"
+              evidence={data.evidence.review}
+            />
           </div>
 
           {/* Skill Signals Column */}
@@ -482,7 +486,10 @@ export function ProgressDashboard() {
               </h2>
               <SkillSignals skills={data.skills} />
             </div>
-            <EvidenceNote title="Skill estimates" evidence={data.evidence.skill} />
+            <EvidenceNote
+              title="Skill estimates"
+              evidence={data.evidence.skill}
+            />
           </div>
         </section>
 

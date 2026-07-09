@@ -6,7 +6,7 @@ test("train page demo solves mate in 1 puzzle", async ({ page }) => {
 
   // Verify header exists
   await expect(
-    page.getByRole("heading", { name: "Interactive Substrate Demo" }),
+    page.getByRole("heading", { name: "Practice board" }),
   ).toBeVisible();
 
   // Verify status is initially pending
@@ -29,7 +29,7 @@ test("train page plays a known endgame drill to a winning result", async ({
   await page.goto("/train");
 
   // Switch to the M13 endgame-drill demo (King + Queen vs King, mate in 1).
-  await page.getByRole("button", { name: "Endgame Drill" }).click();
+  await page.getByRole("button", { name: "Endgame drill" }).click();
 
   const status = page.locator("#endgame-status");
   await expect(status).toHaveText("Playing… your move");

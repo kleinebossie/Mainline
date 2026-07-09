@@ -248,36 +248,39 @@ export default function TrainPage() {
       <div className="flex flex-col gap-6 py-6 settle">
         <div className="flex flex-col gap-1.5">
           <h1 className="font-serif text-3xl font-semibold tracking-tight">
-            Interactive Substrate Demo
+            Practice board
           </h1>
           <p className="text-graphite font-serif text-sm">
-            Milestone 10 foundation: pure client-side board interactions and
-            local engine execution.
+            Work through a tactical puzzle, play a short endgame, or spar with
+            Stockfish in your browser.
           </p>
         </div>
 
         {/* Mode Selector */}
-        <div className="flex items-center gap-2">
+        <div className="grid gap-2 sm:grid-cols-3">
           <Button
             variant={mode === "puzzle" ? "default" : "outline"}
             onClick={() => setMode("puzzle")}
             size="sm"
+            className="w-full"
           >
-            Tactical Puzzle Solve
+            Tactical puzzle
           </Button>
           <Button
             variant={mode === "spar" ? "default" : "outline"}
             onClick={() => setMode("spar")}
             size="sm"
+            className="w-full"
           >
-            Spar Stockfish (WASM)
+            Play Stockfish
           </Button>
           <Button
             variant={mode === "endgame" ? "default" : "outline"}
             onClick={() => setMode("endgame")}
             size="sm"
+            className="w-full"
           >
-            Endgame Drill
+            Endgame drill
           </Button>
         </div>
 
@@ -329,7 +332,7 @@ export default function TrainPage() {
               <Card className="h-full">
                 <CardHeader>
                   <CardTitle className="font-serif text-lg">
-                    Tactical Puzzle State
+                    Tactical puzzle
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-4">
@@ -372,7 +375,7 @@ export default function TrainPage() {
               <Card className="h-full">
                 <CardHeader>
                   <CardTitle className="font-serif text-lg">
-                    Sparring Opponent (Stockfish)
+                    Play against Stockfish
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-4">

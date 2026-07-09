@@ -5,6 +5,7 @@ import { useState } from "react";
 import { trpc } from "@/lib/trpc/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { StatusMessage } from "@/components/ui/status-message";
 import { cn } from "@/lib/utils";
 
 // The engagement panel (BUILD.md §9, M8/M9). Surfaces the FORGIVING, capped consistency
@@ -55,22 +56,27 @@ function ReminderForm({
   const utils = trpc.useUtils();
   const [enabled, setEnabled] = useState(initial.enabled);
   const [cadence, setCadence] = useState(String(initial.cadenceCap));
+  const [error, setError] = useState<string | null>(null);
+  const cadenceValue = Number(cadence);
+  const cadenceValid =
+    Number.isInteger(cadenceValue) && cadenceValue >= 0 && cadenceValue <= cap;
   const save = trpc.engagement.saveNotificationPref.useMutation({
     onSuccess: (saved) => {
       setEnabled(saved.enabled);
       setCadence(String(saved.cadenceCap));
+      setError(null);
       void utils.engagement.summary.invalidate();
     },
+    onError: (mutationError) => setError(mutationError.message),
   });
 
   return (
     <div className="bg-card flex flex-col gap-3 rounded-md border p-4">
-      <label className="flex items-center gap-2.5">
+      <label className="choice-control -mx-2">
         <input
           type="checkbox"
           checked={enabled}
           onChange={(ev) => setEnabled(ev.target.checked)}
-          className="accent-evergreen h-4 w-4"
         />
         <span className="font-serif text-sm">Send me gentle reminders</span>
       </label>
@@ -83,10 +89,18 @@ function ReminderForm({
           inputMode="numeric"
           value={cadence}
           disabled={!enabled}
-          onChange={(ev) => setCadence(ev.target.value)}
+          onChange={(ev) => {
+            setCadence(ev.target.value);
+            setError(null);
+          }}
+          aria-invalid={enabled && !cadenceValid}
+          aria-describedby="reminder-cadence-help"
           className="h-8 w-20"
         />
-        <span className="text-graphite font-mono text-[0.7rem]">
+        <span
+          id="reminder-cadence-help"
+          className="text-graphite font-mono text-[0.7rem]"
+        >
           capped at {cap}/day. No nagging, ever
         </span>
       </div>
@@ -94,11 +108,11 @@ function ReminderForm({
         type="button"
         size="sm"
         className="self-start"
-        disabled={save.isPending}
+        disabled={save.isPending || (enabled && !cadenceValid)}
         onClick={() =>
           save.mutate({
             channel: enabled ? "email" : "none",
-            cadenceCap: Number(cadence) || 0,
+            cadenceCap: cadenceValue || 0,
             enabled,
           })
         }
@@ -106,10 +120,11 @@ function ReminderForm({
         {save.isPending ? "Saving…" : "Save reminders"}
       </Button>
       {save.data && (
-        <p className="text-graphite font-mono text-[0.7rem]">
-          Saved · {save.data.enabled ? `${save.data.cadenceCap}/day` : "off"}
-        </p>
+        <StatusMessage tone="success" className="py-2">
+          Saved: {save.data.enabled ? `${save.data.cadenceCap}/day` : "off"}.
+        </StatusMessage>
       )}
+      {error && <StatusMessage tone="error">{error}</StatusMessage>}
     </div>
   );
 }
@@ -125,12 +140,19 @@ export function EngagementPanel() {
   const data = summary.data;
 
   if (summary.isLoading) {
+    return <StatusMessage tone="loading">Loading consistency…</StatusMessage>;
+  }
+  if (summary.error) {
     return (
-      <p className="text-graphite font-mono text-sm">Loading consistency…</p>
+      <StatusMessage tone="error" heading="Consistency unavailable">
+        We could not load your consistency data. Refresh the page and try again.
+      </StatusMessage>
     );
   }
   if (!data) {
-    return <p className="text-graphite text-sm">No consistency data yet.</p>;
+    return (
+      <StatusMessage tone="neutral">No consistency data yet.</StatusMessage>
+    );
   }
 
   const unseenIds = data.recentEvents
@@ -183,7 +205,7 @@ export function EngagementPanel() {
               disabled={markSeen.isPending}
               onClick={() => markSeen.mutate({ ids: unseenIds })}
             >
-              Mark all read
+              {markSeen.isPending ? "Marking…" : "Mark all read"}
             </Button>
           )}
         </div>
@@ -222,10 +244,10 @@ export function EngagementPanel() {
             ))}
           </ul>
         ) : (
-          <p className="text-graphite text-sm">
+          <StatusMessage tone="neutral">
             Nothing yet. Complete a session and your first recognition shows up
             here, for genuine work, never just time spent.
-          </p>
+          </StatusMessage>
         )}
       </section>
 

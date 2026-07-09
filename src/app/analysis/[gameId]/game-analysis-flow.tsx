@@ -7,6 +7,8 @@ import { trpc } from "@/lib/trpc/react";
 import { PageShell } from "@/components/app-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { StatusMessage } from "@/components/ui/status-message";
+import { Textarea } from "@/components/ui/textarea";
 import {
   InteractiveBoard,
   type BoardMove,
@@ -141,6 +143,7 @@ export function GameAnalysisFlow() {
   const [reflectionNote, setReflectionNote] = useState("");
   const [countdown, setCountdown] = useState(0);
   const [skipCalibration, setSkipCalibration] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // Active-reproduction state, reset per critical moment.
   const [currentMomentIdx, setCurrentMomentIdx] = useState(0);
@@ -399,25 +402,34 @@ export function GameAnalysisFlow() {
 
   const handleSaveSession = async () => {
     if (!session) return;
+    setSaveError(null);
     const saveOutcomes = session.criticalMoments.map((moment, idx) => ({
       ply: moment.ply,
       correct: outcomes[idx] ?? false,
       bestUci: bestUcis[idx],
     }));
-    await saveSessionMutation.mutateAsync({
-      gameId,
-      reflectionNote,
-      outcomes: saveOutcomes,
-    });
-    router.push("/analysis");
+    try {
+      await saveSessionMutation.mutateAsync({
+        gameId,
+        reflectionNote,
+        outcomes: saveOutcomes,
+      });
+      router.push("/analysis");
+    } catch (error) {
+      setSaveError(
+        error instanceof Error
+          ? error.message
+          : "We could not save this review.",
+      );
+    }
   };
 
   if (sessionQuery.isLoading) {
     return (
       <PageShell width="default">
-        <p className="text-graphite font-mono text-sm">
+        <StatusMessage tone="loading">
           Loading game review session…
-        </p>
+        </StatusMessage>
       </PageShell>
     );
   }
@@ -425,9 +437,11 @@ export function GameAnalysisFlow() {
   if (!session || !game) {
     return (
       <PageShell width="default">
-        <p className="text-graphite font-serif text-sm">
-          Game review session not found.
-        </p>
+        <StatusMessage tone="error" heading="Review unavailable">
+          {sessionQuery.error
+            ? "We could not load this game review. Return to Analysis and try again."
+            : "This game review session was not found."}
+        </StatusMessage>
       </PageShell>
     );
   }
@@ -545,13 +559,20 @@ export function GameAnalysisFlow() {
                   {session.calibrationPrompt}
                 </p>
 
-                <textarea
+                <Textarea
                   value={reflectionNote}
                   onChange={(e) => setReflectionNote(e.target.value)}
-                  placeholder="Write your metacognitive reflection note..."
+                  placeholder="What were you feeling, calculating, or overlooking?"
                   rows={4}
-                  className="w-full rounded-md border border-line bg-paper p-3 font-serif text-sm text-ink outline-none focus:border-evergreen"
+                  aria-describedby="reflection-help"
                 />
+
+                <p
+                  id="reflection-help"
+                  className="text-graphite font-mono text-xs"
+                >
+                  Write at least a few words, then continue when the timer ends.
+                </p>
 
                 <div className="mt-2 flex items-center justify-between gap-4">
                   {countdown > 0 ? (
@@ -580,8 +601,8 @@ export function GameAnalysisFlow() {
                   !skipCalibration && (
                     <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line/60 pt-3">
                       <p className="text-grade-d font-serif text-xs">
-                        Skipping this reflection isn&apos;t recommended. See
-                        the rationale below.
+                        Skipping this reflection isn&apos;t recommended. See the
+                        rationale below.
                       </p>
                       <Button
                         size="sm"
@@ -681,15 +702,15 @@ export function GameAnalysisFlow() {
                   </CardHeader>
                   <CardContent className="flex flex-col gap-4">
                     {analysisStatus === "loading" && (
-                      <p className="text-graphite font-mono text-sm">
+                      <StatusMessage tone="loading" className="py-2">
                         Stockfish is reading the position…
-                      </p>
+                      </StatusMessage>
                     )}
                     {analysisStatus === "error" && (
-                      <p className="text-grade-d font-serif text-sm">
+                      <StatusMessage tone="error" className="py-2">
                         We couldn&apos;t review this position. You can still
                         continue.
-                      </p>
+                      </StatusMessage>
                     )}
 
                     {analysisStatus === "ready" && (
@@ -875,7 +896,15 @@ export function GameAnalysisFlow() {
                   </p>
                 )}
 
-                <div className="mt-2 flex items-center justify-end gap-4">
+                <div className="mt-2 flex flex-wrap items-center justify-end gap-3">
+                  {saveError && (
+                    <StatusMessage
+                      tone="error"
+                      className="basis-full sm:mr-auto sm:basis-auto"
+                    >
+                      {saveError}
+                    </StatusMessage>
+                  )}
                   <Button
                     disabled={saveSessionMutation.isPending}
                     onClick={handleSaveSession}

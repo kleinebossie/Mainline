@@ -6,6 +6,8 @@ import { trpc } from "@/lib/trpc/react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { StatusMessage } from "@/components/ui/status-message";
 import { TransparencyCard } from "@/components/transparency-card";
 import type { TodayItem, TodayProgram } from "@/server/program";
 import { cn } from "@/lib/utils";
@@ -89,8 +91,24 @@ export function Today() {
   })();
 
   if (today.isLoading) {
+    return <StatusMessage tone="loading">Loading your session…</StatusMessage>;
+  }
+
+  if (today.error) {
     return (
-      <p className="text-graphite font-mono text-sm">Loading your session...</p>
+      <StatusMessage tone="error" heading="Session unavailable">
+        <div className="flex flex-wrap items-center gap-3">
+          <span>We could not load today&apos;s session.</span>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => void today.refetch()}
+          >
+            Try again
+          </Button>
+        </div>
+      </StatusMessage>
     );
   }
 
@@ -105,6 +123,7 @@ export function Today() {
         timeInput={timeInput}
         setTimeInput={setTimeInput}
         timeBusy={timeBusy}
+        timeValid={timeValid}
         onRegenerate={handleRegenerateWithTime}
       />
     );
@@ -144,6 +163,12 @@ export function Today() {
         </p>
       )}
 
+      {log.error && (
+        <StatusMessage tone="error" heading="Training not logged">
+          {log.error.message}
+        </StatusMessage>
+      )}
+
       {log.data?.rewardEvents.map((event, index) => (
         <p
           key={`${event.type}-${index}`}
@@ -176,11 +201,13 @@ function EmptyTodayCard({
   timeInput,
   setTimeInput,
   timeBusy,
+  timeValid,
   onRegenerate,
 }: {
   timeInput: string;
   setTimeInput: (value: string) => void;
   timeBusy: boolean;
+  timeValid: boolean;
   onRegenerate: () => void;
 }) {
   return (
@@ -199,7 +226,7 @@ function EmptyTodayCard({
           timeInput={timeInput}
           setTimeInput={setTimeInput}
           timeBusy={timeBusy}
-          timeValid={timeInput !== ""}
+          timeValid={timeValid}
           onRegenerate={onRegenerate}
         />
       </div>
@@ -253,7 +280,9 @@ function TodayHeader({
         <button
           type="button"
           onClick={() => setGoalOpen((open) => !open)}
-          className="eyebrow flex cursor-pointer items-center gap-2"
+          aria-expanded={goalOpen}
+          aria-controls="today-process-goal"
+          className="eyebrow flex cursor-pointer items-center gap-2 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
         >
           <span aria-hidden className="text-evergreen not-italic">
             ∴
@@ -264,7 +293,10 @@ function TodayHeader({
           </span>
         </button>
         {goalOpen && (
-          <p className="text-ink mt-2 font-serif text-[0.95rem] leading-relaxed">
+          <p
+            id="today-process-goal"
+            className="text-ink mt-2 font-serif text-[0.95rem] leading-relaxed"
+          >
             {program.honesty.processGoal}
           </p>
         )}
@@ -309,7 +341,10 @@ function TimeEdit({
 }) {
   return (
     <div
-      className={cn("flex min-w-0 flex-col gap-2", compact && "w-full sm:w-auto sm:items-end")}
+      className={cn(
+        "flex min-w-0 flex-col gap-2",
+        compact && "w-full sm:w-auto sm:items-end",
+      )}
     >
       <label htmlFor="today-time-input" className="font-serif text-sm text-ink">
         How much time do you have today?
@@ -323,6 +358,8 @@ function TimeEdit({
           value={timeInput}
           onChange={(event) => setTimeInput(event.target.value)}
           disabled={timeBusy}
+          aria-invalid={!timeValid && timeInput !== ""}
+          aria-describedby="today-time-help"
           className="h-9 w-20 font-mono text-sm"
         />
         <span className="text-graphite font-mono text-xs">min</span>
@@ -339,7 +376,10 @@ function TimeEdit({
           {timeBusy ? "Regenerating..." : "Regenerate"}
         </Button>
       </div>
-      <p className="text-graphite font-mono text-[0.65rem]">
+      <p
+        id="today-time-help"
+        className="text-graphite font-mono text-[0.65rem]"
+      >
         5-1440 min ({formatMinuteCap(1440)})
       </p>
     </div>
@@ -772,6 +812,7 @@ function BookLogForm({
   const [chapter, setChapter] = useState<string>("");
   const [cycle, setCycle] = useState<string>("");
   const [minutes, setMinutes] = useState<string>(defaultMinutes);
+  const [formError, setFormError] = useState<string | null>(null);
 
   useEffect(() => {
     setBookId(firstBookId);
@@ -783,6 +824,7 @@ function BookLogForm({
 
   const log = trpc.library.logSession.useMutation({
     onSuccess: () => {
+      setFormError(null);
       onSuccess();
       setUnitCount("");
       setChapter("");
@@ -790,6 +832,7 @@ function BookLogForm({
       setCycle("");
       setSuccessPct("");
     },
+    onError: (error) => setFormError(error.message),
   });
 
   const selectedBook =
@@ -800,11 +843,15 @@ function BookLogForm({
     selectedBook?.studyUnit === "games" ? "e.g. 3" : "e.g. 10";
 
   const onLog = () => {
+    setFormError(null);
     const resourceRefId = bookId || firstBookId;
-    if (!resourceRefId) return;
+    if (!resourceRefId) {
+      setFormError("Choose a book before logging this session.");
+      return;
+    }
     const count = Number(unitCount);
     if (!unitCount || !Number.isInteger(count) || count <= 0) {
-      alert("Please enter a valid positive number for exercises/games.");
+      setFormError(`Enter a whole number of ${unitLabel.toLowerCase()}.`);
       return;
     }
     const duration = minutes ? Number(minutes) : undefined;
@@ -812,7 +859,7 @@ function BookLogForm({
       duration !== undefined &&
       (!Number.isFinite(duration) || duration < 0)
     ) {
-      alert("Please enter a valid number of minutes.");
+      setFormError("Enter zero or more minutes.");
       return;
     }
     const pct = successPct ? Number(successPct) : NaN;
@@ -830,7 +877,13 @@ function BookLogForm({
   };
 
   return (
-    <div className="flex flex-col gap-4 border-t border-line/80 pt-4">
+    <form
+      className="flex flex-col gap-4 border-t border-line/80 pt-4"
+      onSubmit={(event) => {
+        event.preventDefault();
+        onLog();
+      }}
+    >
       <div className="flex flex-col gap-1">
         <h3 className="font-serif text-sm font-semibold text-ink">
           Log your study session
@@ -858,17 +911,13 @@ function BookLogForm({
         ) : (
           <label className="flex flex-col gap-1.5 font-serif text-xs">
             <span className="eyebrow !text-[0.62rem]">Book</span>
-            <select
-              value={bookId}
-              onChange={(e) => setBookId(e.target.value)}
-              className="border-input bg-paper-raised ring-offset-paper focus-visible:ring-ring h-10 rounded-md border px-3 font-mono text-sm text-ink transition-colors focus-visible:border-evergreen focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
-            >
+            <Select value={bookId} onChange={(e) => setBookId(e.target.value)}>
               {ownedBooks.map((b) => (
                 <option key={b.id} value={b.id}>
                   {b.title}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
         )}
         <label className="flex flex-col gap-1.5 font-serif text-xs">
@@ -880,8 +929,13 @@ function BookLogForm({
             min={1}
             placeholder={unitPlaceholder}
             value={unitCount}
-            onChange={(e) => setUnitCount(e.target.value)}
+            onChange={(e) => {
+              setUnitCount(e.target.value);
+              setFormError(null);
+            }}
             required
+            aria-invalid={formError != null}
+            aria-describedby={formError ? "book-log-error" : undefined}
             className="text-ink text-sm h-9"
           />
         </label>
@@ -889,18 +943,17 @@ function BookLogForm({
           <span className="eyebrow !text-[0.62rem]">
             Exercises solved (%) (optional)
           </span>
-          <select
+          <Select
             value={successPct}
             onChange={(e) => setSuccessPct(e.target.value)}
-className="border-input bg-paper-raised ring-offset-paper focus-visible:ring-ring h-10 rounded-md border px-3 font-mono text-sm text-ink transition-colors focus-visible:border-evergreen focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
-            >
-              <option value="">Optional (select...)</option>
+          >
+            <option value="">Optional (select...)</option>
             {["50", "60", "70", "75", "80", "85", "90", "95"].map((p) => (
               <option key={p} value={p}>
                 {p}%
               </option>
             ))}
-          </select>
+          </Select>
         </label>
         <label className="flex flex-col gap-1.5 font-serif text-xs">
           <span className="eyebrow !text-[0.62rem]">Chapter (optional)</span>
@@ -918,7 +971,10 @@ className="border-input bg-paper-raised ring-offset-paper focus-visible:ring-rin
             type="number"
             min={0}
             value={minutes}
-            onChange={(e) => setMinutes(e.target.value)}
+            onChange={(e) => {
+              setMinutes(e.target.value);
+              setFormError(null);
+            }}
             className="text-ink text-sm h-9"
           />
         </label>
@@ -938,12 +994,7 @@ className="border-input bg-paper-raised ring-offset-paper focus-visible:ring-rin
         )}
       </div>
       <div className="flex items-center gap-2">
-        <Button
-          type="button"
-          disabled={log.isPending || busy}
-          onClick={onLog}
-          size="sm"
-        >
+        <Button type="submit" disabled={log.isPending || busy} size="sm">
           {log.isPending ? "Logging…" : "Log study session"}
         </Button>
         <Button
@@ -957,6 +1008,12 @@ className="border-input bg-paper-raised ring-offset-paper focus-visible:ring-rin
         </Button>
       </div>
 
+      {formError && (
+        <StatusMessage id="book-log-error" tone="error">
+          {formError}
+        </StatusMessage>
+      )}
+
       {log.data?.feedback && (
         <p className="text-graphite border-l-2 border-evergreen/40 pl-3 font-serif text-sm leading-relaxed">
           {log.data.feedback.verdict === "too_easy" &&
@@ -967,6 +1024,6 @@ className="border-input bg-paper-raised ring-offset-paper focus-visible:ring-rin
             "Nicely calibrated. That difficulty is right where learning is fastest."}
         </p>
       )}
-    </div>
+    </form>
   );
 }

@@ -7,6 +7,7 @@ import { trpc } from "@/lib/trpc/react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GradeMark } from "@/components/evidence";
+import { StatusMessage } from "@/components/ui/status-message";
 import { InteractiveBoard } from "@/components/interactive-board";
 import { stepSolve, type SolveState } from "@/engine/interactive/session";
 import {
@@ -115,8 +116,16 @@ export function Calibration() {
     });
   };
 
-  if (state.isLoading || !state.data) {
-    return <p className="text-graphite font-mono text-sm">Loading…</p>;
+  if (state.isLoading) {
+    return <StatusMessage tone="loading">Loading calibration…</StatusMessage>;
+  }
+
+  if (!state.data) {
+    return (
+      <StatusMessage tone="error" heading="Calibration unavailable">
+        We could not load your calibration. Refresh the page and try again.
+      </StatusMessage>
+    );
   }
 
   const {
@@ -182,9 +191,9 @@ export function Calibration() {
           </div>
 
           <p className="text-graphite font-serif text-sm leading-relaxed border-t border-line/80 pt-4">
-            These are rough calibration points, not verdicts. They come from a placeholder
-            method that estimates a few skills directly. The fuller picture
-            comes from analysing your real games.
+            These are rough calibration points, not verdicts. They come from a
+            placeholder method that estimates a few skills directly. The fuller
+            picture comes from analysing your real games.
           </p>
 
           <div className="flex flex-wrap gap-3 border-t border-line/80 pt-5">

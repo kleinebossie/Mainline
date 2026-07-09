@@ -8,6 +8,7 @@ import type { inferRouterOutputs } from "@trpc/server";
 import type { AppRouter } from "@/server/routers/_app";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { StatusMessage } from "@/components/ui/status-message";
 import { InteractiveBoard } from "@/components/interactive-board";
 import { EndgameDrillSession } from "@/app/train/[itemId]/endgame-drill";
 import { stepSolve, type SolveState } from "@/engine/interactive/session";
@@ -77,6 +78,10 @@ export function TrainItem({ programItemId }: TrainItemProps) {
   const retestDelaySec = data?.redoFlow.retestDelaySec ?? 600;
   const [delayRemaining, setDelayRemaining] = useState<number>(retestDelaySec);
   const delayTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const activeSolvableId =
+    phase === "retest"
+      ? retestQueue[currentIdx]?.id
+      : solvables[currentIdx]?.id;
 
   // Initialise solvables when loaded
   useEffect(() => {
@@ -92,10 +97,7 @@ export function TrainItem({ programItemId }: TrainItemProps) {
   useEffect(() => {
     const list = phase === "retest" ? retestQueue : solvables;
     const activeItem = list[currentIdx];
-    if (
-      (phase === "training" || phase === "retest") &&
-      activeItem
-    ) {
+    if ((phase === "training" || phase === "retest") && activeItem) {
       initSolvable(activeItem);
     }
     // We explicitly omit solvables and retestQueue from the dependencies to prevent
@@ -103,7 +105,7 @@ export function TrainItem({ programItemId }: TrainItemProps) {
     // from resetting the ongoing solve session. We only want to re-initialize
     // when the active puzzle's ID, index, or phase changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentIdx, phase, phase === "retest" ? retestQueue[currentIdx]?.id : solvables[currentIdx]?.id]);
+  }, [activeSolvableId, currentIdx, phase]);
 
   // Clean up timers on unmount
   useEffect(() => {
@@ -271,18 +273,21 @@ export function TrainItem({ programItemId }: TrainItemProps) {
   };
 
   if (isLoading) {
-    return <p className="text-graphite font-mono text-sm">Loading puzzles…</p>;
+    return (
+      <StatusMessage tone="loading">Loading practice session…</StatusMessage>
+    );
   }
 
   if (error || !data) {
     return (
       <Card gutter="D">
         <CardHeader>
-          <CardTitle>Error Loading Practise Session</CardTitle>
+          <CardTitle>Practice session unavailable</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-graphite text-sm leading-relaxed mb-4">
-            Could not retrieve details for this practice item.
+            We could not retrieve this practice item. Return to Today and try
+            again.
           </p>
           <Link href="/today" className={buttonVariants()}>
             Back to Today
@@ -310,14 +315,13 @@ export function TrainItem({ programItemId }: TrainItemProps) {
         <Card gutter="A">
           <CardHeader>
             <CardTitle className="font-serif text-2xl font-bold">
-              Training Session Completed!
+              Session complete
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <p className="text-graphite font-serif text-sm leading-relaxed">
-              Awesome job! Your practice session has been completed, and
-              outcomes have been registered with the spaced repetition
-              scheduler.
+              Your outcomes have been recorded and any follow-up review work is
+              scheduled in Today.
             </p>
             <Button
               onClick={() => router.push("/today")}
@@ -379,7 +383,13 @@ export function TrainItem({ programItemId }: TrainItemProps) {
     );
   }
 
-  if (!current || !solveState || !boardPosition) return null;
+  if (!current || !solveState || !boardPosition) {
+    return (
+      <StatusMessage tone="loading">
+        Preparing the next practice position…
+      </StatusMessage>
+    );
+  }
 
   const phaseLabel =
     phase === "retest"
@@ -390,7 +400,7 @@ export function TrainItem({ programItemId }: TrainItemProps) {
 
   return (
     <div className="flex flex-col gap-6 py-6 settle">
-      <div className="flex items-baseline justify-between gap-3 border-b border-line pb-3">
+      <div className="flex flex-col gap-2 border-b border-line pb-3 sm:flex-row sm:items-baseline sm:justify-between">
         <div className="flex flex-col gap-1">
           <p className="eyebrow !text-[0.65rem] uppercase tracking-wider">
             {phaseLabel} · {data.item.label}
@@ -403,7 +413,7 @@ export function TrainItem({ programItemId }: TrainItemProps) {
                 : "Current puzzle"}
           </h1>
         </div>
-        <span className="text-graphite font-mono text-sm">
+        <span className="text-graphite font-mono text-sm sm:text-right">
           {current.rating != null
             ? `Rating target: ${current.rating}`
             : "From your own game"}

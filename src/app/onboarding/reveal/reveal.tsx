@@ -9,6 +9,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GradeMark } from "@/components/evidence";
 import { TransparencyCard } from "@/components/transparency-card";
+import { StatusMessage } from "@/components/ui/status-message";
 
 type Grade = "A" | "B" | "C" | "D";
 function asGrade(g: string): Grade {
@@ -33,8 +34,20 @@ export function Reveal() {
     }
   }, [state.data?.completed]);
 
-  if (state.isLoading || !state.data) {
-    return <p className="text-graphite font-mono text-sm">Loading…</p>;
+  if (state.isLoading) {
+    return (
+      <StatusMessage tone="loading">
+        Loading your starting picture…
+      </StatusMessage>
+    );
+  }
+
+  if (!state.data) {
+    return (
+      <StatusMessage tone="error" heading="Starting picture unavailable">
+        We could not load this step. Refresh the page and try again.
+      </StatusMessage>
+    );
   }
 
   const { estimate, completed, tracks } = state.data;
@@ -229,8 +242,8 @@ export function Reveal() {
             </div>
           ) : (
             <p className="text-graphite text-sm leading-relaxed font-serif">
-              Scan a game first: then you&apos;ll be able to review it, walk
-              the turning points, and drill your mistakes.
+              Scan a game first: then you&apos;ll be able to review it, walk the
+              turning points, and drill your mistakes.
             </p>
           )}
         </CardContent>

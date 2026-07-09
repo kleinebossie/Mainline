@@ -5,6 +5,7 @@ import { useState } from "react";
 import { trpc } from "@/lib/trpc/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { StatusMessage } from "@/components/ui/status-message";
 
 const PLATFORM_LABEL: Record<string, string> = {
   lichess: "Lichess",
@@ -29,6 +30,7 @@ export function ConnectionsManager() {
 
   const disconnect = trpc.connections.disconnect.useMutation({
     onSuccess: () => void utils.connections.list.invalidate(),
+    onError: (e) => setError(e.message),
   });
 
   return (
@@ -36,31 +38,48 @@ export function ConnectionsManager() {
       <section className="flex flex-col gap-4">
         <h2 className="eyebrow border-b border-line/80 pb-3">Chess.com</h2>
         <p className="text-graphite text-sm leading-relaxed font-serif">
-          Link by username (read-only public data; no password or token
-          stored).
+          Link by username (read-only public data; no password or token stored).
         </p>
-        <form
-          className="flex max-w-md gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            const value = username.trim();
-            if (value) addChessCom.mutate({ username: value });
-          }}
-        >
-          <Input
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            placeholder="Chess.com username"
-            aria-label="Chess.com username"
-          />
-          <Button type="submit" disabled={addChessCom.isPending}>
-            {addChessCom.isPending ? "Checking…" : "Add"}
-          </Button>
-        </form>
+        <div className="flex max-w-md flex-col gap-2">
+          <label
+            htmlFor="chesscom-username"
+            className="eyebrow !text-[0.65rem]"
+          >
+            Chess.com username
+          </label>
+          <form
+            className="flex gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const value = username.trim();
+              if (value) addChessCom.mutate({ username: value });
+            }}
+          >
+            <Input
+              id="chesscom-username"
+              value={username}
+              onChange={(e) => {
+                setUsername(e.target.value);
+                setError(null);
+              }}
+              placeholder="e.g. yourusername"
+              autoComplete="username"
+              disabled={addChessCom.isPending}
+              aria-invalid={error != null}
+              aria-describedby={error ? "connection-error" : undefined}
+            />
+            <Button
+              type="submit"
+              disabled={addChessCom.isPending || !username.trim()}
+            >
+              {addChessCom.isPending ? "Checking…" : "Add account"}
+            </Button>
+          </form>
+        </div>
         {error && (
-          <p className="text-clay text-sm font-mono" role="alert">
+          <StatusMessage id="connection-error" tone="error">
             {error}
-          </p>
+          </StatusMessage>
         )}
       </section>
 
@@ -69,13 +88,20 @@ export function ConnectionsManager() {
           Connected accounts
         </h2>
         {list.isLoading ? (
-          <p className="text-graphite font-mono text-sm">Loading…</p>
+          <StatusMessage tone="loading">
+            Loading connected accounts…
+          </StatusMessage>
+        ) : list.error ? (
+          <StatusMessage tone="error" heading="Connections unavailable">
+            We could not load your connected accounts. Refresh the page and try
+            again.
+          </StatusMessage>
         ) : list.data && list.data.length > 0 ? (
           <ul className="flex flex-col gap-2">
             {list.data.map((conn) => (
               <li
                 key={conn.id}
-                className="bg-card flex items-center justify-between gap-4 rounded-lg border p-4 shadow-sheet"
+                className="bg-card flex flex-col gap-3 rounded-lg border p-4 shadow-sheet sm:flex-row sm:items-center sm:justify-between"
               >
                 <span className="text-sm">
                   <span className="font-serif text-base font-medium">
@@ -97,17 +123,23 @@ export function ConnectionsManager() {
                   variant="ghost"
                   size="sm"
                   disabled={disconnect.isPending}
-                  onClick={() => disconnect.mutate({ id: conn.id })}
+                  onClick={() => {
+                    setError(null);
+                    disconnect.mutate({ id: conn.id });
+                  }}
+                  className="self-start text-clay hover:bg-clay/[0.06] hover:text-clay sm:self-auto"
                 >
-                  Disconnect
+                  {disconnect.isPending && disconnect.variables?.id === conn.id
+                    ? "Disconnecting…"
+                    : "Disconnect"}
                 </Button>
               </li>
             ))}
           </ul>
         ) : (
-          <p className="text-graphite text-sm font-serif">
-            No accounts connected yet.
-          </p>
+          <StatusMessage tone="neutral" heading="No accounts connected">
+            Add a Chess.com username or connect Lichess to import games.
+          </StatusMessage>
         )}
       </section>
     </div>

@@ -6,6 +6,8 @@ import Link from "next/link";
 import { trpc } from "@/lib/trpc/react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { StatusMessage } from "@/components/ui/status-message";
 import { platformLabel } from "@/lib/format-game";
 import {
   CHESS_FORMATS,
@@ -64,7 +66,7 @@ export function ConstraintsForm({
 } = {}) {
   const current = trpc.constraints.getCurrent.useQuery();
   if (current.isLoading) {
-    return <p className="text-graphite font-mono text-sm">Loading…</p>;
+    return <StatusMessage tone="loading">Loading your plan…</StatusMessage>;
   }
   // Key on the loaded row so the form initialises its state from saved values once.
   return (
@@ -267,15 +269,11 @@ function Form({
         </legend>
         <div className="flex flex-col gap-2.5">
           {GOAL_OPTIONS.map((g) => (
-            <label
-              key={g.kind}
-              className="flex items-center gap-3 font-serif text-sm text-ink cursor-pointer"
-            >
+            <label key={g.kind} className="choice-control">
               <input
                 type="checkbox"
                 checked={goalKinds.has(g.kind)}
                 onChange={() => setGoalKinds((s) => toggle(s, g.kind))}
-                className="rounded border-input text-evergreen focus:ring-evergreen h-4 w-4 bg-paper-raised"
               />
               {g.label}
             </label>
@@ -298,26 +296,21 @@ function Form({
         </legend>
         <div className="flex flex-wrap gap-x-6 gap-y-2">
           {CHESS_FORMATS.map((f) => (
-            <label
-              key={f}
-              className="flex items-center gap-3 font-serif text-sm text-ink capitalize cursor-pointer"
-            >
+            <label key={f} className="choice-control capitalize">
               <input
                 type="checkbox"
                 checked={formats.has(f)}
                 onChange={() => setFormats((s) => toggle(s, f))}
-                className="rounded border-input text-evergreen focus:ring-evergreen h-4 w-4 bg-paper-raised"
               />
               {f}
             </label>
           ))}
         </div>
-        <label className="mt-2 flex items-center gap-3 font-serif text-sm text-ink cursor-pointer">
+        <label className="choice-control mt-2">
           <input
             type="checkbox"
             checked={preferredVariety}
             onChange={(e) => setVariety(e.target.checked)}
-            className="rounded border-input text-evergreen focus:ring-evergreen h-4 w-4 bg-paper-raised"
           />
           I like variety in my daily sessions
         </label>
@@ -330,16 +323,12 @@ function Form({
           </span>
           <div className="flex flex-col gap-2">
             {TARGET_FOCUSES.map((tf) => (
-              <label
-                key={tf}
-                className="flex items-center gap-3 font-serif text-sm text-ink cursor-pointer"
-              >
+              <label key={tf} className="choice-control">
                 <input
                   type="radio"
                   name="targetFocus"
                   checked={targetFocus === tf}
                   onChange={() => setTargetFocus(tf)}
-                  className="border-input text-evergreen focus:ring-evergreen h-4 w-4 bg-paper-raised"
                 />
                 {TARGET_FOCUS_LABELS[tf]}
               </label>
@@ -362,16 +351,12 @@ function Form({
         </p>
         <div className="flex flex-wrap gap-x-6 gap-y-2">
           {(["lichess", "chesscom"] as const).map((p) => (
-            <label
-              key={p}
-              className="flex items-center gap-3 font-serif text-sm text-ink cursor-pointer"
-            >
+            <label key={p} className="choice-control">
               <input
                 type="radio"
                 name="primaryPlatform"
                 checked={effectivePrimary === p}
                 onChange={() => setPrimaryPlatform(p)}
-                className="border-input text-evergreen focus:ring-evergreen h-4 w-4 bg-paper-raised"
               />
               {platformLabel(p)}
               {connectedPlatforms.includes(p) && (
@@ -405,35 +390,37 @@ function Form({
                   </span>
                   {r.label}
                 </span>
-                <button
+                <Button
                   type="button"
                   onClick={() => removeResource(i)}
                   aria-label={`Remove ${r.label}`}
-                  className="text-graphite hover:text-clay font-mono text-xs transition-colors"
+                  variant="ghost"
+                  size="sm"
+                  className="-mr-2 shrink-0 text-clay hover:bg-clay/[0.06] hover:text-clay"
                 >
                   Remove
-                </button>
+                </Button>
               </li>
             ))}
           </ul>
         )}
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <select
+          <Select
             value={newResourceKind}
             onChange={(e) =>
               handleResourceKindChange(e.target.value as OwnedResource["kind"])
             }
             aria-label="Resource type"
-className="border-input bg-paper-raised ring-offset-paper focus-visible:ring-ring text-ink h-10 rounded-md border px-3 font-mono text-sm transition-colors focus-visible:border-evergreen focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
-            >
-              {OWNED_RESOURCE_KINDS.map((k) => (
+            className="sm:w-40"
+          >
+            {OWNED_RESOURCE_KINDS.map((k) => (
               <option key={k} value={k}>
                 {RESOURCE_KIND_LABELS[k]}
               </option>
             ))}
-          </select>
+          </Select>
           {newResourceKind === "book" ? (
-            <select
+            <Select
               value={newResourceExternalRef || ""}
               onChange={(e) => {
                 const bookId = e.target.value;
@@ -442,7 +429,8 @@ className="border-input bg-paper-raised ring-offset-paper focus-visible:ring-rin
                 setNewResourceLabel(book ? book.title : "");
               }}
               aria-label="Select recommended book"
-              className="border-input bg-paper-raised ring-offset-paper focus-visible:ring-ring text-ink h-10 rounded-md border px-3 font-mono text-sm transition-colors focus-visible:border-evergreen focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none flex-1"
+              className="flex-1"
+              disabled={libraryQuery.isLoading || availableBooks.length === 0}
             >
               {libraryQuery.isLoading ? (
                 <option value="">Loading recommended books...</option>
@@ -460,7 +448,7 @@ className="border-input bg-paper-raised ring-offset-paper focus-visible:ring-rin
                   ))}
                 </>
               )}
-            </select>
+            </Select>
           ) : (
             <Input
               value={newResourceLabel}
@@ -502,27 +490,22 @@ className="border-input bg-paper-raised ring-offset-paper focus-visible:ring-rin
         </legend>
         <div className="flex flex-col gap-2.5">
           {DEPTH_VS_BREADTH.map((d) => (
-            <label
-              key={d}
-              className="flex items-center gap-3 font-serif text-sm text-ink cursor-pointer"
-            >
+            <label key={d} className="choice-control">
               <input
                 type="radio"
                 name="depthVsBreadth"
                 checked={depthVsBreadth === d}
                 onChange={() => setDepth(d)}
-                className="border-input text-evergreen focus:ring-evergreen h-4 w-4 bg-paper-raised"
               />
               {DEPTH_LABELS[d]}
             </label>
           ))}
         </div>
-        <label className="mt-1 flex items-center gap-3 font-serif text-sm text-ink cursor-pointer">
+        <label className="choice-control mt-1">
           <input
             type="checkbox"
             checked={interleave}
             onChange={(e) => setInterleave(e.target.checked)}
-            className="rounded border-input text-evergreen focus:ring-evergreen h-4 w-4 bg-paper-raised"
           />
           Mix different topics within a session (interleaving)
         </label>
@@ -569,12 +552,9 @@ className="border-input bg-paper-raised ring-offset-paper focus-visible:ring-rin
         </Button>
         {saved && (
           <>
-            <span
-              className="text-sm font-mono font-medium text-evergreen"
-              role="status"
-            >
-              Saved ✓
-            </span>
+            <StatusMessage tone="success" className="py-2">
+              Saved. Your next session will use these settings.
+            </StatusMessage>
             <Link
               href={continueHref}
               className={buttonVariants({ variant: "outline", size: "sm" })}
@@ -583,11 +563,7 @@ className="border-input bg-paper-raised ring-offset-paper focus-visible:ring-rin
             </Link>
           </>
         )}
-        {error && (
-          <span className="text-clay font-mono text-sm" role="alert">
-            {error}
-          </span>
-        )}
+        {error && <StatusMessage tone="error">{error}</StatusMessage>}
       </div>
     </form>
   );

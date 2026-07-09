@@ -6,7 +6,7 @@
 // dashed/struck treatment for thin (C/D) or placeholder evidence so it can never read as
 // established fact (VISION §2).
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import {
   GradeMark,
   ConfidenceBar,
@@ -43,6 +43,7 @@ export function TransparencyCard({
   hideToggle = false,
 }: TransparencyCardProps) {
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
+  const contentId = useId();
   const isPlaceholder = flag === "stub" || flag === "best-guess";
   const expanded = hideToggle || !collapsed;
 
@@ -59,7 +60,9 @@ export function TransparencyCard({
           <button
             type="button"
             onClick={() => setCollapsed((prev) => !prev)}
-            className="eyebrow flex cursor-pointer items-center gap-2"
+            aria-expanded={expanded}
+            aria-controls={contentId}
+            className="eyebrow flex cursor-pointer items-center gap-2 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
           >
             <span aria-hidden className="text-evergreen not-italic">
               ∴
@@ -74,7 +77,7 @@ export function TransparencyCard({
       )}
 
       {expanded && (
-        <>
+        <div id={contentId}>
           <p className="text-ink mt-2 font-serif text-[0.95rem] leading-relaxed">
             {rationaleText}
           </p>
@@ -96,7 +99,7 @@ export function TransparencyCard({
             <span className="uppercase tracking-[0.12em]">Source</span> ·{" "}
             {citationSource ?? citationKey}
           </p>
-        </>
+        </div>
       )}
     </div>
   );

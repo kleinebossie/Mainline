@@ -9,6 +9,7 @@ import { useState } from "react";
 
 import { trpc } from "@/lib/trpc/react";
 import { Button } from "@/components/ui/button";
+import { StatusMessage } from "@/components/ui/status-message";
 
 // Bounded analysis depth (infrastructure: responsive UI / sane battery, §6.5 — not science).
 const ANALYSIS_DEPTH = 12;
@@ -87,14 +88,18 @@ export function AnalysisRunner() {
         <Button
           type="button"
           size="sm"
-          disabled={status === "running" || pendingCount === 0}
+          disabled={
+            pending.isLoading || status === "running" || pendingCount === 0
+          }
           onClick={() => void run()}
         >
-          {status === "running"
-            ? `Analysing ${progress.done}/${progress.total}…`
-            : pendingCount > 0
-              ? `Analyse ${pendingCount} game${pendingCount === 1 ? "" : "s"}`
-              : "Up to date"}
+          {pending.isLoading
+            ? "Checking games…"
+            : status === "running"
+              ? `Analysing ${progress.done}/${progress.total}…`
+              : pendingCount > 0
+                ? `Analyse ${pendingCount} game${pendingCount === 1 ? "" : "s"}`
+                : "Up to date"}
         </Button>
       </div>
 
@@ -121,16 +126,29 @@ export function AnalysisRunner() {
         </p>
       ) : null}
 
+      {(pending.error || summary.error) && (
+        <StatusMessage tone="error" heading="Analysis unavailable">
+          We could not check your analysis queue. Refresh the page and try
+          again.
+        </StatusMessage>
+      )}
+
       {status === "error" && error ? (
-        <p className="text-clay text-sm font-mono" role="alert">
+        <StatusMessage tone="error" heading="Analysis stopped">
           {error}
-        </p>
+        </StatusMessage>
       ) : null}
 
+      {status === "done" && (
+        <StatusMessage tone="success">
+          Analysis complete. Your next program can use these game signals.
+        </StatusMessage>
+      )}
+
       {pendingCount === 0 && counts && counts.total === 0 ? (
-        <p className="text-graphite text-sm font-serif">
-          No games to analyse yet. Import games first, then run analysis.
-        </p>
+        <StatusMessage tone="neutral" heading="No games to analyse">
+          Import games first, then run analysis here.
+        </StatusMessage>
       ) : null}
     </section>
   );

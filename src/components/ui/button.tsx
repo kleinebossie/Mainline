@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 // Controls read as commands on an instrument: monospace, lightly tracked, crisp. The
 // machine-readout voice (VISION §4 — Engine⟷Methodology) extends to the things you press.
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md font-mono text-sm font-medium tracking-tight transition-[color,background-color,border-color,box-shadow,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-paper disabled:pointer-events-none disabled:opacity-45 active:translate-y-px",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md font-mono text-sm font-medium tracking-tight transition-[color,background-color,border-color,box-shadow,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-paper disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-45 active:translate-y-px",
   {
     variants: {
       variant: {
@@ -20,8 +20,8 @@ const buttonVariants = cva(
           "bg-clay text-destructive-foreground shadow-sm hover:bg-clay/90",
       },
       size: {
-        default: "h-10 px-4 py-2",
-        sm: "h-8 px-3 text-xs",
+        default: "h-10 min-w-10 px-4 py-2",
+        sm: "h-9 min-w-9 px-3 text-xs",
         lg: "h-12 rounded-md px-7 text-base",
       },
     },
