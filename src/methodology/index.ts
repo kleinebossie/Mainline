@@ -6,7 +6,15 @@
 export {
   loadMethodology,
   ACTIVE_METHODOLOGY_VERSION,
+  DEFAULT_METHODOLOGY_VERSION,
 } from "@/methodology/loader";
+
+export {
+  METHODOLOGY_RELEASES,
+  methodologyReleaseFor,
+  type MethodologyReleaseChannel,
+  type MethodologyReleaseMetadata,
+} from "@/methodology/releases";
 
 export {
   nextCalibrationItem,
@@ -34,6 +42,7 @@ export {
   // Seam 6 (scheduling) + Measurement seams (M7): the adaptation-loop reader functions.
   gradeFromOutcome,
   scheduleReview,
+  redoFlowPolicy,
   detectPlateau,
   isProgressReal,
   isStableBaseline,
@@ -75,6 +84,7 @@ export {
   type PuzzleTarget,
   type FsrsGrade,
   type FsrsState,
+  type RedoFlowPolicy,
   type RatingPoint,
   type PlateauResult,
   // Seam 4 §4.1: structured game analysis protocol types

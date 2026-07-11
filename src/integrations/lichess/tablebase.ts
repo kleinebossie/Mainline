@@ -60,12 +60,18 @@ export function parseTablebaseResponse(raw: unknown): TablebaseResult {
  */
 export async function fetchTablebase(
   fen: string,
-  opts: { policy?: BackoffPolicy } = {},
+  opts: { policy?: BackoffPolicy; beforeRequest?: () => Promise<void> } = {},
 ): Promise<TablebaseResult | null> {
   if (fenPieceCount(fen) > TABLEBASE_MAX_PIECES) return null;
 
   const url = `${TABLEBASE_URL}?fen=${encodeURIComponent(fen)}`;
-  const res = await politeFetch("lichess", url, {}, opts.policy);
+  const res = await politeFetch(
+    "lichess",
+    url,
+    {},
+    opts.policy,
+    opts.beforeRequest,
+  );
   if (res.status === 404) return null; // position not in the tablebase
   if (!res.ok) {
     throw new Error(`Lichess tablebase lookup failed (${res.status})`);

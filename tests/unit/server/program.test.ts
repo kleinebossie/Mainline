@@ -3,10 +3,15 @@ import type { PrismaClient } from "@prisma/client";
 
 import { generateAndSaveProgram, getTodayProgram } from "@/server/program";
 import { fixedClock } from "@/lib/clock";
+import {
+  ACTIVE_METHODOLOGY_VERSION,
+  loadMethodology,
+  rationaleFor,
+} from "@/methodology";
 
 // M6 server orchestration: a generate → read round-trip over an in-memory fake Prisma.
 // The graded decisions are golden-tested in engine/generator + methodology/program-seams;
-// this pins the plumbing — persistence of the L3 snapshot and the /today DTO shaping.
+// this pins the plumbing : persistence of the L3 snapshot and the /today DTO shaping.
 
 interface FakeOpts {
   tacticalRating?: number;
@@ -25,6 +30,12 @@ interface FakeOpts {
     label: string;
     externalRef?: string;
   }[];
+  initialProgram?: {
+    id: string;
+    createdAt: Date;
+    methodologyVersion: string;
+    items: CreatedItem[];
+  };
 }
 
 interface CreatedItem {
@@ -54,7 +65,7 @@ function fakeDb(opts: FakeOpts) {
       methodologyVersion: string;
       items: CreatedItem[];
     } | null;
-  } = { created: null };
+  } = { created: opts.initialProgram ?? null };
 
   const db = {
     user: {
@@ -158,7 +169,7 @@ describe("generateAndSaveProgram + getTodayProgram (round-trip)", () => {
 
     const today = await getTodayProgram(db, "u1");
     expect(today).not.toBeNull();
-    expect(today!.methodologyVersion).toBe("stub-0.1.0");
+    expect(today!.methodologyVersion).toBe(ACTIVE_METHODOLOGY_VERSION);
     // Honest framing copy is surfaced (Seam 8).
     expect(today!.honesty.processGoal.length).toBeGreaterThan(0);
     expect(today!.honesty.expectations.length).toBeGreaterThan(0);
@@ -194,6 +205,48 @@ describe("generateAndSaveProgram + getTodayProgram (round-trip)", () => {
   it("returns null when no program has been generated", async () => {
     const db = fakeDb({ tacticalRating: 1300, minutesPerDay: 30 });
     expect(await getTodayProgram(db, "u1")).toBeNull();
+  });
+
+  it("renders a historic program with its persisted methodology version", async () => {
+    const stub = loadMethodology("stub-0.1.0");
+    const rationale = rationaleFor("play_games", stub);
+    const db = fakeDb({
+      initialProgram: {
+        id: "historic-program",
+        createdAt: new Date(0),
+        methodologyVersion: "stub-0.1.0",
+        items: [
+          {
+            id: "historic-item",
+            orderIndex: 0,
+            activityId: "play_games",
+            activityType: "play_game",
+            resourceRefId: null,
+            params: { theme: null, track: null, estMinutes: 15 },
+            dimensionsTargeted: ["tactics"],
+            rationaleKey: rationale.key,
+            rationaleText: rationale.value,
+            evidenceGrade: rationale.grade,
+            evidenceTier: rationale.tier,
+            citationKey: rationale.citationKey,
+            confidence: "low",
+            soften: rationale.soften,
+            status: "pending",
+            resourceRef: null,
+          },
+        ],
+      },
+    });
+    const requested: Array<string | undefined> = [];
+
+    const today = await getTodayProgram(db, "u1", (version) => {
+      requested.push(version);
+      return loadMethodology(version);
+    });
+
+    expect(requested).toEqual(["stub-0.1.0"]);
+    expect(today?.methodologyVersion).toBe("stub-0.1.0");
+    expect(today?.items[0]?.rationaleText).toBe(rationale.value);
   });
 
   it("a due review surfaces a spaced-review item in the regenerated session (M7)", async () => {

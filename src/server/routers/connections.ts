@@ -9,6 +9,7 @@ import { TRPCError } from "@trpc/server";
 import { PlatformError } from "@/integrations/adapter";
 import { chessComAdapter } from "@/integrations/chesscom/adapter";
 import { revokeLichessToken } from "@/integrations/lichess/adapter";
+import { assertApiCallBudget } from "@/server/api-budget";
 import { upsertPlatformConnection } from "@/server/connections";
 import { protectedProcedure, router } from "@/server/trpc";
 
@@ -48,6 +49,8 @@ export const connectionsRouter = router({
         profile = await chessComAdapter.fetchProfile({
           platform: "chesscom",
           externalUsername: input.username,
+          beforeRequest: () =>
+            assertApiCallBudget(ctx.prisma, ctx.userId, "chesscom", new Date()),
         });
       } catch (err) {
         if (err instanceof PlatformError && err.code === "not_found") {
@@ -84,7 +87,9 @@ export const connectionsRouter = router({
       }
       // Best-effort token revocation so we stop holding a live Lichess credential.
       if (conn.platform === "lichess" && conn.accessToken) {
-        await revokeLichessToken(conn.accessToken).catch(() => {
+        await revokeLichessToken(conn.accessToken, () =>
+          assertApiCallBudget(ctx.prisma, ctx.userId, "lichess", new Date()),
+        ).catch(() => {
           /* local disconnect proceeds regardless (§6.2) */
         });
       }

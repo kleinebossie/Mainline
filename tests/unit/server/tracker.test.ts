@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { PrismaClient } from "@prisma/client";
 
-import { logOutcome } from "@/server/tracker";
+import { logOutcome, runDailyAdaptation } from "@/server/tracker";
 import { DAY_MS, fixedClock } from "@/lib/clock";
 
 // M7 server orchestration: logOutcome (= applyEvent §7.3) over an in-memory fake Prisma.
@@ -18,7 +18,7 @@ interface Recorder {
     lastGrade: number;
   }[];
   skillUpserts: { dimension: string; estimate: number; sampleSize: number }[];
-  logs: { trigger: string; decisions: unknown }[];
+  logs: { trigger: string; decisions: unknown; runAt?: Date }[];
   rewardCreates: { type: string; copyKey: string }[];
 }
 
@@ -118,12 +118,20 @@ function fakeDb(
       },
     },
     adaptationLog: {
+      findFirst: async () =>
+        rec.logs.some((log) => log.trigger === "daily_cron")
+          ? { id: "daily-log" }
+          : null,
       create: async ({
         data,
       }: {
-        data: { trigger: string; decisions: unknown };
+        data: { trigger: string; decisions: unknown; runAt?: Date };
       }) => {
-        rec.logs.push({ trigger: data.trigger, decisions: data.decisions });
+        rec.logs.push({
+          trigger: data.trigger,
+          decisions: data.decisions,
+          runAt: data.runAt,
+        });
         return {};
       },
     },
@@ -274,5 +282,20 @@ describe("logOutcome (applyEvent)", () => {
     expect(rec.logs).toHaveLength(1);
     expect(rec.rewardCreates[0]!.type).toBe("streak_tick");
     expect(res.scheduledReviews).toBe(0);
+  });
+});
+
+describe("runDailyAdaptation", () => {
+  it("persists at most one deterministic daily cron log", async () => {
+    const { db, rec } = fakeDb(null);
+
+    const first = await runDailyAdaptation(db, "u1", clock);
+    const second = await runDailyAdaptation(db, "u1", clock);
+
+    expect(first.decisions).toBe(0);
+    expect(second.decisions).toBe(0);
+    expect(rec.logs.filter((log) => log.trigger === "daily_cron")).toHaveLength(
+      1,
+    );
   });
 });

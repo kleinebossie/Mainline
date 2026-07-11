@@ -25,6 +25,7 @@ import { resolvePlayingRating } from "@/server/program";
 import { gameIdentity } from "@/server/game-identity";
 import { systemClock } from "@/lib/clock";
 import { protectedProcedure, router } from "@/server/trpc";
+import { captureOperationalEvent } from "@/server/observability";
 
 const PLATFORMS = ["lichess", "chesscom"] as const;
 
@@ -85,6 +86,11 @@ export const analysisRouter = router({
       const owns = await userOwnsGame(ctx.prisma, ctx.userId, input.gameId);
       if (!owns) return { saved: false as const };
       await saveAnalysisResult(ctx.prisma, input);
+      captureOperationalEvent({
+        operation: "analysis_handoff",
+        status: "success",
+        count: 1,
+      });
       return { saved: true as const };
     }),
 

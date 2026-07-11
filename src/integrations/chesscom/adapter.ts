@@ -84,9 +84,12 @@ export const chessComAdapter: PlatformAdapter = {
       Accept: "application/json",
     };
 
-    const profileRes = await fetch(
+    const profileRes = await politeFetch(
+      "chesscom",
       `${PUB_BASE}/${encodeURIComponent(username)}`,
       { headers },
+      undefined,
+      conn.beforeRequest,
     );
     if (profileRes.status === 404) {
       throw new PlatformError(
@@ -121,9 +124,12 @@ export const chessComAdapter: PlatformAdapter = {
     // Ratings are best-effort: a valid player with no rated games still validates.
     let ratings: Record<string, RatingEntry> = {};
     let totalGames = 0;
-    const statsRes = await fetch(
+    const statsRes = await politeFetch(
+      "chesscom",
       `${PUB_BASE}/${encodeURIComponent(username)}/stats`,
       { headers },
+      undefined,
+      conn.beforeRequest,
     );
     if (statsRes.ok) {
       ({ ratings, totalGames } = mapStats(
@@ -159,6 +165,8 @@ export const chessComAdapter: PlatformAdapter = {
       "chesscom",
       `${PUB_BASE}/${encodeURIComponent(username)}/games/archives`,
       { headers },
+      undefined,
+      conn.beforeRequest,
     );
     if (listRes.status === 404) {
       throw new PlatformError(
@@ -186,7 +194,13 @@ export const chessComAdapter: PlatformAdapter = {
     const out: ImportedGameInput[] = [];
     // Newest months first; stop once we have enough.
     for (const url of archives.slice(-MAX_ARCHIVES_PER_IMPORT).reverse()) {
-      const monthRes = await politeFetch("chesscom", url, { headers });
+      const monthRes = await politeFetch(
+        "chesscom",
+        url,
+        { headers },
+        undefined,
+        conn.beforeRequest,
+      );
       if (!monthRes.ok) continue; // skip a bad month rather than fail the whole import
       const { games = [] } = (await monthRes.json()) as {
         games?: ChessComGame[];

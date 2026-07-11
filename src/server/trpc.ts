@@ -14,9 +14,16 @@ export const createCallerFactory = t.createCallerFactory;
 export const publicProcedure = t.procedure;
 
 /** Requires an authenticated session; narrows `ctx.userId` for downstream procedures. */
-export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
+export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
   const userId = ctx.session?.user?.id;
   if (!userId) {
+    throw new TRPCError({ code: "UNAUTHORIZED" });
+  }
+  const user = await ctx.prisma.user.findUnique({
+    where: { id: userId },
+    select: { deletedAt: true, betaAccessGrantedAt: true },
+  });
+  if (!user || user.deletedAt || !user.betaAccessGrantedAt) {
     throw new TRPCError({ code: "UNAUTHORIZED" });
   }
   return next({ ctx: { ...ctx, userId } });

@@ -2,10 +2,16 @@ import NextAuth, { type NextAuthConfig } from "next-auth";
 import type { Account } from "next-auth";
 import Google from "next-auth/providers/google";
 import { PrismaAdapter } from "@auth/prisma-adapter";
+import { cookies } from "next/headers";
 
 import { prisma } from "@/db/client";
 import { LichessProvider } from "@/server/auth-providers/lichess";
 import { upsertPlatformConnection } from "@/server/connections";
+import {
+  admitBetaUser,
+  BETA_INVITE_COOKIE,
+  ownerEmailsFromEnv,
+} from "@/server/beta-access";
 
 // Lichess needs no secret (public PKCE client), so it is always available — even in
 // CI/e2e without env. Google is wired only when its credentials are present, so
@@ -54,6 +60,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   pages: { signIn: "/signin" },
   providers,
   callbacks: {
+    async signIn({ user }) {
+      const cookieStore = await cookies();
+      const inviteCode = cookieStore.get(BETA_INVITE_COOKIE)?.value;
+      const admitted = await admitBetaUser(prisma, {
+        userId: user.id,
+        email: user.email,
+        inviteCode,
+        now: new Date(),
+        ownerEmails: ownerEmailsFromEnv(),
+      });
+      return admitted;
+    },
     session({ session, user }) {
       // Database strategy: `user` is the adapter row, always has an id.
       session.user.id = user.id;
@@ -61,6 +79,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
   },
   events: {
+    async createUser({ user }) {
+      const cookieStore = await cookies();
+      const inviteCode = cookieStore.get(BETA_INVITE_COOKIE)?.value;
+      const admitted = await admitBetaUser(prisma, {
+        userId: user.id,
+        email: user.email,
+        inviteCode,
+        now: new Date(),
+        ownerEmails: ownerEmailsFromEnv(),
+      });
+      if (!admitted) {
+        await prisma.user.delete({ where: { id: user.id } });
+        throw new Error("Closed beta access was not granted");
+      }
+    },
     // linkAccount's `profile` is the adapter user (name = Lichess username, set in
     // the provider's profile() mapping).
     async linkAccount({ user, account, profile }) {

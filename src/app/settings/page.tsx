@@ -5,6 +5,8 @@ import { PageShell } from "@/components/app-shell";
 import { ConstraintsForm } from "@/app/onboarding/constraints/constraints-form";
 import { AnalysisRunner } from "@/app/settings/analysis-runner";
 import { AccountActions } from "@/app/settings/account-actions";
+import { OperationsPanel } from "@/app/settings/operations-panel";
+import { prisma } from "@/db/client";
 
 // Settings (VISION §5/§7). Auth-gated. The post-onboarding home for everything you tune
 // about your training and your account: edit your plan (time/goals/preferences — the same
@@ -12,6 +14,10 @@ import { AccountActions } from "@/app/settings/account-actions";
 export default async function SettingsPage() {
   const session = await auth();
   if (!session?.user) redirect("/signin");
+  const account = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { role: true },
+  });
 
   return (
     <PageShell
@@ -35,6 +41,8 @@ export default async function SettingsPage() {
         <AnalysisRunner />
 
         <AccountActions />
+
+        {account?.role === "admin" && <OperationsPanel />}
       </div>
     </PageShell>
   );

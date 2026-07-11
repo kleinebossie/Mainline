@@ -22,11 +22,13 @@
     "prisma:deploy": "prisma migrate deploy",
     "ingest:puzzles": "tsx scripts/ingest-puzzles.ts",
     "seed:resources": "tsx scripts/seed-resources.ts",
-    "check:puzzles": "tsx scripts/check-puzzles.ts"
+    "check:puzzles": "tsx scripts/check-puzzles.ts",
+    "beta:invite": "tsx scripts/create-beta-invite.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.0",
     "@prisma/client": "^6.1.0",
+    "@sentry/nextjs": "^10.65.0",
     "@tanstack/react-query": "^5.101.0",
     "@trpc/client": "^11.18.0",
     "@trpc/react-query": "^11.18.0",

@@ -94,9 +94,10 @@ The system is two cleanly separated halves connected by a typed boundary:
   the loop but nothing about chess or learning. It orchestrates; it decides nothing graded.
 - **The Methodology (research fills later).** All chess/learning knowledge, expressed as a
   **versioned `MethodologyConfig`** (data, every leaf a `GradedValue`) **+ a small set of pure reader
-  functions** that turn config + inputs into graded decisions. It ships **now** as a safe **stub
-  config** so the whole loop runs end-to-end, and is **swapped** for the research-derived config later
-  by adding a file and bumping a version — **no architecture change** (VISION §4).
+  functions** that turn config + inputs into graded decisions. It ships as versioned stub and
+   research configs so the whole loop remains reproducible. The active pointer selects the research
+   release by default, while the stub remains available for historic artifacts and rollback. A new
+   research release is one file plus a version bump, with **no architecture change** (VISION §4).
 
 ```
         ┌──────────────────────────── ENGINE (src/engine, analysis, integrations, server, app) ───────────────────────────┐
@@ -208,6 +209,13 @@ interface MethodologyConfig {
   engagement: EngagementConfig; // Seam 9
   measurement: MeasurementConfig; // Measurement & expectations (Glicko-2 CI, expectations, FIDE rule)
   evidenceLedger: AnchorSource[]; // METHODOLOGY §5 — citation map the UI shows
+  // Implemented Seam-4 extensions for the structured game-analysis and internal-first
+  // surfaces. These remain methodology data, not new Engine seams.
+  gameAnalysis: GameAnalysisConfig;
+  board: BoardConfig;
+  endgameCurriculum: EndgameCurriculumConfig;
+  bookStudy: BookStudyConfig;
+  modality: ModalityConfig;
 }
 ```
 
@@ -220,12 +228,14 @@ restate those fields' values** (§0.3); it guarantees the _container_ exists and
 
 ```ts
 // Contract (specification). src/methodology/loader.ts
-// Configs ship as repo JSON: src/methodology/configs/<version>.json  (e.g. stub-0.1.0.json)
+// Configs ship as immutable repo JSON: src/methodology/configs/<version>.json.
+// Additive compatibility data for a historic version may live in <version>.compat.json.
 function loadMethodology(version?: string): MethodologyConfig;
-//  1. resolve version: explicit arg > env METHODOLOGY_VERSION > "active" pointer (default: latest stub)
+//  1. resolve version: explicit arg > env METHODOLOGY_VERSION > "active" pointer (default: research-1.0.0)
 //  2. read the JSON file for that version
-//  3. validate with the Zod schema (structure + EVERY leaf is a GradedValue) — throw on any violation
-//  4. deep-freeze and return a typed, immutable MethodologyConfig
+//  3. add any version-matched compatibility data without replacing historic fields
+//  4. validate with the Zod schema (structure + EVERY leaf is a GradedValue); throw on any violation
+//  5. deep-freeze and return a typed, immutable MethodologyConfig
 ```
 
 Loader rules:
@@ -237,21 +247,28 @@ Loader rules:
   is not.
 - **Versioned & reproducible.** `Program`, `AdaptationLog`, and `Assessment` persist the
   `methodologyVersion` they were produced under. Any past decision can be re-derived.
-- **Active-version selection.** Environment chooses the active config: stub now, research config later.
-  Swapping is a one-line env/pointer change + the new JSON file.
+- **Historic files stay byte-stable.** When a typed seam is extracted from old provider behavior,
+  an additive compatibility JSON carries those graded values. The released config file is not edited.
+- **Active-version selection.** Environment chooses the active config: `research-1.0.0` by default,
+  with `stub-0.1.0` retained for rollback. Swapping is a one-line env/pointer change plus the new
+  JSON file.
 
 ### 2.7 Stub config vs research config
 
-|                    | **Stub config (now)**                                                   | **Research config (later)**                                           |
+|                    | **Stub config (historic/rollback)**                                     | **Research config (active)**                                          |
 | ------------------ | ----------------------------------------------------------------------- | --------------------------------------------------------------------- |
 | File               | `configs/stub-<semver>.json`                                            | `configs/research-<semver>.json`                                      |
 | Source of contents | Safe, conservative placeholders; everything flagged `stub`/`best-guess` | `planning/METHODOLOGY.md` (its values/grades/citations/copy, encoded) |
-| Purpose            | Make the **entire loop run end-to-end** before research lands           | Tune behaviour + copy to the real science                             |
-| Swap cost          | —                                                                       | **One file + one version bump.** No engine change (VISION §4).        |
+| Purpose            | Preserve historic behavior and provide an intentional rollback baseline | Run the approved, graded methodology release                          |
+| Swap cost          | n/a                                                                      | **One file + one version bump.** No engine change (VISION §4).        |
 
-The stub must be _coherent_, not empty: real band cutoffs, real dimension list, defensible default
-targets, and honest copy — all flagged so the transparency UI can say "placeholder." Building against
-the stub proves the seams are wired correctly before any number is "true."
+The 2026-07-10 release status is: `research-1.0.0` is active by default and `stub-0.1.0` remains
+loadable for historic programs. The research release retains explicit best guesses and deliberate
+stubs from `METHODOLOGY.md`; see `planning/METHODOLOGY_CHANGELOG.md` for the release inventory.
+
+The stub remains _coherent_, not empty: real band cutoffs, a dimension list, defensible default
+targets, and honest copy, all flagged so the transparency UI can say "placeholder." It originally
+proved the seams were wired correctly before the research release became active.
 
 ### 2.8 The MethodologyProvider — the pure-function boundary
 
@@ -269,7 +286,7 @@ algorithm; the config owns the numbers).
 | `mapWeaknessToActivities(signals, band, constraints, cfg)`                                              | 4           | —                              |
 | `targetPuzzleRating(userRating, track, band, recentSuccess, cfg)`                                       | 5           | servo controller (generic)     |
 | `practiceStructure(band, motifMastery, cfg)` · `useWorkedExample(band, complexity, cfg)`                | 5           | —                              |
-| `gradeFromOutcome(correct, solveMs, bandMedianMs, cfg)` · `scheduleReview(item, grade, fsrsState, cfg)` | 6           | `fsrsStep` (generic FSRS math) |
+| `gradeFromOutcome(correct, solveMs, bandMedianMs, cfg)` · `scheduleReview(item, grade, fsrsState, cfg)` · `redoFlowPolicy(cfg)` | 6           | `fsrsStep` (generic FSRS math) |
 | `prioritizeDailyMix(skillState, dueItems, signals, constraints, band, cfg)`                             | 7           | weighted-sort (generic)        |
 | `detectPlateau(glickoHistory, cfg)`                                                                     | 7           | `glickoConfidenceInterval`     |
 | `rationaleFor(triggerKey, context, cfg)`                                                                | 8           | —                              |
@@ -404,11 +421,14 @@ where GDPR export/erase applies.
 
 - **User** — the account. `id`, `email` (unique), `name?`, `image?`, `locale` (default `en`), `role`
   (`user|admin`), **`patronStatus`** (`none|patron`, default `none` — **billing-capable reservation**,
-  no billing built), `deletedAt?`. Relations: 1—\* everything below.
+  no billing built), `betaAccessGrantedAt?`, `deletedAt?`. The M15 migration backfills the beta grant
+  for existing non-deleted accounts; new accounts receive it only when admission finalizes against
+  an owner/admin path or a claimed allowlist entry. Relations: 1—\* everything below.
 - **Account / Session / VerificationToken** — **Auth.js standard tables** (OAuth provider, provider
   account id, tokens, expiry). One `User` ↔ many `Account` (Google, Lichess).
 - **AllowlistEntry** — closed-beta gate. `email?`, `inviteCode?` (unique), `usedByUserId?`,
-  `createdAt`, `expiresAt?`. Sign-in is refused unless the email/code is allowlisted (§12).
+  `createdAt`, `expiresAt?`. Sign-in is refused unless the persisted user grant or a current
+  email/code admits it (§12).
 
 ### 5.2 Platform connections & chess data
 
@@ -784,10 +804,10 @@ A linear, resumable flow; each step writes typed state and is independently test
 | 2. Connect platforms     | `onboarding` — Lichess OAuth / Chess.com username              | `PlatformConnection`                                | —                                                   | built                     |
 | 3. Background import     | `api/cron` job via `PlatformAdapter.fetchGames`                | `ImportedGame` (idempotent), `ChessProfileSnapshot` | —                                                   | built                     |
 | 4. Instant analysis      | analyse ~5 most-recent games client-side; queue rest           | `AnalysisResult` (raw features)                     | — (raw only, L1)                                    | built                     |
-| 5. Tactical calibration  | adaptive ladder over puzzles, solved **in-app** (M11)          | `Assessment`                                        | `nextCalibrationItem` / `scoreCalibration` (Seam 2) | shell built, content stub |
+| 5. Tactical calibration  | adaptive ladder over puzzles, solved **in-app** (M11)          | `Assessment`                                        | `nextCalibrationItem` / `scoreCalibration` (Seam 2) | built, in-app             |
 | 6. Constraints + if-then | `onboarding` form                                              | `ConstraintSet` (incl. `ifThenPlan`, `targetFocus`) | `buildImplementationIntention` (Seam 9)             | built                     |
-| 7. The "reveal"          | interactive game review contrasting signals vs self-bias (M12) | —                                                   | `interpretGameFeatures` (Seam 3)                    | framework built           |
-| 8. First program         | `generateProgram(...)` → land on `/today`                      | `Program`, `ProgramItem`, `SkillState` seed         | Seams 3→4→5→7→8                                     | built (stub config)       |
+| 7. The "reveal"          | interactive game review contrasting signals vs self-bias (M12) | n/a                                                 | `interpretGameFeatures` (Seam 3)                    | built, interactive review |
+| 8. First program         | `generateProgram(...)` → land on `/today`                      | `Program`, `ProgramItem`, `SkillState` seed         | Seams 3→4→5→7→8                                     | built, research active    |
 
 Self-report is captured for **constraints/goals/owned resources/play-medium only** — never for skill
 diagnosis (Seam 2). The constraints step also records the user's **target focus** (`online | otb |
@@ -843,13 +863,14 @@ DoD checklist._
   ESLint/Prettier + L1/L2 lint rules; Vitest + Playwright; GitHub Actions CI; Vercel deploy;
   `next.config.js` COOP/COEP headers; seed `CLAUDE.md`.
 - **Tests:** CI runs typecheck + lint + (empty) unit/e2e + build; a smoke Playwright test loads `/`.
-- **DoD:** ✅ green CI on push ☐ app deploys to Vercel ✅ Google sign-in works ✅ migrations run on
-  Supabase ✅ COOP/COEP headers verified.
-- **Status (2026-06-20): nearly done — only Vercel deploy remains.** Repo pushed to GitHub
+- **DoD:** ✅ green CI on push ✅ app deploys to Vercel ✅ Google sign-in works ✅ migrations run on
+  Supabase ✅ COOP/COEP headers configured and included in production builds.
+- **Status (2026-07-10): ✅ DONE.** Repo pushed to GitHub
   (`kleinebossie/Mainline`, private); **GitHub Actions CI is green on `main`** (npm ci · prisma generate ·
   typecheck · lint · unit · guards · `next build` · e2e). CI/`.nvmrc` pinned to Node 25.2.0 (npm 11.6.2)
   to match the lockfile. COOP/COEP headers active; Google OAuth working; `0_init` migration applied to
-  Supabase. **Remaining:** deploy to Vercel.
+  Supabase. GitHub records successful Vercel production deployments, most recently for commit `3ca1e37`
+  on 2026-07-09. Anonymous route and header smoke tests are blocked by the deployment's Vercel SSO gate.
 
 ### M1 — Identity & connections
 
@@ -893,8 +914,9 @@ DoD checklist._
   (`sync`/`recentGames`/`latestProfiles`); Vercel Cron route `/api/cron/import` (CRON_SECRET-gated) +
   `vercel.json` daily schedule; `/dashboard` UI with "Sync now". Tests: 34 unit/guard green (parse
   golden, dedupe idempotency, back-off + 429 retry, JobRun ledger), build green, 5 e2e green
-  (dashboard auth-gate; live import verified manually). **Remaining user steps:** (1) apply the
-  migration to Supabase, (2) set `CRON_SECRET` locally + on Vercel.
+  (dashboard auth-gate; live import verified manually). The configured local `.env.local` has
+  `CRON_SECRET`; the Vercel environment value still needs owner-side verification because deployment
+  secrets are not represented in this repository.
 
 ### M3 — Resource catalog (puzzle DB)
 
@@ -904,9 +926,11 @@ DoD checklist._
   §12); theme(GIN)+rating indexes; `ResourceRef` catalog seed.
 - **Tests:** unit — selection returns puzzles within rating window and matching theme; ingest is
   idempotent; golden test on a fixed puzzle fixture.
-- **DoD:** ☐ stratified DB ingested within free-tier budget ☐ theme+rating query < target latency ☐
-  ResourceRefs resolvable to external URLs.
-- **Status (2026-06-20): code-complete & locally green; live ingest is the remaining user step.**
+- **DoD:** ✅ stratified subset is present within the configured free-tier strategy ✅ ResourceRefs are
+  resolvable to external URLs ⚠️ the blueprint defines no target latency; the current indexed check
+  returned 10 puzzles in 2036.9 ms and remains an owner performance check.
+- **Status (2026-07-10): ✅ DONE for code, schema, and current live data; fresh environments still need the
+  ingest command.**
   Schema: `LichessPuzzle` (PK `puzzleId`, **GIN index on `themes`** + btree on `rating`) and
   `ResourceRef` (§5.3) + migration `20260620010000_m3_resource_catalog` (generated offline via
   `prisma migrate diff`). Selection: `selectPuzzles` (`src/db/puzzles.ts`) — theme + rating-window
@@ -916,16 +940,19 @@ DoD checklist._
   `puzzleId` PK. Catalog: `scripts/seed-resources.ts` seeds one resolvable Lichess training-page
   `ResourceRef` per theme (`src/integrations/catalog.ts`; deterministic ids → idempotent re-seed).
   Tests: 17 new unit/golden (CSV parse, stratify caps/ceiling/determinism, query + proximity ranking,
-  catalog URLs) — full suite **50 unit + guards + `next build` + 5 e2e green**; ingest **dry-run
-  verified** on a fixture (`--dry-run`/`--max-rows`/`--cap`). `tsx` added (dev) to run the ops scripts.
+  catalog URLs), full suite **50 unit + guards + `next build` + 5 e2e green**; ingest **dry-run**
+  verified on a fixture (`--dry-run`/`--max-rows`/`--cap`). The configured Supabase database currently
+  returns puzzle and ResourceRef rows, and `npm run check:puzzles -- fork 1500` selected 10 rows in
+  2036.9 ms. No target latency is defined in this blueprint, so performance remains an owner check.
+  `tsx` added (dev) to run the ops scripts.
   **`cfg` deviation (L1, deliberate):** the M3 contract sketches `selectPuzzles(…, cfg)`, but
   METHODOLOGY.md Seam 5 defines **no** puzzle-selection rating window — difficulty is the servo's
   single `targetPuzzleRating`. Inventing a graded window would inject ungraded "science," so the
   window is an **infrastructure retrieval radius** (caller-supplied) and the methodology layer
   (`GradedValue` + loader + stub config) lands in **M4**, its first real consumer (Seam 2 provider
-  fns). **Remaining user steps (infra — all spelled out in the handoff):** (1) apply the migration to
-  Supabase; (2) download + decompress the Lichess puzzle CSV; (3) `npm run ingest:puzzles`; (4)
-  `npm run seed:resources`; (5) optional `npm run check:puzzles` to confirm query latency.
+  fns). **Fresh-environment setup:** download + decompress the Lichess puzzle CSV, run
+  `npm run ingest:puzzles`, run `npm run seed:resources`, then run the optional
+  `npm run check:puzzles` latency check.
 
 ### M4 — Constraints + assessment
 
@@ -936,10 +963,10 @@ DoD checklist._
   dashboard scaffold.
 - **Tests:** unit — `scoreCalibration` golden (fixed responses → fixed estimate+uncertainty);
   constraints Zod validation; e2e — complete calibration + constraints.
-- **DoD:** ☐ `ConstraintSet` persisted & current ☐ calibration produces a graded estimate ☐ self-report
-  never used for skill (only constraints/goals) ☐ if-then plan captured.
-- **Status (2026-06-21): code-complete & locally green; the one remaining step is applying the
-  migration to Supabase.** This slice also lands the **methodology layer** (M3's deferred piece, its
+- **DoD:** ✅ `ConstraintSet` persisted & current ✅ calibration produces a graded estimate ✅ self-report
+  never used for skill (only constraints/goals) ✅ if-then plan captured.
+- **Status (2026-07-10): ✅ DONE for code and current schema.** The configured Supabase database reports
+  all repository migrations applied. This slice also lands the **methodology layer** (M3's deferred piece, its
   first real consumer): the `GradedValue` wrapper + `MethodologyConfig` Zod schema
   (`src/methodology/schema/`), the **fail-closed, immutable** `loadMethodology()` loader, the
   `stub-0.1.0` config (every leaf a graded value, every `citationKey` resolving), and the pure
@@ -962,7 +989,7 @@ DoD checklist._
   routes), **9 e2e green** (onboarding auth-gates; the full signed-in calibration + constraints flow
   is verified manually per §13.5, as in M1/M2). **`instantEvalGames` deviation (deliberate):** the
   Seam-2 config field ships flagged `best-guess` but is consumed in M5 (client-side analysis), not
-  here. **Remaining user step (infra — spelled out in the handoff): apply the migration to Supabase.**
+  here.
 
 ### M5 — Analysis (client-side Stockfish)
 
@@ -974,7 +1001,7 @@ DoD checklist._
   init under/without cross-origin isolation.
 - **DoD:** [x] raw features computed client-side [x] **no interpreted field present** (L1 guard passes) [x]
   graceful fallback when threads unavailable [x] zero server compute.
-  **Status (2026-06-21): code-complete & locally green.** Deliberate deviations: (a) the §4 `stockfish.worker.ts` host role is fulfilled by the vendored nmrugg engine + adapter's UCI bridge (avoids bundling custom worker); (b) cp-loss buckets / phase split live in `src/analysis/thresholds.ts` as RAW measurement conventions, not graded methodology; (c) `analyzeGame` takes `AnalyzeGameContext` extending §6.5; (d) migration hand-written offline. **Remaining user step: apply migration 20260621010000_m5_analysis_result to Supabase (`npm run prisma:deploy`).** setup:stockfish runs automatically on build/dev.
+  **Status (2026-07-10): ✅ DONE for code and current schema.** Deliberate deviations: (a) the §4 `stockfish.worker.ts` host role is fulfilled by the vendored nmrugg engine + adapter's UCI bridge (avoids bundling custom worker); (b) cp-loss buckets / phase split live in `src/analysis/thresholds.ts` as RAW measurement conventions, not graded methodology; (c) `analyzeGame` takes `AnalyzeGameContext` extending §6.5; (d) migration hand-written offline. The configured Supabase database reports this migration applied. setup:stockfish runs automatically on build/dev.
 
 ### M6 — Program engine v0
 
@@ -1013,10 +1040,10 @@ DoD checklist._
   reduce to `band` + `tacticalRating` (the dimension that drives difficulty); fuller `SkillState` use +
   `detectPlateau` land with adaptation (M7), and `dueItems` is always empty until the scheduler (Seam 6, M7).
   (c) `targetPuzzleRating`/`practiceStructure` return richer objects than the "→ ratingTarget" sketch.
-  (d) `stub-0.1.0` was **extended in place (no version bump)** — additive seams on a pre-release placeholder;
-  the calibration goldens are untouched. (e) `estMinutes` rides in the `ProgramItem.params` JSON (display),
-  not its own column. **Remaining user step (infra): apply migration `20260621020000_m6_program` to Supabase
-  (`npm run prisma:deploy`).**
+  (d) At M6, `stub-0.1.0` was extended in place with additive pre-release seams. P1 restored its
+  original bytes and moved later typed fields into an additive compatibility overlay; the calibration
+  goldens are untouched. (e) `estMinutes` rides in the `ProgramItem.params` JSON (display),
+  not its own column. The configured Supabase database reports this migration applied.
 
 ### M7 — Tracker + adaptation v0 (loop closes)
 
@@ -1063,8 +1090,7 @@ DoD checklist._
   the per-band expectation table are deferred to **M8** (where expectations are surfaced). (g)
   `gradeFromOutcome`'s fast/slow→Easy/Hard needs band-median timing (STUB); v0 logs correct-only →
   Good/Again. (h) `ScheduleState.due` is a top-level indexed column mirroring `fsrsState.due` (the
-  queryable "due today" key). **Remaining user step (infra): apply migration
-  `20260621030000_m7_tracker_adaptation` to Supabase (`npm run prisma:deploy`).**
+  queryable "due today" key). The configured Supabase database reports this migration applied.
 
 ### M8 — Transparency UI
 
@@ -1123,8 +1149,8 @@ DoD checklist._
   graded/honest (L3). (c) the SDT **bounded-choice paths** (`dailyChoiceCount`/`freeSkipsPerWeek`) and
   **peer comparison** ship as graded config for the swap but their UI is not built in Phase-1 (consumed
   later). (d) `tiltCooldownLossStreak` ships flagged `stub` (thin chess evidence — METHODOLOGY Seam 9),
-  not yet consumed. **Remaining user step (infra): apply migration `20260622000000_m9_engagement` to
-  Supabase (`npm run prisma:deploy`).**
+  not yet consumed. The configured Supabase database reports this migration applied. The automatic
+  daily `day_missed` sweep remains an M15/P2 gap.
 
 > **M10–M14 — the internal-first arc.** VISION §1/§8 now reads: _internalise what we can, reference
 > what we can't._ These five slices add **in-app training surfaces** (an interactive board, puzzles,
@@ -1188,9 +1214,12 @@ graded **`delivery`** field (Seam 4 — data, not a code branch).
   deterministic `solveMs` from an injected Clock); board legality on a known FEN; **L1 guard** (no
   chess/learning constant in `engine/interactive/`); **L2** (Clock injected, no `Date.now()`). e2e —
   open `/train`, make a move, see it validated locally.
-- **DoD:** ☐ interactive board renders & validates moves locally ☐ `stepSolve` golden-green &
-  deterministic (Clock injected) ☐ `ProgramItem` resolves internal vs external by config `delivery`
-  ☐ zero server compute (board + engine client-side) ☐ L1/L2 guards green.
+- **DoD:** ✅ interactive board renders & validates moves locally ✅ `stepSolve` golden-green &
+  deterministic (Clock injected) ✅ `ProgramItem` resolves internal vs external by config `delivery`
+  ✅ zero server compute (board + engine client-side) ✅ L1/L2 guards green.
+- **Status (2026-07-10): ✅ DONE.** `src/engine/interactive/`, `src/components/interactive-board.tsx`,
+  `/train`, and the associated unit/e2e coverage are present. The internal-first dependency used by
+  M11-M14 is complete.
 
 ### M11 — In-app tactical training & assessment
 
@@ -1282,9 +1311,8 @@ graded **`delivery`** field (Seam 4 — data, not a code branch).
   oracle (null ⇒ engine-only); (c) the stub curriculum ships conservative, decisive "win" positions
   (basic mates → conversions), legality-verified — the research config swaps in the full ladder with no
   Engine change; (d) the e2e drives a deterministic engine-free mate-in-1 endgame on the `/train` demo,
-  while the full signed-in play-out (real Stockfish) is manually verified per §13.5. **Remaining user
-  step (infra): apply migration `20260624010000_m13_tablebase_cache` to Supabase
-  (`npm run prisma:deploy`).**
+  while the full signed-in play-out (real Stockfish) is manually verified per §13.5. The configured
+  Supabase database reports this migration applied.
 
 ### M14 — Recommended resources, book-study & OTB-calibration protocols (the deliberately-external layer)
 
@@ -1354,8 +1382,19 @@ graded **`delivery`** field (Seam 4 — data, not a code branch).
   minimal privacy-friendly analytics; PWA; perf pass; GDPR export/delete.
 - **Tests:** unit — non-allowlisted sign-in refused; rate-limit bucket blocks over-budget calls; e2e —
   invited user completes full loop; data export/delete works.
-- **DoD:** ☐ closed-beta gating ☐ within Vercel/Supabase free limits under expected load ☐ errors
-  tracked ☐ installable PWA ☐ GDPR export/erase verified.
+- **DoD:** ✅ closed-beta gating ✅ within Vercel/Supabase free limits under expected load ✅ errors
+  tracked ✅ installable PWA ☐ GDPR export/erase verified.
+- **Status (2026-07-11): IN PROGRESS, P2 RUNTIME COMPLETE.** `AllowlistEntry` now gates new OAuth
+  admission while preserving pre-gate owner access, and `ApiCallBudget` atomically limits every
+  actual Lichess/Chess.com attempt, including retries and cron work. The shared `JobRun` runner uses
+  leases, sanitized error codes, retry attempts, and immutable successful keys. One free-tier daily
+  cron runs imports, daily adaptation, the configured missed-day sweep, and bounded operational
+  pruning; admins can inspect and retry failed known jobs from Settings. Sentry error handling and
+  typed core-loop events are fail-closed through a tested privacy scrubber, with tracing and replay
+  disabled. The manifest, icons, static-only service worker cache, and PWA headers preserve the
+  Stockfish COOP/COEP contract. Runtime setup and recovery are documented in
+  `planning/OPERATIONS.md`. P3 still owns versioned research consent, complete export coverage, and
+  the actual idempotent hard-delete purge, so the final GDPR box remains open.
 
 ---
 
@@ -1367,16 +1406,16 @@ later** (`METHODOLOGY.md`); **none change the architecture** (VISION §4, §9). 
 
 | #   | Seam                                       | `MethodologyConfig` field(s)                                                   | Pure function(s) (§2.8)                                       | METHODOLOGY.md anchor | Research source                                                                                                                                                     | Phase-1 |
 | --- | ------------------------------------------ | ------------------------------------------------------------------------------ | ------------------------------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
-| 1   | Skill dimensions & taxonomy                | `dimensions`, `bands`                                                          | `dimensionsForBand`                                           | Seam 1                | `SKILL_TAXONOMY.md`                                                                                                                                                 | stub    |
-| 2   | Assessment content + scoring               | `assessment`                                                                   | `nextCalibrationItem`, `scoreCalibration`                     | Seam 2                | `WEAKNESS_DIAGNOSIS.md`                                                                                                                                             | stub    |
-| 3   | Game-feature → weakness                    | `interpretation`                                                               | `interpretGameFeatures`, `confidenceFromSampleSize`           | Seam 3                | `WEAKNESS_DIAGNOSIS.md`, `SKILL_TAXONOMY.md`                                                                                                                        | stub    |
-| 4   | Weakness/level → resource + params         | `activities`, `weaknessResourceRules`, `gameAnalysis`, `bookStudy`, `modality` | `mapWeaknessToActivities`                                     | Seam 4                | `WHAT_RAISES_RATING.md`, `GAME_ANALYSIS.md`, `BEST_BOOKS.md`, `2D_VS_3D.md` (recs, game-analysis protocol, book-study, 2D/3D + OTB calibration, endgame curriculum) | stub    |
-| 5   | Difficulty / calibration targets           | `difficulty`                                                                   | `targetPuzzleRating`, `practiceStructure`, `useWorkedExample` | Seam 5                | `PRACTICE_DESIGN.md`                                                                                                                                                | stub    |
-| 6   | Spacing / scheduling                       | `scheduling`                                                                   | `gradeFromOutcome`, `scheduleReview`                          | Seam 6                | `SPACED_REPETITION.md`                                                                                                                                              | stub    |
-| 7   | Periodisation / prioritisation (daily mix) | `prioritization`                                                               | `prioritizeDailyMix`, `detectPlateau`                         | Seam 7                | `TRAINING_PROGRAMMING.md`                                                                                                                                           | stub    |
-| 8   | Rationale & evidence copy                  | `rationale`, `evidenceLedger`                                                  | `rationaleFor`                                                | Seam 8                | `USER_FACING.md` (multi-seam "why this?" synthesis), `EXPECTATIONS.md`                                                                                              | stub    |
-| 9   | Engagement mechanics + guardrails          | `engagement`                                                                   | `engagementEventsFor`, `buildImplementationIntention`         | Seam 9                | `MOTIVATION.md`                                                                                                                                                     | stub    |
-| —   | Measurement & expectations (cross-cutting) | `measurement`                                                                  | `isProgressReal`, `isStableBaseline`, `expectationForBand`    | Measurement           | `EXPECTATIONS.md`, `2D_VS_3D.md` (remote↔OTB performance gap)                                                                                                       | stub    |
+| 1   | Skill dimensions & taxonomy                | `dimensions`, `bands`                                                          | `dimensionsForBand`                                           | Seam 1                | `SKILL_TAXONOMY.md`                                                                                                                                                 | research |
+| 2   | Assessment content + scoring               | `assessment`                                                                   | `nextCalibrationItem`, `scoreCalibration`                     | Seam 2                | `WEAKNESS_DIAGNOSIS.md`                                                                                                                                             | research |
+| 3   | Game-feature → weakness                    | `interpretation`                                                               | `interpretGameFeatures`, `confidenceFromSampleSize`           | Seam 3                | `WEAKNESS_DIAGNOSIS.md`, `SKILL_TAXONOMY.md`                                                                                                                        | research |
+| 4   | Weakness/level → resource + params         | `activities`, `weaknessResourceRules`, `gameAnalysis`, `bookStudy`, `modality` | `mapWeaknessToActivities`                                     | Seam 4                | `WHAT_RAISES_RATING.md`, `GAME_ANALYSIS.md`, `BEST_BOOKS.md`, `2D_VS_3D.md` (recs, game-analysis protocol, book-study, 2D/3D + OTB calibration, endgame curriculum) | research |
+| 5   | Difficulty / calibration targets           | `difficulty`                                                                   | `targetPuzzleRating`, `practiceStructure`, `useWorkedExample` | Seam 5                | `PRACTICE_DESIGN.md`                                                                                                                                                | research |
+| 6   | Spacing / scheduling                       | `scheduling`                                                                   | `gradeFromOutcome`, `scheduleReview`, `redoFlowPolicy`        | Seam 6                | `SPACED_REPETITION.md`                                                                                                                                              | research |
+| 7   | Periodisation / prioritisation (daily mix) | `prioritization`                                                               | `prioritizeDailyMix`, `detectPlateau`                         | Seam 7                | `TRAINING_PROGRAMMING.md`                                                                                                                                           | research |
+| 8   | Rationale & evidence copy                  | `rationale`, `evidenceLedger`                                                  | `rationaleFor`                                                | Seam 8                | `USER_FACING.md` (multi-seam "why this?" synthesis), `EXPECTATIONS.md`                                                                                              | research |
+| 9   | Engagement mechanics + guardrails          | `engagement`                                                                   | `engagementEventsFor`, `buildImplementationIntention`         | Seam 9                | `MOTIVATION.md`                                                                                                                                                     | research |
+| n/a | Measurement & expectations (cross-cutting) | `measurement`                                                                  | `isProgressReal`, `isStableBaseline`, `expectationForBand`    | Measurement           | `EXPECTATIONS.md`, `2D_VS_3D.md` (remote↔OTB performance gap)                                                                                                       | research |
 
 Updating any seam = a `MethodologyConfig` edit + a version bump. **The Engine, the data model, and the
 contracts above do not move.**
@@ -1442,7 +1481,8 @@ spaced; transparency card shows grade + rationale; export/delete works.
 
 GitHub Actions on every push/PR, **all required green** before merge:
 `typecheck (tsc --noEmit)` → `lint (eslint, incl. L1/L2 rules)` → `unit (vitest run)` →
-`build (next build)` → `e2e (playwright)` → `guards`. Branch protection enforces it.
+`guards` → `build (next build)` → `e2e (playwright)`. This is the order implemented by
+`.github/workflows/ci.yml`; branch protection enforces that every gate passes.
 
 ### 13.4 Architecture guards (enforce the three laws)
 

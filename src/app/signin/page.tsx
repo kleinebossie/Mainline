@@ -1,8 +1,9 @@
 import { redirect } from "next/navigation";
 
-import { auth, signIn } from "@/server/auth";
+import { auth } from "@/server/auth";
 import { Button } from "@/components/ui/button";
 import { Wordmark } from "@/components/app-shell";
+import { beginBetaSignIn } from "@/app/signin/actions";
 
 // Custom sign-in page (Auth.js `pages.signIn`). Lichess needs no secret, so it is
 // always offered; Google appears only when configured.
@@ -23,18 +24,31 @@ export default async function SignInPage() {
             Sign in
           </h1>
           <p className="text-graphite text-sm leading-relaxed">
-            Connect a chess account and Mainline builds your training program
-            from your real games. No password is ever stored.
+            Mainline is in closed beta. Sign in with an allowlisted email or
+            enter the invite code you received. No password is ever stored.
           </p>
         </div>
 
         <div className="bg-card rounded-lg border p-6 shadow-sheet">
           <form
-            action={async () => {
+            action={async (formData: FormData) => {
               "use server";
-              await signIn("lichess", { redirectTo: "/connections" });
+              await beginBetaSignIn("lichess", formData);
             }}
           >
+            <label
+              className="text-graphite mb-3 block text-xs"
+              htmlFor="lichess-invite"
+            >
+              Invite code (optional for allowlisted email)
+            </label>
+            <input
+              id="lichess-invite"
+              name="inviteCode"
+              autoComplete="one-time-code"
+              maxLength={128}
+              className="border-line bg-background mb-3 w-full rounded-md border px-3 py-2 text-sm"
+            />
             <Button type="submit" size="lg" className="w-full">
               Continue with Lichess
             </Button>
@@ -43,11 +57,24 @@ export default async function SignInPage() {
           {googleEnabled && (
             <form
               className="mt-3"
-              action={async () => {
+              action={async (formData: FormData) => {
                 "use server";
-                await signIn("google", { redirectTo: "/connections" });
+                await beginBetaSignIn("google", formData);
               }}
             >
+              <label
+                className="text-graphite mb-3 block text-xs"
+                htmlFor="google-invite"
+              >
+                Invite code (optional for allowlisted email)
+              </label>
+              <input
+                id="google-invite"
+                name="inviteCode"
+                autoComplete="one-time-code"
+                maxLength={128}
+                className="border-line bg-background mb-3 w-full rounded-md border px-3 py-2 text-sm"
+              />
               <Button
                 type="submit"
                 variant="outline"

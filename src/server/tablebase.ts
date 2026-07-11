@@ -14,8 +14,9 @@ import {
   TABLEBASE_MAX_PIECES,
   type TablebaseResult,
 } from "@/lib/tablebase";
+import { assertApiCallBudget } from "@/server/api-budget";
 
-type Db = Pick<PrismaClient, "tablebaseCache">;
+type Db = Pick<PrismaClient, "tablebaseCache" | "apiCallBudget">;
 
 /**
  * Ground-truth tablebase result for a FEN, or null when unavailable. Reads the cache first
@@ -25,6 +26,7 @@ type Db = Pick<PrismaClient, "tablebaseCache">;
  */
 export async function lookupTablebase(
   db: Db,
+  userId: string,
   fen: string,
 ): Promise<TablebaseResult | null> {
   if (fenPieceCount(fen) > TABLEBASE_MAX_PIECES) return null;
@@ -34,7 +36,10 @@ export async function lookupTablebase(
 
   let result: TablebaseResult | null = null;
   try {
-    result = await fetchTablebase(fen);
+    result = await fetchTablebase(fen, {
+      beforeRequest: () =>
+        assertApiCallBudget(db, userId, "lichess", new Date()),
+    });
   } catch {
     // Rate-limited / network failure — fall back to engine-only (the oracle is optional).
     return null;

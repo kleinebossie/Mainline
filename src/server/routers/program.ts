@@ -19,6 +19,7 @@ import {
   expectationForBand,
   interfaceAffordancesFor,
   rationaleFor,
+  redoFlowPolicy,
 } from "@/methodology";
 import { selectPuzzles } from "@/db/puzzles";
 import { findPracticeItemsByIds } from "@/db/practice";
@@ -75,8 +76,8 @@ export const programRouter = router({
         throw new Error("Program item not found");
       }
 
-      // Load methodology config
-      const cfg = loadMethodology();
+      // Historic items must render under the version that generated them.
+      const cfg = loadMethodology(item.program.methodologyVersion);
 
       // Resolve theme, track, and other params
       const params = (item.params ?? {}) as Record<string, unknown>;
@@ -205,12 +206,20 @@ export const programRouter = router({
         ? rationaleFor(affordances.restrictionRationaleKey, cfg)
         : null;
 
-      // §7.5 redo flow — the intra-session retest wait + its graded "why" come from config
-      // (Seam 6), never hardcoded on the solving surface (L1). Falls back to a safe default
-      // if the leaf is absent in an older config.
+      // §7.5 redo flow: the intra-session retest wait and its graded "why" come from config
+      // (Seam 6), never hardcoded on the solving surface (L1). The provider fails closed
+      // if a release does not supply the policy, including its compatibility overlay.
       const retest = rationaleFor("redo_retest", cfg);
+      const redoPolicy = redoFlowPolicy(cfg);
+      const hintSource = cfg.evidenceLedger.find(
+        (entry) => entry.key === redoPolicy.hint.citationKey,
+      )?.source;
       const redoFlow = {
-        retestDelaySec: cfg.scheduling.intraSessionRetestDelaySec?.value ?? 600,
+        retestDelaySec: redoPolicy.retestDelaySec,
+        hint: {
+          ...redoPolicy.hint,
+          citationSource: hintSource ?? redoPolicy.hint.citationKey,
+        },
         rationale: {
           value: retest.value,
           grade: retest.grade,
@@ -241,7 +250,9 @@ export const programRouter = router({
   // the endgame surface then falls back to engine-only judging.
   probeTablebase: protectedProcedure
     .input(z.object({ fen: z.string().min(1) }))
-    .query(({ ctx, input }) => lookupTablebase(ctx.prisma, input.fen)),
+    .query(({ ctx, input }) =>
+      lookupTablebase(ctx.prisma, ctx.userId, input.fen),
+    ),
 
   bandExpectation: protectedProcedure.query(async ({ ctx }) => {
     const cfg = loadMethodology();

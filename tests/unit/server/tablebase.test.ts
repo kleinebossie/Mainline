@@ -22,8 +22,16 @@ const RESULT = {
 /** Minimal in-memory TablebaseCache: just findUnique + upsert over a Map. */
 function fakeDb() {
   const store = new Map<string, unknown>();
+  let budgetCount = 0;
   return {
     store,
+    apiCallBudget: {
+      updateMany: async () => ({ count: budgetCount > 0 ? 1 : 0 }),
+      create: async () => {
+        budgetCount = 1;
+      },
+      findUniqueOrThrow: async () => ({ count: budgetCount }),
+    },
     tablebaseCache: {
       findUnique: async ({ where }: { where: { fen: string } }) => {
         const result = store.get(where.fen);
@@ -57,11 +65,11 @@ describe("lookupTablebase", () => {
     vi.stubGlobal("fetch", fetchMock);
     const db = fakeDb();
 
-    const first = await lookupTablebase(db as never, THREE_PIECE);
+    const first = await lookupTablebase(db as never, "user-1", THREE_PIECE);
     expect(first?.category).toBe("win");
     expect(fetchMock).toHaveBeenCalledTimes(1);
 
-    const second = await lookupTablebase(db as never, THREE_PIECE);
+    const second = await lookupTablebase(db as never, "user-1", THREE_PIECE);
     expect(second?.category).toBe("win");
     // The key guarantee: the cache hit did NOT hit Lichess again.
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -73,6 +81,7 @@ describe("lookupTablebase", () => {
     const db = fakeDb();
     const res = await lookupTablebase(
       db as never,
+      "user-1",
       "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
     );
     expect(res).toBeNull();
@@ -85,6 +94,8 @@ describe("lookupTablebase", () => {
       vi.fn().mockResolvedValue(new Response("", { status: 500 })),
     );
     const db = fakeDb();
-    expect(await lookupTablebase(db as never, THREE_PIECE)).toBeNull();
+    expect(
+      await lookupTablebase(db as never, "user-1", THREE_PIECE),
+    ).toBeNull();
   });
 });

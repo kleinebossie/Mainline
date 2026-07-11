@@ -1,0 +1,148 @@
+{
+  "scheduling": {
+    "scaffoldedHint": {
+      "mode": {
+        "value": "solution-start-square",
+        "grade": "C",
+        "tier": 2,
+        "citationKey": "roediger2006",
+        "flag": "best-guess",
+        "note": "Preserves the pre-release hint behavior. The exact visual scaffold is not chess-validated."
+      },
+      "includeMotifNames": {
+        "value": true,
+        "grade": "C",
+        "tier": 2,
+        "citationKey": "roediger2006",
+        "flag": "best-guess",
+        "note": "Naming the motif is a scaffolded retrieval aid; the exact chess transfer is untested."
+      },
+      "copy": {
+        "value": "We highlighted the starting square of the correct piece.",
+        "grade": "C",
+        "tier": 2,
+        "citationKey": "roediger2006",
+        "flag": "best-guess",
+        "note": "Task-level hint copy retained from the historic solving surface."
+      }
+    }
+  },
+  "gameAnalysis": {
+    "runtime": {
+      "lossesInRowCount": {
+        "value": 3,
+        "grade": "B",
+        "tier": 2,
+        "citationKey": "srivastava2025",
+        "flag": "best-guess",
+        "note": "Default consecutive-loss count for the tilt safeguard; the exact chess threshold is unvalidated."
+      },
+      "lossesInTimeWindowMs": {
+        "value": 3600000,
+        "grade": "B",
+        "tier": 2,
+        "citationKey": "srivastava2025",
+        "flag": "best-guess",
+        "note": "Default time window for the tilt safeguard; the exact chess threshold is unvalidated."
+      },
+      "performanceDeclineThreshold": {
+        "value": 0.15,
+        "grade": "B",
+        "tier": 2,
+        "citationKey": "srivastava2025",
+        "flag": "best-guess",
+        "note": "Default win-rate decline threshold for the tilt safeguard; the exact chess threshold is unvalidated."
+      },
+      "performanceRecentWindowGames": {
+        "value": 10,
+        "grade": "B",
+        "tier": 2,
+        "citationKey": "srivastava2025",
+        "flag": "best-guess",
+        "note": "Recent-game window for the tilt safeguard; retained from the pre-release heuristic."
+      },
+      "performanceBaselineWindowGames": {
+        "value": 20,
+        "grade": "B",
+        "tier": 2,
+        "citationKey": "srivastava2025",
+        "flag": "best-guess",
+        "note": "Baseline-game window for the tilt safeguard; retained from the pre-release heuristic."
+      },
+      "performanceMinimumSampleGames": {
+        "value": 5,
+        "grade": "B",
+        "tier": 2,
+        "citationKey": "srivastava2025",
+        "flag": "best-guess",
+        "note": "Minimum games in each tilt window; retained from the pre-release heuristic."
+      },
+      "entropyWindowCp": {
+        "value": 30,
+        "grade": "B",
+        "tier": 1,
+        "citationKey": "luu2025",
+        "flag": "best-guess",
+        "note": "Evaluation window for the high-entropy heuristic; no standard chess implementation exists."
+      },
+      "fallbackRplThresholdCp": {
+        "value": 100,
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "stub_open_question",
+        "flag": "best-guess",
+        "note": "Defensive fallback when a band record is unavailable; valid releases provide every band record."
+      }
+    },
+    "selectionScoring": {
+      "winMoveCpLossThreshold": {
+        "value": 100,
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "stub_open_question",
+        "flag": "best-guess",
+        "note": "Existing heuristic for finding imperfect wins; not a validated training threshold."
+      },
+      "winConversionBonus": {
+        "value": 200,
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "stub_open_question",
+        "flag": "best-guess",
+        "note": "Existing heuristic bonus for a winning conversion opportunity; not a validated training threshold."
+      },
+      "lossMoveCpLossThreshold": {
+        "value": 150,
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "stub_open_question",
+        "flag": "best-guess",
+        "note": "Existing heuristic for finding errors in losses; the diagnostic threshold is not a training claim."
+      },
+      "drawMoveCpLossThreshold": {
+        "value": 100,
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "stub_open_question",
+        "flag": "best-guess",
+        "note": "Existing heuristic for finding errors in draws; not a validated training threshold."
+      },
+      "drawFailedConversionBonus": {
+        "value": 300,
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "stub_open_question",
+        "flag": "best-guess",
+        "note": "Existing heuristic bonus for a failed conversion in a draw; not a validated training threshold."
+      },
+      "maxSuggestions": {
+        "value": 5,
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "stub_open_question",
+        "flag": "best-guess",
+        "note": "Display cap for suggested analysis games; retained from the pre-release surface."
+      }
+    }
+  }
+}

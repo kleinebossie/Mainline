@@ -50,14 +50,17 @@ describe("politeFetch", () => {
       .mockResolvedValueOnce(new Response("{}", { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
 
+    const beforeAttempt = vi.fn().mockResolvedValue(undefined);
     const res = await politeFetch(
       "lichess",
       "https://x/y",
       {},
       DEFAULT_BACKOFF,
+      beforeAttempt,
     );
     expect(res.status).toBe(200);
     expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(beforeAttempt).toHaveBeenCalledTimes(2);
   });
 
   it("gives up after maxRetries with a typed rate_limited error", async () => {

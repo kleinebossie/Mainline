@@ -7,18 +7,59 @@ import {
   methodologyConfigSchema,
   type MethodologyConfig,
 } from "@/methodology/schema/config";
+import research100 from "@/methodology/configs/research-1.0.0.json";
 import stub010 from "@/methodology/configs/stub-0.1.0.json";
+import stub010Compat from "@/methodology/configs/stub-0.1.0.compat.json";
 
 // Configs ship as repo JSON (src/methodology/configs/<version>.json). Register each
 // here; the research config is added as a new file + a new entry, no engine change.
 const RAW_CONFIGS: Readonly<Record<string, unknown>> = {
   "stub-0.1.0": stub010,
+  "research-1.0.0": research100,
 };
 
-// The active version when none is requested: explicit arg > env > default latest stub.
-const DEFAULT_VERSION = "stub-0.1.0";
+// Additive, versioned data preserves provider behavior for immutable historic
+// config files that predate newly typed seams. It may add fields, never replace them.
+const COMPATIBILITY_OVERLAYS: Readonly<Record<string, unknown>> = {
+  "stub-0.1.0": stub010Compat,
+};
+
+// The active version when none is requested: explicit arg > env > this checked-in pointer.
+// The stub remains addressable for historic programs and rollback.
+export const DEFAULT_METHODOLOGY_VERSION = "research-1.0.0";
 
 const cache = new Map<string, MethodologyConfig>();
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function mergeAdditive(
+  base: unknown,
+  additions: unknown,
+  path = "config",
+): unknown {
+  if (!isRecord(base) || !isRecord(additions)) {
+    throw new Error(`Compatibility overlay must contain objects at ${path}`);
+  }
+
+  const merged: Record<string, unknown> = { ...base };
+  for (const [key, addition] of Object.entries(additions)) {
+    const current = merged[key];
+    if (current === undefined) {
+      merged[key] = addition;
+      continue;
+    }
+    if (isRecord(current) && isRecord(addition)) {
+      merged[key] = mergeAdditive(current, addition, `${path}.${key}`);
+      continue;
+    }
+    throw new Error(
+      `Compatibility overlay cannot replace existing value at ${path}.${key}`,
+    );
+  }
+  return merged;
+}
 
 function deepFreeze<T>(obj: T): T {
   if (obj && typeof obj === "object" && !Object.isFrozen(obj)) {
@@ -30,21 +71,24 @@ function deepFreeze<T>(obj: T): T {
 
 /**
  * Resolve, validate, freeze, and cache a MethodologyConfig.
- *  resolution: explicit `version` > env METHODOLOGY_VERSION > DEFAULT_VERSION.
+ *  resolution: explicit `version` > env METHODOLOGY_VERSION > checked-in default.
  * Throws if the version is unknown or the config fails validation (fail-closed, §2.6).
  */
 export function loadMethodology(version?: string): MethodologyConfig {
   const resolved =
-    version ?? process.env.METHODOLOGY_VERSION ?? DEFAULT_VERSION;
+    version ?? process.env.METHODOLOGY_VERSION ?? DEFAULT_METHODOLOGY_VERSION;
   const cached = cache.get(resolved);
   if (cached) return cached;
 
-  const raw = RAW_CONFIGS[resolved];
-  if (!raw) {
+  const base = RAW_CONFIGS[resolved];
+  if (!base) {
     throw new Error(
       `Unknown methodology version "${resolved}". Known: ${Object.keys(RAW_CONFIGS).join(", ")}`,
     );
   }
+
+  const overlay = COMPATIBILITY_OVERLAYS[resolved];
+  const raw = overlay ? mergeAdditive(base, overlay) : base;
 
   const parsed = methodologyConfigSchema.parse(raw); // throws on any violation (L3)
   if (parsed.version !== resolved) {
@@ -58,5 +102,6 @@ export function loadMethodology(version?: string): MethodologyConfig {
   return frozen;
 }
 
-/** The version string the loader resolves by default (persisted for reproducibility). */
-export const ACTIVE_METHODOLOGY_VERSION = DEFAULT_VERSION;
+/** The explicit active pointer, with an environment override for rollback or staging. */
+export const ACTIVE_METHODOLOGY_VERSION =
+  process.env.METHODOLOGY_VERSION ?? DEFAULT_METHODOLOGY_VERSION;

@@ -979,18 +979,21 @@ export function modalityRecommendation(
   const m = cfg.modality;
   const split = m.splitByBand[input.band];
   const cadence = m.otbSimulationByBand[input.band];
+  if (!split || !cadence) {
+    throw new Error(`Missing modality config for band "${input.band}"`);
+  }
   return {
     band: input.band,
     targetFocus: input.targetFocus,
-    digitalPct: split?.digitalPct.value ?? 100,
-    physicalPct: split?.physicalPct.value ?? 0,
+    digitalPct: split.digitalPct.value,
+    physicalPct: split.physicalPct.value,
     surfacePhysical: input.targetFocus !== "online",
-    otbCadence: cadence?.value ?? "",
+    otbCadence: cadence.value,
     physicalBoardAdvice: m.physicalBoardAdvice.value,
-    evidenceGrade: split?.digitalPct.grade ?? "C",
-    evidenceTier: split?.digitalPct.tier ?? 1,
-    citationKey: split?.digitalPct.citationKey ?? "stub_open_question",
-    flag: split?.digitalPct.flag,
+    evidenceGrade: split.digitalPct.grade,
+    evidenceTier: split.digitalPct.tier,
+    citationKey: split.digitalPct.citationKey,
+    flag: split.digitalPct.flag,
     modalityRationaleKey: m.modalityRationaleKey,
     otbRationaleKey: m.otbRationaleKey,
   };
@@ -1242,6 +1245,40 @@ export function scheduleReview(
   return { nextDue: newState.due, newState };
 }
 
+export interface RedoFlowPolicy {
+  retestDelaySec: number;
+  hint: {
+    mode: "solution-start-square";
+    includeMotifNames: boolean;
+    copy: string;
+    evidenceGrade: Grade;
+    evidenceTier: Tier;
+    citationKey: string;
+    flag?: GradedFlag;
+  };
+}
+
+/** Seam 6: read the complete redo scaffold as one graded policy. */
+export function redoFlowPolicy(cfg: MethodologyConfig): RedoFlowPolicy {
+  const delay = cfg.scheduling.intraSessionRetestDelaySec;
+  const hint = cfg.scheduling.scaffoldedHint;
+  if (!delay || !hint) {
+    throw new Error("Methodology config is missing the redo-flow policy");
+  }
+  return {
+    retestDelaySec: delay.value,
+    hint: {
+      mode: hint.mode.value,
+      includeMotifNames: hint.includeMotifNames.value,
+      copy: hint.copy.value,
+      evidenceGrade: hint.copy.grade,
+      evidenceTier: hint.copy.tier,
+      citationKey: hint.copy.citationKey,
+      flag: hint.copy.flag,
+    },
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Measurement & expectations — signal-vs-noise on the Glicko-2 CI (EXPECTATIONS;
 // METHODOLOGY Measurement, M7). The expectation table + FIDE rule land with M8.
@@ -1377,6 +1414,24 @@ export function expectationForBand(
 // Seam 4.1 — Structured game-analysis protocol (GAME_ANALYSIS; Seam 4 §4.1)
 // ---------------------------------------------------------------------------
 
+function gameAnalysisRuntime(cfg: MethodologyConfig) {
+  const runtime = cfg.gameAnalysis.runtime;
+  if (!runtime) {
+    throw new Error("Methodology config is missing game-analysis runtime data");
+  }
+  return runtime;
+}
+
+function gameSelectionScoring(cfg: MethodologyConfig) {
+  const scoring = cfg.gameAnalysis.selectionScoring;
+  if (!scoring) {
+    throw new Error(
+      "Methodology config is missing game-selection scoring data",
+    );
+  }
+  return scoring;
+}
+
 export interface GameInput {
   id: string;
   pgn: string;
@@ -1498,9 +1553,10 @@ export function detectTilt(
     const tB = new Date(b.playedAt).getTime();
     return tB - tA;
   });
+  const runtime = gameAnalysisRuntime(cfg);
 
   if (trigger.kind === "losses_in_row") {
-    const countNeeded = trigger.count ?? 3;
+    const countNeeded = trigger.count ?? runtime.lossesInRowCount.value;
     if (sorted.length < countNeeded) {
       return { tilted: false };
     }
@@ -1515,8 +1571,8 @@ export function detectTilt(
       };
     }
   } else if (trigger.kind === "losses_in_time") {
-    const countNeeded = trigger.count ?? 3;
-    const windowMs = trigger.timeWindowMs ?? 3600000;
+    const countNeeded = trigger.count ?? runtime.lossesInRowCount.value;
+    const windowMs = trigger.timeWindowMs ?? runtime.lossesInTimeWindowMs.value;
     const now = clock.now();
     const cutoff = now - windowMs;
 
@@ -1532,9 +1588,11 @@ export function detectTilt(
       };
     }
   } else if (trigger.kind === "performance_decline") {
-    const threshold = trigger.declineThreshold ?? 0.15;
-    const recentWindowSize = 10;
-    const baselineWindowSize = 20;
+    const threshold =
+      trigger.declineThreshold ?? runtime.performanceDeclineThreshold.value;
+    const recentWindowSize = runtime.performanceRecentWindowGames.value;
+    const baselineWindowSize = runtime.performanceBaselineWindowGames.value;
+    const minimumSampleGames = runtime.performanceMinimumSampleGames.value;
 
     const recentGames = sorted.slice(0, recentWindowSize);
     const baselineGames = sorted.slice(
@@ -1543,7 +1601,10 @@ export function detectTilt(
     );
 
     // Only assess if we have enough games in both groups to be statistically sound
-    if (recentGames.length >= 5 && baselineGames.length >= 5) {
+    if (
+      recentGames.length >= minimumSampleGames &&
+      baselineGames.length >= minimumSampleGames
+    ) {
       const winRate = (games: readonly RecentResult[]): number => {
         const wins = games.filter((g) => g.result === "win").length;
         const draws = games.filter((g) => g.result === "draw").length;
@@ -1566,36 +1627,49 @@ export function detectTilt(
 }
 
 /** Helper function to score a game based on learning opportunities. */
-function scoreGameForAnalysis(game: RecentGame): number {
+function scoreGameForAnalysis(
+  game: RecentGame,
+  cfg: MethodologyConfig,
+): number {
   if (!game.rawFeatures) return 0;
   const isUserPly = (ply: number): boolean => {
     return game.color === "w" ? ply % 2 === 1 : ply % 2 === 0;
   };
 
   const evals = game.rawFeatures.moveEvals || [];
+  const scoring = gameSelectionScoring(cfg);
   let score = 0;
 
   if (game.result === "win") {
     // Look for conversion opportunities: won, but had mistakes/blunders
     for (const m of evals) {
-      if (isUserPly(m.ply) && m.cpLoss >= 100) {
+      if (
+        isUserPly(m.ply) &&
+        m.cpLoss >= scoring.winMoveCpLossThreshold.value
+      ) {
         score += m.cpLoss;
       }
     }
     if (game.rawFeatures.conversion?.reachedWinningPlus) {
-      score += 200; // base score for conversion phase
+      score += scoring.winConversionBonus.value;
     }
   } else if (game.result === "loss") {
     // Look for clear learning moments: critical blunders
     for (const m of evals) {
-      if (isUserPly(m.ply) && m.cpLoss >= 150) {
+      if (
+        isUserPly(m.ply) &&
+        m.cpLoss >= scoring.lossMoveCpLossThreshold.value
+      ) {
         score += m.cpLoss;
       }
     }
   } else {
     // Draw: check for blunders or failed conversion
     for (const m of evals) {
-      if (isUserPly(m.ply) && m.cpLoss >= 100) {
+      if (
+        isUserPly(m.ply) &&
+        m.cpLoss >= scoring.drawMoveCpLossThreshold.value
+      ) {
         score += m.cpLoss;
       }
     }
@@ -1603,7 +1677,7 @@ function scoreGameForAnalysis(game: RecentGame): number {
       game.rawFeatures.conversion?.reachedWinningPlus &&
       !game.rawFeatures.conversion?.converted
     ) {
-      score += 300; // failed conversion
+      score += scoring.drawFailedConversionBonus.value;
     }
   }
 
@@ -1636,14 +1710,14 @@ export function selectGamesForAnalysis(
   const nonWins = recentGames.filter((g) => g.result !== "win");
 
   const scoredWins = wins
-    .map((g) => ({ game: g, score: scoreGameForAnalysis(g) }))
+    .map((g) => ({ game: g, score: scoreGameForAnalysis(g, cfg) }))
     .sort((a, b) => b.score - a.score);
 
   const scoredNonWins = nonWins
-    .map((g) => ({ game: g, score: scoreGameForAnalysis(g) }))
+    .map((g) => ({ game: g, score: scoreGameForAnalysis(g, cfg) }))
     .sort((a, b) => b.score - a.score);
 
-  const maxSuggestions = 5;
+  const maxSuggestions = gameSelectionScoring(cfg).maxSuggestions.value;
   const targetWinsCount = Math.round(maxSuggestions * winRatio);
   const targetLossesCount = maxSuggestions - targetWinsCount;
 
@@ -1714,20 +1788,12 @@ export function selectGamesForAnalysis(
 }
 
 /**
- * Code-level entropy heuristic (Luu et al. 2025): a position is "high-entropy" (chaotic)
- * when several candidate moves are nearly equal. This window is an engine heuristic, NOT a
- * graded science value, so it lives in code rather than config (it compares evaluations, so
- * it is robust to real, long PVs — unlike a PV-length proxy). Kept deliberately small.
- */
-const ENTROPY_WINDOW_CP = 30;
-
-/**
  * Seam 3 §(d) — Applies RPL filtering to engine lines. The per-band visible-error threshold
  * is read from config (`visibleErrorThresholdCp`, a graded leaf): a line is shown only when
  * it is a forced mate or its swing clears the band's threshold — sub-threshold swings are
  * noise/positional subtleties beyond that band's Region of Proximal Learning. A threshold of
- * 0 (top bands) shows everything. The entropy heuristic (above) flags chaotic positions in
- * the `reason`. Pure and deterministic (L2); no hardcoded band logic or thresholds.
+ * 0 (top bands) shows everything. The graded entropy window flags chaotic positions in the
+ * `reason`. Pure and deterministic (L2); no hardcoded band logic or thresholds.
  */
 export function filterEngineLines(
   lines: readonly EngineLine[],
@@ -1757,7 +1823,9 @@ export function filterEngineLines(
   const chaotic =
     top !== undefined &&
     nonMate.filter(
-      (l) => Math.abs(l.evaluation - top.evaluation) <= ENTROPY_WINDOW_CP,
+      (l) =>
+        Math.abs(l.evaluation - top.evaluation) <=
+        gameAnalysisRuntime(cfg).entropyWindowCp.value,
     ).length >= 2;
 
   const out: FilteredLine[] = lines.map((line) => {
@@ -1858,7 +1926,9 @@ export function gameAnalysisProtocol(
   const reproduction = cfg.gameAnalysis.activeReproduction.perBand[band];
 
   if (game.rawFeatures && reproduction) {
-    const threshold = rpl.perBand[band]?.visibleErrorThresholdCp.value ?? 100;
+    const threshold =
+      rpl.perBand[band]?.visibleErrorThresholdCp.value ??
+      gameAnalysisRuntime(cfg).fallbackRplThresholdCp.value;
     const maxMoments = reproduction.maxCriticalMoments.value;
     const userColor = game.color;
 

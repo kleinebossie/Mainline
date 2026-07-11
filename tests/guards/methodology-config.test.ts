@@ -1,18 +1,24 @@
 import { describe, expect, it } from "vitest";
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 import {
   methodologyConfigSchema,
   type MethodologyConfig,
 } from "@/methodology/schema/config";
 import { isGradedValue } from "@/methodology/schema/graded";
-import { loadMethodology } from "@/methodology/loader";
+import {
+  DEFAULT_METHODOLOGY_VERSION,
+  loadMethodology,
+} from "@/methodology/loader";
 import stub010 from "@/methodology/configs/stub-0.1.0.json";
 
 // L3 guard (BUILD.md §13.4): every shipped config loads through the Zod schema, every
 // leaf is a GradedValue, every citationKey resolves in evidenceLedger, and the result is
 // immutable. The negative cases prove the guard actually rejects ungraded/dangling data.
 
-const SHIPPED = ["stub-0.1.0"];
+const SHIPPED = ["stub-0.1.0", "research-1.0.0"];
 
 function walkCitationKeys(node: unknown, into: Set<string>): void {
   if (Array.isArray(node)) {
@@ -24,6 +30,22 @@ function walkCitationKeys(node: unknown, into: Set<string>): void {
 }
 
 describe("L3: methodology config integrity", () => {
+  it("uses the checked-in research release as the active pointer", () => {
+    expect(DEFAULT_METHODOLOGY_VERSION).toBe("research-1.0.0");
+    expect(loadMethodology(DEFAULT_METHODOLOGY_VERSION).version).toBe(
+      "research-1.0.0",
+    );
+  });
+
+  it("keeps the historic stub config byte-for-byte immutable", () => {
+    const bytes = readFileSync(
+      resolve("src/methodology/configs/stub-0.1.0.json"),
+    );
+    expect(createHash("sha256").update(bytes).digest("hex")).toBe(
+      "e819ec97664c5482f2c89cce26a604679691c34feebc1ad0414a228ca3ae3ff9",
+    );
+  });
+
   it.each(SHIPPED)("%s loads and validates", (version) => {
     const cfg = loadMethodology(version);
     expect(cfg.version).toBe(version);
@@ -38,6 +60,8 @@ describe("L3: methodology config integrity", () => {
       // Walk every seam (M6 added interpretation/activities/difficulty/prioritization/
       // rationale) so a dangling citation anywhere fails.
       walkCitationKeys(cfg.bands, used);
+      walkCitationKeys(cfg.dimensions, used);
+      walkCitationKeys(cfg.dimensionSalience, used);
       walkCitationKeys(cfg.assessment, used);
       walkCitationKeys(cfg.interpretation, used);
       walkCitationKeys(cfg.activities, used);
@@ -48,7 +72,7 @@ describe("L3: methodology config integrity", () => {
       walkCitationKeys(cfg.measurement, used);
       walkCitationKeys(cfg.rationale, used);
       walkCitationKeys(cfg.gameAnalysis, used);
-      // M14 — the deliberately-external layer (book study + 2D/3D modality).
+      // M14 : the deliberately-external layer (book study + 2D/3D modality).
       walkCitationKeys(cfg.bookStudy, used);
       walkCitationKeys(cfg.modality, used);
       expect(used.size).toBeGreaterThan(0);
@@ -106,6 +130,58 @@ describe("L3: methodology config integrity", () => {
       expect(cfg.measurement.plateauWindowDays.value).toBeGreaterThan(0);
     },
   );
+
+  it.each(SHIPPED)(
+    "%s: structured-analysis provider defaults are graded config",
+    (version) => {
+      const cfg = loadMethodology(version);
+
+      expect(cfg.gameAnalysis.runtime?.entropyWindowCp.grade).toBeDefined();
+      expect(
+        cfg.gameAnalysis.selectionScoring?.maxSuggestions.grade,
+      ).toBeDefined();
+      expect(
+        cfg.gameAnalysis.runtime?.fallbackRplThresholdCp.grade,
+      ).toBeDefined();
+      expect(cfg.scheduling.scaffoldedHint?.copy.grade).toBeDefined();
+    },
+  );
+
+  it("research-1.0.0 retains the approved explicit seam stubs", () => {
+    const cfg = loadMethodology("research-1.0.0");
+
+    expect(cfg.dimensions.map((dimension) => dimension.id)).toContain("psych");
+    expect(cfg.dimensionSalience?.u800?.psych?.value).toBeNull();
+    expect(cfg.assessment.noHistoryFallback?.value).toBe(
+      "basic board-vision / one-move set",
+    );
+    expect(cfg.difficulty.trackSplitByBand?.u800?.patternPct.value).toBeNull();
+    expect(cfg.measurement.fideConversion?.flag).toBe("stub");
+    for (const dimension of cfg.dimensions) {
+      expect(dimension.definition).toBeDefined();
+      expect(dimension.primarySignal).toBeDefined();
+      expect(dimension.predictiveSub2000).toBeDefined();
+      expect(dimension.trainability).toBeDefined();
+    }
+  });
+
+  it("research-1.0.0 keeps observational and extrapolated copy non-causal", () => {
+    const cfg = loadMethodology("research-1.0.0");
+    const copy = new Map(
+      cfg.rationale.map((entry) => [entry.key, entry.value]),
+    );
+
+    expect(copy.get("analysis_success_bias")).toContain("was associated");
+    expect(copy.get("analysis_success_bias")).toContain("does not show");
+    expect(copy.get("analysis_srs_puzzle")).not.toMatch(/40%|permanent/i);
+    expect(copy.get("puzzle_difficulty")).toContain("not established");
+    expect(copy.get("if_then_plan")).toContain("not been measured for chess");
+
+    const allRationale = cfg.rationale.map((entry) => entry.value).join("\n");
+    expect(allRationale).not.toMatch(
+      /most science-backed|exact brain pathways|inoculates you|actually builds skill|brain stops learning|punitive streak resets mostly just make people quit/i,
+    );
+  });
 
   it.each(SHIPPED)(
     "%s: the M9 engagement seam loads graded, forbid-list enforced, copyKeys resolve",

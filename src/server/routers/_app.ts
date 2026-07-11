@@ -9,6 +9,7 @@ import { constraintsRouter } from "@/server/routers/constraints";
 import { engagementRouter } from "@/server/routers/engagement";
 import { importRouter } from "@/server/routers/import";
 import { libraryRouter } from "@/server/routers/library";
+import { operationsRouter } from "@/server/routers/operations";
 import { programRouter } from "@/server/routers/program";
 import { progressRouter } from "@/server/routers/progress";
 import { trackerRouter } from "@/server/routers/tracker";
@@ -26,6 +27,7 @@ export const appRouter = router({
   account: accountRouter,
   library: libraryRouter,
   progress: progressRouter,
+  operations: operationsRouter,
 });
 
 export type AppRouter = typeof appRouter;

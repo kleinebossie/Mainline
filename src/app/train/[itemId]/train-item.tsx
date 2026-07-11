@@ -76,9 +76,8 @@ export function TrainItem({ programItemId }: TrainItemProps) {
   const [hintActive, setHintActive] = useState<boolean>(false);
   const [highlightedSquares, setHighlightedSquares] = useState<string[]>([]);
 
-  // Delay Phase State (Phase 2). The wait length is a Seam-6 config value (L1) carried on
-  // the item; default only if an older config omits it.
-  const retestDelaySec = data?.redoFlow.retestDelaySec ?? 600;
+  // Delay Phase State (Phase 2). The wait length is a Seam-6 config value (L1).
+  const retestDelaySec = data?.redoFlow.retestDelaySec ?? 0;
   const [delayRemaining, setDelayRemaining] = useState<number>(retestDelaySec);
   const delayTimerRef = useRef<NodeJS.Timeout | null>(null);
   const activeSolvableId =
@@ -198,12 +197,14 @@ export function TrainItem({ programItemId }: TrainItemProps) {
         logOutcome(current, false, result.solveMs);
         setRetestQueue((prev) => [...prev, current]);
 
-        // Activate the scaffolded hint (Phase 1): wash the start square of the right move.
+        // Render the configured scaffold mechanically. The Methodology owns which
+        // scaffold is allowed and the evidence-carrying copy shown with it.
+        const hint = data?.redoFlow.hint;
         const nextCorrectMove = solveState.solutionLine[solveState.cursor];
-        if (nextCorrectMove) {
+        if (hint?.mode === "solution-start-square" && nextCorrectMove) {
           setHighlightedSquares([nextCorrectMove.substring(0, 2)]);
         }
-        setHintActive(true);
+        setHintActive(hint !== undefined);
       }
 
       const resetPosition = result.checkpointPosition;
@@ -498,20 +499,26 @@ export function TrainItem({ programItemId }: TrainItemProps) {
                     Hint
                   </span>
                   <p className="text-sm font-serif text-ink leading-relaxed">
-                    We highlighted the starting square of the correct piece.
-                    {current.themes.length > 0 && (
-                      <>
-                        {" "}
-                        Look for:{" "}
-                        <span className="font-medium text-evergreen">
-                          {current.themes
-                            .map(humanizeTheme)
-                            .slice(0, 3)
-                            .join(", ")}
-                        </span>
-                        .
-                      </>
-                    )}
+                    {data?.redoFlow.hint.copy}
+                    {data?.redoFlow.hint.includeMotifNames &&
+                      current.themes.length > 0 && (
+                        <>
+                          {" "}
+                          Look for:{" "}
+                          <span className="font-medium text-evergreen">
+                            {current.themes
+                              .map(humanizeTheme)
+                              .slice(0, 3)
+                              .join(", ")}
+                          </span>
+                          .
+                        </>
+                      )}
+                  </p>
+                  <p className="text-graphite font-mono text-[0.7rem]">
+                    Grade {data?.redoFlow.hint.evidenceGrade} · Tier{" "}
+                    {data?.redoFlow.hint.evidenceTier} ·{" "}
+                    {data?.redoFlow.hint.citationSource}
                   </p>
                 </div>
               )}

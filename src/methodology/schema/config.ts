@@ -56,7 +56,17 @@ const bandSchema = z.object({
 const dimensionSchema = z.object({
   id: z.string().min(1),
   label: z.string().min(1),
+  // The research release carries the approved taxonomy descriptors. These are
+  // optional for the historic stub, whose compact shape must remain loadable.
+  definition: gradedValue(z.string()).optional(),
+  primarySignal: gradedValue(z.string()).optional(),
+  predictiveSub2000: gradedValue(z.string()).optional(),
+  trainability: gradedValue(z.string()).optional(),
 });
+
+const dimensionSalienceSchema = z.record(
+  z.record(gradedValue(z.number().nullable())),
+);
 
 // Seam 2 — assessment calibration. Every number a graded leaf; the two pure functions
 // (provider.ts) read these and nothing else, so re-tuning calibration is a config edit.
@@ -102,6 +112,8 @@ const assessmentSchema = z.object({
   selfReportForConstraints: gradedValue(z.boolean()),
   instantEvalGames: gradedValue(z.number().int().positive()),
   calibration: calibrationSchema,
+  // The no-history path is descriptive config, not a semantic skill quiz.
+  noHistoryFallback: gradedValue(z.string()).optional(),
   // The dimensions probed behaviourally, in order (each a reused ladder run). The first
   // track is the primary tactical estimate that seeds the band (Seam 2 startRating rule).
   tracks: z.array(calibrationTrackSchema).min(1),
@@ -135,6 +147,9 @@ const interpretationSchema = z.object({
     // blunder). Preferred over cpLoss when the raw feature carries win-prob; optional so
     // configs predating it still validate (the provider falls back to cpLoss).
     blunderWinProbDrop: gradedValue(z.number().min(0).max(1)).optional(),
+    inaccuracyCpRange: gradedValue(z.string()).optional(),
+    grossBlunderCpLoss: gradedValue(z.number().positive()).optional(),
+    sub100IgnoreBelowRating: gradedValue(z.number()).optional(),
   }),
   blunderRate: z.object({
     // Which dimension a high blunder rate flags (resolves in `dimensions`).
@@ -203,6 +218,17 @@ const difficultyTrackSchema = z.object({
   offsetSeedByBand: z.record(gradedValue(z.number())),
 });
 
+const trackSplitSchema = z.object({
+  patternPct: gradedValue(z.number().min(0).max(100).nullable()),
+  calculationPct: gradedValue(z.number().min(0).max(100).nullable()),
+});
+
+const scaffoldedHintSchema = z.object({
+  mode: gradedValue(z.enum(["solution-start-square"])),
+  includeMotifNames: gradedValue(z.boolean()),
+  copy: gradedValue(z.string().min(1)),
+});
+
 const difficultySchema = z.object({
   patternTrack: difficultyTrackSchema,
   calculationTrack: difficultyTrackSchema,
@@ -225,6 +251,9 @@ const difficultySchema = z.object({
   // Clamp for any servo-produced puzzle-rating target (realistic puzzle-DB span).
   ratingFloor: gradedValue(z.number()),
   ratingCeil: gradedValue(z.number()),
+  // The approved per-band time split is a best guess and is not consumed by
+  // the current generator. It is carried for a later methodology consumer.
+  trackSplitByBand: z.record(trackSplitSchema).optional(),
 });
 
 // Seam 7 — periodisation / prioritisation (TRAINING_PROGRAMMING). The daily program is an
@@ -279,6 +308,11 @@ const prioritizationSchema = z.object({
     // Upper bound on games scheduled in one session, so a fast format can't fill it.
     maxGamesPerSession: gradedValue(z.number().int().positive()).optional(),
   }),
+  // Frequency and load-cycling guidance is retained as explicit methodology
+  // data. The current Engine remains daily and time-budget based.
+  daysPerWeek: gradedValue(z.string()).optional(),
+  sessionMinByBand: z.record(gradedValue(z.string())).optional(),
+  loadCycling: gradedValue(z.boolean()).optional(),
 });
 
 // Seam 6 — spacing / scheduling (SPACED_REPETITION). FSRS v6: the Engine owns the generic
@@ -308,6 +342,14 @@ const schedulingSchema = z.object({
   intraSessionRetestDelaySec: gradedValue(
     z.number().int().positive(),
   ).optional(),
+  // The solving surface renders this policy mechanically. Which scaffold to use
+  // and what it says remain evidence-carrying Methodology decisions.
+  scaffoldedHint: scaffoldedHintSchema.optional(),
+  // Explainable fallback and personalization policy retained from the
+  // approved methodology, not currently used when FSRS state is present.
+  fallbackIntervalsDays: gradedValue(z.array(z.number().positive())).optional(),
+  personalizeAfterReviews: gradedValue(z.number().int().positive()).optional(),
+  beginnerMicroSpacing: gradedValue(z.string()).optional(),
 });
 
 // Measurement & expectations (cross-cutting; EXPECTATIONS.md). A rating is a distribution,
@@ -325,6 +367,8 @@ const measurementSchema = z.object({
   plateauWindowDays: gradedValue(z.number().int().positive()),
   // Expectations copy per band (surfaced on dashboards).
   expectationsByBand: z.record(gradedValue(z.string().min(1))),
+  significanceRule: gradedValue(z.string()).optional(),
+  fideConversion: gradedValue(z.string()).optional(),
 });
 
 // Seam 8 — rationale & evidence copy (USER_FACING). A versioned copy table keyed by
@@ -464,6 +508,29 @@ const gameSelectionBandSchema = z.object({
   focusDescription: gradedValue(z.string()),
 });
 
+// Provider defaults that were previously embedded in the structured analysis
+// reader. They are explicit best guesses so a research release can audit them,
+// replace them, or retire them without changing Engine code.
+const gameAnalysisRuntimeSchema = z.object({
+  lossesInRowCount: gradedValue(z.number().int().positive()),
+  lossesInTimeWindowMs: gradedValue(z.number().int().positive()),
+  performanceDeclineThreshold: gradedValue(z.number().min(0).max(1)),
+  performanceRecentWindowGames: gradedValue(z.number().int().positive()),
+  performanceBaselineWindowGames: gradedValue(z.number().int().positive()),
+  performanceMinimumSampleGames: gradedValue(z.number().int().positive()),
+  entropyWindowCp: gradedValue(z.number().nonnegative()),
+  fallbackRplThresholdCp: gradedValue(z.number().nonnegative()),
+});
+
+const gameSelectionScoringSchema = z.object({
+  winMoveCpLossThreshold: gradedValue(z.number().nonnegative()),
+  winConversionBonus: gradedValue(z.number().nonnegative()),
+  lossMoveCpLossThreshold: gradedValue(z.number().nonnegative()),
+  drawMoveCpLossThreshold: gradedValue(z.number().nonnegative()),
+  drawFailedConversionBonus: gradedValue(z.number().nonnegative()),
+  maxSuggestions: gradedValue(z.number().int().positive()),
+});
+
 const gameAnalysisSchema = z.object({
   // The eval magnitude (mover POV, cp) above which a position is "decided/winning". The
   // decisive-zone guard uses it: a move that was winning before AND still winning after did
@@ -494,6 +561,10 @@ const gameAnalysisSchema = z.object({
     enabled: gradedValue(z.boolean()),
     perBand: z.record(gameSelectionBandSchema),
   }),
+  // Historic raw config files predate these extracted provider values. The loader
+  // supplies a versioned compatibility overlay without modifying those files.
+  runtime: gameAnalysisRuntimeSchema.optional(),
+  selectionScoring: gameSelectionScoringSchema.optional(),
   engineDelayRequired: gradedValue(z.boolean()),
   tiltPreventionEnabled: gradedValue(z.boolean()),
   physicalBoardRecommendation: gradedValue(z.string()),
@@ -674,6 +745,7 @@ export const methodologyConfigSchema = z
     version: versionSchema,
     bands: z.array(bandSchema).min(1),
     dimensions: z.array(dimensionSchema).min(1),
+    dimensionSalience: dimensionSalienceSchema.optional(),
     assessment: assessmentSchema,
     interpretation: interpretationSchema,
     activities: z.array(activityDefinitionSchema).min(1),
@@ -697,6 +769,8 @@ export const methodologyConfigSchema = z
     const usedCitations = new Set<string>();
     for (const section of [
       cfg.bands,
+      cfg.dimensions,
+      cfg.dimensionSalience,
       cfg.assessment,
       cfg.interpretation,
       cfg.activities,
@@ -726,6 +800,7 @@ export const methodologyConfigSchema = z
 
     // Coherent stub = full band coverage: every per-band record covers every band id.
     const bandIds = cfg.bands.map((b) => b.id);
+    const ratKeys = new Set(cfg.rationale.map((r) => r.key));
     const requireBands = (
       rec: Record<string, unknown>,
       path: (string | number)[],
@@ -740,6 +815,143 @@ export const methodologyConfigSchema = z
         }
       }
     };
+
+    if (cfg.version.startsWith("research-")) {
+      const requireValue = (
+        value: unknown,
+        path: (string | number)[],
+      ): void => {
+        if (value === undefined) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "research release is missing an approved config field",
+            path,
+          });
+        }
+      };
+
+      if (!cfg.dimensions.some((dimension) => dimension.id === "psych")) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message:
+            "research release must retain the explicit psych dimension stub",
+          path: ["dimensions"],
+        });
+      }
+      cfg.dimensions.forEach((dimension, index) => {
+        requireValue(dimension.definition, ["dimensions", index, "definition"]);
+        requireValue(dimension.primarySignal, [
+          "dimensions",
+          index,
+          "primarySignal",
+        ]);
+        requireValue(dimension.predictiveSub2000, [
+          "dimensions",
+          index,
+          "predictiveSub2000",
+        ]);
+        requireValue(dimension.trainability, [
+          "dimensions",
+          index,
+          "trainability",
+        ]);
+      });
+      requireValue(cfg.dimensionSalience, ["dimensionSalience"]);
+      if (cfg.dimensionSalience) {
+        requireBands(cfg.dimensionSalience, ["dimensionSalience"]);
+        for (const [band, salience] of Object.entries(cfg.dimensionSalience)) {
+          for (const dimension of cfg.dimensions) {
+            if (!(dimension.id in salience)) {
+              ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: `dimension salience is missing ${dimension.id} for ${band}`,
+                path: ["dimensionSalience", band],
+              });
+            }
+          }
+        }
+      }
+      requireValue(cfg.assessment.noHistoryFallback, [
+        "assessment",
+        "noHistoryFallback",
+      ]);
+      requireValue(cfg.interpretation.thresholds.inaccuracyCpRange, [
+        "interpretation",
+        "thresholds",
+        "inaccuracyCpRange",
+      ]);
+      requireValue(cfg.interpretation.thresholds.grossBlunderCpLoss, [
+        "interpretation",
+        "thresholds",
+        "grossBlunderCpLoss",
+      ]);
+      requireValue(cfg.interpretation.thresholds.sub100IgnoreBelowRating, [
+        "interpretation",
+        "thresholds",
+        "sub100IgnoreBelowRating",
+      ]);
+      requireValue(cfg.difficulty.trackSplitByBand, [
+        "difficulty",
+        "trackSplitByBand",
+      ]);
+      requireValue(cfg.scheduling.fallbackIntervalsDays, [
+        "scheduling",
+        "fallbackIntervalsDays",
+      ]);
+      requireValue(cfg.scheduling.personalizeAfterReviews, [
+        "scheduling",
+        "personalizeAfterReviews",
+      ]);
+      requireValue(cfg.scheduling.beginnerMicroSpacing, [
+        "scheduling",
+        "beginnerMicroSpacing",
+      ]);
+      requireValue(cfg.scheduling.scaffoldedHint, [
+        "scheduling",
+        "scaffoldedHint",
+      ]);
+      requireValue(cfg.prioritization.daysPerWeek, [
+        "prioritization",
+        "daysPerWeek",
+      ]);
+      requireValue(cfg.prioritization.sessionMinByBand, [
+        "prioritization",
+        "sessionMinByBand",
+      ]);
+      requireValue(cfg.prioritization.loadCycling, [
+        "prioritization",
+        "loadCycling",
+      ]);
+      requireValue(cfg.measurement.significanceRule, [
+        "measurement",
+        "significanceRule",
+      ]);
+      requireValue(cfg.measurement.fideConversion, [
+        "measurement",
+        "fideConversion",
+      ]);
+      requireValue(cfg.gameAnalysis.runtime, ["gameAnalysis", "runtime"]);
+      requireValue(cfg.gameAnalysis.selectionScoring, [
+        "gameAnalysis",
+        "selectionScoring",
+      ]);
+      for (const key of [
+        "opening_suppressed",
+        "time_mgmt",
+        "if_then_plan",
+        "feedback_framing",
+        "woodpecker",
+        "streak_forgiveness",
+      ]) {
+        if (!ratKeys.has(key)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `research release is missing rationale "${key}"`,
+            path: ["rationale"],
+          });
+        }
+      }
+    }
     requireBands(cfg.interpretation.blunderRate.baselineByBand, [
       "interpretation",
       "blunderRate",
@@ -815,7 +1027,6 @@ export const methodologyConfigSchema = z
     // signal or program item can never point at a non-existent leaf.
     const dimIds = new Set(cfg.dimensions.map((d) => d.id));
     const actIds = new Set(cfg.activities.map((a) => a.id));
-    const ratKeys = new Set(cfg.rationale.map((r) => r.key));
     const requireDim = (id: string, path: (string | number)[]): void => {
       if (!dimIds.has(id)) {
         ctx.addIssue({

@@ -1,0 +1,22 @@
+{
+  "version": "research-1.0.0",
+  "channel": "research",
+  "releasedOn": "2026-07-10",
+  "sourceDocument": "planning/METHODOLOGY.md",
+  "summary": "First research-channel methodology release for the current Phase 1 seams.",
+  "retainedBestGuesses": [
+    "Calibration ladder length, offsets, stopping rule, and uncertainty estimator",
+    "Per-band puzzle offsets, success targets, session volume, and practice structure",
+    "FSRS spatial-pattern transfer, solve-time thresholds, beginner micro-spacing, and scaffolded-hint presentation",
+    "Per-band analysis ratios, RPL thresholds, entropy window, and modality proportions",
+    "Book catalog priorities, plateau window, rating expectations, and engagement quantities"
+  ],
+  "deliberateStubs": [
+    "Psychological skill dimension and numeric salience priors",
+    "Phase, conversion, time-use, opening, and recurring-motif diagnosis as daily signals",
+    "Semantic strategic diagnosis and precise online-to-FIDE conversion",
+    "Chess-specific causal effects of activities, spacing, book choices, and engagement mechanics",
+    "Local solve-time norms and the effectiveness of tilt cooldowns"
+  ],
+  "rollbackVersion": "stub-0.1.0"
+}

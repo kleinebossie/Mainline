@@ -22,22 +22,23 @@ datasource db {
 // --- Auth.js (NextAuth v5) standard tables (BUILD.md §5.1) ---
 
 model User {
-  id              String    @id @default(cuid())
-  name            String?
-  email           String?   @unique
-  emailVerified   DateTime?
-  image           String?
+  id                  String    @id @default(cuid())
+  name                String?
+  email               String?   @unique
+  emailVerified       DateTime?
+  image               String?
   // Identity fields (BUILD.md §5.1). `patronStatus` is a billing-capable
   // reservation — no billing is built in Phase 1 (VISION §7).
-  locale          String    @default("en")
-  role            String    @default("user") // user | admin
-  patronStatus    String    @default("none") // none | patron
+  locale              String    @default("en")
+  role                String    @default("user") // user | admin
+  patronStatus        String    @default("none") // none | patron
   // The platform the user treats as their "home" account — defaults the game picker and
   // analysis surfaces. Nullable: when unset we infer it from the most recent imported game.
-  primaryPlatform String? // lichess | chesscom
-  deletedAt       DateTime? // soft-delete for GDPR export/erase
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  primaryPlatform     String? // lichess | chesscom
+  betaAccessGrantedAt DateTime?
+  deletedAt           DateTime? // soft-delete for GDPR export/erase
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
   accounts              Account[]
   sessions              Session[]
@@ -54,6 +55,42 @@ model User {
   rewardEvents          RewardEvent[]
   notificationPref      NotificationPref?
   practiceItems         PracticeItem[]
+  allowlistEntries      AllowlistEntry[]
+  apiCallBudgets        ApiCallBudget[]
+}
+
+// Closed-beta admission gate (BUILD.md §5.1, M15). Entries may target an email or
+// carry a one-time invite code. `usedByUserId` records the account that claimed an
+// entry so an invite cannot silently admit multiple accounts.
+model AllowlistEntry {
+  id           String    @id @default(cuid())
+  email        String?
+  inviteCode   String?   @unique
+  usedByUserId String?
+  expiresAt    DateTime?
+  createdAt    DateTime  @default(now())
+
+  usedByUser User? @relation(fields: [usedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([email])
+  @@index([usedByUserId])
+}
+
+// Per-user, per-platform external request bucket (BUILD.md §5.7, §12, M15).
+// Window arithmetic and limits are infrastructure policy in src/server/api-budget.ts.
+model ApiCallBudget {
+  id          String   @id @default(cuid())
+  userId      String
+  platform    String // lichess | chesscom
+  windowStart DateTime
+  count       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, platform, windowStart])
+  @@index([userId, windowStart])
 }
 
 model Account {
@@ -197,15 +234,21 @@ model AnalysisResult {
 // unique `key` is the idempotency token: a job claims its key before running so a
 // retried cron tick or double-trigger does not duplicate work.
 model JobRun {
-  id         String    @id @default(cuid())
-  kind       String // import_sync | ingest | adaptation
-  key        String    @unique
-  status     String    @default("running") // running | success | error
-  startedAt  DateTime  @default(now())
-  finishedAt DateTime?
-  error      String?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  id          String    @id @default(cuid())
+  kind        String // import_sync | ingest | adaptation
+  key         String    @unique
+  status      String    @default("running") // running | success | error
+  attempt     Int       @default(1)
+  startedAt   DateTime  @default(now())
+  finishedAt  DateTime?
+  lockedUntil DateTime?
+  error       String? // sanitized operator-safe summary, never an upstream payload
+  errorCode   String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([status, startedAt])
+  @@index([kind, status])
 }
 
 // --- Resource catalog: external puzzle DB + resource references (BUILD.md §5.3, §6.4) ---

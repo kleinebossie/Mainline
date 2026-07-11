@@ -4,6 +4,7 @@ import type { PrismaClient } from "@prisma/client";
 import {
   getEngagementSummary,
   recordEngagementForCompletion,
+  recordEngagementForMissedDay,
   saveNotificationPref,
 } from "@/server/engagement";
 import { loadMethodology } from "@/methodology/loader";
@@ -38,6 +39,7 @@ function fakeDb(opts: {
     enabled: boolean;
     quietHours: string | null;
   } | null;
+  plannedCount?: number;
 }) {
   const rec: Rec = { rewardCreates: [], prefUpserts: [] };
   const db = {
@@ -61,7 +63,12 @@ function fakeDb(opts: {
         return { count: data.length };
       },
       findMany: async () => opts.recentEvents ?? [],
+      findFirst: async () =>
+        rec.rewardCreates.some((event) => event.type === "recovery_prompt")
+          ? { id: "recovery" }
+          : null,
     },
+    programItem: { count: async () => opts.plannedCount ?? 0 },
     notificationPref: {
       findUnique: async () => opts.pref ?? null,
       upsert: async ({
@@ -119,6 +126,32 @@ describe("recordEngagementForCompletion", () => {
     expect(badge.payload.milestone).toBe(
       cfg.engagement.competenceMilestones.value[0],
     );
+  });
+});
+
+describe("recordEngagementForMissedDay", () => {
+  it("records one configured recovery prompt for a planned inactive day", async () => {
+    const missedAt = Math.floor(T / DAY_MS) * DAY_MS - DAY_MS;
+    const { db, rec } = fakeDb({ plannedCount: 1, activeEpochs: [] });
+
+    const first = await recordEngagementForMissedDay(db, "u1", missedAt);
+    const second = await recordEngagementForMissedDay(db, "u1", missedAt);
+
+    expect(first.recorded).toBe(true);
+    expect(second.recorded).toBe(false);
+    expect(rec.rewardCreates.map((event) => event.type)).toEqual([
+      "recovery_prompt",
+    ]);
+  });
+
+  it("does nothing when no work was planned", async () => {
+    const missedAt = Math.floor(T / DAY_MS) * DAY_MS - DAY_MS;
+    const { db, rec } = fakeDb({ plannedCount: 0 });
+
+    await expect(
+      recordEngagementForMissedDay(db, "u1", missedAt),
+    ).resolves.toEqual({ recorded: false });
+    expect(rec.rewardCreates).toEqual([]);
   });
 });
 

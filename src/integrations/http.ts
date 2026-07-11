@@ -57,6 +57,7 @@ export async function politeFetch(
   url: string,
   init: RequestInit = {},
   policy: BackoffPolicy = DEFAULT_BACKOFF,
+  beforeAttempt?: () => Promise<void>,
 ): Promise<Response> {
   const headers = {
     "User-Agent": PLATFORM_USER_AGENT, // Chess.com 403s without it (§6.3)
@@ -65,6 +66,7 @@ export async function politeFetch(
   };
 
   for (let attempt = 0; ; attempt++) {
+    await beforeAttempt?.();
     const res = await fetch(url, { ...init, headers });
     if (res.status !== 429) return res;
 

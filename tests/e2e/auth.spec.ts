@@ -6,6 +6,8 @@ import { test, expect } from "@playwright/test";
 
 test("sign-in page offers Lichess", async ({ page }) => {
   await page.goto("/signin");
+  await expect(page.getByText(/closed beta/i)).toBeVisible();
+  await expect(page.getByLabel(/invite code/i).first()).toBeVisible();
   await expect(
     page.getByRole("button", { name: /Continue with Lichess/i }),
   ).toBeVisible();

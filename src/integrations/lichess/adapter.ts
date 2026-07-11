@@ -13,7 +13,6 @@ import {
 } from "@/integrations/adapter";
 import { politeFetch } from "@/integrations/http";
 import { parseLichessNdjson } from "@/integrations/lichess/parse";
-import { PLATFORM_USER_AGENT } from "@/integrations/user-agent";
 
 const ACCOUNT_URL = "https://lichess.org/api/account";
 const TOKEN_URL = "https://lichess.org/api/token";
@@ -50,13 +49,18 @@ export const lichessAdapter: PlatformAdapter = {
         "Missing Lichess access token",
       );
     }
-    const res = await fetch(ACCOUNT_URL, {
-      headers: {
-        Authorization: `Bearer ${conn.accessToken}`,
-        "User-Agent": PLATFORM_USER_AGENT,
-        Accept: "application/json",
+    const res = await politeFetch(
+      "lichess",
+      ACCOUNT_URL,
+      {
+        headers: {
+          Authorization: `Bearer ${conn.accessToken}`,
+          Accept: "application/json",
+        },
       },
-    });
+      undefined,
+      conn.beforeRequest,
+    );
     if (res.status === 401) {
       throw new PlatformError(
         "unauthorized",
@@ -130,6 +134,8 @@ export const lichessAdapter: PlatformAdapter = {
           Accept: "application/x-ndjson",
         },
       },
+      undefined,
+      conn.beforeRequest,
     );
     if (res.status === 401) {
       throw new PlatformError(
@@ -173,6 +179,8 @@ export const lichessAdapter: PlatformAdapter = {
           Accept: "application/x-ndjson",
         },
       },
+      undefined,
+      conn.beforeRequest,
     );
     if (res.status === 401) {
       throw new PlatformError(
@@ -212,12 +220,20 @@ export const lichessAdapter: PlatformAdapter = {
  * platform; don't keep a live credential we no longer need). Failures are swallowed
  * by the caller; the local connection is removed regardless.
  */
-export async function revokeLichessToken(accessToken: string): Promise<void> {
-  await fetch(TOKEN_URL, {
-    method: "DELETE",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "User-Agent": PLATFORM_USER_AGENT,
+export async function revokeLichessToken(
+  accessToken: string,
+  beforeRequest?: () => Promise<void>,
+): Promise<void> {
+  await politeFetch(
+    "lichess",
+    TOKEN_URL,
+    {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
     },
-  });
+    undefined,
+    beforeRequest,
+  );
 }

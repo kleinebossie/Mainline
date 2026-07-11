@@ -33,6 +33,7 @@ import {
   saveProgram,
   type ActiveProgram,
 } from "@/db/program";
+import { captureOperationalEvent } from "@/server/observability";
 import { findDueScheduleStates, findRecentPuzzleAttempts } from "@/db/tracker";
 import { ensureEndgameDrills } from "@/server/practice";
 import { EMPTY_CONSTRAINTS } from "@/lib/constraints";
@@ -286,7 +287,7 @@ export async function generateAndSaveProgram(
     generatedAt: result.generatedAt,
   } as unknown as Prisma.InputJsonValue;
 
-  return saveProgram(db, {
+  const programId = await saveProgram(db, {
     userId,
     methodologyVersion: cfg.version,
     generationInput,
@@ -314,6 +315,12 @@ export async function generateAndSaveProgram(
       soften: it.soften,
     })),
   });
+  captureOperationalEvent({
+    operation: "program_generation",
+    status: "success",
+    count: result.items.length,
+  });
+  return programId;
 }
 
 // --- Read side: the shaped DTO the /today screen renders -------------------
@@ -588,10 +595,11 @@ export async function getGameSignals(
 export async function getTodayProgram(
   db: Db,
   userId: string,
+  methodologyLoader: (version?: string) => MethodologyConfig = loadMethodology,
 ): Promise<TodayProgram | null> {
-  const cfg = loadMethodology();
   const program = await getActiveProgram(db, userId);
   if (!program) return null;
+  const cfg = methodologyLoader(program.methodologyVersion);
 
   const user = await db.user.findUnique({
     where: { id: userId },

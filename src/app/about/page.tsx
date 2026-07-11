@@ -1,7 +1,11 @@
 import { PageShell } from "@/components/app-shell";
 import { cn } from "@/lib/utils";
+import {
+  ACTIVE_METHODOLOGY_VERSION,
+  methodologyReleaseFor,
+} from "@/methodology";
 
-// About — the transparency manifest. Every claim is graded the same way
+// About : the transparency manifest. Every claim is graded the same way
 // recommendations are graded in the product itself.
 
 const GRADE_KEY = [
@@ -105,6 +109,9 @@ const EXCLUSIONS = [
 ];
 
 export default function AboutPage() {
+  const release = methodologyReleaseFor(ACTIVE_METHODOLOGY_VERSION);
+  const isResearchRelease = release.channel === "research";
+
   return (
     <PageShell
       eyebrow="About Mainline"
@@ -116,7 +123,7 @@ export default function AboutPage() {
     >
       <div className="flex flex-col gap-12">
         {/* ────────────────────────────────────────────────────────────────
-            1. The thesis — the central honest claim, stated first
+            1. The thesis : the central honest claim, stated first
             ──────────────────────────────────────────────────────────── */}
         <section className="settle flex flex-col gap-5">
           <p className="eyebrow">The thesis</p>
@@ -137,7 +144,7 @@ export default function AboutPage() {
         </section>
 
         {/* ────────────────────────────────────────────────────────────────
-            2. Vision — what Mainline is
+            2. Vision : what Mainline is
             ──────────────────────────────────────────────────────────── */}
         <section className="flex flex-col gap-5">
           <div className="flex flex-col gap-2 border-b border-line/80 pb-3">
@@ -157,7 +164,7 @@ export default function AboutPage() {
         </section>
 
         {/* ────────────────────────────────────────────────────────────────
-            3. Engagement and progress — why the loop exists
+            3. Engagement and progress : why the loop exists
             ──────────────────────────────────────────────────────────── */}
         <section className="flex flex-col gap-5">
           <div className="flex flex-col gap-2 border-b border-line/80 pb-3">
@@ -182,7 +189,7 @@ export default function AboutPage() {
         </section>
 
         {/* ────────────────────────────────────────────────────────────────
-            4. What Mainline isn't — the boundaries
+            4. What Mainline isn't : the boundaries
             ──────────────────────────────────────────────────────────── */}
         <section className="flex flex-col gap-5">
           <div className="flex flex-col gap-2 border-b border-line/80 pb-3">
@@ -209,7 +216,7 @@ export default function AboutPage() {
         </section>
 
         {/* ────────────────────────────────────────────────────────────────
-            5. How evidence is graded — the framework
+            5. How evidence is graded : the framework
             ──────────────────────────────────────────────────────────── */}
         <section className="flex flex-col gap-5">
           <div className="flex flex-col gap-2 border-b border-line/80 pb-3">
@@ -259,13 +266,13 @@ export default function AboutPage() {
             <strong className="text-ink">Grade</strong> answers{" "}
             <em>how strong the science is</em>. A second axis,{" "}
             <strong className="text-ink">confidence</strong>, answers a
-            different question: <em>how much of your own data backs this
-            specific call to you.</em> The same Grade-A finding can land with{" "}
-            <em>low</em> confidence, as when we know spaced repetition works
-            but you&apos;ve only imported three games. Or it can land with{" "}
-            <em>high</em> confidence, well-backed by your own play. The
-            distinction keeps a band prior from masquerading as a
-            personalised verdict.
+            different question:{" "}
+            <em>how much of your own data backs this specific call to you.</em>{" "}
+            The same Grade-A finding can land with <em>low</em> confidence, as
+            when we know spaced repetition works but you&apos;ve only imported
+            three games. Or it can land with <em>high</em> confidence,
+            well-backed by your own play. The distinction keeps a band prior
+            from masquerading as a personalised verdict.
           </p>
 
           {/* Four confidence levels */}
@@ -276,18 +283,13 @@ export default function AboutPage() {
                 className="bg-card rounded-lg border p-5 shadow-sheet"
               >
                 <div className="flex items-center gap-3">
-                  <span
-                    aria-hidden
-                    className="flex items-center gap-[3px]"
-                  >
+                  <span aria-hidden className="flex items-center gap-[3px]">
                     {[0, 1, 2, 3].map((i) => (
                       <span
                         key={i}
                         className={cn(
                           "h-3 w-[6px] rounded-[1px]",
-                          i < c.filled
-                            ? "bg-evergreen"
-                            : "bg-ink/15",
+                          i < c.filled ? "bg-evergreen" : "bg-ink/15",
                         )}
                       />
                     ))}
@@ -308,7 +310,7 @@ export default function AboutPage() {
         </section>
 
         {/* ────────────────────────────────────────────────────────────────
-            6. Current state — honest about where the science is
+            6. Current state : honest about where the science is
             ──────────────────────────────────────────────────────────── */}
         <section className="flex flex-col gap-5">
           <div className="flex flex-col gap-2 border-b border-line/80 pb-3">
@@ -317,14 +319,38 @@ export default function AboutPage() {
               Honest about the current state.
             </h2>
           </div>
-          <div className="bg-paper/60 rounded-md border border-dashed border-amber/50 p-5">
-            <p className="text-ink font-serif text-base leading-relaxed">
-              The methodology configuration currently shipping is a{" "}
-              <span className="font-mono text-sm font-semibold">stub</span>{" "}
-              with safe placeholder values that make the whole loop run end-to-end.
-              The real research will replace the stub without re-architecting
-              anything. That is the point of the separation.
+          <div
+            className={cn(
+              "rounded-md border p-5",
+              isResearchRelease
+                ? "border-evergreen/40 bg-evergreen/5"
+                : "border-dashed border-amber/50 bg-paper/60",
+            )}
+            data-methodology-channel={release.channel}
+            data-methodology-version={release.version}
+          >
+            <p className="eyebrow">Active methodology · {release.version}</p>
+            <p className="text-ink mt-3 font-serif text-base leading-relaxed">
+              {isResearchRelease
+                ? "This is the first active research release. It encodes the approved methodology values and copy, while retaining every documented best guess and deliberate stub as evidence-labeled data."
+                : "The active methodology is still the pre-release placeholder configuration. It keeps the full loop runnable while research release work is pending."}
             </p>
+            <p className="text-graphite mt-3 font-serif text-sm leading-relaxed">
+              The release is reproducible: historic programs keep the version
+              and rationale snapshot they were generated with. The central
+              caveat remains unchanged: no training activity has been proven to
+              cause a measured rating gain.
+            </p>
+            {isResearchRelease && release.deliberateStubs.length > 0 && (
+              <div className="mt-4 border-t border-line/80 pt-4">
+                <p className="eyebrow">Still deliberately unresolved</p>
+                <ul className="text-graphite mt-2 flex flex-col gap-1 font-mono text-xs leading-relaxed">
+                  {release.deliberateStubs.slice(0, 3).map((stub) => (
+                    <li key={stub}>· {stub}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         </section>
       </div>

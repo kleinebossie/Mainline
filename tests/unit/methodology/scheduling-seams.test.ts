@@ -7,6 +7,7 @@ import {
   gradeFromOutcome,
   isProgressReal,
   isStableBaseline,
+  redoFlowPolicy,
   scheduleReview,
   expectationForBand,
   type RatingPoint,
@@ -63,6 +64,23 @@ describe("scheduleReview (Seam 6 — FSRS step from config params)", () => {
     const miss = scheduleReview({ grade: 1, fsrsState: null, now: T }, cfg);
     const good = scheduleReview({ grade: 3, fsrsState: null, now: T }, cfg);
     expect(good.nextDue).toBeGreaterThan(miss.nextDue);
+  });
+});
+
+describe("redoFlowPolicy (Seam 6 scaffold)", () => {
+  it("returns the versioned delay, hint behavior, and evidence", () => {
+    expect(redoFlowPolicy(cfg)).toEqual({
+      retestDelaySec: 600,
+      hint: {
+        mode: "solution-start-square",
+        includeMotifNames: true,
+        copy: "We highlighted the starting square of the correct piece.",
+        evidenceGrade: "C",
+        evidenceTier: 2,
+        citationKey: "roediger2006",
+        flag: "best-guess",
+      },
+    });
   });
 });
 

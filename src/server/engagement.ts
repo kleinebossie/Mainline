@@ -35,7 +35,7 @@ import {
 
 type Db = Pick<
   PrismaClient,
-  "activityEvent" | "rewardEvent" | "notificationPref"
+  "activityEvent" | "rewardEvent" | "notificationPref" | "programItem"
 >;
 
 // How many days of the consistency window the grid renders (≈13 weeks); the streak/active
@@ -181,6 +181,67 @@ export async function recordEngagementForCompletion(
       ),
     ),
   };
+}
+
+/**
+ * Fire the configured recovery event for one genuinely missed planned day. The job key
+ * provides concurrency control; the existing-event check also makes a post-write retry safe.
+ */
+export async function recordEngagementForMissedDay(
+  db: Db,
+  userId: string,
+  missedDayStart: number,
+): Promise<{ recorded: boolean }> {
+  const missedStart = new Date(missedDayStart);
+  const missedEnd = new Date(missedDayStart + DAY_MS);
+  const alreadyRecorded = await db.rewardEvent.findFirst({
+    where: {
+      userId,
+      type: "recovery_prompt",
+      occurredAt: { gte: missedStart, lt: missedEnd },
+    },
+    select: { id: true },
+  });
+  if (alreadyRecorded) return { recorded: false };
+
+  const planned = await db.programItem.count({
+    where: {
+      program: { userId },
+      date: { gte: missedStart, lt: missedEnd },
+    },
+  });
+  if (planned === 0) return { recorded: false };
+
+  const cfg = loadMethodology();
+  const active = await activeDaySet(
+    db,
+    userId,
+    missedDayStart + DAY_MS - 1,
+    cfg.engagement.consistencyWindowDays.value,
+  );
+  const missedDay = dayIndexOf(missedDayStart);
+  if (active.has(missedDay)) return { recorded: false };
+
+  const drafts = onStateChange(
+    {
+      activityCompleted: false,
+      activeDayStreak: consistencyStreak(active, missedDay - 1),
+      completedCount: await countCompletedActivities(db, userId),
+      dayMissed: true,
+    },
+    cfg,
+  );
+  await appendRewardEvents(
+    db,
+    drafts.map((draft) => ({
+      userId,
+      type: draft.type,
+      copyKey: draft.copyKey,
+      occurredAt: missedStart,
+      payload: draft.payload as Prisma.InputJsonValue,
+    })),
+  );
+  return { recorded: drafts.length > 0 };
 }
 
 export interface EngagementSummary {

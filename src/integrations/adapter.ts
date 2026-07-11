@@ -14,6 +14,8 @@ export interface PlatformConnectionRef {
   platform: Platform;
   externalUsername: string;
   accessToken?: string | null; // Lichess only; Chess.com is tokenless (§6.3)
+  /** Server-supplied per-user budget check, called immediately before each request. */
+  beforeRequest?: () => Promise<void>;
 }
 
 export interface RatingEntry {

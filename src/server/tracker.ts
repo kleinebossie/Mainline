@@ -41,6 +41,7 @@ import {
   upsertScheduleState,
   upsertSkillState,
 } from "@/db/tracker";
+import { captureOperationalEvent } from "@/server/observability";
 
 type Db = Pick<
   PrismaClient,
@@ -322,10 +323,61 @@ export async function logOutcome(
       : (await recordEngagementForCompletion(db, userId, now)).rewardEvents;
 
   const dueReviews = await countDueScheduleStates(db, userId, occurredAt);
+  captureOperationalEvent({
+    operation: "adaptation",
+    status: "success",
+    count: result.adaptationLog.decisions.length,
+  });
   return {
     scheduledReviews: result.scheduleUpdates.length,
     decisions: result.adaptationLog.decisions.length,
     dueReviews,
     rewardEvents,
   };
+}
+
+/** Run the pure adaptation loop without a new outcome for the daily plateau/progress check. */
+export async function runDailyAdaptation(
+  db: Db,
+  userId: string,
+  clock: Clock = systemClock,
+): Promise<{ decisions: number }> {
+  const cfg = loadMethodology();
+  const now = clock.now();
+  const dayStart = new Date(now);
+  dayStart.setUTCHours(0, 0, 0, 0);
+  const dayEnd = new Date(dayStart.getTime() + 86_400_000);
+
+  const alreadyRun = await db.adaptationLog.findFirst({
+    where: {
+      userId,
+      trigger: "daily_cron",
+      runAt: { gte: dayStart, lt: dayEnd },
+    },
+    select: { id: true },
+  });
+  if (alreadyRun) return { decisions: 0 };
+
+  const result = runAdaptation({
+    events: [],
+    skillState: await findSkillStates(db, userId),
+    scheduleState: [],
+    glickoHistory: await loadGlickoHistory(db, userId),
+    trigger: "daily_cron",
+    clock,
+    config: cfg,
+  });
+  await persistAdaptation(
+    db,
+    userId,
+    result,
+    { dailyRun: dayStart.toISOString() } as Prisma.InputJsonValue,
+    cfg.version,
+  );
+  captureOperationalEvent({
+    operation: "adaptation",
+    status: "success",
+    count: result.adaptationLog.decisions.length,
+  });
+  return { decisions: result.adaptationLog.decisions.length };
 }

@@ -9,6 +9,13 @@ import { PlatformError } from "@/integrations/adapter";
 import { dedupeImportedGames } from "@/integrations/dedupe";
 import { getAdapter } from "@/integrations/registry";
 import type { Prisma, PrismaClient } from "@prisma/client";
+import {
+  ApiCallBudgetExceededError,
+  assertApiCallBudget,
+} from "@/server/api-budget";
+import { runJob } from "@/server/jobs";
+import { captureOperationalEvent } from "@/server/observability";
+import { systemClock, type Clock } from "@/lib/clock";
 
 type Db = PrismaClient;
 
@@ -20,40 +27,19 @@ export interface ConnectionImportResult {
 }
 
 /**
- * Claim a `JobRun` key, run `fn`, and record success/error. The unique `key` is the
- * idempotency token: a concurrent/retried claim of the same key is skipped, so a
- * double-fired cron tick never imports twice. Returns `undefined` when skipped.
+ * Claim a `JobRun` key, run `fn`, and record success/error. Completed and live keys
+ * skip; failed or stale keys are reclaimed by the shared retryable job runner.
+ * Returns `undefined` when skipped.
  */
 export async function withJobRun<T>(
   db: Db,
   kind: string,
   key: string,
   fn: () => Promise<T>,
+  clock: Clock = systemClock,
 ): Promise<T | undefined> {
-  try {
-    await db.jobRun.create({ data: { kind, key, status: "running" } });
-  } catch {
-    // Unique violation on `key` → another run already claimed it.
-    return undefined;
-  }
-  try {
-    const result = await fn();
-    await db.jobRun.update({
-      where: { key },
-      data: { status: "success", finishedAt: new Date() },
-    });
-    return result;
-  } catch (err) {
-    await db.jobRun.update({
-      where: { key },
-      data: {
-        status: "error",
-        finishedAt: new Date(),
-        error: err instanceof Error ? err.message : String(err),
-      },
-    });
-    throw err;
-  }
+  const result = await runJob(db, { kind, key, run: fn, clock });
+  return result.state === "completed" ? result.value : undefined;
 }
 
 interface ConnectionRow {
@@ -76,6 +62,8 @@ export async function importConnection(
     platform,
     externalUsername: conn.externalUsername,
     accessToken: conn.accessToken,
+    beforeRequest: () =>
+      assertApiCallBudget(db, conn.userId, platform, new Date()),
   };
 
   // 1) Point-in-time ratings (Measurement seam time series).
@@ -156,6 +144,14 @@ export async function runImportForUser(
         importConnection(db, conn),
       );
       if (r) results.push(r);
+      if (r) {
+        captureOperationalEvent({
+          operation: "import",
+          status: "success",
+          platform: r.platform,
+          count: r.imported,
+        });
+      }
     } catch (err) {
       const platform = conn.platform as Platform;
       // Surface 429/403/etc. as data; mark the connection so the UI can show it.
@@ -164,8 +160,18 @@ export async function runImportForUser(
         .catch(() => undefined);
       errors.push({
         platform,
-        code: err instanceof PlatformError ? err.code : "network",
-        message: err instanceof Error ? err.message : String(err),
+        code:
+          err instanceof PlatformError
+            ? err.code
+            : err instanceof ApiCallBudgetExceededError
+              ? "rate_limited"
+              : "network",
+        message: "The platform import failed and can be retried safely.",
+      });
+      captureOperationalEvent({
+        operation: "import",
+        status: err instanceof ApiCallBudgetExceededError ? "blocked" : "error",
+        platform,
       });
     }
   }
