@@ -16,12 +16,22 @@ export function ConnectionsManager() {
   const utils = trpc.useUtils();
   const list = trpc.connections.list.useQuery();
 
-  const [username, setUsername] = useState("");
+  const [lichessUsername, setLichessUsername] = useState("");
+  const [chessComUsername, setChessComUsername] = useState("");
   const [error, setError] = useState<string | null>(null);
+
+  const addLichess = trpc.connections.addLichessUsername.useMutation({
+    onSuccess: () => {
+      setLichessUsername("");
+      setError(null);
+      void utils.connections.list.invalidate();
+    },
+    onError: (e) => setError(e.message),
+  });
 
   const addChessCom = trpc.connections.addChessComUsername.useMutation({
     onSuccess: () => {
-      setUsername("");
+      setChessComUsername("");
       setError(null);
       void utils.connections.list.invalidate();
     },
@@ -35,6 +45,45 @@ export function ConnectionsManager() {
 
   return (
     <div className="flex flex-col gap-12">
+      <section className="flex flex-col gap-4">
+        <h2 className="eyebrow border-b border-line/80 pb-3">Lichess</h2>
+        <p className="text-graphite text-sm leading-relaxed font-serif">
+          Link by username to import public profile and game data. Your Lichess
+          password and token are not stored.
+        </p>
+        <div className="flex max-w-md flex-col gap-2">
+          <label htmlFor="lichess-username" className="eyebrow !text-[0.65rem]">
+            Lichess username
+          </label>
+          <form
+            className="flex gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const value = lichessUsername.trim();
+              if (value) addLichess.mutate({ username: value });
+            }}
+          >
+            <Input
+              id="lichess-username"
+              value={lichessUsername}
+              onChange={(e) => {
+                setLichessUsername(e.target.value);
+                setError(null);
+              }}
+              placeholder="e.g. yourusername"
+              autoComplete="username"
+              disabled={addLichess.isPending}
+            />
+            <Button
+              type="submit"
+              disabled={addLichess.isPending || !lichessUsername.trim()}
+            >
+              {addLichess.isPending ? "Checking…" : "Add account"}
+            </Button>
+          </form>
+        </div>
+      </section>
+
       <section className="flex flex-col gap-4">
         <h2 className="eyebrow border-b border-line/80 pb-3">Chess.com</h2>
         <p className="text-graphite text-sm leading-relaxed font-serif">
@@ -51,15 +100,15 @@ export function ConnectionsManager() {
             className="flex gap-2"
             onSubmit={(e) => {
               e.preventDefault();
-              const value = username.trim();
+              const value = chessComUsername.trim();
               if (value) addChessCom.mutate({ username: value });
             }}
           >
             <Input
               id="chesscom-username"
-              value={username}
+              value={chessComUsername}
               onChange={(e) => {
-                setUsername(e.target.value);
+                setChessComUsername(e.target.value);
                 setError(null);
               }}
               placeholder="e.g. yourusername"
@@ -70,7 +119,7 @@ export function ConnectionsManager() {
             />
             <Button
               type="submit"
-              disabled={addChessCom.isPending || !username.trim()}
+              disabled={addChessCom.isPending || !chessComUsername.trim()}
             >
               {addChessCom.isPending ? "Checking…" : "Add account"}
             </Button>

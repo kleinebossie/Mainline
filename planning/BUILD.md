@@ -627,6 +627,11 @@ interface PlatformAdapter {
 
 ### 6.2 Lichess (login + read)
 
+Lichess OAuth is an authentication option, not the connection action for an already signed-in user.
+The Connections page links a Lichess username through the public profile and game APIs, matching the
+Chess.com flow and avoiding accidental creation of a second Mainline identity. A Lichess-authenticated
+Mainline account may retain its OAuth-backed connection for puzzle activity and token revocation.
+
 - **OAuth2 PKCE** (authorize + token endpoints; minimal read scopes). Tokens stored on
   `PlatformConnection`.
 - **Account/profile**: read ratings (incl. RD) + counts → `ChessProfileSnapshot`.

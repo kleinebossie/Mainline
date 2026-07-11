@@ -13,7 +13,7 @@ describe("lichessAdapter (M1: Lichess connection, §6.2)", () => {
     expect(lichessAdapter.isLoginProvider).toBe(true);
   });
 
-  it("maps perfs/counts and sends the bearer token + User-Agent", async () => {
+  it("maps a public username profile without requiring OAuth", async () => {
     const fetchMock = vi.fn().mockResolvedValueOnce(
       json(200, {
         id: "thibault",
@@ -27,7 +27,6 @@ describe("lichessAdapter (M1: Lichess connection, §6.2)", () => {
     const profile = await lichessAdapter.fetchProfile({
       platform: "lichess",
       externalUsername: "thibault",
-      accessToken: "tok-123",
     });
 
     expect(profile.externalUsername).toBe("thibault");
@@ -36,28 +35,19 @@ describe("lichessAdapter (M1: Lichess connection, §6.2)", () => {
 
     const init = (fetchMock.mock.calls[0]?.[1] ?? {}) as RequestInit;
     const headers = (init.headers ?? {}) as Record<string, string>;
-    expect(headers.Authorization).toBe("Bearer tok-123");
+    expect(headers.Authorization).toBeUndefined();
     expect(headers["User-Agent"]).toBeTruthy();
+    expect(fetchMock.mock.calls[0]?.[0]).toContain("/api/user/thibault");
   });
 
-  it("throws unauthorized when no access token is present", async () => {
+  it("maps a missing public username to not_found", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(json(404, {})));
     await expect(
       lichessAdapter.fetchProfile({
         platform: "lichess",
-        externalUsername: "thibault",
+        externalUsername: "missing-user",
       }),
-    ).rejects.toMatchObject({ code: "unauthorized" });
-  });
-
-  it("maps a 401 to a typed unauthorized error", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(json(401, {})));
-    await expect(
-      lichessAdapter.fetchProfile({
-        platform: "lichess",
-        externalUsername: "thibault",
-        accessToken: "expired",
-      }),
-    ).rejects.toMatchObject({ code: "unauthorized" });
+    ).rejects.toMatchObject({ code: "not_found" });
   });
 
   it("imports games from the NDJSON export, sending the bearer token (M2)", async () => {
@@ -102,9 +92,16 @@ describe("lichessAdapter (M1: Lichess connection, §6.2)", () => {
     expect(headers.Authorization).toBe("Bearer tok-123");
   });
 
-  it("throws unauthorized for game import without a token", async () => {
+  it("imports public games without a token", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response("", { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
     await expect(
       lichessAdapter.fetchGames({ platform: "lichess", externalUsername: "x" }),
-    ).rejects.toMatchObject({ code: "unauthorized" });
+    ).resolves.toEqual([]);
+    const init = (fetchMock.mock.calls[0]?.[1] ?? {}) as RequestInit;
+    const headers = (init.headers ?? {}) as Record<string, string>;
+    expect(headers.Authorization).toBeUndefined();
   });
 });

@@ -1,13 +1,14 @@
 // Connection management API (BUILD.md M1). Lists a user's platform connections,
-// links a Chess.com account by username (validated via PubAPI, stored tokenless),
-// and disconnects/revokes a connection. Lichess linking happens through the OAuth
-// flow + Auth.js events (see server/auth.ts), not here.
+// links Lichess or Chess.com by username after public profile validation, and
+// disconnects/revokes a connection. Lichess OAuth remains a sign-in provider and
+// its Auth.js event can still create a token-backed connection.
 
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 
 import { PlatformError } from "@/integrations/adapter";
 import { chessComAdapter } from "@/integrations/chesscom/adapter";
+import { lichessAdapter } from "@/integrations/lichess/adapter";
 import { revokeLichessToken } from "@/integrations/lichess/adapter";
 import { assertApiCallBudget } from "@/server/api-budget";
 import { upsertPlatformConnection } from "@/server/connections";
@@ -39,6 +40,41 @@ export const connectionsRouter = router({
     });
     return { primaryPlatform: user?.primaryPlatform ?? null };
   }),
+
+  addLichessUsername: protectedProcedure
+    .input(z.object({ username: z.string().trim().min(1).max(50) }))
+    .mutation(async ({ ctx, input }) => {
+      let profile;
+      try {
+        profile = await lichessAdapter.fetchProfile({
+          platform: "lichess",
+          externalUsername: input.username,
+          beforeRequest: () =>
+            assertApiCallBudget(ctx.prisma, ctx.userId, "lichess", new Date()),
+        });
+      } catch (err) {
+        if (err instanceof PlatformError && err.code === "not_found") {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `No Lichess player "${input.username}".`,
+          });
+        }
+        throw new TRPCError({
+          code: "BAD_GATEWAY",
+          message: "Couldn't reach Lichess right now. Please try again.",
+        });
+      }
+      const conn = await upsertPlatformConnection({
+        userId: ctx.userId,
+        platform: "lichess",
+        externalUsername: profile.externalUsername,
+      });
+      return {
+        id: conn.id,
+        platform: conn.platform,
+        externalUsername: conn.externalUsername,
+      };
+    }),
 
   addChessComUsername: protectedProcedure
     .input(z.object({ username: z.string().trim().min(1).max(50) }))

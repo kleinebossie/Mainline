@@ -1,13 +1,11 @@
 import { redirect } from "next/navigation";
 
-import { auth, signIn } from "@/server/auth";
-import { Button } from "@/components/ui/button";
+import { auth } from "@/server/auth";
 import { PageShell } from "@/components/app-shell";
 import { ConnectionsManager } from "@/app/connections/connections-manager";
 
-// Connection management (BUILD.md M1). Auth-gated. Lichess is linked through the
-// OAuth flow (server action below); Chess.com (username) + the connection list and
-// disconnect are handled by the client manager via tRPC.
+// Connection management (BUILD.md M1). Auth-gated. Platform usernames and the
+// connection list are handled by the client manager via tRPC.
 export default async function ConnectionsPage() {
   const session = await auth();
   if (!session?.user) redirect("/signin");
@@ -18,25 +16,7 @@ export default async function ConnectionsPage() {
       title="Connections"
       lede="Link your chess accounts so Mainline can analyse your games."
     >
-      <div className="flex flex-col gap-12">
-        <section className="flex flex-col gap-4">
-          <h2 className="eyebrow border-b border-line/80 pb-3">Lichess</h2>
-          <p className="text-graphite text-sm leading-relaxed font-serif">
-            Connects via Lichess OAuth (read-only). Imports games and puzzle
-            history.
-          </p>
-          <form
-            action={async () => {
-              "use server";
-              await signIn("lichess", { redirectTo: "/connections" });
-            }}
-          >
-            <Button type="submit">Connect Lichess</Button>
-          </form>
-        </section>
-
-        <ConnectionsManager />
-      </div>
+      <ConnectionsManager />
     </PageShell>
   );
 }

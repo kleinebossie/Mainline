@@ -1,6 +1,6 @@
-// Lichess platform adapter (BUILD.md §6.2). Login provider → carries OAuth2 PKCE
-// tokens. Emits RAW data only (L1). M1 implements profile read + token revoke; M2
-// adds idempotent game import + puzzle activity (for the redo-failed flow, Seam 6).
+// Lichess platform adapter (BUILD.md §6.2). Public profiles and games work from a
+// username-only connection. OAuth login connections may also carry a token, which
+// enables private account endpoints such as puzzle activity. Emits RAW data only.
 
 import {
   PlatformError,
@@ -14,7 +14,7 @@ import {
 import { politeFetch } from "@/integrations/http";
 import { parseLichessNdjson } from "@/integrations/lichess/parse";
 
-const ACCOUNT_URL = "https://lichess.org/api/account";
+const USER_URL = "https://lichess.org/api/user";
 const TOKEN_URL = "https://lichess.org/api/token";
 const GAMES_URL = "https://lichess.org/api/games/user";
 const PUZZLE_ACTIVITY_URL = "https://lichess.org/api/puzzle/activity";
@@ -42,30 +42,20 @@ export const lichessAdapter: PlatformAdapter = {
   async fetchProfile(
     conn: PlatformConnectionRef,
   ): Promise<ProfileSnapshotInput> {
-    if (!conn.accessToken) {
-      throw new PlatformError(
-        "unauthorized",
-        "lichess",
-        "Missing Lichess access token",
-      );
-    }
+    const headers: Record<string, string> = { Accept: "application/json" };
+    if (conn.accessToken) headers.Authorization = `Bearer ${conn.accessToken}`;
     const res = await politeFetch(
       "lichess",
-      ACCOUNT_URL,
-      {
-        headers: {
-          Authorization: `Bearer ${conn.accessToken}`,
-          Accept: "application/json",
-        },
-      },
+      `${USER_URL}/${encodeURIComponent(conn.externalUsername)}`,
+      { headers },
       undefined,
       conn.beforeRequest,
     );
-    if (res.status === 401) {
+    if (res.status === 404) {
       throw new PlatformError(
-        "unauthorized",
+        "not_found",
         "lichess",
-        "Lichess token rejected",
+        `No Lichess player "${conn.externalUsername}"`,
       );
     }
     if (res.status === 429) {
@@ -109,13 +99,6 @@ export const lichessAdapter: PlatformAdapter = {
     since?: number,
     max: number = DEFAULT_MAX_GAMES,
   ): Promise<ImportedGameInput[]> {
-    if (!conn.accessToken) {
-      throw new PlatformError(
-        "unauthorized",
-        "lichess",
-        "Missing Lichess access token",
-      );
-    }
     const params = new URLSearchParams({
       max: String(max),
       pgnInJson: "true",
@@ -125,15 +108,14 @@ export const lichessAdapter: PlatformAdapter = {
     });
     if (since) params.set("since", String(since));
 
+    const headers: Record<string, string> = {
+      Accept: "application/x-ndjson",
+    };
+    if (conn.accessToken) headers.Authorization = `Bearer ${conn.accessToken}`;
     const res = await politeFetch(
       "lichess",
       `${GAMES_URL}/${encodeURIComponent(conn.externalUsername)}?${params}`,
-      {
-        headers: {
-          Authorization: `Bearer ${conn.accessToken}`,
-          Accept: "application/x-ndjson",
-        },
-      },
+      { headers },
       undefined,
       conn.beforeRequest,
     );
