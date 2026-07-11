@@ -85,4 +85,80 @@ describe("politeFetch", () => {
       ),
     ).rejects.toMatchObject({ code: "rate_limited" });
   });
+
+  it("bounds the whole request and maps its timeout to a network error", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        (_url: string, init?: RequestInit) =>
+          new Promise<Response>((_resolve, reject) => {
+            if (init?.signal?.aborted) {
+              reject(init.signal.reason);
+              return;
+            }
+            init?.signal?.addEventListener(
+              "abort",
+              () => reject(init.signal?.reason),
+              { once: true },
+            );
+          }),
+      ),
+    );
+
+    await expect(
+      politeFetch(
+        "lichess",
+        "https://x/slow",
+        {},
+        { maxRetries: 0, baseMs: 0, capMs: 0, totalTimeoutMs: 5 },
+      ),
+    ).rejects.toMatchObject({ code: "network" });
+  });
+
+  it("also bounds a stalled per-user budget check", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      politeFetch(
+        "lichess",
+        "https://x/budget",
+        {},
+        { maxRetries: 0, baseMs: 0, capMs: 0, totalTimeoutMs: 5 },
+        () => new Promise<void>(() => undefined),
+      ),
+    ).rejects.toMatchObject({ code: "network" });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("preserves an earlier caller abort instead of reporting a timeout", async () => {
+    const controller = new AbortController();
+    const callerError = new Error("caller_cancelled");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        (_url: string, init?: RequestInit) =>
+          new Promise<Response>((_resolve, reject) => {
+            if (init?.signal?.aborted) {
+              reject(init.signal.reason);
+              return;
+            }
+            init?.signal?.addEventListener(
+              "abort",
+              () => reject(init.signal?.reason),
+              { once: true },
+            );
+          }),
+      ),
+    );
+
+    const request = politeFetch(
+      "lichess",
+      "https://x/cancel",
+      { signal: controller.signal },
+      { maxRetries: 0, baseMs: 0, capMs: 0, totalTimeoutMs: 1_000 },
+    );
+    controller.abort(callerError);
+    await expect(request).rejects.toBe(callerError);
+  });
 });

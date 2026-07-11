@@ -23,23 +23,68 @@ describe("monitoring privacy", () => {
       exception: {
         values: [
           {
-            type: "PlatformError",
+            type: "SecretCustomError",
             value: "upstream response included a PGN and token",
+            module: "secret-module",
+            thread_id: "secret-thread",
+            mechanism: {
+              type: "secret-mechanism",
+              source: "secret-source",
+              data: { handler: "secret-handler" },
+            },
+            stacktrace: {
+              frames: [
+                {
+                  filename: "https://mainline.test/private?token=secret",
+                  abs_path: "/private/secret.ts",
+                  function: "secretFunction",
+                  module: "secret-module",
+                  lineno: 12,
+                  colno: 4,
+                  in_app: true,
+                  context_line: "const token = 'secret'",
+                  pre_context: ["private feedback"],
+                  post_context: ["1. e4 e5"],
+                  vars: { token: "secret" },
+                  module_metadata: { token: "secret" },
+                },
+              ],
+            },
           },
         ],
       },
       tags: { operation: "import", status: "error", unsafe: "secret" },
       extra: { count: 1, unsafe: "private" },
+      contexts: {
+        runtime: { name: "secret-runtime" },
+        trace: { trace_id: "secret-trace", span_id: "secret-span" },
+      },
     });
 
     expect(result.user).toBeUndefined();
     expect(result.message).toBe("ops.import.error");
     expect(result.request).toEqual({ method: "POST" });
-    expect(result.exception?.values?.[0]?.value).toBe("platformerror");
+    expect(result.exception?.values?.[0]).toEqual({
+      type: "error",
+      value: "error",
+      stacktrace: {
+        frames: [{ lineno: 12, colno: 4, in_app: true }],
+        frames_omitted: undefined,
+      },
+      mechanism: {
+        type: "generic",
+        handled: undefined,
+        synthetic: undefined,
+        is_exception_group: undefined,
+        exception_id: undefined,
+        parent_id: undefined,
+      },
+    });
     expect(result.tags).toEqual({ operation: "import", status: "error" });
     expect(result.extra).toEqual({ count: 1 });
+    expect(result.contexts).toBeUndefined();
     expect(JSON.stringify(result)).not.toMatch(
-      /secret|person@example|1\. e4|private feedback|upstream response/i,
+      /secret|person@example|1\. e4|private feedback|upstream response|private\/secret/i,
     );
   });
 

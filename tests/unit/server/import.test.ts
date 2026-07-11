@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { fixedClock } from "@/lib/clock";
 import { withJobRun } from "@/server/import";
+import { runJob } from "@/server/jobs";
 
 const NOW = 1_700_000_000_000;
 
@@ -26,7 +27,7 @@ function uniqueConflict() {
   });
 }
 
-function fakeDb(initial?: Partial<JobRow>) {
+function fakeDb(initial?: Partial<JobRow>, currentNow = () => NOW) {
   let row: JobRow | null = initial
     ? {
         id: "job-1",
@@ -44,6 +45,7 @@ function fakeDb(initial?: Partial<JobRow>) {
     : null;
 
   const jobRun = {
+    createMany: vi.fn(),
     create: vi.fn(async ({ data }: { data: Partial<JobRow> }) => {
       if (row) throw uniqueConflict();
       row = {
@@ -70,14 +72,21 @@ function fakeDb(initial?: Partial<JobRow>) {
         data: object;
       }) => {
         if (!row) return { count: 0 };
+        if (where.key !== undefined && where.key !== row.key) {
+          return { count: 0 };
+        }
         if (where.attempt !== undefined && where.attempt !== row.attempt) {
           return { count: 0 };
         }
+        if (typeof where.status === "string" && where.status !== row.status) {
+          return { count: 0 };
+        }
         const retryable =
+          row.status === "queued" ||
           row.status === "error" ||
           (row.status === "running" &&
             row.lockedUntil !== null &&
-            row.lockedUntil <= new Date(NOW));
+            row.lockedUntil <= new Date(currentNow()));
         if (where.OR && !retryable) return { count: 0 };
         row = { ...row, ...data };
         return { count: 1 };
@@ -146,6 +155,21 @@ describe("withJobRun", () => {
     expect(current()).toMatchObject({ status: "success", attempt: 2 });
   });
 
+  it("claims a queued job as its first attempt", async () => {
+    const { db, current } = fakeDb({ status: "queued", attempt: 0 });
+
+    await expect(
+      withJobRun(
+        db,
+        "import_sync",
+        "k1",
+        () => Promise.resolve("queued"),
+        fixedClock(NOW),
+      ),
+    ).resolves.toBe("queued");
+    expect(current()).toMatchObject({ status: "success", attempt: 1 });
+  });
+
   it("reclaims a stale running lease", async () => {
     const { db, current } = fakeDb({
       status: "running",
@@ -179,5 +203,42 @@ describe("withJobRun", () => {
       errorCode: "typeerror",
       error: "Job failed. Retry is safe.",
     });
+  });
+
+  it("prevents an expired worker from overwriting a reclaimed attempt", async () => {
+    let now = NOW;
+    const { db, current } = fakeDb(undefined, () => now);
+    let finishFirst: ((value: string) => void) | undefined;
+    const firstBody = new Promise<string>((resolve) => {
+      finishFirst = resolve;
+    });
+    const first = runJob(db, {
+      kind: "import_sync",
+      key: "k1",
+      run: () => firstBody,
+      clock: { now: () => now },
+      leaseMs: 3_000,
+    });
+    await vi.waitFor(() =>
+      expect(current()).toMatchObject({ status: "running", attempt: 1 }),
+    );
+
+    now += 3_001;
+    await expect(
+      runJob(db, {
+        kind: "import_sync",
+        key: "k1",
+        run: () => Promise.resolve("second"),
+        clock: { now: () => now },
+        leaseMs: 3_000,
+      }),
+    ).resolves.toMatchObject({ state: "completed", attempt: 2 });
+
+    finishFirst?.("first");
+    await expect(first).resolves.toEqual({
+      state: "skipped",
+      reason: "superseded",
+    });
+    expect(current()).toMatchObject({ status: "success", attempt: 2 });
   });
 });

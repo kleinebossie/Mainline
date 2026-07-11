@@ -46,7 +46,7 @@ export function OperationsPanel() {
                 {job.errorCode ? ` · ${job.errorCode}` : ""}
               </p>
             </div>
-            {job.status === "error" && (
+            {(job.status === "error" || job.status === "queued") && (
               <button
                 className="rounded-md border px-3 py-1.5 font-mono text-xs disabled:opacity-50"
                 disabled={retry.isPending}

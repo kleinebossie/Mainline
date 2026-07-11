@@ -9,7 +9,7 @@ const DEFAULT_LEASE_MS = 55_000;
 
 export type JobResult<T> =
   | { state: "completed"; value: T; attempt: number }
-  | { state: "skipped"; reason: "complete" | "active" };
+  | { state: "skipped"; reason: "complete" | "active" | "superseded" };
 
 function isUniqueConflict(error: unknown): boolean {
   return (
@@ -84,6 +84,7 @@ export async function runJob<T>(
         key: input.key,
         attempt: current.attempt,
         OR: [
+          { status: "queued" },
           { status: "error" },
           { status: "running", lockedUntil: { lte: startedAt } },
         ],
@@ -101,11 +102,31 @@ export async function runJob<T>(
     if (claimed.count === 0) return { state: "skipped", reason: "active" };
   }
 
+  const leaseMs = input.leaseMs ?? DEFAULT_LEASE_MS;
+  const heartbeatIntervalMs = Math.max(1_000, Math.floor(leaseMs / 3));
+  let heartbeatInFlight = false;
+  const heartbeat = setInterval(() => {
+    if (heartbeatInFlight) return;
+    heartbeatInFlight = true;
+    const renewedUntil = new Date(clock.now() + leaseMs);
+    void db.jobRun
+      .updateMany({
+        where: { key: input.key, attempt, status: "running" },
+        data: { lockedUntil: renewedUntil },
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        heartbeatInFlight = false;
+      });
+  }, heartbeatIntervalMs);
+  heartbeat.unref?.();
+
   try {
     const value = await input.run();
     const finishedAt = new Date(clock.now());
-    await db.jobRun.update({
-      where: { key: input.key },
+    clearInterval(heartbeat);
+    const finalized = await db.jobRun.updateMany({
+      where: { key: input.key, attempt, status: "running" },
       data: {
         status: "success",
         finishedAt,
@@ -114,6 +135,9 @@ export async function runJob<T>(
         errorCode: null,
       },
     });
+    if (finalized.count === 0) {
+      return { state: "skipped", reason: "superseded" };
+    }
     captureOperationalEvent({
       operation: "job",
       status: "success",
@@ -122,10 +146,11 @@ export async function runJob<T>(
     });
     return { state: "completed", value, attempt };
   } catch (error) {
+    clearInterval(heartbeat);
     const finishedAt = new Date(clock.now());
     const errorCode = safeJobErrorCode(error);
-    await db.jobRun.update({
-      where: { key: input.key },
+    await db.jobRun.updateMany({
+      where: { key: input.key, attempt, status: "running" },
       data: {
         status: "error",
         finishedAt,

@@ -14,8 +14,9 @@ deletion remain P3 work.
 4. Deploy through the normal CI path. Confirm `/api/cron/daily` is the single 06:00 UTC Vercel
    schedule and returns HTTP 200.
 
-The daily route fails closed when `CRON_SECRET` is absent or wrong. It returns HTTP 503 when any
-user import or maintenance job fails, while each failure remains retryable in `JobRun`.
+The daily route fails closed when `CRON_SECRET` is absent or wrong. It first records the complete
+daily workload in `JobRun`, then drains within the function deadline. It returns HTTP 503 when any
+job fails or remains queued, so invoking the same route again safely continues the durable backlog.
 Hourly budget buckets older than seven days and successful job rows older than 30 days are removed
 by the same run. Errored jobs remain available for recovery.
 
@@ -43,8 +44,8 @@ An admin sees the latest 50 job states in Settings. The panel exposes only kind,
 timestamps, and a sanitized error code. It never shows job payloads, user data, provider responses,
 or credentials.
 
-Use Retry on an errored import, daily adaptation, or missed-day job. The runner reclaims failed and
-stale leases, increments the attempt, and preserves successful keys as immutable. Imported game
+Use Retry on a queued or errored import, daily adaptation, or missed-day job. The runner reclaims
+failed and stale leases, increments the attempt, and preserves successful keys as immutable. Imported game
 rows, daily adaptation logs, and missed-day recovery events each have a second effect-level
 idempotency guard so a retry cannot corrupt the core loop.
 

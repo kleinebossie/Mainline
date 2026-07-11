@@ -11,7 +11,10 @@ import { chessComAdapter } from "@/integrations/chesscom/adapter";
 import { lichessAdapter } from "@/integrations/lichess/adapter";
 import { revokeLichessToken } from "@/integrations/lichess/adapter";
 import { assertApiCallBudget } from "@/server/api-budget";
-import { upsertPlatformConnection } from "@/server/connections";
+import {
+  replacesOAuthUsername,
+  upsertPlatformConnection,
+} from "@/server/connections";
 import { protectedProcedure, router } from "@/server/trpc";
 
 export const connectionsRouter = router({
@@ -62,6 +65,19 @@ export const connectionsRouter = router({
         throw new TRPCError({
           code: "BAD_GATEWAY",
           message: "Couldn't reach Lichess right now. Please try again.",
+        });
+      }
+      const existing = await ctx.prisma.platformConnection.findUnique({
+        where: {
+          userId_platform: { userId: ctx.userId, platform: "lichess" },
+        },
+        select: { externalUsername: true, accessToken: true },
+      });
+      if (replacesOAuthUsername(existing, profile.externalUsername)) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message:
+            "Disconnect the OAuth-backed Lichess account before linking a different username.",
         });
       }
       const conn = await upsertPlatformConnection({

@@ -18,7 +18,16 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const summary = await runDailyOperations(prisma);
-  const errors = summary.import.errors + summary.maintenance.errors;
-  return NextResponse.json(summary, { status: errors > 0 ? 503 : 200 });
+  try {
+    const summary = await runDailyOperations(prisma);
+    const incomplete =
+      summary.import.errors + summary.maintenance.errors > 0 ||
+      summary.queue.remaining > 0;
+    return NextResponse.json(summary, { status: incomplete ? 503 : 200 });
+  } catch {
+    return NextResponse.json(
+      { error: "daily_operations_failed" },
+      { status: 503 },
+    );
+  }
 }

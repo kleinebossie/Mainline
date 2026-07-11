@@ -11,6 +11,7 @@ export interface BackoffPolicy {
   maxRetries: number; // attempts after the first try
   baseMs: number; // first back-off
   capMs: number; // upper bound per wait
+  totalTimeoutMs?: number; // whole request including retries and waits
 }
 
 // Conservative defaults — single concurrent request, gentle growth. Tunable per
@@ -19,6 +20,7 @@ export const DEFAULT_BACKOFF: BackoffPolicy = {
   maxRetries: 3,
   baseMs: 1000,
   capMs: 30_000,
+  totalTimeoutMs: 5_000,
 };
 
 /**
@@ -44,7 +46,41 @@ function parseRetryAfter(res: Response): number | undefined {
   return Number.isFinite(sec) ? sec : undefined;
 }
 
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+function abortableSleep(ms: number, signal: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal.aborted) {
+      reject(signal.reason);
+      return;
+    }
+    const onAbort = () => {
+      clearTimeout(timer);
+      reject(signal.reason);
+    };
+    const timer = setTimeout(() => {
+      signal.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    signal.addEventListener("abort", onAbort, { once: true });
+  });
+}
+
+function withAbort<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
+  if (signal.aborted) return Promise.reject(signal.reason);
+  return new Promise((resolve, reject) => {
+    const onAbort = () => reject(signal.reason);
+    signal.addEventListener("abort", onAbort, { once: true });
+    void promise.then(
+      (value) => {
+        signal.removeEventListener("abort", onAbort);
+        resolve(value);
+      },
+      (error: unknown) => {
+        signal.removeEventListener("abort", onAbort);
+        reject(error);
+      },
+    );
+  });
+}
 
 /**
  * Fetch with a descriptive User-Agent and bounded 429 back-off. Maps the platform's
@@ -65,18 +101,39 @@ export async function politeFetch(
     ...(init.headers as Record<string, string> | undefined),
   };
 
-  for (let attempt = 0; ; attempt++) {
-    await beforeAttempt?.();
-    const res = await fetch(url, { ...init, headers });
-    if (res.status !== 429) return res;
+  const timeoutSignal = AbortSignal.timeout(
+    policy.totalTimeoutMs ?? DEFAULT_BACKOFF.totalTimeoutMs ?? 5_000,
+  );
+  const signal = init.signal
+    ? AbortSignal.any([init.signal, timeoutSignal])
+    : timeoutSignal;
 
-    if (attempt >= policy.maxRetries) {
-      throw new PlatformError(
-        "rate_limited",
-        platform,
-        `${platform} rate limit hit (gave up after ${policy.maxRetries} retries)`,
+  try {
+    for (let attempt = 0; ; attempt++) {
+      if (beforeAttempt) await withAbort(beforeAttempt(), signal);
+      const res = await fetch(url, { ...init, headers, signal });
+      if (res.status !== 429) return res;
+
+      if (attempt >= policy.maxRetries) {
+        throw new PlatformError(
+          "rate_limited",
+          platform,
+          `${platform} rate limit hit (gave up after ${policy.maxRetries} retries)`,
+        );
+      }
+      await abortableSleep(
+        backoffDelayMs(attempt + 1, policy, parseRetryAfter(res)),
+        signal,
       );
     }
-    await sleep(backoffDelayMs(attempt + 1, policy, parseRetryAfter(res)));
+  } catch (error) {
+    if (timeoutSignal.aborted && !init.signal?.aborted) {
+      throw new PlatformError(
+        "network",
+        platform,
+        `${platform} request timed out`,
+      );
+    }
+    throw error;
   }
 }

@@ -478,10 +478,11 @@ provides atomic fixed-window buckets per user and platform. Every actual Lichess
 including a polite 429 retry and cron work, consumes budget; durable tablebase caching and incremental
 game import remain in place.
 
-`JobRun` now has attempts, leases, sanitized error codes, stale/error reclamation, and immutable
-successful keys. The one free-tier daily route runs import, daily adaptation, the configured
-missed-day sweep, and bounded cleanup of old success/budget rows. It returns 503 when work fails.
-Admins can inspect safe job metadata and retry failed import, adaptation, and missed-day jobs from
+`JobRun` now has a durable queued state, heartbeated leases, fenced attempts, sanitized error codes,
+stale/error reclamation, and immutable successful keys. The one free-tier daily route persists every
+import, daily adaptation, and configured missed-day job before draining a bounded deadline, plus
+bounded cleanup of old success/budget rows. It returns 503 when work fails or remains queued. Admins
+can inspect safe job metadata and retry queued or failed import, adaptation, and missed-day jobs from
 Settings. The generic runner is ready for P3 deletion work without implementing the P3 purge here.
 
 Sentry is integrated for server, edge, client, request, and global-render failures. A tested
@@ -495,14 +496,16 @@ preserving app-wide COOP/COEP.
 #### P2 handoff
 
 - Migrations: apply `20260711000000_m15_beta_access_api_budgets` and
-  `20260711010000_m15_runtime_jobs` with `npm run prisma:deploy`. The second migration sanitizes
-  legacy job errors and makes legacy running rows retryable.
+  `20260711010000_m15_runtime_jobs`, followed by
+  `20260711020000_m15_invite_claim_cascade`, with `npm run prisma:deploy`. The runtime migration
+  sanitizes legacy job errors and makes legacy running rows retryable. The final migration ensures
+  account erasure cannot reactivate a claimed invitation.
 - Owner setup: configure `BETA_OWNER_EMAILS`, `CRON_SECRET`, the Sentry DSNs/project-scoped upload
   credentials, and a descriptive `CHESS_API_USER_AGENT` in Vercel. Optionally tune the two hourly API
   caps. Create invitations with `npm run beta:invite`. The full deployment/recovery/PWA checklist is
   in `planning/OPERATIONS.md`.
-- Verification: Prisma generation, typecheck, lint, 52 unit files with 318 tests, 3 guard files with
-  38 tests, production build, and 19 Playwright tests all pass. Playwright verifies closed-beta copy,
+- Verification: Prisma generation, typecheck, lint, 60 Vitest files with 370 tests, 4 guard files
+  with 39 tests, production build, and 19 Playwright tests all pass. Playwright verifies closed-beta copy,
   manifest/service-worker registration and cache scope, preserved Stockfish isolation headers, and
   fail-closed cron authorization.
 - Deliberate deviation: the budget is reserved immediately before each real outbound attempt rather

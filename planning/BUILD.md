@@ -423,12 +423,13 @@ where GDPR export/erase applies.
   (`user|admin`), **`patronStatus`** (`none|patron`, default `none` — **billing-capable reservation**,
   no billing built), `betaAccessGrantedAt?`, `deletedAt?`. The M15 migration backfills the beta grant
   for existing non-deleted accounts; new accounts receive it only when admission finalizes against
-  an owner/admin path or a claimed allowlist entry. Relations: 1—\* everything below.
+  an owner/admin path or a claimed allowlist entry. Relations are one-to-many for everything below.
 - **Account / Session / VerificationToken** — **Auth.js standard tables** (OAuth provider, provider
   account id, tokens, expiry). One `User` ↔ many `Account` (Google, Lichess).
 - **AllowlistEntry** — closed-beta gate. `email?`, `inviteCode?` (unique), `usedByUserId?`,
   `createdAt`, `expiresAt?`. Sign-in is refused unless the persisted user grant or a current
-  email/code admits it (§12).
+  email/code admits it (§12). Claimed entries cascade-delete with account erasure so the deleted
+  account cannot reactivate its one-time invitation.
 
 ### 5.2 Platform connections & chess data
 
@@ -570,8 +571,9 @@ lastReview }`), `lastGrade?`, `source`. Index `(userId, due)` for "what's due to
   `payload` JSON, `seen` (bool). No tangible/contingent rewards (Seam 9 forbid list).
 - **NotificationPref** — capped reminders. `userId`, `channel`, `cadenceCap` (config-bounded),
   `enabled`, `quietHours?`. Default off / ≤ config cap (anti-nag, Seam 9).
-- **JobRun** — idempotent background-job ledger (import sync, ingest, adaptation cron). `kind`,
-  `key` (unique idempotency key), `status`, `startedAt`, `finishedAt?`, `error?`.
+- **JobRun**: idempotent background-job ledger and durable daily queue (import sync, ingest,
+  adaptation cron). `kind`, `key` (unique idempotency key), `status`
+  (`queued|running|success|error`), `startedAt`, `finishedAt?`, `error?`.
 - **ApiCallBudget** — per-user external-API rate-limit buckets (§12). `userId`, `platform`,
   `windowStart`, `count`. Enforced by tRPC middleware before any outbound platform call.
 
@@ -1392,9 +1394,11 @@ graded **`delivery`** field (Seam 4 — data, not a code branch).
 - **Status (2026-07-11): IN PROGRESS, P2 RUNTIME COMPLETE.** `AllowlistEntry` now gates new OAuth
   admission while preserving pre-gate owner access, and `ApiCallBudget` atomically limits every
   actual Lichess/Chess.com attempt, including retries and cron work. The shared `JobRun` runner uses
-  leases, sanitized error codes, retry attempts, and immutable successful keys. One free-tier daily
-  cron runs imports, daily adaptation, the configured missed-day sweep, and bounded operational
-  pruning; admins can inspect and retry failed known jobs from Settings. Sentry error handling and
+  leases, heartbeats, fenced retry attempts, sanitized error codes, and immutable successful keys.
+  The free-tier daily route first persists all imports, daily adaptation, and configured missed-day
+  work as queued rows, then drains within a bounded deadline and leaves unfinished work visible and
+  retryable. Admins can inspect and retry queued or failed known jobs from Settings. Sentry error
+  handling and
   typed core-loop events are fail-closed through a tested privacy scrubber, with tracing and replay
   disabled. The manifest, icons, static-only service worker cache, and PWA headers preserve the
   Stockfish COOP/COEP contract. Runtime setup and recovery are documented in

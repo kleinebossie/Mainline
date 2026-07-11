@@ -10,11 +10,41 @@ const SAFE_OPERATIONS = new Set([
 const SAFE_STATUSES = new Set(["success", "error", "skipped", "blocked"]);
 const SAFE_PLATFORMS = new Set(["lichess", "chesscom"]);
 const SAFE_EXTRA = new Set(["duration_ms", "count", "attempt"]);
+const SAFE_JOB_KINDS = new Set([
+  "daily_adaptation",
+  "day_missed",
+  "import_sync",
+  "deletion",
+]);
+const SAFE_RUNTIMES = new Set(["browser", "edge", "node", "nodejs"]);
+const SAFE_ERROR_TYPES = new Set([
+  "error",
+  "typeerror",
+  "rangeerror",
+  "referenceerror",
+  "syntaxerror",
+  "urierror",
+  "aggregateerror",
+  "platformerror",
+]);
+const SAFE_MECHANISMS = new Set([
+  "generic",
+  "onerror",
+  "onunhandledrejection",
+  "instrument",
+]);
 
 function safeIdentifier(value: unknown): string | undefined {
   return typeof value === "string" && /^[a-z0-9_-]{1,48}$/.test(value)
     ? value
     : undefined;
+}
+
+function safeErrorType(value: unknown): string {
+  const type = safeIdentifier(
+    typeof value === "string" ? value.toLowerCase() : value,
+  );
+  return type && SAFE_ERROR_TYPES.has(type) ? type : "error";
 }
 
 /**
@@ -32,8 +62,8 @@ export function scrubMonitoringEvent(event: ErrorEvent): ErrorEvent {
   if (operation && SAFE_OPERATIONS.has(operation)) tags.operation = operation;
   if (status && SAFE_STATUSES.has(status)) tags.status = status;
   if (platform && SAFE_PLATFORMS.has(platform)) tags.platform = platform;
-  if (jobKind) tags.job_kind = jobKind;
-  if (runtime) tags.runtime = runtime;
+  if (jobKind && SAFE_JOB_KINDS.has(jobKind)) tags.job_kind = jobKind;
+  if (runtime && SAFE_RUNTIMES.has(runtime)) tags.runtime = runtime;
   const extra = Object.fromEntries(
     Object.entries(event.extra ?? {}).filter(
       ([key, value]) => SAFE_EXTRA.has(key) && typeof value === "number",
@@ -48,14 +78,39 @@ export function scrubMonitoringEvent(event: ErrorEvent): ErrorEvent {
 
   const exception = event.exception
     ? {
-        ...event.exception,
-        values: event.exception.values?.map((value) => ({
-          ...value,
-          value: safeIdentifier(value.type?.toLowerCase()) ?? "error",
-          mechanism: value.mechanism
-            ? { ...value.mechanism, data: undefined }
-            : undefined,
-        })),
+        values: event.exception.values?.map((value) => {
+          const type = safeErrorType(value.type);
+          const mechanismType = safeIdentifier(
+            value.mechanism?.type?.toLowerCase(),
+          );
+          return {
+            type,
+            value: type,
+            stacktrace: value.stacktrace
+              ? {
+                  frames: value.stacktrace.frames?.map((frame) => ({
+                    lineno: frame.lineno,
+                    colno: frame.colno,
+                    in_app: frame.in_app,
+                  })),
+                  frames_omitted: value.stacktrace.frames_omitted,
+                }
+              : undefined,
+            mechanism: value.mechanism
+              ? {
+                  type:
+                    mechanismType && SAFE_MECHANISMS.has(mechanismType)
+                      ? mechanismType
+                      : "generic",
+                  handled: value.mechanism.handled,
+                  synthetic: value.mechanism.synthetic,
+                  is_exception_group: value.mechanism.is_exception_group,
+                  exception_id: value.mechanism.exception_id,
+                  parent_id: value.mechanism.parent_id,
+                }
+              : undefined,
+          };
+        }),
       }
     : undefined;
 
@@ -71,9 +126,6 @@ export function scrubMonitoringEvent(event: ErrorEvent): ErrorEvent {
         : undefined,
     exception,
     request,
-    contexts: event.contexts
-      ? { runtime: event.contexts.runtime, trace: event.contexts.trace }
-      : undefined,
     tags,
     extra: event.tags?.operation ? extra : undefined,
   };

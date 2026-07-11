@@ -70,7 +70,7 @@ model AllowlistEntry {
   expiresAt    DateTime?
   createdAt    DateTime  @default(now())
 
-  usedByUser User? @relation(fields: [usedByUserId], references: [id], onDelete: SetNull)
+  usedByUser User? @relation(fields: [usedByUserId], references: [id], onDelete: Cascade)
 
   @@index([email])
   @@index([usedByUserId])
@@ -237,7 +237,7 @@ model JobRun {
   id          String    @id @default(cuid())
   kind        String // import_sync | ingest | adaptation
   key         String    @unique
-  status      String    @default("running") // running | success | error
+  status      String    @default("running") // queued | running | success | error
   attempt     Int       @default(1)
   startedAt   DateTime  @default(now())
   finishedAt  DateTime?

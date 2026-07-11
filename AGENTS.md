@@ -66,3 +66,4 @@ npm run prisma:migrate           # Run on setup and schema changes
 - **CI Pipeline**: Order is strictly: `typecheck → lint → unit → guards → build → e2e`. All must pass before merging.
 - **No Runtime AI**: Never introduce LLM/AI inside the application logic.
 - **No Em-Dashes**: Never use em-dashes (`—`) in code, comments, copy, or docs. They are a telltale sign of AI authorship. Use commas, colons, semicolons, or split into separate sentences to keep grammar correct.
+- **One Subagent**: Never use more than 1 subagent at the same time. Stop your work and wait for the single subagent to finish.
