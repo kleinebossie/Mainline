@@ -37,6 +37,8 @@ model User {
   primaryPlatform     String? // lichess | chesscom
   betaAccessGrantedAt DateTime?
   deletedAt           DateTime? // soft-delete for GDPR export/erase
+  deletionToken       String?   @unique // opaque purge correlation, never contains the user id
+  deletionRequestedAt DateTime?
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 
@@ -57,6 +59,35 @@ model User {
   practiceItems         PracticeItem[]
   allowlistEntries      AllowlistEntry[]
   apiCallBudgets        ApiCallBudget[]
+  researchConsents      ResearchConsent[]
+}
+
+// Optional secondary-use consent is separate from account creation and operational
+// training. Each grant is an audit row. Withdrawal closes that grant; regrant creates
+// a new row under the then-current notice version.
+model ResearchConsent {
+  id            String    @id @default(cuid())
+  userId        String
+  noticeVersion String
+  scopes        String[]
+  grantedAt     DateTime
+  withdrawnAt   DateTime?
+  createdAt     DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, grantedAt])
+  @@index([userId, noticeVersion, withdrawnAt])
+}
+
+// Minimal post-erasure proof. The token is random and cannot identify an account
+// without the User row, which hard deletion removes.
+model AccountPurgeLedger {
+  token       String    @id
+  requestedAt DateTime
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
 
 // Closed-beta admission gate (BUILD.md §5.1, M15). Entries may target an email or

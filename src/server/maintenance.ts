@@ -4,6 +4,7 @@ import { DAY_MS, systemClock, type Clock } from "@/lib/clock";
 import { recordEngagementForMissedDay } from "@/server/engagement";
 import { importConnection } from "@/server/import";
 import { runJob } from "@/server/jobs";
+import { ACCOUNT_PURGE_JOB_KIND, runAccountPurge } from "@/server/account";
 import { runDailyAdaptation } from "@/server/tracker";
 
 export interface DailyQueueSummary {
@@ -23,7 +24,7 @@ export interface MaintenanceSummary {
 
 export interface RetryJobResult {
   state: "completed" | "skipped";
-  kind?: "daily_adaptation" | "day_missed" | "import_sync";
+  kind?: "daily_adaptation" | "day_missed" | "import_sync" | "account_purge";
   imported?: number;
   missedDayEvent?: boolean;
 }
@@ -43,7 +44,7 @@ export async function enqueueDailyWork(
   const yesterday = today - DAY_MS;
   const dayKey = new Date(today).toISOString().slice(0, 10);
   const missedKey = new Date(yesterday).toISOString().slice(0, 10);
-  const [users, connections] = await Promise.all([
+  const [users, connections, purges] = await Promise.all([
     db.user.findMany({
       where: { deletedAt: null },
       select: { id: true },
@@ -51,6 +52,10 @@ export async function enqueueDailyWork(
     db.platformConnection.findMany({
       where: { status: { not: "revoked" }, user: { deletedAt: null } },
       select: { id: true },
+    }),
+    db.accountPurgeLedger.findMany({
+      where: { completedAt: null },
+      select: { token: true },
     }),
   ]);
 
@@ -65,6 +70,10 @@ export async function enqueueDailyWork(
     ...connections.map((connection) => ({
       kind: "import_sync",
       key: `import_sync:daily:${dayKey}:${connection.id}`,
+    })),
+    ...purges.map((purge) => ({
+      kind: ACCOUNT_PURGE_JOB_KIND,
+      key: `account_purge:${purge.token}`,
     })),
   ];
   const created = jobs.length
@@ -185,6 +194,16 @@ export async function retryFailedJob(
       state: result.state === "completed" ? "completed" : "skipped",
       kind: "import_sync",
       imported: result.state === "completed" ? result.value.imported : 0,
+    };
+  }
+
+  if (job.kind === ACCOUNT_PURGE_JOB_KIND) {
+    const token = parts.at(-1);
+    if (!token) return { state: "skipped" };
+    const result = await runAccountPurge(db, token, clock);
+    return {
+      state: result.state === "completed" ? "completed" : "skipped",
+      kind: "account_purge",
     };
   }
 

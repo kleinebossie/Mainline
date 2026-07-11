@@ -14,6 +14,7 @@ const DAILY_JOB_KINDS = [
   "daily_adaptation",
   "day_missed",
   "import_sync",
+  "account_purge",
 ] as const;
 
 export interface DailyOperationsSummary {
@@ -28,9 +29,10 @@ export interface DailyOperationsSummary {
 }
 
 const JOB_PRIORITY: Record<(typeof DAILY_JOB_KINDS)[number], number> = {
-  daily_adaptation: 0,
-  day_missed: 1,
-  import_sync: 2,
+  account_purge: 0,
+  daily_adaptation: 1,
+  day_missed: 2,
+  import_sync: 3,
 };
 
 function isDailyJobKind(

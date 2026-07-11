@@ -195,7 +195,7 @@ Every part must end with:
 | P0   | Current-state and methodology gap audit                         | Before closed beta                       | M14 complete                        | Complete |
 | P1   | Research methodology release                                    | Before closed beta                       | P0                                  | Complete |
 | P2   | Beta access, API budgets, jobs, monitoring, and PWA             | Before closed beta                       | P0                                  | Complete |
-| P3   | Privacy, consent, export, and hard-deletion completion          | Before closed beta                       | P0                                  | Planned |
+| P3   | Privacy, consent, export, and hard-deletion completion          | Before closed beta                       | P0                                  | Complete |
 | P4   | Decision-state and skill-history foundation                     | Before closed beta                       | P1, P3                              | Planned |
 | P5   | Stable weekly focus and bounded user choice                     | Before closed beta                       | P4                                  | Planned |
 | P6   | Seven-day forecast, revision ledger, and availability model     | Before closed beta                       | P5                                  | Planned |
@@ -546,6 +546,56 @@ secondary-use data.
 
 **Definition of Done:** operational training works without research consent, secondary-use capture
 honors consent and withdrawal, export is complete, and hard deletion is verified end to end.
+
+**Status (2026-07-11): COMPLETE.** P0 is complete, the repository implementation and tests pass,
+the production migration is applied, and hard deletion is verified end to end. The owner explicitly
+approved the final privacy and consent copy on 2026-07-11. Personal training has no consent gate.
+Consent is a separate, versioned audit history with explicit scope, withdrawal, regrant, and a
+fail-closed current-notice predicate. P9 secondary research capture remains disabled, so P3 does not
+claim that de-identification or aggregate research processing already runs. All P3 Definition of Done
+gates pass.
+
+#### P3 handoff
+
+- Delivered: migration `20260711030000_p3_privacy_consent_purge`; public consent and notice types;
+  server-authoritative current-scope eligibility; exact displayed-notice binding for grants; grant and
+  withdrawal APIs; Settings privacy, consent, export, and erase controls; credential-redacted
+  `mainline-user-export/v2`; and an opaque-token purge ledger and job. Active old-version consent is
+  ineligible, remains withdrawable, and does not prevent a separate opt-in to the current notice.
+- Export coverage: safe User fields; Account and Session metadata without credentials; redacted
+  PlatformConnection; profiles; games with AnalysisResult; Assessment; ConstraintSet; Program with
+  ProgramItem; ActivityEvent; SkillState; ScheduleState; personal PracticeItem; AdaptationLog;
+  RewardEvent; NotificationPref; ApiCallBudget; claimed AllowlistEntry without invite code; and the
+  full ResearchConsent audit. Global puzzles, resources, tablebase cache, and curated practice rows
+  remain excluded.
+- Deletion behavior: the request transaction marks the user deleted, assigns a random token, creates
+  one purge ledger, and queues one purge job whose key contains no user or connection id. An immediate
+  attempt runs through P2 fencing. Daily and admin recovery retry incomplete jobs. Hard deletion removes
+  prior job keys containing account identifiers, deletes local OAuth/session secrets by User cascade,
+  and leaves only the non-identifying completed ledger. Account purge has priority over import and
+  missed-day work. The API reports erased only after the runner completes or proves prior completion;
+  active or superseded attempts remain queued. Missing users and repeated requests are safe. External
+  provider revocation failure cannot block deletion.
+- Verification: Node 25.2.0; Prisma generation; typecheck; lint; 63 Vitest files with 391 tests;
+  4 guard files with 42 tests; production build; and 19 Playwright tests pass. After replacing the
+  export's 19-query fan-out with sequential queries, 6 targeted P3 files with 26 tests, typecheck,
+  lint, and the production build pass. On 2026-07-11, the configured Supabase production database
+  reports migration `20260711030000_p3_privacy_consent_purge` applied. A guarded disposable-account
+  drill passed personal protected training without consent; consent grant, withdrawal, and regrant;
+  complete credential-redacted v2 export; stale purge recovery; removal of every direct and indirect
+  owned row and correlated JobRun; preservation of sampled global rows; and retention of only an
+  opaque completed purge ledger. Every disposable drill User was removed, including failed attempts.
+- Owner actions: no remaining P3 completion action. Keep research capture disabled until P9. The
+  owner's privacy-copy approval is recorded, but this roadmap is not legal advice and appropriate
+  legal review remains a general release consideration.
+- Deliberate deviations: no methodology config values were added because privacy governance is not a
+  chess or learning decision. No research capture or de-identification pipeline was added because P9
+  owns it. `VerificationToken` has no User foreign key and OAuth-only Mainline creates no attributable
+  verification-token row, so purge does not guess identity matching or delete global token rows.
+- Remaining risks: the production hard-delete drill did not verify external provider-side token
+  revocation, which cannot block local deletion. Notice text changes require a new notice id and owner
+  review. Appropriate legal advice remains a general release consideration, not a P3 completion
+  blocker.
 
 ---
 

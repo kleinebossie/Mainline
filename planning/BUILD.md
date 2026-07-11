@@ -1390,8 +1390,8 @@ graded **`delivery`** field (Seam 4 — data, not a code branch).
 - **Tests:** unit — non-allowlisted sign-in refused; rate-limit bucket blocks over-budget calls; e2e —
   invited user completes full loop; data export/delete works.
 - **DoD:** ✅ closed-beta gating ✅ within Vercel/Supabase free limits under expected load ✅ errors
-  tracked ✅ installable PWA ☐ GDPR export/erase verified.
-- **Status (2026-07-11): IN PROGRESS, P2 RUNTIME COMPLETE.** `AllowlistEntry` now gates new OAuth
+  tracked ✅ installable PWA ✅ GDPR export/erase verified end to end ✅ owner privacy-copy approval.
+- **Status (2026-07-11): ✅ DONE.** `AllowlistEntry` now gates new OAuth
   admission while preserving pre-gate owner access, and `ApiCallBudget` atomically limits every
   actual Lichess/Chess.com attempt, including retries and cron work. The shared `JobRun` runner uses
   leases, heartbeats, fenced retry attempts, sanitized error codes, and immutable successful keys.
@@ -1402,8 +1402,15 @@ graded **`delivery`** field (Seam 4 — data, not a code branch).
   typed core-loop events are fail-closed through a tested privacy scrubber, with tracing and replay
   disabled. The manifest, icons, static-only service worker cache, and PWA headers preserve the
   Stockfish COOP/COEP contract. Runtime setup and recovery are documented in
-  `planning/OPERATIONS.md`. P3 still owns versioned research consent, complete export coverage, and
-  the actual idempotent hard-delete purge, so the final GDPR box remains open.
+  `planning/OPERATIONS.md`. P3 adds separately versioned research consent with withdrawal history,
+  server-authoritative fail-closed future research eligibility, exact displayed-notice binding for
+  every grant, a credential-redacted v2 export across every current user relation, and an opaque-token
+  idempotent hard-delete job. Old-version active consent is ineligible but remains withdrawable.
+  Consent is not required for personal training. The owner explicitly approved the final privacy and
+  consent copy on 2026-07-11. Secondary research capture remains disabled until P9. Appropriate legal
+  advice remains a general release consideration, not an M15 completion blocker. Migration
+  `20260711030000_p3_privacy_consent_purge` is applied on the configured Supabase production database,
+  where the guarded export and hard-deletion drill passed on 2026-07-11.
 
 ---
 

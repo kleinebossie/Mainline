@@ -35,11 +35,13 @@ describe("daily operations", () => {
             key: "daily_adaptation:k",
           },
           { id: "missed", kind: "day_missed", key: "day_missed:k" },
+          { id: "purge", kind: "account_purge", key: "account_purge:k" },
         ]),
         count: vi.fn().mockResolvedValue(1),
       },
     };
     maintenance.retryFailedJob
+      .mockResolvedValueOnce({ state: "completed", kind: "account_purge" })
       .mockResolvedValueOnce({ state: "completed", kind: "daily_adaptation" })
       .mockResolvedValueOnce({
         state: "completed",
@@ -66,7 +68,7 @@ describe("daily operations", () => {
     );
     expect(
       maintenance.retryFailedJob.mock.calls.map((call) => call[1]),
-    ).toEqual(["adapt", "missed", "import"]);
+    ).toEqual(["purge", "adapt", "missed", "import"]);
     expect(result).toMatchObject({
       import: { users: 1, imported: 4, errors: 0 },
       maintenance: {
@@ -74,7 +76,7 @@ describe("daily operations", () => {
         adaptationRuns: 1,
         missedDayEvents: 1,
       },
-      queue: { enqueued: 5, processed: 3, remaining: 1 },
+      queue: { enqueued: 5, processed: 4, remaining: 1 },
     });
   });
 

@@ -67,3 +67,4 @@ npm run prisma:migrate           # Run on setup and schema changes
 - **No Runtime AI**: Never introduce LLM/AI inside the application logic.
 - **No Em-Dashes**: Never use em-dashes (`—`) in code, comments, copy, or docs. They are a telltale sign of AI authorship. Use commas, colons, semicolons, or split into separate sentences to keep grammar correct.
 - **One Subagent**: Never use more than 1 subagent at the same time. Stop your work and wait for the single subagent to finish.
+- **Don't Overtest**: Don't rerun every single test after a mini change 'just because'. Be smart about how you spend tokens.
