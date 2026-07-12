@@ -10,12 +10,17 @@ import { Select } from "@/components/ui/select";
 import { StatusMessage } from "@/components/ui/status-message";
 import { TransparencyCard } from "@/components/transparency-card";
 import type { TodayItem, TodayProgram } from "@/server/program";
+import type { ProgramDayForecast } from "@/lib/program-forecast";
+import type { WeeklyFocus } from "@/lib/weekly-focus";
 import { cn } from "@/lib/utils";
 import {
   activityActionLabel,
   asGrade,
   completionEventType,
+  focusSourceLabel,
   formatMinuteCap,
+  formatForecastDate,
+  humanizeFocusArea,
   isAutoLoggedInternal,
   isClosedItem,
   isPuzzleAttemptLoggable,
@@ -36,22 +41,167 @@ type LogOutcomeInput = {
   correct?: boolean;
 };
 
+type ProgramNotice = {
+  tone: "success" | "error" | "neutral";
+  heading: string;
+  message: string;
+};
+
 export function Today() {
   const utils = trpc.useUtils();
+  const [programNotice, setProgramNotice] = useState<ProgramNotice | null>(
+    null,
+  );
+  const [availabilityDismissed, setAvailabilityDismissed] = useState(false);
+  const [focusOptionsOpen, setFocusOptionsOpen] = useState(false);
   const today = trpc.program.getToday.useQuery();
   const weeklyFocus = trpc.program.weeklyFocus.useQuery();
-  const selectFocus = trpc.program.selectFocusAlternative.useMutation({
-    onSuccess: () => {
-      void utils.program.weeklyFocus.invalidate();
-      void utils.program.getToday.invalidate();
+  const forecast = trpc.program.forecast.useQuery();
+  const availability = trpc.program.availability.useQuery();
+  const availabilityOverrides = trpc.program.availabilityOverrides.useQuery();
+  const saveAvailability = trpc.program.saveAvailability.useMutation({
+    onMutate: () => setProgramNotice(null),
+    onSuccess: async (_result, variables) => {
+      await Promise.all([
+        utils.program.availability.invalidate(),
+        utils.program.forecast.invalidate(),
+      ]);
+      setProgramNotice({
+        tone: "success",
+        heading: "Training rhythm saved",
+        message:
+          variables.mode === "flexible"
+            ? "Your week stays flexible. No preferred training days were added."
+            : "Weekdays are now your preferred training days. Individual dates can still change.",
+      });
+    },
+    onError: () =>
+      setProgramNotice({
+        tone: "error",
+        heading: "Training rhythm not saved",
+        message: "The update did not go through. Try again.",
+      }),
+  });
+  const saveOverride = trpc.program.saveAvailabilityOverride.useMutation({
+    onMutate: () => setProgramNotice(null),
+    onSuccess: async (_result, variables) => {
+      await Promise.all([
+        utils.program.forecast.invalidate(),
+        utils.program.availabilityOverrides.invalidate(),
+      ]);
+      setProgramNotice({
+        tone: "success",
+        heading: "Day updated",
+        message: `${formatForecastDate(variables.date)} is marked unavailable. The remaining forecast was recalculated without catch-up work.`,
+      });
+    },
+    onError: () =>
+      setProgramNotice({
+        tone: "error",
+        heading: "Day not updated",
+        message: "The availability change did not go through. Try again.",
+      }),
+  });
+  const removeOverride = trpc.program.removeAvailabilityOverride.useMutation({
+    onMutate: () => setProgramNotice(null),
+    onSuccess: async (_result, variables) => {
+      await Promise.all([
+        utils.program.forecast.invalidate(),
+        utils.program.availabilityOverrides.invalidate(),
+      ]);
+      setProgramNotice({
+        tone: "success",
+        heading: "Day restored",
+        message: `${formatForecastDate(variables.date)} now follows your usual weekly availability.`,
+      });
+    },
+    onError: () =>
+      setProgramNotice({
+        tone: "error",
+        heading: "Day not restored",
+        message: "The override could not be removed. Try again.",
+      }),
+  });
+  const replan = trpc.program.replan.useMutation({
+    onMutate: () => setProgramNotice(null),
+    onSuccess: async () => {
+      await Promise.all([
+        utils.program.getToday.invalidate(),
+        utils.program.forecast.invalidate(),
+        utils.program.weeklyFocus.invalidate(),
+        utils.program.revisions.invalidate(),
+      ]);
+      setProgramNotice({
+        tone: "success",
+        heading: "Today replanned",
+        message:
+          "Completed work stayed in your history. The remaining session and forecast now use current inputs.",
+      });
+    },
+    onError: () =>
+      setProgramNotice({
+        tone: "error",
+        heading: "Today not replanned",
+        message: "Your existing session is unchanged. Try again.",
+      }),
+  });
+  const selectFocus = trpc.program.selectFocus.useMutation({
+    onMutate: () => setProgramNotice(null),
+    onSuccess: async (result, variables) => {
+      await Promise.all([
+        utils.program.weeklyFocus.invalidate(),
+        utils.program.getToday.invalidate(),
+        utils.program.forecast.invalidate(),
+        utils.program.revisions.invalidate(),
+      ]);
+      setFocusOptionsOpen(false);
+      const selectedLabel = variables.focusAreas
+        .map(
+          (focusArea) =>
+            weeklyFocus.data?.focusLabels[focusArea] ??
+            humanizeFocusArea(focusArea),
+        )
+        .join(" + ");
+      setProgramNotice({
+        tone: result.forecastUpdated ? "success" : "neutral",
+        heading: result.forecastUpdated
+          ? "Weekly focus changed"
+          : "Focus saved, preview not refreshed",
+        message: result.forecastUpdated
+          ? `${selectedLabel} will guide future provisional days. A started Today remains unchanged.`
+          : `${selectedLabel} is active, but the seven-day preview may stay stale until the next session rebuild.`,
+      });
+    },
+    onError: async (error) => {
+      await utils.program.weeklyFocus.invalidate();
+      setProgramNotice({
+        tone: "error",
+        heading: "Weekly focus not changed",
+        message: `The change was not confirmed. The latest weekly focus has been reloaded. ${error.message}`,
+      });
     },
   });
   const dueReviews = trpc.tracker.dueReviews.useQuery();
   const generate = trpc.program.generate.useMutation({
-    onSuccess: () => {
-      void utils.program.getToday.invalidate();
-      void utils.tracker.dueReviews.invalidate();
+    onMutate: () => setProgramNotice(null),
+    onSuccess: async () => {
+      await Promise.all([
+        utils.program.getToday.invalidate(),
+        utils.program.forecast.invalidate(),
+        utils.tracker.dueReviews.invalidate(),
+      ]);
+      setProgramNotice({
+        tone: "success",
+        heading: "Session rebuilt",
+        message: "Today now fits the saved time budget.",
+      });
     },
+    onError: () =>
+      setProgramNotice({
+        tone: "error",
+        heading: "Session not rebuilt",
+        message: "Your previous session is still available. Try again.",
+      }),
   });
   const log = trpc.tracker.logOutcome.useMutation({
     onSuccess: () => {
@@ -68,6 +218,12 @@ export function Today() {
     onSuccess: () => {
       void utils.constraints.getCurrent.invalidate();
     },
+    onError: () =>
+      setProgramNotice({
+        tone: "error",
+        heading: "Time budget not saved",
+        message: "Today is unchanged. Check the value and try again.",
+      }),
   });
 
   const [timeInput, setTimeInput] = useState("");
@@ -150,53 +306,124 @@ export function Today() {
         onRegenerate={handleRegenerateWithTime}
       />
 
+      {programNotice && (
+        <ProgramActionNotice
+          notice={programNotice}
+          onDismiss={() => setProgramNotice(null)}
+        />
+      )}
+
+      {(availability.error ||
+        availabilityOverrides.error ||
+        forecast.error ||
+        weeklyFocus.error) && (
+        <StatusMessage tone="error" heading="Program controls unavailable">
+          <div className="flex flex-wrap items-center gap-3">
+            <span>
+              Today is still usable, but the weekly controls could not be
+              loaded.
+            </span>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                void availability.refetch();
+                void availabilityOverrides.refetch();
+                void forecast.refetch();
+                void weeklyFocus.refetch();
+              }}
+            >
+              Try again
+            </Button>
+          </div>
+        </StatusMessage>
+      )}
+
+      {availability.data?.promptResolvedAt == null &&
+        !availabilityDismissed && (
+          <AvailabilityPrompt
+            pendingMode={
+              saveAvailability.isPending
+                ? saveAvailability.variables?.mode
+                : undefined
+            }
+            onFlexible={() =>
+              saveAvailability.mutate({
+                mode: "flexible",
+                preferredWeekdays: [],
+                defaultMinutesByDay: {},
+              })
+            }
+            onWeekdays={() =>
+              saveAvailability.mutate({
+                mode: "preferred",
+                preferredWeekdays: [1, 2, 3, 4, 5],
+                defaultMinutesByDay: {},
+              })
+            }
+            onLater={() => {
+              setAvailabilityDismissed(true);
+              setProgramNotice({
+                tone: "neutral",
+                heading: "No schedule chosen",
+                message:
+                  "Nothing changed. Mainline will ask again the next time you open Today.",
+              });
+            }}
+          />
+        )}
+
+      {forecast.data && forecast.data.length > 0 && (
+        <WeekFile
+          days={forecast.data}
+          unavailableDates={
+            new Set(
+              (availabilityOverrides.data ?? [])
+                .filter((override) => override.unavailable)
+                .map((override) => override.date),
+            )
+          }
+          pendingDate={
+            saveOverride.isPending
+              ? saveOverride.variables?.date
+              : removeOverride.isPending
+                ? removeOverride.variables?.date
+                : undefined
+          }
+          onMarkUnavailable={(date) =>
+            saveOverride.mutate({ date, minutes: null, unavailable: true })
+          }
+          onRestore={(date) => removeOverride.mutate({ date })}
+        />
+      )}
+
       {weeklyFocus.data && (
-        <section className="rounded-lg border bg-card p-4 shadow-sheet">
-          <p className="eyebrow">This week&apos;s focus</p>
-          <h3 className="mt-2 font-serif text-xl text-ink">
-            {weeklyFocus.data.focusAreas.join(" + ")}
-          </h3>
-          <p className="mt-2 text-sm leading-relaxed text-graphite">
-            {weeklyFocus.data.rationaleSnapshots[0]?.text} Confidence:{" "}
-            {weeklyFocus.data.confidence}.
-          </p>
-          {weeklyFocus.data.alternatives.length > 0 && (
-            <div className="mt-4 flex flex-col gap-2">
-              <p className="font-mono text-xs text-graphite">
-                Goal-aligned alternatives
-              </p>
-              {weeklyFocus.data.alternatives.map((alternative) => (
-                <div
-                  key={alternative.focusArea}
-                  className="flex flex-wrap items-center justify-between gap-3 rounded border p-3"
-                >
-                  <div>
-                    <p className="font-serif text-sm text-ink">
-                      {alternative.focusArea}
-                    </p>
-                    <p className="text-xs text-graphite">
-                      {alternative.tradeoff.text}
-                    </p>
-                  </div>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    disabled={selectFocus.isPending}
-                    onClick={() =>
-                      selectFocus.mutate({
-                        weeklyFocusId: weeklyFocus.data!.id,
-                        focusArea: alternative.focusArea,
-                      })
-                    }
-                  >
-                    Choose for this week
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
+        <WeeklyDirection
+          focus={weeklyFocus.data}
+          focusLabels={weeklyFocus.data.focusLabels}
+          optionsOpen={focusOptionsOpen}
+          pendingFocus={
+            selectFocus.isPending
+              ? selectFocus.variables?.focusAreas.join("|")
+              : undefined
+          }
+          onToggleOptions={() => setFocusOptionsOpen((open) => !open)}
+          onKeep={() => {
+            setFocusOptionsOpen(false);
+            setProgramNotice({
+              tone: "neutral",
+              heading: "Current focus kept",
+              message: "Nothing changed. You can compare other options later.",
+            });
+          }}
+          onSelect={(focusAreas) =>
+            selectFocus.mutate({
+              weeklyFocusId: weeklyFocus.data!.id,
+              focusAreas,
+            })
+          }
+        />
       )}
 
       <TodayBlockList
@@ -239,10 +466,10 @@ export function Today() {
           type="button"
           variant="ghost"
           size="sm"
-          disabled={generate.isPending}
-          onClick={() => generate.mutate()}
+          disabled={replan.isPending}
+          onClick={() => replan.mutate()}
         >
-          {generate.isPending ? "Regenerating..." : "Regenerate session"}
+          {replan.isPending ? "Replanning..." : "Replan remaining work"}
         </Button>
         <span className="text-graphite min-w-0 font-mono text-xs">
           Built from your data on {program.createdAt.toLocaleDateString()} ·{" "}
@@ -250,6 +477,425 @@ export function Today() {
         </span>
       </div>
     </div>
+  );
+}
+
+function ProgramActionNotice({
+  notice,
+  onDismiss,
+}: {
+  notice: ProgramNotice;
+  onDismiss: () => void;
+}) {
+  return (
+    <StatusMessage
+      tone={notice.tone}
+      heading={notice.heading}
+      className="shadow-sheet"
+    >
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
+        <span>{notice.message}</span>
+        <Button type="button" size="sm" variant="ghost" onClick={onDismiss}>
+          Dismiss
+        </Button>
+      </div>
+    </StatusMessage>
+  );
+}
+
+function AvailabilityPrompt({
+  pendingMode,
+  onFlexible,
+  onWeekdays,
+  onLater,
+}: {
+  pendingMode?: "flexible" | "preferred";
+  onFlexible: () => void;
+  onWeekdays: () => void;
+  onLater: () => void;
+}) {
+  const busy = pendingMode != null;
+  return (
+    <section className="overflow-hidden rounded-lg border border-evergreen/25 bg-card shadow-sheet">
+      <div className="border-b border-line bg-evergreen/[0.045] px-4 py-3 sm:px-5">
+        <p className="eyebrow">Optional setup</p>
+        <h2 className="mt-1 font-serif text-lg font-semibold text-ink">
+          Set your training rhythm
+        </h2>
+        <p className="mt-1 max-w-2xl text-sm leading-relaxed text-graphite">
+          This only shapes the provisional week. It does not judge consistency,
+          create catch-up debt, or change measured skill.
+        </p>
+      </div>
+      <div className="grid gap-px bg-line sm:grid-cols-2">
+        <div className="bg-card p-4 sm:p-5">
+          <p className="font-serif text-base font-semibold text-ink">
+            Keep every day flexible
+          </p>
+          <p className="mt-1 text-sm leading-relaxed text-graphite">
+            Mainline will show a plan for each day without assuming when you
+            train.
+          </p>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="mt-4"
+            disabled={busy}
+            onClick={onFlexible}
+          >
+            {pendingMode === "flexible" ? "Saving..." : "Keep days flexible"}
+          </Button>
+        </div>
+        <div className="bg-card p-4 sm:p-5">
+          <p className="font-serif text-base font-semibold text-ink">
+            Start with weekdays
+          </p>
+          <p className="mt-1 text-sm leading-relaxed text-graphite">
+            Monday through Friday become preferred days. Any date can still be
+            changed later.
+          </p>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="mt-4"
+            disabled={busy}
+            onClick={onWeekdays}
+          >
+            {pendingMode === "preferred"
+              ? "Saving..."
+              : "Use weekdays as a starting point"}
+          </Button>
+        </div>
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-4 py-3 sm:px-5">
+        <p className="font-mono text-[0.68rem] text-graphite">
+          No choice is required now.
+        </p>
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          disabled={busy}
+          onClick={onLater}
+        >
+          Decide later
+        </Button>
+      </div>
+    </section>
+  );
+}
+
+function WeekFile({
+  days,
+  unavailableDates,
+  pendingDate,
+  onMarkUnavailable,
+  onRestore,
+}: {
+  days: ProgramDayForecast[];
+  unavailableDates: ReadonlySet<number>;
+  pendingDate?: number;
+  onMarkUnavailable: (date: number) => void;
+  onRestore: (date: number) => void;
+}) {
+  return (
+    <section className="rounded-lg border bg-card shadow-sheet">
+      <div className="flex flex-wrap items-end justify-between gap-3 border-b border-line px-4 py-3 sm:px-5">
+        <div>
+          <p className="eyebrow">Seven-day forecast</p>
+          <h2 className="mt-1 font-serif text-lg font-semibold text-ink">
+            The week file
+          </h2>
+        </div>
+        <p className="max-w-sm text-right font-mono text-[0.68rem] leading-relaxed text-graphite">
+          Today is committed after training starts. Future days are provisional.
+        </p>
+      </div>
+      <p className="border-b border-line px-4 py-2 font-mono text-[0.64rem] text-graphite sm:hidden">
+        Swipe or scroll to see later days.
+      </p>
+      <div
+        className="overflow-x-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+        role="region"
+        aria-label="Seven-day forecast"
+        tabIndex={0}
+      >
+        <ol className="grid min-w-[46rem] grid-cols-7 divide-x divide-line">
+          {days.map((day, index) => {
+            const explicitlyUnavailable = unavailableDates.has(day.date);
+            const resting = day.expectedMinutes === 0;
+            const state = index === 0 ? "Today" : resting ? "Rest" : "Planned";
+            const busy = pendingDate === day.date;
+            return (
+              <li
+                key={day.id}
+                className={cn(
+                  "flex min-h-44 flex-col px-3 py-4",
+                  index === 0 && "bg-evergreen/[0.045]",
+                )}
+              >
+                <span className="font-mono text-[0.64rem] font-semibold uppercase tracking-[0.14em] text-evergreen">
+                  {state}
+                </span>
+                <p className="mt-2 font-serif text-sm font-semibold text-ink">
+                  {formatForecastDate(day.date)}
+                </p>
+                <p className="mt-3 font-mono text-xs tabular-nums text-graphite">
+                  {resting
+                    ? "No session planned"
+                    : `${day.expectedMinutes} min · ${day.plannedBlocks.length} ${day.plannedBlocks.length === 1 ? "block" : "blocks"}`}
+                </p>
+                {index > 0 && (
+                  <div className="mt-auto pt-4">
+                    {explicitlyUnavailable ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        disabled={busy}
+                        onClick={() => onRestore(day.date)}
+                      >
+                        {busy ? "Restoring..." : "Restore day"}
+                      </Button>
+                    ) : !resting ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        disabled={busy}
+                        onClick={() => onMarkUnavailable(day.date)}
+                      >
+                        {busy ? "Saving..." : "I’m unavailable"}
+                      </Button>
+                    ) : null}
+                  </div>
+                )}
+              </li>
+            );
+          })}
+        </ol>
+      </div>
+    </section>
+  );
+}
+
+type WeeklyFocusView = WeeklyFocus & {
+  recommendation: {
+    focusAreas: string[];
+    supportingSignals: WeeklyFocus["supportingSignals"];
+    rationale: WeeklyFocus["rationaleSnapshots"][number];
+  };
+};
+
+function sameFocus(left: readonly string[], right: readonly string[]) {
+  return (
+    left.length === right.length &&
+    left.every((focusArea, index) => focusArea === right[index])
+  );
+}
+
+function WeeklyDirection({
+  focus,
+  focusLabels,
+  optionsOpen,
+  pendingFocus,
+  onToggleOptions,
+  onKeep,
+  onSelect,
+}: {
+  focus: WeeklyFocusView;
+  focusLabels: Record<string, string>;
+  optionsOpen: boolean;
+  pendingFocus?: string;
+  onToggleOptions: () => void;
+  onKeep: () => void;
+  onSelect: (focusAreas: string[]) => void;
+}) {
+  const labelFor = (focusArea: string) =>
+    focusLabels[focusArea] ?? humanizeFocusArea(focusArea);
+  const currentLabel = focus.focusAreas.map(labelFor).join(" + ");
+  const recommendedLabel = focus.recommendation.focusAreas
+    .map(labelFor)
+    .join(" + ");
+  const recommendationIsCurrent = sameFocus(
+    focus.focusAreas,
+    focus.recommendation.focusAreas,
+  );
+  const recommendationSources = [
+    ...new Set(
+      focus.recommendation.supportingSignals.flatMap((signal) =>
+        signal.sources.map(focusSourceLabel),
+      ),
+    ),
+  ];
+  const otherOptions = focus.alternatives.filter(
+    (alternative) =>
+      !focus.focusAreas.includes(alternative.focusArea) &&
+      !focus.recommendation.focusAreas.includes(alternative.focusArea),
+  );
+  const hasChoices = otherOptions.length > 0;
+  const recommendationKey = focus.recommendation.focusAreas.join("|");
+  return (
+    <section className="overflow-hidden rounded-lg border bg-card shadow-sheet">
+      <div className="border-b border-line bg-evergreen/[0.035] p-4 sm:p-5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="eyebrow">Weekly direction</p>
+          <span className="font-mono text-[0.68rem] capitalize text-graphite">
+            {focus.confidence} confidence
+          </span>
+        </div>
+
+        <div className="mt-4 flex min-w-0 flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-sm bg-evergreen px-2 py-1 font-mono text-[0.64rem] font-semibold uppercase tracking-[0.12em] text-white">
+                Recommended for you
+              </span>
+              {recommendationIsCurrent && (
+                <span className="font-mono text-[0.65rem] uppercase tracking-[0.1em] text-evergreen">
+                  Current
+                </span>
+              )}
+            </div>
+            <h2 className="mt-2 break-words font-serif text-xl font-semibold text-ink sm:text-2xl">
+              {recommendedLabel}
+            </h2>
+            {recommendationSources.length > 0 && (
+              <p className="mt-2 text-sm leading-relaxed text-graphite">
+                Based on {recommendationSources.join(", ")}.
+              </p>
+            )}
+          </div>
+          {!recommendationIsCurrent && (
+            <Button
+              type="button"
+              size="sm"
+              className="shrink-0"
+              disabled={pendingFocus != null}
+              onClick={() => onSelect(focus.recommendation.focusAreas)}
+            >
+              {pendingFocus === recommendationKey
+                ? "Updating..."
+                : "Use recommendation"}
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {!recommendationIsCurrent && (
+        <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3 sm:px-5">
+          <div className="min-w-0">
+            <span className="font-mono text-[0.65rem] uppercase tracking-[0.1em] text-graphite">
+              Your current choice
+            </span>
+            <p className="mt-0.5 break-words font-serif font-semibold text-ink">
+              {currentLabel}
+            </p>
+          </div>
+          <span className="rounded-sm border border-evergreen/25 px-2 py-1 font-mono text-[0.64rem] uppercase tracking-[0.1em] text-evergreen">
+            Active
+          </span>
+        </div>
+      )}
+
+      <div className="p-4 sm:p-5">
+        <div className="flex flex-wrap items-center gap-3">
+          {hasChoices && (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="shrink-0"
+              aria-expanded={optionsOpen}
+              aria-controls="weekly-focus-options"
+              onClick={onToggleOptions}
+            >
+              {optionsOpen ? "Hide other choices" : "See other choices"}
+            </Button>
+          )}
+          <span className="text-sm text-graphite">
+            Optional. Today stays unchanged.
+          </span>
+        </div>
+
+        <details className="mt-3 text-xs leading-relaxed text-graphite">
+          <summary className="cursor-pointer font-mono text-[0.68rem] text-evergreen focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            Evidence and limits
+          </summary>
+          <div className="mt-2 max-w-3xl space-y-2">
+            <p>{focus.recommendation.rationale.text}</p>
+            {focus.alternatives[0] && (
+              <p>{focus.alternatives[0].tradeoff.text}</p>
+            )}
+          </div>
+        </details>
+      </div>
+
+      {optionsOpen && hasChoices && (
+        <div id="weekly-focus-options" className="border-t border-line">
+          <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-5">
+            <p className="font-mono text-[0.68rem] uppercase tracking-[0.1em] text-graphite">
+              Goal-aligned alternatives
+            </p>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="shrink-0"
+              disabled={pendingFocus != null}
+              onClick={onKeep}
+            >
+              Keep {currentLabel}
+            </Button>
+          </div>
+          {otherOptions.length > 0 ? (
+            <div className="divide-y divide-line border-t border-line">
+              {otherOptions.map((alternative) => {
+                const label = labelFor(alternative.focusArea);
+                const busy = pendingFocus === alternative.focusArea;
+                const sources = [
+                  ...new Set(
+                    alternative.supportingSources.map(focusSourceLabel),
+                  ),
+                ];
+                return (
+                  <div
+                    key={alternative.focusArea}
+                    className="flex min-w-0 flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5"
+                  >
+                    <div className="min-w-0">
+                      <p className="font-serif text-base font-semibold text-ink">
+                        {label}
+                      </p>
+                      <p className="mt-1 text-sm text-graphite">
+                        {sources.length > 0
+                          ? `Aligned with ${sources.join(", ")}.`
+                          : "Available within your current training goals."}
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="mt-4 sm:mt-0 shrink-0"
+                      disabled={pendingFocus != null}
+                      onClick={() => onSelect([alternative.focusArea])}
+                    >
+                      {busy ? "Updating..." : `Use ${label}`}
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="border-t border-line px-4 py-4 text-sm text-graphite sm:px-5">
+              No other approved choices are available this week.
+            </p>
+          )}
+        </div>
+      )}
+    </section>
   );
 }
 

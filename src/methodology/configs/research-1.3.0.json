@@ -1,0 +1,41 @@
+{
+  "version": "research-1.3.0",
+  "assessment": {
+    "calibration": {
+      "minItems": {
+        "value": 3,
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "stub_open_question",
+        "flag": "best-guess",
+        "note": "Three-item lower bound chosen as a product best guess to shorten onboarding; its measurement quality requires validation."
+      },
+      "maxItems": {
+        "value": 3,
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "stub_open_question",
+        "flag": "best-guess",
+        "note": "Three-item upper bound chosen as a product best guess to shorten onboarding; its measurement quality requires validation."
+      }
+    },
+    "tracks": [
+      {
+        "id": "tactics",
+        "dimension": "tactics",
+        "label": "Tactics",
+        "theme": "mix"
+      }
+    ]
+  },
+  "weeklyFocus": {
+    "alternativeRationale": {
+      "value": "This option stays within the methodology-approved set and gives more weight to a goal you chose. The evidence-led recommendation remains available if you change your mind.",
+      "grade": "C",
+      "tier": 2,
+      "citationKey": "williamson2022",
+      "flag": "best-guess",
+      "soften": true
+    }
+  }
+}

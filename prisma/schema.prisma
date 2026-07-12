@@ -56,6 +56,10 @@ model User {
   scheduleStates          ScheduleState[]
   trainingPreferenceState TrainingPreferenceState?
   weeklyFocuses           WeeklyFocus[]
+  weeklyAvailability      WeeklyAvailability?
+  availabilityOverrides   AvailabilityOverride[]
+  programDayForecasts     ProgramDayForecast[]
+  programRevisions        ProgramRevision[]
   adaptationLogs          AdaptationLog[]
   rewardEvents            RewardEvent[]
   notificationPref        NotificationPref?
@@ -639,6 +643,81 @@ model WeeklyFocus {
 
   @@index([userId, status, weekStart])
   @@index([userId, createdAt])
+}
+
+// P6 scheduling preferences. Flexible is a durable, explicit choice, not an inferred
+// weekday schedule. `defaultMinutesByDay` is keyed by UTC weekday (0 through 6).
+model WeeklyAvailability {
+  id                  String    @id @default(cuid())
+  userId              String    @unique
+  mode                String    @default("flexible") // flexible | preferred
+  preferredWeekdays   Int[]
+  defaultMinutesByDay Json
+  promptResolvedAt    DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// A one-date exception. Null minutes means use the weekly/default constraint budget.
+model AvailabilityOverride {
+  id          String   @id @default(cuid())
+  userId      String
+  date        DateTime
+  minutes     Int?
+  unavailable Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId, date])
+}
+
+// Immutable forecast version for one date. Reforecasting supersedes a row and appends
+// another; activity blocks intentionally contain no concrete puzzle or position ids.
+model ProgramDayForecast {
+  id                 String   @id @default(cuid())
+  userId             String
+  weeklyFocusId      String
+  date               DateTime
+  status             String   @default("provisional") // provisional | materialized | superseded
+  plannedBlocks      Json
+  expectedMinutes    Int
+  focusLinks         String[]
+  dueReviewPressure  Json
+  rationaleSnapshots Json
+  methodologyVersion String
+  inputSnapshot      Json
+  createdAt          DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date, status])
+  @@index([weeklyFocusId, date])
+}
+
+// Append-only explanation of a focus or forecast replacement. Artifact ids are scalar
+// snapshots so deletion/supersession never destroys the historic link text.
+model ProgramRevision {
+  id                 String   @id @default(cuid())
+  userId             String
+  previousFocusId    String?
+  newFocusId         String?
+  previousForecastId String?
+  newForecastId      String?
+  trigger            String
+  changedFields      Json
+  gradedDecisions    Json
+  methodologyVersion String
+  occurredAt         DateTime
+  createdAt          DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, occurredAt])
 }
 
 // --- Engagement plumbing (BUILD.md §5.7, §9, M9) ---

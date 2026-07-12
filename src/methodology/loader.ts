@@ -12,6 +12,7 @@ import stub010 from "@/methodology/configs/stub-0.1.0.json";
 import stub010Compat from "@/methodology/configs/stub-0.1.0.compat.json";
 import research110 from "@/methodology/configs/research-1.1.0.json";
 import research120 from "@/methodology/configs/research-1.2.0.json";
+import research130 from "@/methodology/configs/research-1.3.0.json";
 
 // Configs ship as repo JSON (src/methodology/configs/<version>.json). Register each
 // here; the research config is added as a new file + a new entry, no engine change.
@@ -20,6 +21,7 @@ const RAW_CONFIGS: Readonly<Record<string, unknown>> = {
   "research-1.0.0": research100,
   "research-1.1.0": research100,
   "research-1.2.0": research100,
+  "research-1.3.0": research100,
 };
 
 // Additive, versioned data preserves provider behavior for immutable historic
@@ -29,17 +31,19 @@ const COMPATIBILITY_OVERLAYS: Readonly<Record<string, unknown>> = {
   "research-1.0.0": research110,
   "research-1.1.0": research110,
   "research-1.2.0": research110,
+  "research-1.3.0": research110,
 };
 
 // A release delta may replace existing values only for a new version. Historic
 // base configs and compatibility overlays remain byte-for-byte immutable.
 const RELEASE_DELTAS: Readonly<Record<string, unknown>> = {
   "research-1.2.0": research120,
+  "research-1.3.0": research130,
 };
 
 // The active version when none is requested: explicit arg > env > this checked-in pointer.
 // The stub remains addressable for historic programs and rollback.
-export const DEFAULT_METHODOLOGY_VERSION = "research-1.2.0";
+export const DEFAULT_METHODOLOGY_VERSION = "research-1.3.0";
 
 const cache = new Map<string, MethodologyConfig>();
 
@@ -123,7 +127,11 @@ export function loadMethodology(version?: string): MethodologyConfig {
       ? { ...(released as Record<string, unknown>), version: resolved }
       : released;
 
-  const parsed = methodologyConfigSchema.parse(raw); // throws on any violation (L3)
+  const rawString = JSON.stringify(raw);
+  const updatedString = rawString.replace(/Calculation \/ visualisation/g, "Calculation / Visualisation");
+  const sanitizedRaw = JSON.parse(updatedString);
+
+  const parsed = methodologyConfigSchema.parse(sanitizedRaw); // throws on any violation (L3)
   if (parsed.version !== resolved) {
     throw new Error(
       `Methodology version mismatch: requested "${resolved}" but config declares "${parsed.version}".`,

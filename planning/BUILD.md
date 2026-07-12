@@ -249,7 +249,7 @@ Loader rules:
   `methodologyVersion` they were produced under. Any past decision can be re-derived.
 - **Historic files stay byte-stable.** When a typed seam is extracted from old provider behavior,
   an additive compatibility JSON carries those graded values. The released config file is not edited.
-- **Active-version selection.** Environment chooses the active config: `research-1.0.0` by default,
+- **Active-version selection.** Environment chooses the active config: `research-1.3.0` by default,
   with `stub-0.1.0` retained for rollback. Swapping is a one-line env/pointer change plus the new
   JSON file.
 
@@ -262,9 +262,10 @@ Loader rules:
 | Purpose            | Preserve historic behavior and provide an intentional rollback baseline | Run the approved, graded methodology release                          |
 | Swap cost          | n/a                                                                     | **One file + one version bump.** No engine change (VISION §4).        |
 
-The 2026-07-10 release status is: `research-1.0.0` is active by default and `stub-0.1.0` remains
-loadable for historic programs. The research release retains explicit best guesses and deliberate
-stubs from `METHODOLOGY.md`; see `planning/METHODOLOGY_CHANGELOG.md` for the release inventory.
+The 2026-07-12 release status is: `research-1.3.0` is active by default and all earlier releases,
+including `stub-0.1.0`, remain loadable for historic programs. The research release retains explicit
+best guesses and deliberate stubs from `METHODOLOGY.md`; see `planning/METHODOLOGY_CHANGELOG.md` for
+the release inventory.
 
 The stub remains _coherent_, not empty: real band cutoffs, a dimension list, defensible default
 targets, and honest copy, all flagged so the transparency UI can say "placeholder." It originally
@@ -524,6 +525,21 @@ interface RawGameFeatures {
   M11/M14 — no migration needed before then.)
 
 ### 5.5 Program & tracking
+
+P6 adds the durable scheduling layer around the daily Program:
+
+- **WeeklyAvailability** stores an explicit `flexible|preferred` mode, optional weekdays, per-day
+  default minutes, and whether the one-time prompt was resolved. A missing row decodes as flexible;
+  the application never derives weekdays from `daysPerWeek`.
+- **AvailabilityOverride** stores one unavailable or minute-budget exception per UTC date.
+- **ProgramDayForecast** is an immutable, versioned daily projection. It snapshots activity-level
+  blocks, expected minutes, focus links, current due pressure, graded rationale snapshots,
+  methodology version, and generation input. Future blocks never contain puzzle or personal-position
+  ids. Reforecasting supersedes rows and appends replacements.
+- **ProgramRevision** is the append-only cross-artifact ledger. It snapshots previous/new focus or
+  forecast ids, trigger, changed fields, graded decisions, methodology version, and logical time.
+  Started Today programs are reused unless the user invokes explicit Replan. Historic programs,
+  completed work, events, and rationale snapshots remain intact.
 
 - **Program** — a generated plan instance. `userId`, `methodologyVersion`, `status`
   (`active|superseded`), `generationInput` JSON (snapshot of the inputs → reproducibility, L2),

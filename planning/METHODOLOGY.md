@@ -1080,6 +1080,11 @@ signals cannot revise focus. Fit preferences can rank an already-approved option
 SkillState or manufacture a weakness. Source anchors: `weakness_diagnosis`, `williamson2022`, and
 `fsrs_spaced_repetition`.
 
+The bounded-alternative rationale is optional-choice copy, not a warning or a second diagnosis. It
+states that the option remains methodology-approved, gives more weight to a goal the user chose, and
+leaves the evidence-led recommendation available. The choice remains Grade C, Tier 2, softened, and
+cited to `williamson2022`; this copy clarification does not upgrade its evidence.
+
 Everything here ships as a **clearly-labelled best-guess**, defaults conservatively, and is a candidate
 for resolution by the app's own outcome telemetry (the built-in study, VISION §7). The app is uniquely
 positioned to generate the dose-response and plateau evidence the literature lacks.

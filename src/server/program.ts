@@ -30,6 +30,7 @@ import {
 import {
   getActiveProgram,
   saveProgram,
+  type SaveProgramInput,
   type ActiveProgram,
 } from "@/db/program";
 import { captureOperationalEvent } from "@/server/observability";
@@ -38,6 +39,10 @@ import { ensureEndgameDrills } from "@/server/practice";
 import { assembleProgramDecisionInput } from "@/server/decision-input";
 import { ensureWeeklyFocus } from "@/server/weekly-focus";
 import { programWeeklyFocusSnapshotSchema } from "@/lib/weekly-focus";
+import {
+  refreshForecast,
+  type ForecastSource,
+} from "@/server/program-forecast";
 
 type Db = Pick<
   PrismaClient,
@@ -58,6 +63,93 @@ type Db = Pick<
   | "weeklyFocus"
   | "$transaction"
 >;
+
+function comparableParams(raw: unknown): string {
+  if (!raw || typeof raw !== "object") return "{}";
+  const {
+    estMinutes: _estMinutes,
+    dueItemRefs: _dueItemRefs,
+    count: _count,
+    ...rest
+  } = raw as Record<string, unknown>;
+  void _estMinutes;
+  void _dueItemRefs;
+  void _count;
+  const normalize = (value: unknown): unknown => {
+    if (Array.isArray(value)) return value.map(normalize);
+    if (value && typeof value === "object") {
+      return Object.fromEntries(
+        Object.entries(value as Record<string, unknown>)
+          .sort(([left], [right]) => left.localeCompare(right))
+          .map(([key, nested]) => [key, normalize(nested)]),
+      );
+    }
+    return value;
+  };
+  return JSON.stringify(normalize(rest));
+}
+
+export function preserveUnfinishedActivities<
+  T extends {
+    activityId: string;
+    activityType: string;
+    params: ProgramItemParams;
+    estMinutes: number;
+  },
+>(
+  generated: readonly T[],
+  completed: readonly {
+    activityId: string;
+    activityType: string;
+    params: unknown;
+  }[],
+): T[] {
+  const completedDueRefs = new Set(
+    completed.flatMap((item) => {
+      const refs = (item.params as { dueItemRefs?: unknown } | null)
+        ?.dueItemRefs;
+      return Array.isArray(refs)
+        ? refs.filter((ref): ref is string => typeof ref === "string")
+        : [];
+    }),
+  );
+  const completedCounts = new Map<string, number>();
+  for (const item of completed) {
+    const key = `${item.activityId}\u0000${item.activityType}\u0000${comparableParams(item.params)}`;
+    completedCounts.set(key, (completedCounts.get(key) ?? 0) + 1);
+  }
+  return generated.flatMap((item) => {
+    const dueItemRefs = item.params.dueItemRefs;
+    if (dueItemRefs && dueItemRefs.length > 0) {
+      const remainingRefs = dueItemRefs.filter(
+        (ref) => !completedDueRefs.has(ref),
+      );
+      if (remainingRefs.length === 0) return [];
+      if (remainingRefs.length === dueItemRefs.length) return [item];
+      return [
+        {
+          ...item,
+          estMinutes: Math.max(
+            1,
+            Math.round(
+              (item.estMinutes * remainingRefs.length) / dueItemRefs.length,
+            ),
+          ),
+          params: {
+            ...item.params,
+            dueItemRefs: remainingRefs,
+            count: remainingRefs.length,
+          },
+        },
+      ];
+    }
+    const key = `${item.activityId}\u0000${item.activityType}\u0000${comparableParams(item.params)}`;
+    const remaining = completedCounts.get(key) ?? 0;
+    if (remaining === 0) return [item];
+    completedCounts.set(key, remaining - 1);
+    return [];
+  });
+}
 
 /** Start-of-day (UTC) for an epoch — the day a generated session belongs to. */
 function startOfDayUTC(epoch: number): Date {
@@ -200,11 +292,17 @@ const themeRefId = (theme: string): string => `lichess_theme_${theme}`;
  * generator's narrow input is derived from that snapshot — routes never reconstruct partial
  * decision state themselves.
  */
-export async function generateAndSaveProgram(
+export interface PreparedProgram {
+  saveInput: SaveProgramInput;
+  forecastSource: ForecastSource;
+}
+
+export async function prepareProgram(
   db: Db,
   userId: string,
   clock: Clock = systemClock,
-): Promise<string> {
+  preserveCompletedToday = false,
+): Promise<PreparedProgram> {
   const cfg = loadMethodology();
 
   // M13: seed the band's curated endgame curriculum BEFORE assembling the snapshot, so any
@@ -253,10 +351,30 @@ export async function generateAndSaveProgram(
     config: cfg,
   });
 
+  // Explicit Replan keeps completed work in the immutable prior Program and must not
+  // schedule the same completed activity again in replacement Today. ActivityEvents stay
+  // linked to their original ProgramItems; only pending work is regenerated.
+  const completedRows = preserveCompletedToday
+    ? await db.program.findFirst({
+        where: { userId, status: "active" },
+        orderBy: { createdAt: "desc" },
+        select: {
+          items: {
+            where: { status: "done" },
+            select: { activityId: true, activityType: true, params: true },
+          },
+        },
+      })
+    : null;
+  const itemsToPersist = preserveUnfinishedActivities(
+    result.items,
+    completedRows?.items ?? [],
+  );
+
   // Link each puzzle-theme item to its catalog ResourceRef when one has been seeded.
   const wantedRefIds = [
     ...new Set(
-      result.items
+      itemsToPersist
         .map((it) => it.resourceTheme)
         .filter((t): t is string => t !== null)
         .map(themeRefId),
@@ -278,12 +396,12 @@ export async function generateAndSaveProgram(
     weeklyFocus: programWeeklyFocusSnapshotSchema.parse(weeklyFocus),
   } as unknown as Prisma.InputJsonValue;
 
-  const programId = await saveProgram(db, {
+  const saveInput: SaveProgramInput = {
     userId,
     methodologyVersion: cfg.version,
     generationInput,
     date: startOfDayUTC(result.generatedAt),
-    items: result.items.map((it) => ({
+    items: itemsToPersist.map((it) => ({
       orderIndex: it.orderIndex,
       activityId: it.activityId,
       activityType: it.activityType,
@@ -305,13 +423,70 @@ export async function generateAndSaveProgram(
       confidence: it.confidence,
       soften: it.soften,
     })),
+  };
+  return {
+    saveInput,
+    forecastSource: {
+      methodologyVersion: cfg.version,
+      generationInput,
+      items: saveInput.items.map((item) => ({
+        activityId: item.activityId,
+        activityType: item.activityType,
+        params: item.params,
+        dimensionsTargeted: item.dimensionsTargeted,
+        rationaleKey: item.rationaleKey,
+        rationaleText: item.rationaleText,
+        evidenceGrade: item.evidenceGrade,
+        evidenceTier: item.evidenceTier,
+        citationKey: item.citationKey,
+        confidence: item.confidence,
+        soften: item.soften,
+      })),
+    },
+  };
+}
+
+export async function generateAndSaveProgram(
+  db: Db,
+  userId: string,
+  clock: Clock = systemClock,
+  options: {
+    preserveCompletedToday?: boolean;
+    preventStartedReplacement?: boolean;
+    forecast?: {
+      trigger: string;
+      preserveCommittedToday: boolean;
+    };
+  } = {},
+): Promise<{ programId: string; reusedStartedProgram: boolean }> {
+  const prepared = await prepareProgram(
+    db,
+    userId,
+    clock,
+    options.preserveCompletedToday ?? false,
+  );
+  const saved = await saveProgram(db, prepared.saveInput, {
+    preventStartedReplacement: options.preventStartedReplacement ?? false,
+    afterSave: options.forecast
+      ? async (tx) => {
+          await refreshForecast(
+            tx,
+            userId,
+            clock,
+            options.forecast!.trigger,
+            options.forecast!.preserveCommittedToday,
+            prepared.forecastSource,
+          );
+        }
+      : undefined,
   });
+  const programId = saved.programId;
   captureOperationalEvent({
     operation: "program_generation",
     status: "success",
-    count: result.items.length,
+    count: saved.reusedStartedProgram ? 0 : prepared.saveInput.items.length,
   });
-  return programId;
+  return { programId, reusedStartedProgram: saved.reusedStartedProgram };
 }
 
 // --- Read side: the shaped DTO the /today screen renders -------------------

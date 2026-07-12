@@ -28,5 +28,22 @@ describe("app shell navigation", () => {
     expect(source).toContain("flex min-w-0 flex-wrap");
     expect(source).toContain("break-words font-serif");
     expect(source).not.toContain("grid-cols-[");
+    expect(source).toContain("formatForecastDate(day.date)");
+  });
+
+  it("keeps weekly choices optional, reversible, and visibly acknowledged", () => {
+    const source = readFileSync("src/app/today/today.tsx", "utf8");
+    expect(source).toContain("Training rhythm saved");
+    expect(source).toContain("No choice is required now.");
+    expect(source).toContain("Decide later");
+    expect(source).toContain("Keep {currentLabel}");
+    expect(source).toContain("Restore day");
+    expect(source).toContain("humanizeFocusArea");
+    expect(source).toContain("Recommended for you");
+    expect(source).toContain("Use recommendation");
+    expect(source).toContain("Evidence and limits");
+    expect(source).toContain("Focus saved, preview not refreshed");
+    expect(source).toContain("focus.recommendation.focusAreas");
+    expect(source).not.toContain('focusAreas.join(" + ")');
   });
 });

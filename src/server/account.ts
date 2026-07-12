@@ -336,6 +336,21 @@ export async function exportUserData(db: PrismaClient, userId: string) {
       createdAt: true,
     },
   });
+  const weeklyAvailability = await db.weeklyAvailability.findUnique({
+    where: { userId },
+  });
+  const availabilityOverrides = await db.availabilityOverride.findMany({
+    where: { userId },
+    orderBy: { date: "asc" },
+  });
+  const programDayForecasts = await db.programDayForecast.findMany({
+    where: { userId },
+    orderBy: [{ date: "asc" }, { createdAt: "asc" }],
+  });
+  const programRevisions = await db.programRevision.findMany({
+    where: { userId },
+    orderBy: { occurredAt: "asc" },
+  });
   const allowlistEntries = await db.allowlistEntry.findMany({
     where: { usedByUserId: userId },
     select: {
@@ -383,6 +398,10 @@ export async function exportUserData(db: PrismaClient, userId: string) {
     apiCallBudgets,
     trainingPreferenceState,
     weeklyFocuses,
+    weeklyAvailability,
+    availabilityOverrides,
+    programDayForecasts,
+    programRevisions,
     claimedAllowlistEntries: allowlistEntries,
     researchConsents,
   };

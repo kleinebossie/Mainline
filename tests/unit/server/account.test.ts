@@ -118,6 +118,10 @@ describe("account privacy service", () => {
       apiCallBudget: model(),
       trainingPreferenceState: model(null),
       weeklyFocus: model(),
+      weeklyAvailability: model(null),
+      availabilityOverride: model(),
+      programDayForecast: model(),
+      programRevision: model(),
       allowlistEntry: model(),
       researchConsent: model(),
     };
@@ -145,6 +149,10 @@ describe("account privacy service", () => {
         "apiCallBudgets",
         "trainingPreferenceState",
         "weeklyFocuses",
+        "weeklyAvailability",
+        "availabilityOverrides",
+        "programDayForecasts",
+        "programRevisions",
         "claimedAllowlistEntries",
         "researchConsents",
       ]),
@@ -211,13 +219,17 @@ describe("account privacy service", () => {
       apiCallBudget: model,
       trainingPreferenceState: model,
       weeklyFocus: model,
+      weeklyAvailability: model,
+      availabilityOverride: model,
+      programDayForecast: model,
+      programRevision: model,
       allowlistEntry: model,
       researchConsent: model,
     };
 
     await exportUserData(db as never, "u1");
 
-    expect(query).toHaveBeenCalledTimes(22);
+    expect(query).toHaveBeenCalledTimes(26);
     expect(maximumActiveQueries).toBe(1);
     expect(activeQueries).toBe(0);
   });

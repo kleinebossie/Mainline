@@ -46,6 +46,7 @@ import {
   type SkillStateSnapshotInput,
 } from "@/db/decision-input";
 import { captureOperationalEvent } from "@/server/observability";
+import { lockUserProgramMutation } from "@/db/user-mutation-lock";
 
 type Db = Pick<
   PrismaClient,
@@ -210,56 +211,6 @@ export async function logOutcome(
   const now = clock.now();
   const occurredAt = new Date(now);
 
-  // 1. Resolve the originating program item → dimensions/track and a schedulable ref.
-  let dimensions: string[] = [];
-  let track: Track | null = null;
-  let itemRef: string | null = null;
-  let itemType: string | null = null;
-  if (input.programItemId) {
-    const item = await db.programItem.findFirst({
-      where: { id: input.programItemId, program: { userId } },
-      select: { dimensionsTargeted: true, params: true, activityType: true },
-    });
-    if (!item) {
-      throw new Error("Program item not found");
-    }
-    dimensions = item.dimensionsTargeted;
-    const p = (item.params ?? {}) as { track?: unknown; theme?: unknown };
-    track = p.track === "pattern" || p.track === "calculation" ? p.track : null;
-    const theme = typeof p.theme === "string" ? p.theme : null;
-    // M11: a puzzle attempt schedules a spaced review of that specific puzzle ID (itemType: "puzzle").
-    // We fall back to the M7 theme-based schedule (itemType: "puzzle_theme") if no puzzleId is provided.
-    if (input.type === "puzzle_attempt") {
-      if (input.puzzleId) {
-        itemRef = input.puzzleId;
-        itemType = "puzzle";
-      } else if (theme) {
-        itemRef = theme;
-        itemType = "puzzle_theme";
-      }
-    } else if (input.type === "drill_done" && input.practiceItemId) {
-      // M12/M13: a drill outcome re-steps that exact personal position's FSRS schedule
-      // (itemRef = PracticeItem.id) — the same loop, no new seam. The itemType follows the
-      // originating activity: an endgame_drill spaces on its own "endgame" queue, every
-      // other drill (blunder) on "blunder_drill".
-      itemRef = input.practiceItemId;
-      itemType =
-        item.activityType === "endgame_drill" ? "endgame" : "blunder_drill";
-    }
-  }
-
-  // M14 — a book_session logged from the /library surface carries no ProgramItem; resolve its
-  // dimensions from the Seam-4 `book` activity so the AdaptationLog targets the same dimensions
-  // a daily book item would. A book session NEVER moves skill (its `correct` stays null below,
-  // so the pure loop's skill step skips it) — the self-reported success rate is for the 85%
-  // difficulty nudge only, never skill diagnosis (Seam 2 boundary). It still appends to the
-  // immutable log and runs the SAME adaptation loop, unchanged.
-  if (input.type === "book_session" && dimensions.length === 0) {
-    const bookDef = cfg.activities.find((a) => a.activityType === "book");
-    if (bookDef) dimensions = [...bookDef.dimensions];
-  }
-
-  // 2. Append the immutable event (the append-only substrate, §7.3 — never updated/deleted).
   const payloadObj: Record<string, unknown> = {};
   if (input.correct !== undefined) payloadObj.correct = input.correct;
   if (input.solveTimeMs !== undefined)
@@ -276,22 +227,63 @@ export async function logOutcome(
     payloadObj.resourceRefId = input.resourceRefId;
   if (input.position !== undefined) payloadObj.position = input.position;
   if (input.selfReport !== undefined) payloadObj.selfReport = input.selfReport;
-  await appendActivityEvent(db, {
-    userId,
-    programItemId: input.programItemId ?? null,
-    type: input.type,
-    occurredAt,
-    payload: payloadObj as Prisma.InputJsonValue,
-    source: "user",
-  });
-
-  // 3. Mark the originating item done/skipped (plan state — distinct from the immutable log).
-  if (input.programItemId) {
-    await db.programItem.update({
-      where: { id: input.programItemId },
-      data: { status: input.type === "skip" ? "skipped" : "done" },
+  // Resolve, append, and mark the item while holding the same per-user lock used by
+  // program replacement. A stale client cannot start a superseded Program.
+  const eventContext = await db.$transaction(async (tx) => {
+    await lockUserProgramMutation(tx, userId);
+    let dimensions: string[] = [];
+    let track: Track | null = null;
+    let itemRef: string | null = null;
+    let itemType: string | null = null;
+    if (input.programItemId) {
+      const item = await tx.programItem.findFirst({
+        where: {
+          id: input.programItemId,
+          program: { userId, status: "active" },
+        },
+        select: { dimensionsTargeted: true, params: true, activityType: true },
+      });
+      if (!item) throw new Error("Program item not found or no longer active");
+      dimensions = item.dimensionsTargeted;
+      const p = (item.params ?? {}) as { track?: unknown; theme?: unknown };
+      track =
+        p.track === "pattern" || p.track === "calculation" ? p.track : null;
+      const theme = typeof p.theme === "string" ? p.theme : null;
+      if (input.type === "puzzle_attempt") {
+        if (input.puzzleId) {
+          itemRef = input.puzzleId;
+          itemType = "puzzle";
+        } else if (theme) {
+          itemRef = theme;
+          itemType = "puzzle_theme";
+        }
+      } else if (input.type === "drill_done" && input.practiceItemId) {
+        itemRef = input.practiceItemId;
+        itemType =
+          item.activityType === "endgame_drill" ? "endgame" : "blunder_drill";
+      }
+    }
+    if (input.type === "book_session" && dimensions.length === 0) {
+      const bookDef = cfg.activities.find((a) => a.activityType === "book");
+      if (bookDef) dimensions = [...bookDef.dimensions];
+    }
+    await appendActivityEvent(tx, {
+      userId,
+      programItemId: input.programItemId ?? null,
+      type: input.type,
+      occurredAt,
+      payload: payloadObj as Prisma.InputJsonValue,
+      source: "user",
     });
-  }
+    if (input.programItemId) {
+      await tx.programItem.update({
+        where: { id: input.programItemId },
+        data: { status: input.type === "skip" ? "skipped" : "done" },
+      });
+    }
+    return { dimensions, track, itemRef, itemType };
+  });
+  const { dimensions, track, itemRef, itemType } = eventContext;
 
   // 4. Run the pure adaptation loop over the new event + current state.
   const event: AdaptationEvent = {

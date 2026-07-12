@@ -9,6 +9,7 @@ import {
   generateAndSaveProgram,
   getGameSignals,
   getTodayProgram,
+  prepareProgram,
   resolveTacticalRating,
   toTodayItem,
 } from "@/server/program";
@@ -27,8 +28,24 @@ import { getTargetFocus } from "@/server/constraints";
 import { lookupTablebase } from "@/server/tablebase";
 import {
   getWeeklyFocus,
-  selectPersistedFocusAlternative,
+  recommendationForPersistedFocus,
+  selectPersistedFocusChoice,
 } from "@/server/weekly-focus";
+import {
+  getForecast,
+  getAvailabilityOverrides,
+  getProgramRevisions,
+  getWeeklyAvailability,
+  hasStartedToday,
+  refreshForecast,
+  removeAvailabilityOverride,
+  saveAvailabilityOverride,
+  saveWeeklyAvailability,
+} from "@/server/program-forecast";
+import {
+  availabilityOverrideInputSchema,
+  weeklyAvailabilityInputSchema,
+} from "@/lib/program-forecast";
 
 /** A position the in-app board can solve/play — a Lichess puzzle, a personal blunder drill,
  *  or a curated endgame (M11/M12/M13) — normalised so the surface renders them uniformly. */
@@ -245,30 +262,142 @@ export const programRouter = router({
   ),
 
   generate: protectedProcedure.mutation(async ({ ctx }) => {
-    await generateAndSaveProgram(ctx.prisma, ctx.userId);
+    await generateAndSaveProgram(ctx.prisma, ctx.userId, undefined, {
+      preventStartedReplacement: true,
+      forecast: { trigger: "generation", preserveCommittedToday: false },
+    });
     return getTodayProgram(ctx.prisma, ctx.userId);
   }),
 
-  weeklyFocus: protectedProcedure.query(({ ctx }) =>
-    getWeeklyFocus(ctx.prisma, ctx.userId),
+  replan: protectedProcedure.mutation(async ({ ctx }) => {
+    await generateAndSaveProgram(ctx.prisma, ctx.userId, undefined, {
+      preserveCompletedToday: true,
+      forecast: {
+        trigger: "explicit_replan",
+        preserveCommittedToday: false,
+      },
+    });
+    return getTodayProgram(ctx.prisma, ctx.userId);
+  }),
+
+  forecast: protectedProcedure.query(({ ctx }) =>
+    getForecast(ctx.prisma, ctx.userId),
   ),
 
-  selectFocusAlternative: protectedProcedure
+  revisions: protectedProcedure.query(({ ctx }) =>
+    getProgramRevisions(ctx.prisma, ctx.userId),
+  ),
+
+  availability: protectedProcedure.query(({ ctx }) =>
+    getWeeklyAvailability(ctx.prisma, ctx.userId),
+  ),
+
+  availabilityOverrides: protectedProcedure.query(({ ctx }) =>
+    getAvailabilityOverrides(ctx.prisma, ctx.userId),
+  ),
+
+  saveAvailability: protectedProcedure
+    .input(weeklyAvailabilityInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      await saveWeeklyAvailability(ctx.prisma, ctx.userId, input);
+      const started = await hasStartedToday(ctx.prisma, ctx.userId);
+      return refreshForecast(
+        ctx.prisma,
+        ctx.userId,
+        undefined,
+        "availability",
+        started,
+      );
+    }),
+
+  saveAvailabilityOverride: protectedProcedure
+    .input(availabilityOverrideInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      await saveAvailabilityOverride(ctx.prisma, ctx.userId, input);
+      const started = await hasStartedToday(ctx.prisma, ctx.userId);
+      return refreshForecast(
+        ctx.prisma,
+        ctx.userId,
+        undefined,
+        "availability_override",
+        started,
+      );
+    }),
+
+  removeAvailabilityOverride: protectedProcedure
+    .input(z.object({ date: z.number().int() }).strict())
+    .mutation(async ({ ctx, input }) => {
+      await removeAvailabilityOverride(ctx.prisma, ctx.userId, input.date);
+      const started = await hasStartedToday(ctx.prisma, ctx.userId);
+      return refreshForecast(
+        ctx.prisma,
+        ctx.userId,
+        undefined,
+        "availability_override_removed",
+        started,
+      );
+    }),
+
+  weeklyFocus: protectedProcedure.query(async ({ ctx }) => {
+    const focus = await getWeeklyFocus(ctx.prisma, ctx.userId);
+    if (!focus) return null;
+    const cfg = loadMethodology(focus.methodologyVersion);
+    const recommendation = recommendationForPersistedFocus(focus, cfg);
+    return {
+      ...focus,
+      recommendation: {
+        focusAreas: recommendation.focusAreas,
+        supportingSignals: recommendation.supportingSignals,
+        rationale: recommendation.rationale,
+      },
+      focusLabels: Object.fromEntries(
+        cfg.dimensions.map((dimension) => [dimension.id, dimension.label]),
+      ),
+    };
+  }),
+
+  selectFocus: protectedProcedure
     .input(
       z.object({
         weeklyFocusId: z.string().min(1).max(80),
-        focusArea: z.string().min(1).max(80),
+        focusAreas: z.array(z.string().min(1).max(80)).min(1).max(2),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      await selectPersistedFocusAlternative(
+      const selected = await selectPersistedFocusChoice(
         ctx.prisma,
         ctx.userId,
         input.weeklyFocusId,
-        input.focusArea,
+        input.focusAreas,
       );
-      await generateAndSaveProgram(ctx.prisma, ctx.userId);
-      return getWeeklyFocus(ctx.prisma, ctx.userId);
+      let forecastUpdated = true;
+      try {
+        const started = await hasStartedToday(ctx.prisma, ctx.userId);
+        if (started) {
+          const prepared = await prepareProgram(ctx.prisma, ctx.userId);
+          await refreshForecast(
+            ctx.prisma,
+            ctx.userId,
+            undefined,
+            "focus_choice",
+            true,
+            prepared.forecastSource,
+          );
+        } else {
+          await generateAndSaveProgram(ctx.prisma, ctx.userId, undefined, {
+            preventStartedReplacement: true,
+            forecast: {
+              trigger: "focus_choice",
+              preserveCommittedToday: false,
+            },
+          });
+        }
+      } catch {
+        // The focus write is already durable. Report the partial outcome instead of
+        // falsely telling the user that their choice was rejected.
+        forecastUpdated = false;
+      }
+      return { focus: selected, forecastUpdated };
     }),
 
   // M13: ground-truth tablebase result for an endgame position (cache-first, polite, capped

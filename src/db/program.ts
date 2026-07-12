@@ -3,7 +3,8 @@
 // (engine/generator.ts) + the methodology provider; this module only persists the result
 // and reads it back. Self-contained input type (no engine import) keeps the boundary clean.
 
-import type { Prisma, PrismaClient } from "@prisma/client";
+import { Prisma, type PrismaClient } from "@prisma/client";
+import { lockUserProgramMutation } from "@/db/user-mutation-lock";
 
 /** One row to insert — the generator's draft flattened to ProgramItem columns (§5.5). */
 export interface PersistableProgramItem {
@@ -40,41 +41,66 @@ type WriteDb = Pick<PrismaClient, "program" | "$transaction">;
 export async function saveProgram(
   db: WriteDb,
   input: SaveProgramInput,
-): Promise<string> {
-  return db.$transaction(async (tx) => {
-    await tx.program.updateMany({
-      where: { userId: input.userId, status: "active" },
-      data: { status: "superseded" },
-    });
-    const program = await tx.program.create({
-      data: {
-        userId: input.userId,
-        methodologyVersion: input.methodologyVersion,
-        status: "active",
-        generationInput: input.generationInput,
-        items: {
-          create: input.items.map((it) => ({
-            date: input.date,
-            orderIndex: it.orderIndex,
-            activityId: it.activityId,
-            activityType: it.activityType,
-            resourceRefId: it.resourceRefId,
-            params: it.params,
-            dimensionsTargeted: it.dimensionsTargeted,
-            rationaleKey: it.rationaleKey,
-            rationaleText: it.rationaleText,
-            evidenceGrade: it.evidenceGrade,
-            evidenceTier: it.evidenceTier,
-            citationKey: it.citationKey,
-            confidence: it.confidence,
-            soften: it.soften,
-          })),
+  options: {
+    preventStartedReplacement?: boolean;
+    afterSave?: (
+      tx: Prisma.TransactionClient,
+      programId: string,
+    ) => Promise<void>;
+  } = {},
+): Promise<{ programId: string; reusedStartedProgram: boolean }> {
+  return db.$transaction(
+    async (tx) => {
+      await lockUserProgramMutation(tx, input.userId);
+      if (options.preventStartedReplacement) {
+        const started = await tx.program.findFirst({
+          where: {
+            userId: input.userId,
+            status: "active",
+            items: { some: { activityEvents: { some: {} } } },
+          },
+          select: { id: true },
+        });
+        if (started) {
+          return { programId: started.id, reusedStartedProgram: true };
+        }
+      }
+      await tx.program.updateMany({
+        where: { userId: input.userId, status: "active" },
+        data: { status: "superseded" },
+      });
+      const program = await tx.program.create({
+        data: {
+          userId: input.userId,
+          methodologyVersion: input.methodologyVersion,
+          status: "active",
+          generationInput: input.generationInput,
+          items: {
+            create: input.items.map((it) => ({
+              date: input.date,
+              orderIndex: it.orderIndex,
+              activityId: it.activityId,
+              activityType: it.activityType,
+              resourceRefId: it.resourceRefId,
+              params: it.params,
+              dimensionsTargeted: it.dimensionsTargeted,
+              rationaleKey: it.rationaleKey,
+              rationaleText: it.rationaleText,
+              evidenceGrade: it.evidenceGrade,
+              evidenceTier: it.evidenceTier,
+              citationKey: it.citationKey,
+              confidence: it.confidence,
+              soften: it.soften,
+            })),
+          },
         },
-      },
-      select: { id: true },
-    });
-    return program.id;
-  });
+        select: { id: true },
+      });
+      await options.afterSave?.(tx, program.id);
+      return { programId: program.id, reusedStartedProgram: false };
+    },
+    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+  );
 }
 
 type ReadDb = Pick<PrismaClient, "program">;

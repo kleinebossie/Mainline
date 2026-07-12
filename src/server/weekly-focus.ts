@@ -1,5 +1,6 @@
 import type { Prisma, PrismaClient } from "@prisma/client";
 import {
+  loadMethodology,
   selectWeeklyFocus,
   shouldReviseWeeklyFocus,
   type MethodologyConfig,
@@ -42,6 +43,13 @@ function providerInput(s: ProgramDecisionInput): WeeklyFocusInput {
     activityRecency: s.activityRecency,
     trainingPreferences: s.trainingPreferences,
   };
+}
+
+export function recommendationForPersistedFocus(
+  focus: WeeklyFocus,
+  cfg: MethodologyConfig,
+) {
+  return selectWeeklyFocus(providerInput(focus.inputSnapshot), cfg);
 }
 
 function decode(row: {
@@ -132,42 +140,68 @@ export async function getWeeklyFocus(db: Db, userId: string) {
   return row ? decode(row) : null;
 }
 
-export async function selectPersistedFocusAlternative(
+export async function selectPersistedFocusChoice(
   db: Db,
   userId: string,
   weeklyFocusId: string,
-  focusArea: string,
+  focusAreas: string[],
 ) {
   const active = await getWeeklyFocus(db, userId);
   if (!active) throw new Error("No active weekly focus");
   if (active.id !== weeklyFocusId)
     throw new Error("Weekly focus changed; refresh and try again");
-  const alternative = active.alternatives.find(
-    (item) => item.focusArea === focusArea,
-  );
-  if (!alternative)
+  if (
+    active.focusAreas.length === focusAreas.length &&
+    active.focusAreas.every(
+      (focusArea, index) => focusArea === focusAreas[index],
+    )
+  ) {
+    return active;
+  }
+
+  const cfg = loadMethodology(active.methodologyVersion);
+  const recommendation = recommendationForPersistedFocus(active, cfg);
+  const isRecommendation =
+    recommendation.focusAreas.length === focusAreas.length &&
+    recommendation.focusAreas.every(
+      (focusArea, index) => focusArea === focusAreas[index],
+    );
+  const alternative =
+    focusAreas.length === 1
+      ? active.alternatives.find((item) => item.focusArea === focusAreas[0])
+      : undefined;
+  if (!isRecommendation && !alternative)
     throw new Error("Focus alternative is not methodology-approved");
+
+  const selectedFocusAreas = isRecommendation
+    ? recommendation.focusAreas
+    : [alternative!.focusArea];
+  const supportingSignals = isRecommendation
+    ? recommendation.supportingSignals
+    : [
+        {
+          focusArea: alternative!.focusArea,
+          score: alternative!.score,
+          sources: alternative!.supportingSources,
+        },
+      ];
   const row = await replaceWeeklyFocus(db, {
     userId,
     weekStart: new Date(active.weekStart),
-    focusAreas: [focusArea],
-    supportingSignals: [
-      {
-        focusArea: alternative.focusArea,
-        score: alternative.score,
-        sources: alternative.supportingSources,
-      },
-    ] as unknown as Prisma.InputJsonValue,
+    focusAreas: selectedFocusAreas,
+    supportingSignals: supportingSignals as unknown as Prisma.InputJsonValue,
     confidence: active.confidence,
     methodologyVersion: active.methodologyVersion,
     inputSnapshot: active.inputSnapshot as unknown as Prisma.InputJsonValue,
     rationaleSnapshots: [
-      ...active.rationaleSnapshots,
-      alternative.tradeoff,
+      recommendation.rationale,
+      ...(!isRecommendation && alternative ? [alternative.tradeoff] : []),
     ] as unknown as Prisma.InputJsonValue,
     alternatives: active.alternatives as unknown as Prisma.InputJsonValue,
-    selectedAlternative: focusArea,
-    revisionTrigger: "user_alternative",
+    selectedAlternative: isRecommendation ? null : alternative!.focusArea,
+    revisionTrigger: isRecommendation
+      ? "user_recommendation"
+      : "user_alternative",
     expectedActiveId: active.id,
   });
   return decode(row);

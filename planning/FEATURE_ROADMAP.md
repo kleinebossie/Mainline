@@ -198,7 +198,7 @@ Every part must end with:
 | P3   | Privacy, consent, export, and hard-deletion completion          | Before closed beta                       | P0                                  | Complete |
 | P4   | Decision-state and skill-history foundation                     | Before closed beta                       | P1, P3                              | Complete |
 | P5   | Stable weekly focus and bounded user choice                     | Before closed beta                       | P4                                  | Complete |
-| P6   | Seven-day forecast, revision ledger, and availability model     | Before closed beta                       | P5                                  | Planned  |
+| P6   | Seven-day forecast, revision ledger, and availability model     | Before closed beta                       | P5                                  | Complete |
 | P7   | Program history and forecast experience                         | Before closed beta                       | P6                                  | Planned  |
 | P8   | Training-fit and product-feedback loop                          | Before closed beta                       | P5, P7                              | Planned  |
 | P9   | Observational research capture and public methodology changelog | Before closed beta                       | P3, P8                              | Planned  |
@@ -813,6 +813,68 @@ and regenerates Today. P6 forecast/revision-ledger work and P7 history UI were n
 **Definition of Done:** the forecast is deterministic and time-budgeted, Today never changes
 silently after starting, revisions are inspectable, and missed days do not create duplicate or
 punitive work.
+
+**Status (2026-07-12): COMPLETE.** P6 adds explicit flexible/preferred weekly availability, one-date
+overrides, immutable seven-day forecast versions, and an append-only ProgramRevision ledger. The pure
+forecast builder uses an injected logical time, stable ordering, explicit day budgets, and activity
+blocks only. Each block snapshots its rationale text, grade, tier, citation, confidence, and soften
+flag. Concrete puzzles and personal positions continue to resolve only when the user opens the
+day's trainer. An unavailable or missed date is recalculated independently; discretionary blocks are
+never copied forward, while due pressure is read fresh from the snapshotted scheduling state.
+
+Program generation now refuses to silently replace a started Today. Once any ActivityEvent exists for
+the active Program, ordinary Generate returns that same program. Availability, override, and focus
+changes preserve its materialized forecast and only replace future provisional days. Explicit Replan is a separate action:
+it appends replacement forecast rows and a graded revision entry while the superseded Program,
+completed ProgramItems, ActivityEvents, and original rationale snapshots remain unchanged. P7 remains
+the owner of a full history and revision-ledger experience; P6 exposes only a compact seven-day strip,
+the one-time availability prompt, date-unavailable controls, and explicit Replan on Today.
+
+The four P6 models cascade on hard User deletion and are included in the credential-redacted v2 user
+export. Typed strict Zod boundaries cover availability, overrides, forecast blocks, forecasts, and
+revisions. No subjective availability value writes SkillState, and no chess or learning constant was
+added to Engine or server code.
+
+The P6 review follow-up serializes outcome capture and program replacement with a shared per-user
+transaction lock, and persists program replacement, forecasts, and the revision entry in one
+transaction. A focus alternative selected after Today starts now builds future provisional days from
+the new focus while retaining committed Today. Revision links are matched by changed date and retain
+the real previous and new focus ids. Replan subtracts completed concrete due references instead of
+dropping an entire review activity, and UTC forecast dates render consistently across browser time
+zones.
+
+The P6 frontend follow-up turns these controls into an explicit program desk. Every mutation now
+keeps a visible success or failure result after its button returns to rest. Weekly direction renders
+human labels rather than config ids, keeps methodology-approved alternatives collapsed by default,
+puts the algorithm's recommendation and its input signals first, separates it from a current user
+choice, and removes repeated evidence copy from each option. A saved focus is reported as saved even
+if the subsequent forecast refresh fails, with that partial outcome shown explicitly. Availability setup can be deferred
+without changing state, one-date overrides can be restored, and the seven-day scoresheet distinguishes
+committed Today, provisional work, and rest days. `research-1.3.0` keeps the evidence grade and caveat
+for bounded alternatives while phrasing the optional choice around user control.
+
+#### P6 handoff
+
+- Migration: apply `20260712010000_p6_forecast_availability_revision` with
+  `npm run prisma:deploy`, after P4 and P5, then run `npm run prisma:generate` in the deployed build.
+  The migration adds four user-owned tables, indexes, and cascade foreign keys without destructive
+  changes.
+- Owner action: deploy through the normal CI path and smoke an authenticated first generation,
+  flexible-mode choice, preferred-weekday choice, one-date unavailable override, started-session
+  Generate freeze, and explicit Replan. No new environment variable or job is required.
+- Verification: Node 25.2.0; Prisma validation/generation; typecheck; lint; 75 Vitest files with 479
+  tests; 4 guard files with 73 tests; production build; and 18 Playwright tests all pass.
+- Deliberate deviations: the P6 minimal UI offers permanent flexible mode or an explicit weekday
+  preset, plus per-date unavailable overrides. Arbitrary weekday editing and per-day minute editing
+  belong to P7's complete forecast experience. Revision rows are inspectable through a typed API,
+  persistence, and export; P7 owns the user-facing history view. The forecast uses the active materialized day's
+  methodology-approved activity mix as its candidate block set rather than generating concrete
+  future sessions, which is what prevents premature item allocation.
+- Remaining risks: the compact UI cannot undo an unavailable override until P7 adds full editing.
+  A forecast is refreshed by generation, availability changes, overrides, focus alternatives, and
+  explicit Replan; a scheduled background rolling refresh is not added because P2's existing daily
+  job scope does not yet materialize per-user programs. Authenticated deployment smoke and migration
+  application remain owner actions.
 
 ---
 

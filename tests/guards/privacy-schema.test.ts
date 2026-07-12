@@ -18,6 +18,10 @@ const P5_MIGRATION = readFileSync(
   "prisma/migrations/20260712000000_p5_weekly_focus/migration.sql",
   "utf8",
 );
+const P6_MIGRATION = readFileSync(
+  "prisma/migrations/20260712010000_p6_forecast_availability_revision/migration.sql",
+  "utf8",
+);
 
 describe("privacy schema guards", () => {
   it("deletes claimed invitations with an erased account", () => {
@@ -55,6 +59,10 @@ describe("privacy schema guards", () => {
       "ResearchConsent",
       "TrainingPreferenceState",
       "WeeklyFocus",
+      "WeeklyAvailability",
+      "AvailabilityOverride",
+      "ProgramDayForecast",
+      "ProgramRevision",
     ];
     for (const model of relationBlocks) {
       const block = SCHEMA.match(
@@ -75,6 +83,16 @@ describe("privacy schema guards", () => {
     expect(P5_MIGRATION).toMatch(
       /"WeeklyFocus_userId_fkey"[\s\S]*ON DELETE CASCADE/,
     );
+    for (const model of [
+      "WeeklyAvailability",
+      "AvailabilityOverride",
+      "ProgramDayForecast",
+      "ProgramRevision",
+    ]) {
+      expect(P6_MIGRATION).toMatch(
+        new RegExp(`${model}_userId_fkey[\\s\\S]*ON DELETE CASCADE`),
+      );
+    }
   });
 
   it("keeps global catalogs and the opaque purge ledger outside User relations", () => {

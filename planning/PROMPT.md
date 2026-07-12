@@ -14,6 +14,7 @@ Work only on [PART_ID]. Implement its full Definition of Done, including necessa
 Delegate work that doesn't entail planning or review to the following subagents:
   - Explorer
   - Executor
+Don't reuse the same subagent.
 ```
 
 ## Review agent
@@ -28,4 +29,5 @@ Do not edit files. Check the part's Definition of Done, correctness, scope, secu
 Delegate work that doesn't entail planning or review to the following subagents:
   - Explorer
   - Executor
+Don't reuse the same subagent.
 ```

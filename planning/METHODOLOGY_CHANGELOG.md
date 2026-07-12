@@ -10,7 +10,7 @@ with their limitations, not promises.
 
 ## research-1.0.0, 2026-07-10
 
-Status: active by default. Rollback target: `stub-0.1.0`.
+Status: first research release, retained for reproducibility. Rollback target: `stub-0.1.0`.
 
 Source: `planning/METHODOLOGY.md`.
 
@@ -68,11 +68,25 @@ entry that attempts to replace an existing historic field.
 
 ## research-1.1.0
 
-Status: active from 2026-07-12. Adds the P5 weekly-focus policy, deterministic confidence-gated
+Status: released on 2026-07-12 and retained for reproducibility. Adds the P5 weekly-focus policy, deterministic confidence-gated
 selection and revision, structural goal-to-process mappings, and bounded alternatives. Every
 stability value and score weight is Grade C and flagged `best-guess`. The release makes no rating
 gain claim. Rollback is `research-1.0.0`; historic base config bytes remain unchanged and receive
 the additive focus seam needed to keep rollback generation operational.
+
+## research-1.2.0
+
+Status: released on 2026-07-12 and retained for reproducibility. Shortens new-user calibration to one three-item tactical track.
+The length remains a Grade C product best guess. Historic assessments keep their original
+methodology version and calibration behavior. Rollback is `research-1.1.0`.
+
+## research-1.3.0
+
+Status: active by default from 2026-07-12. Keeps the `research-1.2.0` calibration behavior and clarifies the
+bounded weekly-focus alternative rationale. Optional choice is now framed around giving more weight
+to a user-selected goal while keeping the evidence-led recommendation available. The rationale
+remains Grade C, Tier 2, softened, and cited to `williamson2022`; no evidence grade or training rule
+changed. Rollback is `research-1.2.0`.
 
 ## stub-0.1.0
 

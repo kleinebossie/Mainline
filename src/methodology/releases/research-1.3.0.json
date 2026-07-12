@@ -1,0 +1,14 @@
+{
+  "version": "research-1.3.0",
+  "channel": "research",
+  "releasedOn": "2026-07-12",
+  "sourceDocument": "planning/METHODOLOGY.md",
+  "summary": "Keeps the three-item calibration and revises weekly-focus alternative copy so optional user choice is clear without weakening its evidence caveat.",
+  "retainedBestGuesses": [
+    "Weekly-focus selection, alternative bounds, and the three-item calibration remain Grade C product best guesses that require telemetry and human review."
+  ],
+  "deliberateStubs": [
+    "The effectiveness of bounded weekly-focus choice for chess adherence remains unvalidated, and no training activity is claimed to cause rating gain."
+  ],
+  "rollbackVersion": "research-1.2.0"
+}

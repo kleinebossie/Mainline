@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { TodayItem, TodayProgram } from "@/server/program";
 import {
+  formatForecastDate,
+  focusSourceLabel,
   formatMinuteCap,
+  humanizeFocusArea,
   itemSummary,
   primaryActionKind,
   rowStatusLabel,
@@ -36,6 +39,19 @@ function item(overrides: Partial<TodayItem>): TodayItem {
 }
 
 describe("Today copy helpers", () => {
+  it("formats methodology ids and UTC forecast dates for people", () => {
+    expect(humanizeFocusArea("board_vision")).toBe("Board vision");
+    expect(humanizeFocusArea("tactics")).toBe("Tactics");
+    expect(formatForecastDate(Date.parse("2026-07-13T00:00:00Z"))).toMatch(
+      /Mon.*Jul.*13|Mon.*13.*Jul/,
+    );
+  });
+
+  it("turns recommendation signals into concise user-facing reasons", () => {
+    expect(focusSourceLabel("measured weakness")).toBe("recent measured needs");
+    expect(focusSourceLabel("process goal:rating")).toBe("your stated goal");
+  });
+
   it("formats visible time as rounded hard caps", () => {
     expect(formatMinuteCap(0.75)).toBe("Up to 1 min");
     expect(formatMinuteCap(15)).toBe("Up to 15 min");

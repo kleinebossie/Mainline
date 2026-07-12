@@ -6,6 +6,33 @@ export function asGrade(g: string): Grade {
   return g === "A" || g === "B" || g === "C" || g === "D" ? g : "C";
 }
 
+export function humanizeFocusArea(focusArea: string): string {
+  const words = focusArea.replace(/_/g, " ").trim();
+  return words.length > 0
+    ? `${words.charAt(0).toUpperCase()}${words.slice(1)}`
+    : "Training focus";
+}
+
+export function focusSourceLabel(source: string): string {
+  if (source === "measured weakness") return "recent measured needs";
+  if (source === "skill history") return "your skill history";
+  if (source === "due learning") return "reviews that are due";
+  if (source === "variety fit") return "training variety";
+  if (source === "bounded fit preference") return "your training preferences";
+  if (source === "methodology prior") return "the methodology baseline";
+  if (source.startsWith("process goal:")) return "your stated goal";
+  return humanizeFocusArea(source).toLowerCase();
+}
+
+export function formatForecastDate(epoch: number): string {
+  return new Intl.DateTimeFormat(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(epoch));
+}
+
 export function formatMinuteCap(minutes: number | null | undefined): string {
   if (minutes == null) return "Up to available time";
   return `Up to ${Math.max(1, Math.ceil(minutes))} min`;

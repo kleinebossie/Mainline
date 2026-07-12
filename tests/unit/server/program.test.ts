@@ -186,8 +186,11 @@ describe("generateAndSaveProgram + getTodayProgram (round-trip)", () => {
   it("persists a graded session for a fresh user and shapes the /today DTO", async () => {
     const db = fakeDb({ tacticalRating: 1300, minutesPerDay: 30 });
 
-    const id = await generateAndSaveProgram(db, "u1", clock);
-    expect(id).toBe("prog1");
+    const saved = await generateAndSaveProgram(db, "u1", clock);
+    expect(saved).toEqual({
+      programId: "prog1",
+      reusedStartedProgram: false,
+    });
 
     const persisted = savedGenerationInputs.get(db);
     const parsed = programGenerationInputSchema.parse(persisted);
@@ -207,7 +210,7 @@ describe("generateAndSaveProgram + getTodayProgram (round-trip)", () => {
     expect(today!.items.map((i) => i.label)).toEqual([
       "Analyse your own games",
       "Themed tactics (reflective)",
-      "Calculation / visualisation drill",
+      "Calculation / Visualisation drill",
     ]);
 
     // Every item carries a graded, snapshotted "why" (L3).

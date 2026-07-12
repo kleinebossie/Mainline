@@ -23,6 +23,7 @@ const SHIPPED = [
   "research-1.0.0",
   "research-1.1.0",
   "research-1.2.0",
+  "research-1.3.0",
 ];
 
 function walkCitationKeys(node: unknown, into: Set<string>): void {
@@ -36,9 +37,9 @@ function walkCitationKeys(node: unknown, into: Set<string>): void {
 
 describe("L3: methodology config integrity", () => {
   it("uses the checked-in research release as the active pointer", () => {
-    expect(DEFAULT_METHODOLOGY_VERSION).toBe("research-1.2.0");
+    expect(DEFAULT_METHODOLOGY_VERSION).toBe("research-1.3.0");
     expect(loadMethodology(DEFAULT_METHODOLOGY_VERSION).version).toBe(
-      "research-1.2.0",
+      "research-1.3.0",
     );
   });
 
@@ -50,7 +51,7 @@ describe("L3: methodology config integrity", () => {
       expect(historic.assessment.tracks).toHaveLength(3);
     }
 
-    const current = loadMethodology("research-1.2.0");
+    const current = loadMethodology("research-1.3.0");
     expect(current.assessment.calibration.minItems).toMatchObject({
       value: 3,
       grade: "C",
@@ -62,6 +63,16 @@ describe("L3: methodology config integrity", () => {
     expect(current.assessment.tracks.map((track) => track.id)).toEqual([
       "tactics",
     ]);
+    const weeklyFocus = current.weeklyFocus;
+    expect(weeklyFocus).toBeDefined();
+    expect(weeklyFocus!.alternativeRationale).toMatchObject({
+      grade: "C",
+      tier: 2,
+      citationKey: "williamson2022",
+    });
+    expect(weeklyFocus!.alternativeRationale.value).toContain(
+      "gives more weight to a goal you chose",
+    );
   });
 
   it("keeps the historic stub config byte-for-byte immutable", () => {
