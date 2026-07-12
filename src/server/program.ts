@@ -36,6 +36,8 @@ import { captureOperationalEvent } from "@/server/observability";
 import { findRecentPuzzleAttempts } from "@/db/tracker";
 import { ensureEndgameDrills } from "@/server/practice";
 import { assembleProgramDecisionInput } from "@/server/decision-input";
+import { ensureWeeklyFocus } from "@/server/weekly-focus";
+import { programWeeklyFocusSnapshotSchema } from "@/lib/weekly-focus";
 
 type Db = Pick<
   PrismaClient,
@@ -53,6 +55,7 @@ type Db = Pick<
   | "skillState"
   | "skillStateSnapshot"
   | "trainingPreferenceState"
+  | "weeklyFocus"
   | "$transaction"
 >;
 
@@ -235,12 +238,14 @@ export async function generateAndSaveProgram(
     constraints,
     recentSuccessByTrack,
   } = generateInput;
+  const weeklyFocus = await ensureWeeklyFocus(db, userId, snapshot, cfg);
 
   const result = generateProgram({
     band,
     tacticalRating,
     libraryBand,
     weaknessSignals,
+    focusAreas: weeklyFocus.focusAreas,
     dueItems,
     constraints,
     recentSuccessByTrack,
@@ -268,7 +273,10 @@ export async function generateAndSaveProgram(
 
   // P4: persist the validated snapshot exactly. `assembledAt` is the injected logical
   // generation time, so an additional timestamp would make the strict schema unparseable.
-  const generationInput = snapshot as unknown as Prisma.InputJsonValue;
+  const generationInput = {
+    ...snapshot,
+    weeklyFocus: programWeeklyFocusSnapshotSchema.parse(weeklyFocus),
+  } as unknown as Prisma.InputJsonValue;
 
   const programId = await saveProgram(db, {
     userId,

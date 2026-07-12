@@ -18,7 +18,7 @@ import stub010 from "@/methodology/configs/stub-0.1.0.json";
 // leaf is a GradedValue, every citationKey resolves in evidenceLedger, and the result is
 // immutable. The negative cases prove the guard actually rejects ungraded/dangling data.
 
-const SHIPPED = ["stub-0.1.0", "research-1.0.0"];
+const SHIPPED = ["stub-0.1.0", "research-1.0.0", "research-1.1.0"];
 
 function walkCitationKeys(node: unknown, into: Set<string>): void {
   if (Array.isArray(node)) {
@@ -31,9 +31,9 @@ function walkCitationKeys(node: unknown, into: Set<string>): void {
 
 describe("L3: methodology config integrity", () => {
   it("uses the checked-in research release as the active pointer", () => {
-    expect(DEFAULT_METHODOLOGY_VERSION).toBe("research-1.0.0");
+    expect(DEFAULT_METHODOLOGY_VERSION).toBe("research-1.1.0");
     expect(loadMethodology(DEFAULT_METHODOLOGY_VERSION).version).toBe(
-      "research-1.0.0",
+      "research-1.1.0",
     );
   });
 

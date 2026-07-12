@@ -39,6 +39,13 @@ type LogOutcomeInput = {
 export function Today() {
   const utils = trpc.useUtils();
   const today = trpc.program.getToday.useQuery();
+  const weeklyFocus = trpc.program.weeklyFocus.useQuery();
+  const selectFocus = trpc.program.selectFocusAlternative.useMutation({
+    onSuccess: () => {
+      void utils.program.weeklyFocus.invalidate();
+      void utils.program.getToday.invalidate();
+    },
+  });
   const dueReviews = trpc.tracker.dueReviews.useQuery();
   const generate = trpc.program.generate.useMutation({
     onSuccess: () => {
@@ -142,6 +149,55 @@ export function Today() {
         timeValid={timeValid}
         onRegenerate={handleRegenerateWithTime}
       />
+
+      {weeklyFocus.data && (
+        <section className="rounded-lg border bg-card p-4 shadow-sheet">
+          <p className="eyebrow">This week&apos;s focus</p>
+          <h3 className="mt-2 font-serif text-xl text-ink">
+            {weeklyFocus.data.focusAreas.join(" + ")}
+          </h3>
+          <p className="mt-2 text-sm leading-relaxed text-graphite">
+            {weeklyFocus.data.rationaleSnapshots[0]?.text} Confidence:{" "}
+            {weeklyFocus.data.confidence}.
+          </p>
+          {weeklyFocus.data.alternatives.length > 0 && (
+            <div className="mt-4 flex flex-col gap-2">
+              <p className="font-mono text-xs text-graphite">
+                Goal-aligned alternatives
+              </p>
+              {weeklyFocus.data.alternatives.map((alternative) => (
+                <div
+                  key={alternative.focusArea}
+                  className="flex flex-wrap items-center justify-between gap-3 rounded border p-3"
+                >
+                  <div>
+                    <p className="font-serif text-sm text-ink">
+                      {alternative.focusArea}
+                    </p>
+                    <p className="text-xs text-graphite">
+                      {alternative.tradeoff.text}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={selectFocus.isPending}
+                    onClick={() =>
+                      selectFocus.mutate({
+                        weeklyFocusId: weeklyFocus.data!.id,
+                        focusArea: alternative.focusArea,
+                      })
+                    }
+                  >
+                    Choose for this week
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
       <TodayBlockList
         items={program.items}

@@ -8,7 +8,7 @@ import {
   loadMethodology,
   rationaleFor,
 } from "@/methodology";
-import { parsePersistedSnapshot } from "@/server/decision-input";
+import { programGenerationInputSchema } from "@/lib/weekly-focus";
 
 // M6 server orchestration: a generate → read round-trip over an in-memory fake Prisma.
 // The graded decisions are golden-tested in engine/generator + methodology/program-seams;
@@ -134,6 +134,17 @@ function fakeDb(opts: FakeOpts) {
     skillState: { findMany: async () => [] },
     skillStateSnapshot: { findMany: async () => [] },
     trainingPreferenceState: { findUnique: async () => null },
+    weeklyFocus: {
+      findFirst: async () => null,
+      updateMany: async () => ({ count: 0 }),
+      create: async ({ data }: { data: Record<string, unknown> }) => ({
+        id: "focus1",
+        selectedAlternative: null,
+        status: "active",
+        createdAt: new Date(clock.now()),
+        ...data,
+      }),
+    },
     program: {
       updateMany: async () => ({ count: 0 }),
       create: async ({
@@ -179,7 +190,10 @@ describe("generateAndSaveProgram + getTodayProgram (round-trip)", () => {
     expect(id).toBe("prog1");
 
     const persisted = savedGenerationInputs.get(db);
-    expect(parsePersistedSnapshot(persisted)).toEqual(persisted);
+    const parsed = programGenerationInputSchema.parse(persisted);
+    expect(parsed).toEqual(persisted);
+    expect(parsed.weeklyFocus.id).toBe("focus1");
+    expect(parsed.weeklyFocus.focusAreas.length).toBeGreaterThan(0);
 
     const today = await getTodayProgram(db, "u1");
     expect(today).not.toBeNull();

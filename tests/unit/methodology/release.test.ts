@@ -7,14 +7,14 @@ import {
 
 describe("methodology release metadata", () => {
   it("describes the active research release and its retained uncertainty", () => {
-    const release = methodologyReleaseFor("research-1.0.0");
+    const release = methodologyReleaseFor("research-1.1.0");
 
-    expect(release.version).toBe("research-1.0.0");
+    expect(release.version).toBe("research-1.1.0");
     expect(release.channel).toBe("research");
     expect(release.sourceDocument).toBe("planning/METHODOLOGY.md");
     expect(release.retainedBestGuesses.length).toBeGreaterThan(0);
     expect(release.deliberateStubs.length).toBeGreaterThan(0);
-    expect(release.rollbackVersion).toBe("stub-0.1.0");
+    expect(release.rollbackVersion).toBe("research-1.0.0");
   });
 
   it("resolves metadata for the environment-selected active release", () => {

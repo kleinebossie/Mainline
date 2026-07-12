@@ -14,6 +14,10 @@ const P4_MIGRATION = readFileSync(
   "prisma/migrations/20260711040000_p4_decision_state_skill_history/migration.sql",
   "utf8",
 );
+const P5_MIGRATION = readFileSync(
+  "prisma/migrations/20260712000000_p5_weekly_focus/migration.sql",
+  "utf8",
+);
 
 describe("privacy schema guards", () => {
   it("deletes claimed invitations with an erased account", () => {
@@ -50,6 +54,7 @@ describe("privacy schema guards", () => {
       "ApiCallBudget",
       "ResearchConsent",
       "TrainingPreferenceState",
+      "WeeklyFocus",
     ];
     for (const model of relationBlocks) {
       const block = SCHEMA.match(
@@ -66,6 +71,9 @@ describe("privacy schema guards", () => {
     );
     expect(P4_MIGRATION).toMatch(
       /"TrainingPreferenceState_userId_fkey"[\s\S]*ON DELETE CASCADE/,
+    );
+    expect(P5_MIGRATION).toMatch(
+      /"WeeklyFocus_userId_fkey"[\s\S]*ON DELETE CASCADE/,
     );
   });
 
@@ -114,9 +122,7 @@ describe("privacy schema guards", () => {
     // One-row-per-user: enforce via the unique constraint on userId.
     expect(block).toMatch(/userId\s+String\s+@unique/);
     // Cascade-on-delete so hard-deletion removes training-preference state.
-    expect(block).toMatch(
-      /user User @relation\([^\n]*onDelete:\s*Cascade\)/,
-    );
+    expect(block).toMatch(/user User @relation\([^\n]*onDelete:\s*Cascade\)/);
     // The relation block above ("cascades every direct user relation") already covered
     // the cascade assertion separately; this test fixes the model in one place.
   });

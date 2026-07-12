@@ -117,6 +117,7 @@ describe("account privacy service", () => {
       notificationPref: model(null),
       apiCallBudget: model(),
       trainingPreferenceState: model(null),
+      weeklyFocus: model(),
       allowlistEntry: model(),
       researchConsent: model(),
     };
@@ -143,6 +144,7 @@ describe("account privacy service", () => {
         "notificationPref",
         "apiCallBudgets",
         "trainingPreferenceState",
+        "weeklyFocuses",
         "claimedAllowlistEntries",
         "researchConsents",
       ]),
@@ -208,13 +210,14 @@ describe("account privacy service", () => {
       notificationPref: model,
       apiCallBudget: model,
       trainingPreferenceState: model,
+      weeklyFocus: model,
       allowlistEntry: model,
       researchConsent: model,
     };
 
     await exportUserData(db as never, "u1");
 
-    expect(query).toHaveBeenCalledTimes(21);
+    expect(query).toHaveBeenCalledTimes(22);
     expect(maximumActiveQueries).toBe(1);
     expect(activeQueries).toBe(0);
   });

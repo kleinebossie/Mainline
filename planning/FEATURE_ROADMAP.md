@@ -190,30 +190,30 @@ Every part must end with:
 
 ## 4. Roadmap overview
 
-| Part | Outcome                                                         | Timing                                   | Depends on                          | Status  |
-| ---- | --------------------------------------------------------------- | ---------------------------------------- | ----------------------------------- | ------- |
+| Part | Outcome                                                         | Timing                                   | Depends on                          | Status   |
+| ---- | --------------------------------------------------------------- | ---------------------------------------- | ----------------------------------- | -------- |
 | P0   | Current-state and methodology gap audit                         | Before closed beta                       | M14 complete                        | Complete |
 | P1   | Research methodology release                                    | Before closed beta                       | P0                                  | Complete |
 | P2   | Beta access, API budgets, jobs, monitoring, and PWA             | Before closed beta                       | P0                                  | Complete |
 | P3   | Privacy, consent, export, and hard-deletion completion          | Before closed beta                       | P0                                  | Complete |
 | P4   | Decision-state and skill-history foundation                     | Before closed beta                       | P1, P3                              | Complete |
-| P5   | Stable weekly focus and bounded user choice                     | Before closed beta                       | P4                                  | Planned |
-| P6   | Seven-day forecast, revision ledger, and availability model     | Before closed beta                       | P5                                  | Planned |
-| P7   | Program history and forecast experience                         | Before closed beta                       | P6                                  | Planned |
-| P8   | Training-fit and product-feedback loop                          | Before closed beta                       | P5, P7                              | Planned |
-| P9   | Observational research capture and public methodology changelog | Before closed beta                       | P3, P8                              | Planned |
-| P10  | Manual PGN and OTB import                                       | Before closed beta                       | P2, P3                              | Planned |
-| P11  | User-zero acceptance and closed-beta release audit              | Before closed beta                       | P1-P10                              | Planned |
-| B1   | Recurring motif and board-vision diagnosis                      | Pilot beta                               | P11                                 | Planned |
-| B2   | Phase and conversion diagnosis                                  | Closed beta                              | B1                                  | Planned |
-| B3   | Time-use, opening gates, and uncertainty-driven probes          | Closed beta                              | B1                                  | Planned |
-| B4   | Personal mistake-protocol extensions                            | Expanded beta                            | B2, B3                              | Planned |
-| B5   | Per-user duration and schedule-fit adaptation                   | Expanded beta                            | P8, B1                              | Planned |
-| B6   | Aggregate calibration review and methodology releases           | Expanded beta, ongoing                   | P9, 25 consented longitudinal users | Planned |
-| L1   | Resource effectiveness and stop-doing guidance                  | After public release and data gate       | B6                                  | Planned |
-| L2   | Personal experiments and formal studies                         | After public release and experiment gate | B6                                  | Planned |
-| L3   | Tournament preparation                                          | After public release, demand-gated       | B3, B5                              | Planned |
-| L4   | Coach handoff pack                                              | After public release, demand-gated       | B1-B3                               | Planned |
+| P5   | Stable weekly focus and bounded user choice                     | Before closed beta                       | P4                                  | Complete |
+| P6   | Seven-day forecast, revision ledger, and availability model     | Before closed beta                       | P5                                  | Planned  |
+| P7   | Program history and forecast experience                         | Before closed beta                       | P6                                  | Planned  |
+| P8   | Training-fit and product-feedback loop                          | Before closed beta                       | P5, P7                              | Planned  |
+| P9   | Observational research capture and public methodology changelog | Before closed beta                       | P3, P8                              | Planned  |
+| P10  | Manual PGN and OTB import                                       | Before closed beta                       | P2, P3                              | Planned  |
+| P11  | User-zero acceptance and closed-beta release audit              | Before closed beta                       | P1-P10                              | Planned  |
+| B1   | Recurring motif and board-vision diagnosis                      | Pilot beta                               | P11                                 | Planned  |
+| B2   | Phase and conversion diagnosis                                  | Closed beta                              | B1                                  | Planned  |
+| B3   | Time-use, opening gates, and uncertainty-driven probes          | Closed beta                              | B1                                  | Planned  |
+| B4   | Personal mistake-protocol extensions                            | Expanded beta                            | B2, B3                              | Planned  |
+| B5   | Per-user duration and schedule-fit adaptation                   | Expanded beta                            | P8, B1                              | Planned  |
+| B6   | Aggregate calibration review and methodology releases           | Expanded beta, ongoing                   | P9, 25 consented longitudinal users | Planned  |
+| L1   | Resource effectiveness and stop-doing guidance                  | After public release and data gate       | B6                                  | Planned  |
+| L2   | Personal experiments and formal studies                         | After public release and experiment gate | B6                                  | Planned  |
+| L3   | Tournament preparation                                          | After public release, demand-gated       | B3, B5                              | Planned  |
+| L4   | Coach handoff pack                                              | After public release, demand-gated       | B1-B3                               | Planned  |
 
 ---
 
@@ -259,24 +259,24 @@ M14 is complete and is a valid P0 dependency. The implementation is present in
 The configured database reports all 12 repository migrations applied, including the M13 tablebase
 cache migration. M14 intentionally adds no migration.
 
-| Slice | Checked evidence | Current truth and owner note |
-| --- | --- | --- |
-| M0 | `.nvmrc`, `package.json`, `.github/workflows/ci.yml`, `next.config.mjs`, GitHub deployment records | Complete. CI is green and Vercel has successful production deployments through 2026-07-09. The deployment target is protected by Vercel SSO, so anonymous route and header smoke tests remain unverified. |
-| M1 | `src/integrations/`, `src/server/auth*`, `src/server/routers/connections.ts`, `prisma/migrations/0_init` | Complete. The existing handoff records live Lichess and tokenless Chess.com verification. |
-| M2 | `src/server/import.ts`, `src/app/api/cron/import/route.ts`, `vercel.json`, `20260620000000_m2_import_profile` | Complete in code and schema. Local `CRON_SECRET` is set. The owner must still verify the Vercel environment secret and a production cron invocation. |
-| M3 | `scripts/ingest-puzzles.ts`, `src/db/puzzles.ts`, `src/integrations/catalog.ts` | Current database has puzzle and ResourceRef rows. `npm run check:puzzles -- fork 1500` selected 10 rows in 2036.9 ms. The blueprint has no target latency, so performance is an explicit owner check. Fresh environments still need CSV download, ingest, and resource seeding. |
-| M4 | `src/lib/constraints.ts`, `src/server/constraints.ts`, `src/app/onboarding/`, `20260621000000_m4_constraints_assessment` | Complete in code and schema. Constraint capture is broader than the generator currently consumes, as detailed below. |
-| M5 | `src/analysis/`, `src/lib/raw-features.ts`, `20260621010000_m5_analysis_result` | Complete for client-side raw feature production. Phase, clock, conversion, opening, and motif measurements are stored as raw data. |
-| M6 | `src/engine/generator.ts`, `src/server/program.ts`, `/today`, `20260621020000_m6_program` | Complete for the stub-config daily generator and transparency snapshots. The generator still does not consume accumulated `SkillState`. |
-| M7 | `src/engine/adaptation.ts`, `src/server/tracker.ts`, `src/db/tracker.ts`, `20260621030000_m7_tracker_adaptation` | Complete for the v0 loop. SkillState is updated and displayed, but is not a generator input. Solve-time grading remains inactive because band medians are not populated. |
-| M8 | `src/components/transparency-card.tsx`, `src/app/progress/`, `src/server/progress.ts` | Complete for the current transparency and expectations surfaces. |
-| M9 | `src/engine/events.ts`, `src/server/engagement.ts`, `20260622000000_m9_engagement` | Complete for completion events, capped reminders, streaks, and the grid. The automatic `day_missed` sweep remains an M15/P2 job. |
-| M10 | `src/engine/interactive/`, `src/components/interactive-board.tsx`, `/train`, `tests/unit/engine/interactive/` | Complete. BUILD.md had stale unchecked M10 boxes; they are corrected in this audit. |
-| M11 | `/train/[itemId]`, onboarding calibration, `tests/unit/puzzles/redo-flow.test.ts`, `tests/unit/methodology/calibration.test.ts` | Complete in code and tests. The full signed-in Stockfish journey remains a manual production-like check, as the existing handoff says. |
-| M12 | `/analysis/[gameId]`, `src/engine/interactive/blunder-drill.ts`, `20260622010000_personalization_capture`, M12 tests | Complete in code and tests. Blunder-derived drills do not yet become generator weakness signals beyond the existing blunder-rate path. |
-| M13 | `src/engine/interactive/endgame.ts`, `src/server/tablebase.ts`, `src/db/tablebase.ts`, `20260624010000_m13_tablebase_cache` | Complete in code and schema. Tablebase use is optional and cache-first; the full signed-in Stockfish play-out remains a manual check. |
-| M14 | `/library`, `src/server/library.ts`, M14 methodology tests | Complete. Books remain external, `book_session` remains an existing `ActivityEvent`, and `ResourceProgress` is a derived roll-up rather than a table. |
-| M15 | `prisma/schema.prisma`, `src/app/api/cron/`, `src/server/account.ts`, `public/` | Incomplete and not started. There is no allowlist, API budget model or middleware, Sentry or privacy-safe analytics, PWA manifest/service worker, adaptation or deletion cron, or hard-delete job. Export currently omits user-owned `PracticeItem` rows and deletion only sets `User.deletedAt`. P2 owns runtime hardening; P3 owns privacy, consent, export, and hard deletion. |
+| Slice | Checked evidence                                                                                                                | Current truth and owner note                                                                                                                                                                                                                                                                                                                                                      |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| M0    | `.nvmrc`, `package.json`, `.github/workflows/ci.yml`, `next.config.mjs`, GitHub deployment records                              | Complete. CI is green and Vercel has successful production deployments through 2026-07-09. The deployment target is protected by Vercel SSO, so anonymous route and header smoke tests remain unverified.                                                                                                                                                                         |
+| M1    | `src/integrations/`, `src/server/auth*`, `src/server/routers/connections.ts`, `prisma/migrations/0_init`                        | Complete. The existing handoff records live Lichess and tokenless Chess.com verification.                                                                                                                                                                                                                                                                                         |
+| M2    | `src/server/import.ts`, `src/app/api/cron/import/route.ts`, `vercel.json`, `20260620000000_m2_import_profile`                   | Complete in code and schema. Local `CRON_SECRET` is set. The owner must still verify the Vercel environment secret and a production cron invocation.                                                                                                                                                                                                                              |
+| M3    | `scripts/ingest-puzzles.ts`, `src/db/puzzles.ts`, `src/integrations/catalog.ts`                                                 | Current database has puzzle and ResourceRef rows. `npm run check:puzzles -- fork 1500` selected 10 rows in 2036.9 ms. The blueprint has no target latency, so performance is an explicit owner check. Fresh environments still need CSV download, ingest, and resource seeding.                                                                                                   |
+| M4    | `src/lib/constraints.ts`, `src/server/constraints.ts`, `src/app/onboarding/`, `20260621000000_m4_constraints_assessment`        | Complete in code and schema. Constraint capture is broader than the generator currently consumes, as detailed below.                                                                                                                                                                                                                                                              |
+| M5    | `src/analysis/`, `src/lib/raw-features.ts`, `20260621010000_m5_analysis_result`                                                 | Complete for client-side raw feature production. Phase, clock, conversion, opening, and motif measurements are stored as raw data.                                                                                                                                                                                                                                                |
+| M6    | `src/engine/generator.ts`, `src/server/program.ts`, `/today`, `20260621020000_m6_program`                                       | Complete for the stub-config daily generator and transparency snapshots. The generator still does not consume accumulated `SkillState`.                                                                                                                                                                                                                                           |
+| M7    | `src/engine/adaptation.ts`, `src/server/tracker.ts`, `src/db/tracker.ts`, `20260621030000_m7_tracker_adaptation`                | Complete for the v0 loop. SkillState is updated and displayed, but is not a generator input. Solve-time grading remains inactive because band medians are not populated.                                                                                                                                                                                                          |
+| M8    | `src/components/transparency-card.tsx`, `src/app/progress/`, `src/server/progress.ts`                                           | Complete for the current transparency and expectations surfaces.                                                                                                                                                                                                                                                                                                                  |
+| M9    | `src/engine/events.ts`, `src/server/engagement.ts`, `20260622000000_m9_engagement`                                              | Complete for completion events, capped reminders, streaks, and the grid. The automatic `day_missed` sweep remains an M15/P2 job.                                                                                                                                                                                                                                                  |
+| M10   | `src/engine/interactive/`, `src/components/interactive-board.tsx`, `/train`, `tests/unit/engine/interactive/`                   | Complete. BUILD.md had stale unchecked M10 boxes; they are corrected in this audit.                                                                                                                                                                                                                                                                                               |
+| M11   | `/train/[itemId]`, onboarding calibration, `tests/unit/puzzles/redo-flow.test.ts`, `tests/unit/methodology/calibration.test.ts` | Complete in code and tests. The full signed-in Stockfish journey remains a manual production-like check, as the existing handoff says.                                                                                                                                                                                                                                            |
+| M12   | `/analysis/[gameId]`, `src/engine/interactive/blunder-drill.ts`, `20260622010000_personalization_capture`, M12 tests            | Complete in code and tests. Blunder-derived drills do not yet become generator weakness signals beyond the existing blunder-rate path.                                                                                                                                                                                                                                            |
+| M13   | `src/engine/interactive/endgame.ts`, `src/server/tablebase.ts`, `src/db/tablebase.ts`, `20260624010000_m13_tablebase_cache`     | Complete in code and schema. Tablebase use is optional and cache-first; the full signed-in Stockfish play-out remains a manual check.                                                                                                                                                                                                                                             |
+| M14   | `/library`, `src/server/library.ts`, M14 methodology tests                                                                      | Complete. Books remain external, `book_session` remains an existing `ActivityEvent`, and `ResourceProgress` is a derived roll-up rather than a table.                                                                                                                                                                                                                             |
+| M15   | `prisma/schema.prisma`, `src/app/api/cron/`, `src/server/account.ts`, `public/`                                                 | Incomplete and not started. There is no allowlist, API budget model or middleware, Sentry or privacy-safe analytics, PWA manifest/service worker, adaptation or deletion cron, or hard-delete job. Export currently omits user-owned `PracticeItem` rows and deletion only sets `User.deletedAt`. P2 owns runtime hardening; P3 owns privacy, consent, export, and hard deletion. |
 
 #### Manual setup and deployed-state inventory
 
@@ -305,19 +305,19 @@ resource labels or refs, and `sessionStyle.depthVsBreadth` before calling the pu
 `src/engine/generator.ts:81-104` and passes them to `prioritizeDailyMix` at
 `src/engine/generator.ts:172-183`.
 
-| Input | Current effect on generation |
-| --- | --- |
-| `minutesPerDay` | Direct hard packing cap. |
-| `formatPrefs.formats` | Format mismatch scoring and play-game params. |
-| `ownedResources` | Owned book matching and daily-mix preference when a catalog match exists. |
-| `sessionStyle.depthVsBreadth` | Config-weighted weakness or ROI preference. |
-| `daysPerWeek` | Persisted in `generationInput`, but no day selection or volume decision uses it. |
-| `goals` | Persisted and shown in onboarding/reveal, but not a generator input. Rating goals are not yet translated to process work. |
-| `formatPrefs.preferredVariety` | Captured, but not read by the generator or provider. |
-| `sessionStyle.interleave` | Captured, but `practiceStructure` currently uses band config only and does not receive this preference. |
-| `ifThenPlan` | Normalized through `buildImplementationIntention` and persisted, but not used to generate a session. |
-| `formatPrefs.targetFocus` | Used by the library and board/calibration affordances, not by daily candidate generation. |
-| accumulated `SkillState` | Updated by M7 and shown by progress surfaces, but absent from `GenerateProgramInput`; generation still uses tactical calibration, raw signals, due items, and rolling track success. |
+| Input                          | Current effect on generation                                                                                                                                                         |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `minutesPerDay`                | Direct hard packing cap.                                                                                                                                                             |
+| `formatPrefs.formats`          | Format mismatch scoring and play-game params.                                                                                                                                        |
+| `ownedResources`               | Owned book matching and daily-mix preference when a catalog match exists.                                                                                                            |
+| `sessionStyle.depthVsBreadth`  | Config-weighted weakness or ROI preference.                                                                                                                                          |
+| `daysPerWeek`                  | Persisted in `generationInput`, but no day selection or volume decision uses it.                                                                                                     |
+| `goals`                        | Persisted and shown in onboarding/reveal, but not a generator input. Rating goals are not yet translated to process work.                                                            |
+| `formatPrefs.preferredVariety` | Captured, but not read by the generator or provider.                                                                                                                                 |
+| `sessionStyle.interleave`      | Captured, but `practiceStructure` currently uses band config only and does not receive this preference.                                                                              |
+| `ifThenPlan`                   | Normalized through `buildImplementationIntention` and persisted, but not used to generate a session.                                                                                 |
+| `formatPrefs.targetFocus`      | Used by the library and board/calibration affordances, not by daily candidate generation.                                                                                            |
+| accumulated `SkillState`       | Updated by M7 and shown by progress surfaces, but absent from `GenerateProgramInput`; generation still uses tactical calibration, raw signals, due items, and rolling track success. |
 
 The persisted `generationInput` at `src/server/program.ts:273-287` snapshots some of these values,
 but does not snapshot goals, preferred variety, interleave, if-then plan, target focus, or current
@@ -342,18 +342,18 @@ config validates with 411 graded leaves. Its flags are 281 `best-guess`, 18 `con
 `semi-evidenced`, and 1 explicit `stub`. The 35 rationale entries include four explicitly flagged
 `best-guess` entries. C/D rationale entries are softened by schema and guard tests.
 
-| Seam | Checked current implementation | Missing, partial, stale, or user-facing-stub truth |
-| --- | --- | --- |
-| 1. Dimensions and bands | Six graded bands and seven dimensions load from `stub-0.1.0`; band lookup and labels are active. | METHODOLOGY.md also specifies a `psych` stub dimension, measurable definitions, primary signals, trainability, and a per-band salience prior. The shipped config contains only dimension ids and labels, omits `psych`, and has no salience matrix. The omission is safe but must be explicit in P1. |
-| 2. Assessment | Three behavioral tracks, adaptive ladder, in-app puzzle selection, and graded scoring are active. | Exact ladder parameters are best guesses. The documented `noHistoryFallback` is not a config field. The estimate is a tactical/calibration seed, not a general skill diagnosis. |
-| 3. Game interpretation | Thresholds, contested blunder baselines, and sample gates are present; only blunder rate is emitted. | Phase, conversion, clock/VOC, opening, motif recurrence, ACPL/STDCPL, and opening sample gates from METHODOLOGY.md are not active interpretation paths. Raw measurements exist but are not consumed as signals. |
-| 4. Resource mapping | Nine activity definitions cover internal and external delivery, plus three weakness rules for board vision and endgames. M14 book and modality data are present. | The broad research mapping is partial: no active rules for time, opening, conversion, recurring motifs, or most dimensions. Several activity priorities and delivery choices are explicitly stub or best guess. |
-| 5. Difficulty | Pattern and calculation tracks, servo targets, band structure, and worked-example config are present. | `practiceStructure` does not consume motif mastery or the captured interleave preference. The documented per-band pattern/calculation time split is not represented as a dedicated config field. Seeds and targets remain stub or contested. |
-| 6. Scheduling | FSRS parameters, outcome grades, maximum interval, and configurable intra-session retest delay are present. | Fallback intervals, beginner micro-spacing policy, and full hint policy are not represented in the config. `src/server/tracker.ts` passes `bandMedianMs: null`, so fast/slow solve-time grading is inactive and v0 effectively uses correct versus incorrect only. |
-| 7. Prioritization | Weighted daily mix, due reviews, format fit, owned resources, depth/breadth, and time packing are active. | Goals, days per week, preferred variety, interleave, target focus, if-then plan, and SkillState do not affect the generated day. The seven-day/stable-focus/revision behavior belongs to later P4-P6. |
-| 8. Rationale and evidence | 35 rationale entries, evidence ledger, graded snapshots, softened C/D copy, and transparency cards are active. | `ProgramItem` has no `flag` field and `toTodayItem` does not pass `rationale.flag` to item-level `TransparencyCard`, so the four explicitly flagged rationale entries are not directly labelled Placeholder on those cards. `soften` still supplies a caveat. The active config remains a user-facing stub. |
-| 9. Engagement | Config-bounded reward events, capped streaks, consistency grid, and reminders are active. | The `day_missed` policy has no automatic daily sweep until M15. Peer comparison and bounded-choice config exist but their UI is not built. Tilt cooldown remains an explicit stub. |
-| Measurement | Glicko CI, baseline, plateau, expectations copy, and progress dashboard are present. | Values are still stub or best guess and are not a research release. No observational export or consent gate exists; that is P3/P9 scope. |
+| Seam                      | Checked current implementation                                                                                                                                   | Missing, partial, stale, or user-facing-stub truth                                                                                                                                                                                                                                                          |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. Dimensions and bands   | Six graded bands and seven dimensions load from `stub-0.1.0`; band lookup and labels are active.                                                                 | METHODOLOGY.md also specifies a `psych` stub dimension, measurable definitions, primary signals, trainability, and a per-band salience prior. The shipped config contains only dimension ids and labels, omits `psych`, and has no salience matrix. The omission is safe but must be explicit in P1.        |
+| 2. Assessment             | Three behavioral tracks, adaptive ladder, in-app puzzle selection, and graded scoring are active.                                                                | Exact ladder parameters are best guesses. The documented `noHistoryFallback` is not a config field. The estimate is a tactical/calibration seed, not a general skill diagnosis.                                                                                                                             |
+| 3. Game interpretation    | Thresholds, contested blunder baselines, and sample gates are present; only blunder rate is emitted.                                                             | Phase, conversion, clock/VOC, opening, motif recurrence, ACPL/STDCPL, and opening sample gates from METHODOLOGY.md are not active interpretation paths. Raw measurements exist but are not consumed as signals.                                                                                             |
+| 4. Resource mapping       | Nine activity definitions cover internal and external delivery, plus three weakness rules for board vision and endgames. M14 book and modality data are present. | The broad research mapping is partial: no active rules for time, opening, conversion, recurring motifs, or most dimensions. Several activity priorities and delivery choices are explicitly stub or best guess.                                                                                             |
+| 5. Difficulty             | Pattern and calculation tracks, servo targets, band structure, and worked-example config are present.                                                            | `practiceStructure` does not consume motif mastery or the captured interleave preference. The documented per-band pattern/calculation time split is not represented as a dedicated config field. Seeds and targets remain stub or contested.                                                                |
+| 6. Scheduling             | FSRS parameters, outcome grades, maximum interval, and configurable intra-session retest delay are present.                                                      | Fallback intervals, beginner micro-spacing policy, and full hint policy are not represented in the config. `src/server/tracker.ts` passes `bandMedianMs: null`, so fast/slow solve-time grading is inactive and v0 effectively uses correct versus incorrect only.                                          |
+| 7. Prioritization         | Weighted daily mix, due reviews, format fit, owned resources, depth/breadth, and time packing are active.                                                        | Goals, days per week, preferred variety, interleave, target focus, if-then plan, and SkillState do not affect the generated day. The seven-day/stable-focus/revision behavior belongs to later P4-P6.                                                                                                       |
+| 8. Rationale and evidence | 35 rationale entries, evidence ledger, graded snapshots, softened C/D copy, and transparency cards are active.                                                   | `ProgramItem` has no `flag` field and `toTodayItem` does not pass `rationale.flag` to item-level `TransparencyCard`, so the four explicitly flagged rationale entries are not directly labelled Placeholder on those cards. `soften` still supplies a caveat. The active config remains a user-facing stub. |
+| 9. Engagement             | Config-bounded reward events, capped streaks, consistency grid, and reminders are active.                                                                        | The `day_missed` policy has no automatic daily sweep until M15. Peer comparison and bounded-choice config exist but their UI is not built. Tilt cooldown remains an explicit stub.                                                                                                                          |
+| Measurement               | Glicko CI, baseline, plateau, expectations copy, and progress dashboard are present.                                                                             | Values are still stub or best guess and are not a research release. No observational export or consent gate exists; that is P3/P9 scope.                                                                                                                                                                    |
 
 There is also provider/config drift that P1 must resolve before a research release. The methodology
 provider still contains decision values outside config, including tilt fallbacks and windows at
@@ -739,6 +739,47 @@ identically-empty states produce an identical snapshot (L2 reproducibility).
 **Definition of Done:** changing a meaningful input produces a traceable focus change; identical
 inputs reproduce the same focus; low-confidence noise does not churn focus; subjective feedback
 cannot alter SkillState.
+
+**Status (2026-07-12): COMPLETE.** P5 now persists an immutable weekly prescription in
+`WeeklyFocus`, including the ordered focus areas, confidence, supporting signals, complete P4
+decision-input snapshot, methodology version, status, bounded alternatives, selection rationale,
+and any revision trigger and rationale. Historic focus rows are superseded rather than rewritten,
+and User deletion cascades through the new table. The account export includes all focus history.
+
+The active methodology is `research-1.1.0`. It adds graded focus selection, stability, meaningful
+revision thresholds, structural goal-to-process mappings, fit weights, and bounded-alternative copy.
+All exact stability and weighting values are Grade C best guesses. The base bytes for
+`research-1.0.0` and `stub-0.1.0` remain unchanged; additive compatibility overlays keep both
+rollback versions loadable. `selectWeeklyFocus` and `shouldReviseWeeklyFocus` are pure and use stable
+identifier tie-breaks. Rating-goal labels and arbitrary free text are never parsed into daily
+objectives.
+
+Program generation now creates or reuses the active focus from the single P4 assembler and applies
+it to discretionary candidate selection while preserving due learning. Medium-confidence crossings,
+meaningful constraint changes, accumulated skill changes, stability-window expiry, and methodology
+changes can create a traceable revision. One low-confidence result cannot. Training-fit preferences
+are read-only bounded fit signals and no P5 path writes `SkillState`.
+
+Today shows the persisted focus, confidence, rationale, and only the snapshotted approved
+alternatives. Selecting an alternative is authorized against that snapshot, persists the choice,
+and regenerates Today. P6 forecast/revision-ledger work and P7 history UI were not started.
+
+#### P5 handoff
+
+- Migration: apply `20260712000000_p5_weekly_focus` with `npm run prisma:deploy`, after the pending
+  P4 migration, then run `npm run prisma:generate` in the deployed build.
+- Owner action: deploy through the normal CI path and smoke an authenticated Today generation,
+  stable regeneration, meaningful constraint revision, and bounded-alternative selection.
+- Verification: Prisma format/generation, typecheck, lint, 66 Vitest files with 419 tests,
+  4 guard files with 53 tests, production build, and Playwright all pass. Playwright used port 3001
+  because the owner's existing Next dev server occupied port 3000; that dev process was preserved.
+- Deliberate deviations: alternatives are stored as typed JSON snapshots on `WeeklyFocus` instead of
+  a child table because they are a small immutable part of one decision artifact. P5 stores revision
+  trigger/rationale on the focus itself; the cross-forecast `ProgramRevision` ledger remains P6.
+- Remaining risks: exact focus weights and stability thresholds need beta telemetry and human review;
+  focus labels are currently methodology dimension identifiers in the minimal UI; production database
+  migrations and the authenticated deployment smoke remain owner actions. P5 makes no causal rating
+  claim, and P8 remains the first real writer of subjective training-fit preferences.
 
 ---
 

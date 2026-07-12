@@ -187,7 +187,7 @@ export const programDecisionInputSchema = z
           .object({
             dimension: z.string().min(1).max(80),
             severity: z.number().finite().min(0).max(1),
-            confidence: z.string().min(1).max(40),
+            confidence: z.enum(["insufficient", "low", "medium", "high"]),
             sampleSize: z.number().int().nonnegative(),
             evidenceGrade: z.enum(["A", "B", "C", "D"]),
             evidenceTier: z.union([z.literal(1), z.literal(2)]),

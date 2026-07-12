@@ -303,6 +303,77 @@ export interface WeaknessSignal {
   rationaleKey: string;
 }
 
+export interface WeeklyFocusInput {
+  latestSkillState: readonly {
+    dimension: string;
+    estimate: number;
+    uncertainty: number;
+    sampleSize: number;
+  }[];
+  weaknessSignals: readonly WeaknessSignal[];
+  dueWork: readonly { itemType: string }[];
+  goals: readonly {
+    kind:
+      | "rating"
+      | "tactics"
+      | "openings"
+      | "endgames"
+      | "consistency"
+      | "fun"
+      | "other";
+    label: string;
+  }[];
+  constraints: { minutesPerDay: number; daysPerWeek: number };
+  ownedResources: readonly { label: string; externalRef?: string }[];
+  activityRecency: {
+    lastEventAtByType: Record<string, number>;
+    skipsByType: Record<string, number>;
+  };
+  trainingPreferences: {
+    preferences: {
+      enjoyment: Record<string, number>;
+      frictionTags: readonly string[];
+    };
+  };
+}
+
+export interface FocusRationaleSnapshot {
+  text: string;
+  grade: Grade;
+  tier: Tier;
+  citationKey: string;
+  soften: boolean;
+}
+
+export interface FocusAlternative {
+  focusArea: string;
+  score: number;
+  supportingSources: string[];
+  tradeoff: FocusRationaleSnapshot;
+}
+
+export interface WeeklyFocusSelection {
+  focusAreas: string[];
+  supportingSignals: Array<{
+    focusArea: string;
+    sources: string[];
+    score: number;
+  }>;
+  confidence: Confidence;
+  rationale: FocusRationaleSnapshot;
+  alternatives: FocusAlternative[];
+}
+
+export interface WeeklyFocusRevisionInput {
+  ageDays: number;
+  previousConstraints: { minutesPerDay: number; daysPerWeek: number };
+  nextConstraints: { minutesPerDay: number; daysPerWeek: number };
+  previousSignals: readonly WeaknessSignal[];
+  nextSignals: readonly WeaknessSignal[];
+  previousSkillState: readonly { dimension: string; estimate: number }[];
+  nextSkillState: readonly { dimension: string; estimate: number }[];
+}
+
 /** A concrete external book/course resource selected from the methodology catalog. */
 export interface CandidateBookResource {
   id: string;
@@ -1194,6 +1265,241 @@ function candidateIsOwned(
     );
   }
   return false;
+}
+
+const CONFIDENCE_ORDER: Record<Confidence, number> = {
+  insufficient: 0,
+  low: 1,
+  medium: 2,
+  high: 3,
+};
+
+function focusSnapshot(value: {
+  value: string;
+  grade: Grade;
+  tier: Tier;
+  citationKey: string;
+  soften?: boolean;
+}): FocusRationaleSnapshot {
+  return {
+    text: value.value,
+    grade: value.grade,
+    tier: value.tier,
+    citationKey: value.citationKey,
+    soften: value.soften ?? (value.grade === "C" || value.grade === "D"),
+  };
+}
+
+/** P5: choose a stable, evidence-led weekly direction. Free-form goal labels are never
+ * interpreted; only bounded structural goal kinds map to approved focus dimensions. */
+export function selectWeeklyFocus(
+  input: WeeklyFocusInput,
+  cfg: MethodologyConfig,
+): WeeklyFocusSelection {
+  const policy = cfg.weeklyFocus;
+  if (!policy) throw new Error("Methodology config has no weekly focus policy");
+  const scores = new Map<string, { score: number; sources: Set<string> }>();
+  const add = (dimension: string, amount: number, source: string) => {
+    if (!cfg.dimensions.some((d) => d.id === dimension)) return;
+    const current = scores.get(dimension) ?? {
+      score: 0,
+      sources: new Set<string>(),
+    };
+    current.score += amount;
+    current.sources.add(source);
+    scores.set(dimension, current);
+  };
+  const minimum = CONFIDENCE_ORDER[policy.minimumSignalConfidence.value];
+  for (const signal of input.weaknessSignals) {
+    if (CONFIDENCE_ORDER[signal.confidence] < minimum) continue;
+    add(
+      signal.dimension,
+      signal.severity * policy.weights.measuredWeakness.value,
+      "measured weakness",
+    );
+  }
+  for (const skill of input.latestSkillState) {
+    if (skill.sampleSize === 0) continue;
+    add(
+      skill.dimension,
+      Math.max(0, 1 - skill.estimate) * policy.weights.skillState.value,
+      "skill history",
+    );
+  }
+  for (const goal of input.goals) {
+    for (const dimension of policy.goalProcessFocus[goal.kind] ?? []) {
+      add(
+        dimension,
+        policy.weights.goalAlignment.value,
+        `process goal:${goal.kind}`,
+      );
+    }
+  }
+  for (const due of input.dueWork) {
+    for (const activity of cfg.activities.filter(
+      (candidate) => candidate.activityType === due.itemType,
+    )) {
+      for (const dimension of activity.dimensions)
+        add(dimension, policy.weights.dueWork.value, "due learning");
+    }
+  }
+  const owned = new Set(
+    input.ownedResources.flatMap((resource) =>
+      [resource.label, resource.externalRef]
+        .filter((value): value is string => Boolean(value))
+        .map(normalizeOwnedRef),
+    ),
+  );
+  for (const activity of cfg.activities) {
+    if (
+      input.activityRecency.lastEventAtByType[activity.activityType] ===
+      undefined
+    ) {
+      for (const dimension of activity.dimensions)
+        add(dimension, policy.weights.recency.value, "variety fit");
+    }
+    const enjoyment =
+      input.trainingPreferences.preferences.enjoyment[activity.activityType];
+    const ownedFit =
+      owned.has(normalizeOwnedRef(activity.id)) ||
+      (activity.resourceTheme
+        ? owned.has(normalizeOwnedRef(activity.resourceTheme))
+        : false);
+    if (enjoyment !== undefined || ownedFit) {
+      const fit = (enjoyment ?? 0) + (ownedFit ? 1 : 0);
+      for (const dimension of activity.dimensions)
+        add(
+          dimension,
+          fit * policy.weights.fitPreference.value,
+          "bounded fit preference",
+        );
+    }
+  }
+  const ranked = [...scores.entries()]
+    .map(([focusArea, value]) => ({
+      focusArea,
+      score: value.score,
+      sources: [...value.sources].sort(),
+    }))
+    .sort(
+      (a, b) => b.score - a.score || a.focusArea.localeCompare(b.focusArea),
+    );
+  if (ranked.length === 0) {
+    for (const dimension of cfg.dimensions)
+      ranked.push({
+        focusArea: dimension.id,
+        score: 0,
+        sources: ["methodology prior"],
+      });
+  }
+  const chosen = ranked.slice(0, policy.maxFocusAreas.value);
+  const goalAligned = new Set(
+    input.goals.flatMap(
+      (goal) => policy.goalProcessFocus[goal.kind] ?? [],
+    ),
+  );
+  const chosenAreas = new Set(chosen.map((candidate) => candidate.focusArea));
+  const alternatives = ranked
+    .filter(
+      (candidate) =>
+        goalAligned.has(candidate.focusArea) &&
+        !chosenAreas.has(candidate.focusArea),
+    )
+    .slice(0, policy.maxAlternatives.value)
+    .map((candidate) => ({
+      focusArea: candidate.focusArea,
+      score: candidate.score,
+      supportingSources: candidate.sources,
+      tradeoff: focusSnapshot(policy.alternativeRationale),
+    }));
+  const confidence = input.weaknessSignals.some(
+    (s) => CONFIDENCE_ORDER[s.confidence] >= minimum,
+  )
+    ? input.weaknessSignals.reduce<Confidence>(
+        (best, s) =>
+          CONFIDENCE_ORDER[s.confidence] > CONFIDENCE_ORDER[best]
+            ? s.confidence
+            : best,
+        "insufficient",
+      )
+    : input.latestSkillState.some((s) => s.sampleSize > 0)
+      ? "low"
+      : "insufficient";
+  return {
+    focusAreas: chosen.map((x) => x.focusArea),
+    supportingSignals: chosen,
+    confidence,
+    rationale: focusSnapshot(policy.selectionRationale),
+    alternatives,
+  };
+}
+
+/** P5: permit revision only for a stable-window expiry, a meaningful constraint change,
+ * a confidence-gate crossing, or a meaningful accumulated skill shift. */
+export function shouldReviseWeeklyFocus(
+  input: WeeklyFocusRevisionInput,
+  cfg: MethodologyConfig,
+): {
+  revise: boolean;
+  reason: "stable" | "window" | "constraints" | "confidence" | "skill";
+  rationale: FocusRationaleSnapshot | null;
+} {
+  const p = cfg.weeklyFocus;
+  if (!p) throw new Error("Methodology config has no weekly focus policy");
+  if (input.ageDays >= p.stabilityDays.value)
+    return {
+      revise: true,
+      reason: "window",
+      rationale: focusSnapshot(p.revisionRationale),
+    };
+  if (
+    Math.abs(
+      input.nextConstraints.minutesPerDay -
+        input.previousConstraints.minutesPerDay,
+    ) >= p.meaningfulConstraintMinutes.value ||
+    input.nextConstraints.daysPerWeek !== input.previousConstraints.daysPerWeek
+  )
+    return {
+      revise: true,
+      reason: "constraints",
+      rationale: focusSnapshot(p.revisionRationale),
+    };
+  const minimum = CONFIDENCE_ORDER[p.minimumSignalConfidence.value];
+  const qualified = (signals: readonly WeaknessSignal[]) =>
+    new Set(
+      signals
+        .filter((s) => CONFIDENCE_ORDER[s.confidence] >= minimum)
+        .map((s) => s.dimension),
+    );
+  const before = qualified(input.previousSignals);
+  const after = qualified(input.nextSignals);
+  if (
+    [...new Set([...before, ...after])].some(
+      (d) => before.has(d) !== after.has(d),
+    )
+  )
+    return {
+      revise: true,
+      reason: "confidence",
+      rationale: focusSnapshot(p.revisionRationale),
+    };
+  const oldSkill = new Map(
+    input.previousSkillState.map((s) => [s.dimension, s.estimate]),
+  );
+  if (
+    input.nextSkillState.some(
+      (s) =>
+        oldSkill.has(s.dimension) &&
+        Math.abs(s.estimate - oldSkill.get(s.dimension)!) >=
+          p.meaningfulSkillDelta.value,
+    )
+  )
+    return {
+      revise: true,
+      reason: "skill",
+      rationale: focusSnapshot(p.revisionRationale),
+    };
+  return { revise: false, reason: "stable", rationale: null };
 }
 
 // ---------------------------------------------------------------------------

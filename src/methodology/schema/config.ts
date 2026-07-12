@@ -315,6 +315,40 @@ const prioritizationSchema = z.object({
   loadCycling: gradedValue(z.boolean()).optional(),
 });
 
+const weeklyFocusSchema = z.object({
+  maxFocusAreas: gradedValue(z.number().int().positive()),
+  maxAlternatives: gradedValue(z.number().int().positive()),
+  minimumSignalConfidence: gradedValue(
+    z.enum(["insufficient", "low", "medium", "high"]),
+  ),
+  stabilityDays: gradedValue(z.number().int().positive()),
+  meaningfulConstraintMinutes: gradedValue(z.number().int().positive()),
+  meaningfulSkillDelta: gradedValue(z.number().positive()),
+  weights: z.object({
+    measuredWeakness: gradedValue(z.number().nonnegative()),
+    skillState: gradedValue(z.number().nonnegative()),
+    dueWork: gradedValue(z.number().nonnegative()),
+    goalAlignment: gradedValue(z.number().nonnegative()),
+    recency: gradedValue(z.number().nonnegative()),
+    fitPreference: gradedValue(z.number().nonnegative()),
+  }),
+  goalProcessFocus: z.record(
+    z.enum([
+      "rating",
+      "tactics",
+      "openings",
+      "endgames",
+      "consistency",
+      "fun",
+      "other",
+    ]),
+    z.array(z.string().min(1)),
+  ),
+  selectionRationale: gradedValue(z.string().min(1)),
+  alternativeRationale: gradedValue(z.string().min(1)),
+  revisionRationale: gradedValue(z.string().min(1)),
+});
+
 // Seam 6 — spacing / scheduling (SPACED_REPETITION). FSRS v6: the Engine owns the generic
 // `fsrsStep` math (engine/math/fsrs.ts); this seam supplies its parameters and the
 // outcome→grade mapping. `scheduler` is a structural selector (which algorithm), like a
@@ -753,6 +787,7 @@ export const methodologyConfigSchema = z
     difficulty: difficultySchema,
     scheduling: schedulingSchema,
     prioritization: prioritizationSchema,
+    weeklyFocus: weeklyFocusSchema.optional(),
     engagement: engagementSchema,
     measurement: measurementSchema,
     rationale: z.array(rationaleEntrySchema).min(1),
@@ -777,6 +812,7 @@ export const methodologyConfigSchema = z
       cfg.difficulty,
       cfg.scheduling,
       cfg.prioritization,
+      cfg.weeklyFocus,
       cfg.engagement,
       cfg.measurement,
       cfg.rationale,
@@ -1136,6 +1172,25 @@ export const methodologyConfigSchema = z
       }
     });
 
+    if (cfg.weeklyFocus) {
+      const dimensions = new Set(
+        cfg.dimensions.map((dimension) => dimension.id),
+      );
+      for (const [kind, focuses] of Object.entries(
+        cfg.weeklyFocus.goalProcessFocus,
+      )) {
+        focuses.forEach((focus, index) => {
+          if (!dimensions.has(focus)) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: `weekly focus for goal "${kind}" does not resolve in dimensions`,
+              path: ["weeklyFocus", "goalProcessFocus", kind, index],
+            });
+          }
+        });
+      }
+    }
+
     // Seam 4 §4.4(c) — the board's restriction rationale must resolve to a real entry, so
     // the "why is this hidden?" card always has graded copy to show.
     requireRat(cfg.board.restrictionRationaleKey, [
@@ -1204,6 +1259,7 @@ export type WeaknessResourceRule =
 export type DifficultyConfig = MethodologyConfig["difficulty"];
 export type SchedulingConfig = MethodologyConfig["scheduling"];
 export type PrioritizationConfig = MethodologyConfig["prioritization"];
+export type WeeklyFocusConfig = NonNullable<MethodologyConfig["weeklyFocus"]>;
 export type EngagementConfig = MethodologyConfig["engagement"];
 export type EngagementEventRule = EngagementConfig["events"][number];
 export type RewardEventType = (typeof REWARD_EVENT_TYPES)[number];

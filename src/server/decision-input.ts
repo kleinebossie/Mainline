@@ -61,6 +61,7 @@ type Db = Pick<
   | "skillState"
   | "skillStateSnapshot"
   | "trainingPreferenceState"
+  | "weeklyFocus"
   | "$transaction"
 >;
 

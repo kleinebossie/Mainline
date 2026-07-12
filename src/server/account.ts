@@ -316,6 +316,26 @@ export async function exportUserData(db: PrismaClient, userId: string) {
       createdAt: true,
     },
   });
+  const weeklyFocuses = await db.weeklyFocus.findMany({
+    where: { userId },
+    orderBy: { createdAt: "asc" },
+    select: {
+      id: true,
+      userId: true,
+      weekStart: true,
+      focusAreas: true,
+      supportingSignals: true,
+      confidence: true,
+      methodologyVersion: true,
+      inputSnapshot: true,
+      status: true,
+      rationaleSnapshots: true,
+      alternatives: true,
+      selectedAlternative: true,
+      revisionTrigger: true,
+      createdAt: true,
+    },
+  });
   const allowlistEntries = await db.allowlistEntry.findMany({
     where: { usedByUserId: userId },
     select: {
@@ -362,6 +382,7 @@ export async function exportUserData(db: PrismaClient, userId: string) {
     notificationPref,
     apiCallBudgets,
     trainingPreferenceState,
+    weeklyFocuses,
     claimedAllowlistEntries: allowlistEntries,
     researchConsents,
   };

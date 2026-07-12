@@ -66,6 +66,14 @@ code before this release, plus the historic scaffolded-hint behavior, are carrie
 an additive version-matched compatibility JSON. The loader rejects any compatibility
 entry that attempts to replace an existing historic field.
 
+## research-1.1.0
+
+Status: active from 2026-07-12. Adds the P5 weekly-focus policy, deterministic confidence-gated
+selection and revision, structural goal-to-process mappings, and bounded alternatives. Every
+stability value and score weight is Grade C and flagged `best-guess`. The release makes no rating
+gain claim. Rollback is `research-1.0.0`; historic base config bytes remain unchanged and receive
+the additive focus seam needed to keep rollback generation operational.
+
 ## stub-0.1.0
 
 Status: retained for reproducibility and rollback. This was the pre-release

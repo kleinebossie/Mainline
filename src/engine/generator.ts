@@ -89,6 +89,8 @@ export interface GenerateProgramInput {
   weaknessSignals: readonly WeaknessSignal[];
   /** Spaced-review items due today (Seam 6, M7); M6 passes none. */
   dueItems: readonly DueItem[];
+  /** Persisted methodology-approved weekly direction (P5). */
+  focusAreas?: readonly string[];
   /** The user's reality: the minute budget the Engine packs to, plus the stated preferences
    *  that reshape the mix (Seam 7). Preferences are optional — absent ⇒ un-personalised. */
   constraints: {
@@ -169,9 +171,21 @@ export function generateProgram(
     },
     cfg,
   );
+  const focus = new Set(input.focusAreas ?? []);
+  const focusedCandidates =
+    focus.size === 0
+      ? candidates
+      : candidates.filter(
+          (candidate) =>
+            candidate.dimensionsTargeted.some((dimension) =>
+              focus.has(dimension),
+            ) ||
+            dueItemsForActivity(candidate.activityType, input.dueItems).length >
+              0,
+        );
   const ordered = prioritizeDailyMix(
     {
-      candidates,
+      candidates: focusedCandidates.length > 0 ? focusedCandidates : candidates,
       dueItems: input.dueItems,
       preferences: {
         formats: input.constraints.formats,

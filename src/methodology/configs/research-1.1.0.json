@@ -1,0 +1,123 @@
+{
+  "weeklyFocus": {
+    "maxFocusAreas": {
+      "value": 2,
+      "grade": "C",
+      "tier": 1,
+      "citationKey": "weakness_diagnosis",
+      "flag": "best-guess"
+    },
+    "maxAlternatives": {
+      "value": 2,
+      "grade": "C",
+      "tier": 1,
+      "citationKey": "weakness_diagnosis",
+      "flag": "best-guess"
+    },
+    "minimumSignalConfidence": {
+      "value": "medium",
+      "grade": "C",
+      "tier": 1,
+      "citationKey": "weakness_diagnosis",
+      "flag": "best-guess"
+    },
+    "stabilityDays": {
+      "value": 7,
+      "grade": "C",
+      "tier": 1,
+      "citationKey": "weakness_diagnosis",
+      "flag": "best-guess"
+    },
+    "meaningfulConstraintMinutes": {
+      "value": 10,
+      "grade": "C",
+      "tier": 1,
+      "citationKey": "weakness_diagnosis",
+      "flag": "best-guess"
+    },
+    "meaningfulSkillDelta": {
+      "value": 0.15,
+      "grade": "C",
+      "tier": 1,
+      "citationKey": "weakness_diagnosis",
+      "flag": "best-guess"
+    },
+    "weights": {
+      "measuredWeakness": {
+        "value": 4,
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "weakness_diagnosis",
+        "flag": "best-guess"
+      },
+      "skillState": {
+        "value": 2,
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "weakness_diagnosis",
+        "flag": "best-guess"
+      },
+      "dueWork": {
+        "value": 1,
+        "grade": "C",
+        "tier": 2,
+        "citationKey": "fsrs_spaced_repetition",
+        "flag": "best-guess"
+      },
+      "goalAlignment": {
+        "value": 1,
+        "grade": "C",
+        "tier": 2,
+        "citationKey": "williamson2022",
+        "flag": "best-guess"
+      },
+      "recency": {
+        "value": 0.5,
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "weakness_diagnosis",
+        "flag": "best-guess"
+      },
+      "fitPreference": {
+        "value": 0.5,
+        "grade": "C",
+        "tier": 2,
+        "citationKey": "williamson2022",
+        "flag": "best-guess"
+      }
+    },
+    "goalProcessFocus": {
+      "rating": ["tactics", "calculation"],
+      "tactics": ["tactics"],
+      "openings": ["openings"],
+      "endgames": ["endgames"],
+      "consistency": ["board_vision"],
+      "fun": [],
+      "other": []
+    },
+    "selectionRationale": {
+      "value": "This weekly direction favors repeated measured needs and due learning. It is a provisional training choice, not a promise of rating gain.",
+      "grade": "C",
+      "tier": 1,
+      "citationKey": "weakness_diagnosis",
+      "flag": "best-guess",
+      "soften": true
+    },
+    "alternativeRationale": {
+      "value": "This option stays within the methodology-approved set and better reflects your stated goal, but it may receive less support from measured evidence.",
+      "grade": "C",
+      "tier": 2,
+      "citationKey": "williamson2022",
+      "flag": "best-guess",
+      "soften": true
+    },
+    "revisionRationale": {
+      "value": "The weekly direction may change after a meaningful constraint, confidence, or accumulated skill-state change. Isolated low-confidence results are ignored.",
+      "grade": "C",
+      "tier": 1,
+      "citationKey": "weakness_diagnosis",
+      "flag": "best-guess",
+      "soften": true
+    }
+  }
+}

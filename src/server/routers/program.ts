@@ -25,6 +25,10 @@ import { selectPuzzles } from "@/db/puzzles";
 import { findPracticeItemsByIds } from "@/db/practice";
 import { getTargetFocus } from "@/server/constraints";
 import { lookupTablebase } from "@/server/tablebase";
+import {
+  getWeeklyFocus,
+  selectPersistedFocusAlternative,
+} from "@/server/weekly-focus";
 
 /** A position the in-app board can solve/play — a Lichess puzzle, a personal blunder drill,
  *  or a curated endgame (M11/M12/M13) — normalised so the surface renders them uniformly. */
@@ -244,6 +248,28 @@ export const programRouter = router({
     await generateAndSaveProgram(ctx.prisma, ctx.userId);
     return getTodayProgram(ctx.prisma, ctx.userId);
   }),
+
+  weeklyFocus: protectedProcedure.query(({ ctx }) =>
+    getWeeklyFocus(ctx.prisma, ctx.userId),
+  ),
+
+  selectFocusAlternative: protectedProcedure
+    .input(
+      z.object({
+        weeklyFocusId: z.string().min(1).max(80),
+        focusArea: z.string().min(1).max(80),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      await selectPersistedFocusAlternative(
+        ctx.prisma,
+        ctx.userId,
+        input.weeklyFocusId,
+        input.focusArea,
+      );
+      await generateAndSaveProgram(ctx.prisma, ctx.userId);
+      return getWeeklyFocus(ctx.prisma, ctx.userId);
+    }),
 
   // M13: ground-truth tablebase result for an endgame position (cache-first, polite, capped
   // — §6.6/§12). Null when unavailable (> 7 pieces, no entry, or a rate-limit/network miss);

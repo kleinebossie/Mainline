@@ -1,0 +1,14 @@
+{
+  "version": "research-1.1.0",
+  "channel": "research",
+  "releasedOn": "2026-07-12",
+  "sourceDocument": "planning/METHODOLOGY.md",
+  "summary": "Adds stable weekly focus selection, confidence-gated revision, and bounded process-goal alternatives.",
+  "retainedBestGuesses": [
+    "Weekly stability window, revision thresholds, focus weights, and alternative count are Grade C best guesses pending telemetry."
+  ],
+  "deliberateStubs": [
+    "Training-fit feedback is empty until P8 and cannot alter measured skill state."
+  ],
+  "rollbackVersion": "research-1.0.0"
+}

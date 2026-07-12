@@ -10,23 +10,27 @@ import {
 import research100 from "@/methodology/configs/research-1.0.0.json";
 import stub010 from "@/methodology/configs/stub-0.1.0.json";
 import stub010Compat from "@/methodology/configs/stub-0.1.0.compat.json";
+import research110 from "@/methodology/configs/research-1.1.0.json";
 
 // Configs ship as repo JSON (src/methodology/configs/<version>.json). Register each
 // here; the research config is added as a new file + a new entry, no engine change.
 const RAW_CONFIGS: Readonly<Record<string, unknown>> = {
   "stub-0.1.0": stub010,
   "research-1.0.0": research100,
+  "research-1.1.0": research100,
 };
 
 // Additive, versioned data preserves provider behavior for immutable historic
 // config files that predate newly typed seams. It may add fields, never replace them.
 const COMPATIBILITY_OVERLAYS: Readonly<Record<string, unknown>> = {
-  "stub-0.1.0": stub010Compat,
+  "stub-0.1.0": mergeAdditive(stub010Compat, research110),
+  "research-1.0.0": research110,
+  "research-1.1.0": research110,
 };
 
 // The active version when none is requested: explicit arg > env > this checked-in pointer.
 // The stub remains addressable for historic programs and rollback.
-export const DEFAULT_METHODOLOGY_VERSION = "research-1.0.0";
+export const DEFAULT_METHODOLOGY_VERSION = "research-1.1.0";
 
 const cache = new Map<string, MethodologyConfig>();
 
@@ -88,7 +92,11 @@ export function loadMethodology(version?: string): MethodologyConfig {
   }
 
   const overlay = COMPATIBILITY_OVERLAYS[resolved];
-  const raw = overlay ? mergeAdditive(base, overlay) : base;
+  const merged = overlay ? mergeAdditive(base, overlay) : base;
+  const raw =
+    resolved === "research-1.1.0"
+      ? { ...(merged as Record<string, unknown>), version: resolved }
+      : merged;
 
   const parsed = methodologyConfigSchema.parse(raw); // throws on any violation (L3)
   if (parsed.version !== resolved) {

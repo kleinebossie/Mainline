@@ -42,26 +42,27 @@ model User {
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 
-  accounts              Account[]
-  sessions              Session[]
-  platformConnections   PlatformConnection[]
-  chessProfileSnapshots ChessProfileSnapshot[]
-  importedGames         ImportedGame[]
-  assessment            Assessment?
-  constraintSets        ConstraintSet[]
-  programs              Program[]
-  activityEvents        ActivityEvent[]
-  skillStates           SkillState[]
-  skillStateSnapshots  SkillStateSnapshot[]
-  scheduleStates        ScheduleState[]
+  accounts                Account[]
+  sessions                Session[]
+  platformConnections     PlatformConnection[]
+  chessProfileSnapshots   ChessProfileSnapshot[]
+  importedGames           ImportedGame[]
+  assessment              Assessment?
+  constraintSets          ConstraintSet[]
+  programs                Program[]
+  activityEvents          ActivityEvent[]
+  skillStates             SkillState[]
+  skillStateSnapshots     SkillStateSnapshot[]
+  scheduleStates          ScheduleState[]
   trainingPreferenceState TrainingPreferenceState?
-  adaptationLogs        AdaptationLog[]
-  rewardEvents          RewardEvent[]
-  notificationPref      NotificationPref?
-  practiceItems         PracticeItem[]
-  allowlistEntries      AllowlistEntry[]
-  apiCallBudgets        ApiCallBudget[]
-  researchConsents      ResearchConsent[]
+  weeklyFocuses           WeeklyFocus[]
+  adaptationLogs          AdaptationLog[]
+  rewardEvents            RewardEvent[]
+  notificationPref        NotificationPref?
+  practiceItems           PracticeItem[]
+  allowlistEntries        AllowlistEntry[]
+  apiCallBudgets          ApiCallBudget[]
+  researchConsents        ResearchConsent[]
 }
 
 // Optional secondary-use consent is separate from account creation and operational
@@ -604,15 +605,40 @@ model AdaptationLog {
 //   pins a preference (P8). Null when no override is active.
 //   `resetAt` — when the rollup was last reset (P8). Null until the first reset.
 model TrainingPreferenceState {
-  id          String   @id @default(cuid())
-  userId      String   @unique
-  preferences Json
+  id           String    @id @default(cuid())
+  userId       String    @unique
+  preferences  Json
   userOverride Json?
-  resetAt     DateTime?
-  updatedAt   DateTime @updatedAt
-  createdAt   DateTime @default(now())
+  resetAt      DateTime?
+  updatedAt    DateTime  @updatedAt
+  createdAt    DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Persisted weekly prescription (P5). Decisions and alternatives are immutable JSON
+// snapshots produced by the methodology provider. A newer row supersedes the active row;
+// historic rows remain inspectable and reproducible from `inputSnapshot`.
+model WeeklyFocus {
+  id                  String   @id @default(cuid())
+  userId              String
+  weekStart           DateTime
+  focusAreas          String[]
+  supportingSignals   Json
+  confidence          String
+  methodologyVersion  String
+  inputSnapshot       Json
+  status              String   @default("active") // active | superseded
+  rationaleSnapshots  Json
+  alternatives        Json
+  selectedAlternative String?
+  revisionTrigger     String?
+  createdAt           DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status, weekStart])
+  @@index([userId, createdAt])
 }
 
 // --- Engagement plumbing (BUILD.md §5.7, §9, M9) ---
