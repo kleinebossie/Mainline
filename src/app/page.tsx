@@ -1,8 +1,11 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import { auth } from "@/server/auth";
+import { prisma } from "@/db/client";
 import { buttonVariants } from "@/components/ui/button";
 import { GradeMark, ConfidenceBar } from "@/components/evidence";
+import { getOnboardingStatus } from "@/server/onboarding";
 import { cn } from "@/lib/utils";
 
 // The landing hero is the thesis: this is the honest line. It performs the brand rather
@@ -25,6 +28,11 @@ const GRADE_CLR: Record<string, string> = {
 
 export default async function Home() {
   const session = await auth();
+  // Signed-in users who haven't finished onboarding go straight to the setup flow.
+  if (session?.user) {
+    const status = await getOnboardingStatus(prisma, session.user.id);
+    if (!status.complete) redirect("/onboarding");
+  }
   const primaryHref = session?.user ? "/today" : "/signin";
 
   return (

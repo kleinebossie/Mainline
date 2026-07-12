@@ -1,0 +1,14 @@
+{
+  "version": "research-1.2.0",
+  "channel": "research",
+  "releasedOn": "2026-07-12",
+  "sourceDocument": "planning/METHODOLOGY.md",
+  "summary": "Shortens new-user calibration to one three-item tactical track while preserving historic assessment behavior by methodology version.",
+  "retainedBestGuesses": [
+    "The three-item calibration length is Grade C, Tier 1, and requires validation against completion and measurement-quality telemetry."
+  ],
+  "deliberateStubs": [
+    "The exact calibration length remains an open question and must not be presented as an evidence-established optimum."
+  ],
+  "rollbackVersion": "research-1.1.0"
+}

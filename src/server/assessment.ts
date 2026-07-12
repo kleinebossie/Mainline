@@ -204,8 +204,10 @@ export async function getCalibrationState(
   db: Db,
   userId: string,
 ): Promise<CalibrationState> {
-  const cfg = loadMethodology();
   const row = await db.assessment.findUnique({ where: { userId } });
+  // Continue an existing assessment under the methodology that created it.
+  // New and reset assessments have no row yet and therefore use the active release.
+  const cfg = loadMethodology(row?.methodologyVersion ?? undefined);
   const all = parseResponses(row?.calibrationResponses);
   const startRating = await resolveStartRating(db, userId, cfg);
 
@@ -282,8 +284,8 @@ export async function applyCalibrationResponse(
   response: { ratingShown: number; correct: boolean; puzzleId?: string },
   now: Date,
 ): Promise<CalibrationState> {
-  const cfg = loadMethodology();
   const row = await db.assessment.findUnique({ where: { userId } });
+  const cfg = loadMethodology(row?.methodologyVersion ?? undefined);
 
   // Once complete, submissions are a no-op (idempotent): just return current state.
   if (row?.completedAt) return getCalibrationState(db, userId);

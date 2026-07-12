@@ -1394,9 +1394,7 @@ export function selectWeeklyFocus(
   }
   const chosen = ranked.slice(0, policy.maxFocusAreas.value);
   const goalAligned = new Set(
-    input.goals.flatMap(
-      (goal) => policy.goalProcessFocus[goal.kind] ?? [],
-    ),
+    input.goals.flatMap((goal) => policy.goalProcessFocus[goal.kind] ?? []),
   );
   const chosenAreas = new Set(chosen.map((candidate) => candidate.focusArea));
   const alternatives = ranked

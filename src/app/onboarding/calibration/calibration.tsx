@@ -22,10 +22,8 @@ import { cn } from "@/lib/utils";
 
 // Adaptive calibration UI. Difficulty for each item is produced by the methodology
 // (config-driven ladder); we present it as a strength target and record only the
-// behavioural outcome (solved / missed). Now MULTI-TRACK: the same ladder runs once per
-// configured skill dimension (tactics → calculation → endgames), building a broader
-// behavioural baseline. The real puzzle board wires in once the generator lands; this is a
-// faithful shell that drives the same scoring path.
+// behavioural outcome (solved / missed). The active methodology controls the tracks
+// and ladder length; an in-progress historic assessment keeps its original release.
 
 type Grade = "A" | "B" | "C" | "D";
 function asGrade(g: string): Grade {
@@ -150,9 +148,10 @@ export function Calibration() {
             Your starting baseline
           </CardTitle>
           <p className="text-graphite font-mono text-sm mt-1">
-            A behavioural read across {trackCount} dimension
-            {trackCount === 1 ? "" : "s"}. Uncertainty shrinks with more games
-            and reviews.
+            {tracks.length === 1
+              ? "A behavioural read of your tactical level."
+              : `A behavioural read across ${tracks.length} dimensions.`}{" "}
+            Uncertainty shrinks with more games and reviews.
           </p>
         </CardHeader>
         <CardContent className="flex flex-col gap-5">
@@ -194,9 +193,11 @@ export function Calibration() {
           </div>
 
           <p className="text-graphite font-serif text-sm leading-relaxed border-t border-line/80 pt-4">
-            These are rough calibration points, not verdicts. They come from a
-            placeholder method that estimates a few skills directly. The fuller
-            picture comes from analysing your real games.
+            {tracks.length === 1
+              ? "This is a rough calibration point"
+              : "These are rough calibration points"}
+            , not verdicts. The fuller picture comes from analysing your real
+            games.
           </p>
 
           <div className="flex flex-wrap gap-3 border-t border-line/80 pt-5">
@@ -233,7 +234,7 @@ export function Calibration() {
           </p>
         </div>
         <CardTitle className="font-serif text-3xl font-semibold mt-2">
-          {activeTrack.label}: item {activeTrack.next.itemNumber} of up to{" "}
+          {activeTrack.label}: puzzle {activeTrack.next.itemNumber} of{" "}
           {maxItems}
         </CardTitle>
         <p className="text-graphite text-sm leading-relaxed mt-1">

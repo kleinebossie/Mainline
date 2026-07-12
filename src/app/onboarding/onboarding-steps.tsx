@@ -1,135 +1,207 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
 
-import { trpc } from "@/lib/trpc/react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import type { OnboardingStatus } from "@/server/onboarding";
 
-// The resumable onboarding checklist. Reads live state so each step shows whether it is
-// done; the user can jump to any step. Connect/import are M1/M2; calibration +
-// constraints + reveal are M4.
-export function OnboardingSteps() {
-  const connections = trpc.connections.list.useQuery();
-  const calibration = trpc.assessment.state.useQuery();
-  const constraints = trpc.constraints.getCurrent.useQuery();
-  const today = trpc.program.getToday.useQuery();
+// The guided onboarding checklist. The server passes the mandatory-step status
+// (connections, calibration, constraints); the client adds the optional reveal
+// and first-program steps. The flow is linear: each incomplete step shows a
+// prominent "Start" CTA, and the next incomplete step is highlighted so the user
+// always knows what to do next.
 
-  const [revealSeen, setRevealSeen] = useState(false);
+interface Step {
+  href: string;
+  title: string;
+  detail: string;
+  done: boolean;
+  mandatory: boolean;
+}
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      setRevealSeen(localStorage.getItem("mainline_reveal_seen") === "true");
-    }
-  }, []);
-
-  const isLoading =
-    connections.isLoading ||
-    calibration.isLoading ||
-    constraints.isLoading ||
-    today.isLoading;
-
-  if (isLoading) {
-    return (
-      <ol className="flex flex-col gap-4">
-        {[1, 2, 3, 4, 5].map((i) => (
-          <li
-            key={i}
-            className="bg-card flex items-center justify-between gap-4 rounded-lg border p-4 shadow-sheet animate-pulse"
-          >
-            <div className="flex items-start gap-3.5 w-full">
-              <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-line bg-paper/40 text-xs font-mono font-medium" />
-              <div className="flex-1 space-y-2 py-1">
-                <div className="h-4 bg-ink/10 rounded w-1/3" />
-                <div className="h-3 bg-ink/5 rounded w-2/3" />
-              </div>
-            </div>
-            <div className="h-8 w-16 bg-ink/10 rounded-md shrink-0" />
-          </li>
-        ))}
-      </ol>
-    );
-  }
-
-  const steps = [
+export function OnboardingSteps({ status }: { status: OnboardingStatus }) {
+  // The mandatory steps come from the server-side guard. The reveal and
+  // first-program steps are optional follow-ups that don't block the app.
+  const steps: Step[] = [
     {
       href: "/connections",
       title: "Connect a chess account",
-      detail: "Link Lichess or a Chess.com username so we can read your games.",
-      done: (connections.data?.length ?? 0) > 0,
+      detail:
+        "Link Lichess or add a Chess.com username so we can read your games.",
+      done: status.steps[0]?.done ?? false,
+      mandatory: true,
     },
     {
       href: "/onboarding/calibration",
-      title: "Skill calibration",
+      title: "Tactical calibration",
       detail:
-        "A short, adaptive check across tactics, calculation and endgames.",
-      done: calibration.data?.completed ?? false,
+        "A short adaptive puzzle check to build a rough behavioural baseline.",
+      done: status.steps[1]?.done ?? false,
+      mandatory: true,
     },
     {
       href: "/onboarding/constraints",
-      title: "Your time, goals & resources",
+      title: "Your time, goals & formats",
       detail:
-        "Time, goals, formats, what you own, how you like to train, an if-then plan.",
-      done: constraints.data != null,
+        "How much time you have, what you play, what you own, and how you like to train.",
+      done: status.steps[2]?.done ?? false,
+      mandatory: true,
     },
     {
       href: "/onboarding/reveal",
       title: "See where you stand",
-      detail: "Your data-driven starting picture (more lands with the engine).",
-      done: (today.data?.items.length ?? 0) > 0 || revealSeen,
+      detail:
+        "Your data-driven starting picture: calibration results, game signals, and your goals.",
+      done: false,
+      mandatory: false,
     },
     {
       href: "/today",
-      title: "Get your first program",
+      title: "Get your first session",
       detail:
-        "A daily session built from your data, each item with a graded why.",
-      done: (today.data?.items.length ?? 0) > 0,
+        "A daily training session built from your data, each item with a graded why.",
+      done: false,
+      mandatory: false,
     },
   ];
 
+  // The first incomplete mandatory step is the "next action."
+  const nextMandatory = steps.find((s) => s.mandatory && !s.done);
+  const allMandatoryDone = !nextMandatory;
+
   return (
-    <ol className="flex flex-col gap-4">
-      {steps.map((step, i) => (
-        <li
-          key={step.href}
-          className="bg-card flex items-center justify-between gap-4 rounded-lg border p-4 shadow-sheet"
-        >
-          <div className="flex items-start gap-3.5">
-            <span
-              aria-hidden
+    <div className="flex flex-col gap-6">
+      {/* Progress summary */}
+      <div className="bg-card rounded-lg border p-5 shadow-sheet">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="eyebrow !text-[0.65rem]">Setup progress</p>
+            <p className="font-serif text-lg font-semibold mt-1">
+              {status.steps.filter((s) => s.done).length} of{" "}
+              {status.steps.length} required steps done
+            </p>
+          </div>
+          <div className="flex items-center gap-1.5">
+            {status.steps.map((s, i) => (
+              <span
+                key={i}
+                aria-hidden
+                className={cn(
+                  "h-2 w-10 rounded-full transition-colors",
+                  s.done ? "bg-evergreen" : "bg-line",
+                )}
+              />
+            ))}
+          </div>
+        </div>
+        {allMandatoryDone ? (
+          <p className="text-graphite text-sm leading-relaxed mt-3 font-serif">
+            All set. Head to your reveal and first session whenever you&apos;re
+            ready.
+          </p>
+        ) : (
+          <p className="text-graphite text-sm leading-relaxed mt-3 font-serif">
+            Complete all required steps to unlock your daily training sessions.
+          </p>
+        )}
+      </div>
+
+      {/* Step list */}
+      <ol className="flex flex-col gap-4">
+        {steps.map((step, i) => {
+          const isNext = step === nextMandatory;
+          return (
+            <li
+              key={step.href}
               className={cn(
-                "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs font-mono font-medium transition-colors",
-                step.done
-                  ? "border-evergreen bg-evergreen text-primary-foreground"
-                  : "border-line text-graphite bg-paper",
+                "bg-card flex items-center justify-between gap-4 rounded-lg border p-4 shadow-sheet transition-all",
+                isNext && "ring-2 ring-evergreen/40 border-evergreen/40",
               )}
             >
-              {step.done ? "✓" : i + 1}
-            </span>
-            <div>
-              <p className="font-serif text-base font-semibold leading-tight">
-                {step.title}
-              </p>
-              <p className="text-graphite text-sm leading-relaxed mt-1">
-                {step.detail}
-              </p>
-            </div>
+              <div className="flex items-start gap-3.5">
+                <span
+                  aria-hidden
+                  className={cn(
+                    "mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-mono font-medium transition-colors",
+                    step.done
+                      ? "border-evergreen bg-evergreen text-primary-foreground"
+                      : isNext
+                        ? "border-evergreen bg-evergreen/10 text-evergreen"
+                        : "border-line text-graphite bg-paper",
+                  )}
+                >
+                  {step.done ? "\u2713" : i + 1}
+                </span>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="font-serif text-base font-semibold leading-tight">
+                      {step.title}
+                    </p>
+                    {step.mandatory && (
+                      <span className="text-graphite font-mono text-[0.6rem] uppercase tracking-wider">
+                        required
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-graphite text-sm leading-relaxed mt-1">
+                    {step.detail}
+                  </p>
+                </div>
+              </div>
+              <Link
+                href={step.href}
+                className={cn(
+                  buttonVariants({
+                    variant: step.done ? "outline" : "default",
+                    size: "sm",
+                  }),
+                  "shrink-0",
+                )}
+              >
+                {step.done ? "Review" : isNext ? "Start" : "Open"}
+              </Link>
+            </li>
+          );
+        })}
+      </ol>
+
+      {/* Next action CTA */}
+      {nextMandatory && (
+        <div className="bg-evergreen/[0.06] border border-evergreen/30 rounded-lg p-5 flex items-center justify-between gap-4">
+          <div>
+            <p className="eyebrow !text-[0.65rem] text-evergreen">Next step</p>
+            <p className="font-serif text-base font-semibold mt-1">
+              {nextMandatory.title}
+            </p>
           </div>
           <Link
-            href={step.href}
-            className={cn(
-              buttonVariants({
-                variant: step.done ? "outline" : "default",
-                size: "sm",
-              }),
-              "shrink-0",
-            )}
+            href={nextMandatory.href}
+            className={cn(buttonVariants(), "shrink-0")}
           >
-            {step.done ? "Review" : "Start"}
+            Start now
           </Link>
-        </li>
-      ))}
-    </ol>
+        </div>
+      )}
+
+      {allMandatoryDone && (
+        <div className="bg-evergreen/[0.06] border border-evergreen/30 rounded-lg p-5 flex items-center justify-between gap-4">
+          <div>
+            <p className="eyebrow !text-[0.65rem] text-evergreen">
+              You&apos;re ready
+            </p>
+            <p className="font-serif text-base font-semibold mt-1">
+              See your starting picture and build your first session.
+            </p>
+          </div>
+          <Link
+            href="/onboarding/reveal"
+            className={cn(buttonVariants(), "shrink-0")}
+          >
+            Continue
+          </Link>
+        </div>
+      )}
+    </div>
   );
 }

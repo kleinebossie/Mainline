@@ -111,4 +111,32 @@ describe("calibration-puzzle test", () => {
     expect(state2.activePuzzle).not.toBeNull();
     expect(state2.activePuzzle!.puzzleId).not.toBe(firstPuzzleId);
   });
+
+  it("continues a historic partial assessment under its persisted methodology", async () => {
+    const historicResponses: StoredResponse[] = [
+      { track: "tactics", ratingShown: 1200, correct: true },
+      { track: "tactics", ratingShown: 1250, correct: false },
+      { track: "tactics", ratingShown: 1050, correct: true },
+    ];
+    const db = {
+      assessment: {
+        findUnique: async () => ({
+          calibrationResponses: historicResponses,
+          completedAt: null,
+          methodologyVersion: "research-1.1.0",
+        }),
+      },
+      chessProfileSnapshot: { findFirst: async () => null },
+      constraintSet: { findFirst: async () => null },
+      lichessPuzzle: { findMany: async () => [] },
+    } as unknown as PrismaClient;
+
+    const state = await getCalibrationState(db, "historic-user");
+
+    expect(state.completed).toBe(false);
+    expect(state.trackCount).toBe(3);
+    expect(state.maxItems).toBe(12);
+    expect(state.activeTrack?.id).toBe("tactics");
+    expect(state.activeTrack?.responseCount).toBe(3);
+  });
 });

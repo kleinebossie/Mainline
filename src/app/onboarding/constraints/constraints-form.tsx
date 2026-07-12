@@ -199,6 +199,12 @@ function Form({
     e.preventDefault();
     setSaved(false);
     setError(null);
+    if (formats.size === 0) {
+      setError(
+        "Select at least one format you play (bullet, blitz, rapid, or classical).",
+      );
+      return;
+    }
     // Persist the preferred platform on the User row (Goal 3) alongside the constraints.
     if (effectivePrimary !== primaryQuery.data?.primaryPlatform) {
       setPrimary.mutate({ platform: effectivePrimary });
@@ -292,7 +298,10 @@ function Form({
 
       <fieldset className="flex flex-col gap-4">
         <legend className="eyebrow border-b border-line/80 pb-2 w-full mb-2">
-          Which formats do you play?
+          Which formats do you play?{" "}
+          <span className="text-clay normal-case tracking-normal font-normal">
+            required
+          </span>
         </legend>
         <div className="flex flex-wrap gap-x-6 gap-y-2">
           {CHESS_FORMATS.map((f) => (

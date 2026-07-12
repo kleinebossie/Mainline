@@ -224,17 +224,17 @@ are not skill claims). Onboarding diagnosis is **behavioural + low-cognitive-loa
 
 **Config — `assessment`**
 
-| field                        | default                                                     | grade | note                        |
-| ---------------------------- | ----------------------------------------------------------- | ----- | --------------------------- |
-| `selfReportForSkill`         | `false` (forbidden)                                         | A/1   | Heck et al. 2025            |
-| `selfReportForConstraints`   | `true`                                                      | —     | goals/time/resources only   |
-| `calibration.items`          | 8–12 adaptive                                               | C     | `best-guess` IRT length     |
-| `calibration.timeBudgetMin`  | 3                                                           | C     | minimise load (Cheung 2014) |
-| `calibration.startRating`    | platform puzzle/rapid rating if present, else band midpoint | B     |                             |
-| `calibration.itemOffsetRule` | servo toward ~75–85% (see Seam 5)                           | B/2   |                             |
-| `calibration.stopRule`       | rating SE < threshold OR items exhausted                    | C     | `best-guess`                |
-| `instantEvalGames`           | 5                                                           | A     | compute-cost realism        |
-| `noHistoryFallback`          | basic board-vision / one-move set                           | A/1   | <800 path                   |
+| field                        | default                                                                                                  | grade | note                                                      |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------- | ----- | --------------------------------------------------------- |
+| `selfReportForSkill`         | `false` (forbidden)                                                                                      | A/1   | Heck et al. 2025                                          |
+| `selfReportForConstraints`   | `true`                                                                                                   | —     | goals/time/resources only                                 |
+| `calibration.items`          | 3 tactical items for new assessments; historic 1.0/1.1 assessments retain 8–12 items across three tracks | C     | `best-guess`; validate completion and measurement quality |
+| `calibration.timeBudgetMin`  | 3                                                                                                        | C     | minimise load (Cheung 2014)                               |
+| `calibration.startRating`    | platform puzzle/rapid rating if present, else band midpoint                                              | B     |                                                           |
+| `calibration.itemOffsetRule` | servo toward ~75–85% (see Seam 5)                                                                        | B/2   |                                                           |
+| `calibration.stopRule`       | rating SE < threshold OR items exhausted                                                                 | C     | `best-guess`                                              |
+| `instantEvalGames`           | 5                                                                                                        | A     | compute-cost realism                                      |
+| `noHistoryFallback`          | basic board-vision / one-move set                                                                        | A/1   | <800 path                                                 |
 
 **Pure functions.**
 `nextCalibrationItem(history, config) → targetPuzzleRating` (adaptive ladder);

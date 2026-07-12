@@ -18,7 +18,12 @@ import stub010 from "@/methodology/configs/stub-0.1.0.json";
 // leaf is a GradedValue, every citationKey resolves in evidenceLedger, and the result is
 // immutable. The negative cases prove the guard actually rejects ungraded/dangling data.
 
-const SHIPPED = ["stub-0.1.0", "research-1.0.0", "research-1.1.0"];
+const SHIPPED = [
+  "stub-0.1.0",
+  "research-1.0.0",
+  "research-1.1.0",
+  "research-1.2.0",
+];
 
 function walkCitationKeys(node: unknown, into: Set<string>): void {
   if (Array.isArray(node)) {
@@ -31,10 +36,32 @@ function walkCitationKeys(node: unknown, into: Set<string>): void {
 
 describe("L3: methodology config integrity", () => {
   it("uses the checked-in research release as the active pointer", () => {
-    expect(DEFAULT_METHODOLOGY_VERSION).toBe("research-1.1.0");
+    expect(DEFAULT_METHODOLOGY_VERSION).toBe("research-1.2.0");
     expect(loadMethodology(DEFAULT_METHODOLOGY_VERSION).version).toBe(
-      "research-1.1.0",
+      "research-1.2.0",
     );
+  });
+
+  it("preserves historic calibration releases and isolates the shortened release", () => {
+    for (const version of ["research-1.0.0", "research-1.1.0"]) {
+      const historic = loadMethodology(version);
+      expect(historic.assessment.calibration.minItems.value).toBe(8);
+      expect(historic.assessment.calibration.maxItems.value).toBe(12);
+      expect(historic.assessment.tracks).toHaveLength(3);
+    }
+
+    const current = loadMethodology("research-1.2.0");
+    expect(current.assessment.calibration.minItems).toMatchObject({
+      value: 3,
+      grade: "C",
+      tier: 1,
+      citationKey: "stub_open_question",
+      flag: "best-guess",
+    });
+    expect(current.assessment.calibration.maxItems.value).toBe(3);
+    expect(current.assessment.tracks.map((track) => track.id)).toEqual([
+      "tactics",
+    ]);
   });
 
   it("keeps the historic stub config byte-for-byte immutable", () => {
@@ -43,6 +70,15 @@ describe("L3: methodology config integrity", () => {
     );
     expect(createHash("sha256").update(bytes).digest("hex")).toBe(
       "e819ec97664c5482f2c89cce26a604679691c34feebc1ad0414a228ca3ae3ff9",
+    );
+  });
+
+  it("keeps research-1.0.0 byte-for-byte immutable", () => {
+    const bytes = readFileSync(
+      resolve("src/methodology/configs/research-1.0.0.json"),
+    );
+    expect(createHash("sha256").update(bytes).digest("hex")).toBe(
+      "70ec610881692178b7f6a49ed77889b19775979ad3d07b049a41347fe0dcc263",
     );
   });
 

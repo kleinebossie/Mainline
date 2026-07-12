@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation";
 
 import { auth } from "@/server/auth";
+import { prisma } from "@/db/client";
 import { PageShell } from "@/components/app-shell";
 import { Reveal } from "@/app/onboarding/reveal/reveal";
+import { requireOnboardingComplete } from "@/server/onboarding";
 
 // The "reveal" (BUILD.md §8 step 7). A data-driven dashboard that contrasts objective
 // signals with common self-bias (gracefully defuses Dunning-Kruger). M4 ships the
@@ -11,6 +13,7 @@ import { Reveal } from "@/app/onboarding/reveal/reveal";
 export default async function RevealPage() {
   const session = await auth();
   if (!session?.user) redirect("/signin");
+  await requireOnboardingComplete(prisma, session.user.id);
 
   return (
     <PageShell

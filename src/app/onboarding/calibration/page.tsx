@@ -16,7 +16,7 @@ export default async function CalibrationPage() {
       width="wide"
       eyebrow="Step 2 of onboarding"
       title="Tactical calibration"
-      lede="We don't ask you to rate yourself. Self-assessment is unreliable (Dunning-Kruger). This short check estimates your tactical level from how you actually solve."
+      lede="We don't ask you to rate yourself. This short adaptive puzzle check builds a rough behavioural baseline from how you actually solve."
     >
       <Calibration />
     </PageShell>

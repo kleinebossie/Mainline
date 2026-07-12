@@ -209,7 +209,10 @@ export async function getProgressSummary(
   ]);
 
   const minutesLogged = Math.round(
-    workEvents.reduce((sum, event) => sum + minutesFromPayload(event.payload), 0),
+    workEvents.reduce(
+      (sum, event) => sum + minutesFromPayload(event.payload),
+      0,
+    ),
   );
 
   const reviewTypes = dueStates.reduce<Record<string, number>>((acc, row) => {

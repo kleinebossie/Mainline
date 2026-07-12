@@ -91,9 +91,10 @@ export function Reveal() {
             Your starting baseline
           </CardTitle>
           <p className="text-graphite font-mono text-sm mt-1">
-            A behavioural read across {tracks.length} dimension
-            {tracks.length === 1 ? "" : "s"}. Uncertainty shrinks with more
-            games and reviews.
+            {tracks.length === 1
+              ? "A behavioural read of your tactical level."
+              : `A behavioural read across ${tracks.length} dimensions.`}{" "}
+            Uncertainty shrinks with more games and reviews.
           </p>
         </CardHeader>
         <CardContent className="flex flex-col gap-5">

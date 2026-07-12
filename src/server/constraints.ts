@@ -95,6 +95,14 @@ export async function saveConstraints(
   rawInput: ConstraintsInput,
 ): Promise<ConstraintsInput & { id: string; version: number }> {
   const input = constraintsInputSchema.parse(rawInput);
+  // Require at least one playing format so the generator has a format signal.
+  // This is a UX/input-sanity rule (not a methodology value), enforced on save
+  // so existing rows with empty formats still load and render.
+  if (input.formatPrefs.formats.length === 0) {
+    throw new Error(
+      "Select at least one format you play (bullet, blitz, rapid, or classical).",
+    );
+  }
   const ifThenPlan = input.ifThenPlan
     ? buildImplementationIntention(input.ifThenPlan.cue, input.ifThenPlan.plan)
     : null;

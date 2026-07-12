@@ -1,10 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { PrismaClient } from "@prisma/client";
 
-import {
-  replaceWeeklyFocus,
-  WEEKLY_FOCUS_CHANGED,
-} from "@/db/weekly-focus";
+import { replaceWeeklyFocus, WEEKLY_FOCUS_CHANGED } from "@/db/weekly-focus";
 
 const input = {
   userId: "u1",

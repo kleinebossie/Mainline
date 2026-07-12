@@ -95,9 +95,9 @@ The system is two cleanly separated halves connected by a typed boundary:
 - **The Methodology (research fills later).** All chess/learning knowledge, expressed as a
   **versioned `MethodologyConfig`** (data, every leaf a `GradedValue`) **+ a small set of pure reader
   functions** that turn config + inputs into graded decisions. It ships as versioned stub and
-   research configs so the whole loop remains reproducible. The active pointer selects the research
-   release by default, while the stub remains available for historic artifacts and rollback. A new
-   research release is one file plus a version bump, with **no architecture change** (VISION §4).
+  research configs so the whole loop remains reproducible. The active pointer selects the research
+  release by default, while the stub remains available for historic artifacts and rollback. A new
+  research release is one file plus a version bump, with **no architecture change** (VISION §4).
 
 ```
         ┌──────────────────────────── ENGINE (src/engine, analysis, integrations, server, app) ───────────────────────────┐
@@ -260,7 +260,7 @@ Loader rules:
 | File               | `configs/stub-<semver>.json`                                            | `configs/research-<semver>.json`                                      |
 | Source of contents | Safe, conservative placeholders; everything flagged `stub`/`best-guess` | `planning/METHODOLOGY.md` (its values/grades/citations/copy, encoded) |
 | Purpose            | Preserve historic behavior and provide an intentional rollback baseline | Run the approved, graded methodology release                          |
-| Swap cost          | n/a                                                                      | **One file + one version bump.** No engine change (VISION §4).        |
+| Swap cost          | n/a                                                                     | **One file + one version bump.** No engine change (VISION §4).        |
 
 The 2026-07-10 release status is: `research-1.0.0` is active by default and `stub-0.1.0` remains
 loadable for historic programs. The research release retains explicit best guesses and deliberate
@@ -277,21 +277,21 @@ The Engine calls **only** these functions (the typed surface of `src/methodology
 names any **generic Engine math utility** the function may call with config params (the Engine owns the
 algorithm; the config owns the numbers).
 
-| Function                                                                                                | Seam        | May call (generic Engine util) |
-| ------------------------------------------------------------------------------------------------------- | ----------- | ------------------------------ |
-| `dimensionsForBand(band, cfg)`                                                                          | 1           | — (data lookup)                |
-| `nextCalibrationItem(history, cfg)` · `scoreCalibration(responses, cfg)`                                | 2           | —                              |
-| `interpretGameFeatures(rawFeatures, band, cfg)`                                                         | 3           | —                              |
-| `confidenceFromSampleSize(n, signalType, cfg)`                                                          | 3           | —                              |
-| `mapWeaknessToActivities(signals, band, constraints, cfg)`                                              | 4           | —                              |
-| `targetPuzzleRating(userRating, track, band, recentSuccess, cfg)`                                       | 5           | servo controller (generic)     |
-| `practiceStructure(band, motifMastery, cfg)` · `useWorkedExample(band, complexity, cfg)`                | 5           | —                              |
+| Function                                                                                                                        | Seam        | May call (generic Engine util) |
+| ------------------------------------------------------------------------------------------------------------------------------- | ----------- | ------------------------------ |
+| `dimensionsForBand(band, cfg)`                                                                                                  | 1           | — (data lookup)                |
+| `nextCalibrationItem(history, cfg)` · `scoreCalibration(responses, cfg)`                                                        | 2           | —                              |
+| `interpretGameFeatures(rawFeatures, band, cfg)`                                                                                 | 3           | —                              |
+| `confidenceFromSampleSize(n, signalType, cfg)`                                                                                  | 3           | —                              |
+| `mapWeaknessToActivities(signals, band, constraints, cfg)`                                                                      | 4           | —                              |
+| `targetPuzzleRating(userRating, track, band, recentSuccess, cfg)`                                                               | 5           | servo controller (generic)     |
+| `practiceStructure(band, motifMastery, cfg)` · `useWorkedExample(band, complexity, cfg)`                                        | 5           | —                              |
 | `gradeFromOutcome(correct, solveMs, bandMedianMs, cfg)` · `scheduleReview(item, grade, fsrsState, cfg)` · `redoFlowPolicy(cfg)` | 6           | `fsrsStep` (generic FSRS math) |
-| `prioritizeDailyMix(skillState, dueItems, signals, constraints, band, cfg)`                             | 7           | weighted-sort (generic)        |
-| `detectPlateau(glickoHistory, cfg)`                                                                     | 7           | `glickoConfidenceInterval`     |
-| `rationaleFor(triggerKey, context, cfg)`                                                                | 8           | —                              |
-| `engagementEventsFor(stateChange, cfg)` · `buildImplementationIntention(cue, module)`                   | 9           | —                              |
-| `isProgressReal(glickoHistory, cfg)` · `isStableBaseline(rd, cfg)` · `expectationForBand(band, cfg)`    | Measurement | `glickoConfidenceInterval`     |
+| `prioritizeDailyMix(skillState, dueItems, signals, constraints, band, cfg)`                                                     | 7           | weighted-sort (generic)        |
+| `detectPlateau(glickoHistory, cfg)`                                                                                             | 7           | `glickoConfidenceInterval`     |
+| `rationaleFor(triggerKey, context, cfg)`                                                                                        | 8           | —                              |
+| `engagementEventsFor(stateChange, cfg)` · `buildImplementationIntention(cue, module)`                                           | 9           | —                              |
+| `isProgressReal(glickoHistory, cfg)` · `isStableBaseline(rd, cfg)` · `expectationForBand(band, cfg)`                            | Measurement | `glickoConfidenceInterval`     |
 
 **Outputs carry their grade.** Functions that produce recommendations return objects already carrying
 `{ evidenceGrade, evidenceTier, citationKey, confidence, rationaleKey }` (e.g. `WeaknessSignal`,
@@ -1421,8 +1421,8 @@ Each seam is an **interface defined here**, filled with **stub config now** and 
 later** (`METHODOLOGY.md`); **none change the architecture** (VISION §4, §9). Contents are in
 `METHODOLOGY.md` — this table is the **map**, not the content (§0.3).
 
-| #   | Seam                                       | `MethodologyConfig` field(s)                                                   | Pure function(s) (§2.8)                                       | METHODOLOGY.md anchor | Research source                                                                                                                                                     | Phase-1 |
-| --- | ------------------------------------------ | ------------------------------------------------------------------------------ | ------------------------------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| #   | Seam                                       | `MethodologyConfig` field(s)                                                   | Pure function(s) (§2.8)                                       | METHODOLOGY.md anchor | Research source                                                                                                                                                     | Phase-1  |
+| --- | ------------------------------------------ | ------------------------------------------------------------------------------ | ------------------------------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
 | 1   | Skill dimensions & taxonomy                | `dimensions`, `bands`                                                          | `dimensionsForBand`                                           | Seam 1                | `SKILL_TAXONOMY.md`                                                                                                                                                 | research |
 | 2   | Assessment content + scoring               | `assessment`                                                                   | `nextCalibrationItem`, `scoreCalibration`                     | Seam 2                | `WEAKNESS_DIAGNOSIS.md`                                                                                                                                             | research |
 | 3   | Game-feature → weakness                    | `interpretation`                                                               | `interpretGameFeatures`, `confidenceFromSampleSize`           | Seam 3                | `WEAKNESS_DIAGNOSIS.md`, `SKILL_TAXONOMY.md`                                                                                                                        | research |

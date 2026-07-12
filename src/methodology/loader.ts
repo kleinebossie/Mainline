@@ -11,6 +11,7 @@ import research100 from "@/methodology/configs/research-1.0.0.json";
 import stub010 from "@/methodology/configs/stub-0.1.0.json";
 import stub010Compat from "@/methodology/configs/stub-0.1.0.compat.json";
 import research110 from "@/methodology/configs/research-1.1.0.json";
+import research120 from "@/methodology/configs/research-1.2.0.json";
 
 // Configs ship as repo JSON (src/methodology/configs/<version>.json). Register each
 // here; the research config is added as a new file + a new entry, no engine change.
@@ -18,6 +19,7 @@ const RAW_CONFIGS: Readonly<Record<string, unknown>> = {
   "stub-0.1.0": stub010,
   "research-1.0.0": research100,
   "research-1.1.0": research100,
+  "research-1.2.0": research100,
 };
 
 // Additive, versioned data preserves provider behavior for immutable historic
@@ -26,11 +28,18 @@ const COMPATIBILITY_OVERLAYS: Readonly<Record<string, unknown>> = {
   "stub-0.1.0": mergeAdditive(stub010Compat, research110),
   "research-1.0.0": research110,
   "research-1.1.0": research110,
+  "research-1.2.0": research110,
+};
+
+// A release delta may replace existing values only for a new version. Historic
+// base configs and compatibility overlays remain byte-for-byte immutable.
+const RELEASE_DELTAS: Readonly<Record<string, unknown>> = {
+  "research-1.2.0": research120,
 };
 
 // The active version when none is requested: explicit arg > env > this checked-in pointer.
 // The stub remains addressable for historic programs and rollback.
-export const DEFAULT_METHODOLOGY_VERSION = "research-1.1.0";
+export const DEFAULT_METHODOLOGY_VERSION = "research-1.2.0";
 
 const cache = new Map<string, MethodologyConfig>();
 
@@ -65,6 +74,20 @@ function mergeAdditive(
   return merged;
 }
 
+function mergeReleaseDelta(base: unknown, delta: unknown): unknown {
+  if (!isRecord(base) || !isRecord(delta)) return delta;
+
+  const merged: Record<string, unknown> = { ...base };
+  for (const [key, value] of Object.entries(delta)) {
+    const current = merged[key];
+    merged[key] =
+      isRecord(current) && isRecord(value)
+        ? mergeReleaseDelta(current, value)
+        : value;
+  }
+  return merged;
+}
+
 function deepFreeze<T>(obj: T): T {
   if (obj && typeof obj === "object" && !Object.isFrozen(obj)) {
     Object.freeze(obj);
@@ -93,10 +116,12 @@ export function loadMethodology(version?: string): MethodologyConfig {
 
   const overlay = COMPATIBILITY_OVERLAYS[resolved];
   const merged = overlay ? mergeAdditive(base, overlay) : base;
+  const delta = RELEASE_DELTAS[resolved];
+  const released = delta ? mergeReleaseDelta(merged, delta) : merged;
   const raw =
     resolved === "research-1.1.0"
-      ? { ...(merged as Record<string, unknown>), version: resolved }
-      : merged;
+      ? { ...(released as Record<string, unknown>), version: resolved }
+      : released;
 
   const parsed = methodologyConfigSchema.parse(raw); // throws on any violation (L3)
   if (parsed.version !== resolved) {
