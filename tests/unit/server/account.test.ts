@@ -109,12 +109,14 @@ describe("account privacy service", () => {
       program: model(),
       activityEvent: model(),
       skillState: model(),
+      skillStateSnapshot: model(),
       scheduleState: model(),
       practiceItem: model(),
       adaptationLog: model(),
       rewardEvent: model(),
       notificationPref: model(null),
       apiCallBudget: model(),
+      trainingPreferenceState: model(null),
       allowlistEntry: model(),
       researchConsent: model(),
     };
@@ -133,12 +135,14 @@ describe("account privacy service", () => {
         "programs",
         "activityEvents",
         "skillStates",
+        "skillStateSnapshots",
         "scheduleStates",
         "practiceItems",
         "adaptationLogs",
         "rewardEvents",
         "notificationPref",
         "apiCallBudgets",
+        "trainingPreferenceState",
         "claimedAllowlistEntries",
         "researchConsents",
       ]),
@@ -196,19 +200,21 @@ describe("account privacy service", () => {
       program: model,
       activityEvent: model,
       skillState: model,
+      skillStateSnapshot: model,
       scheduleState: model,
       practiceItem: model,
       adaptationLog: model,
       rewardEvent: model,
       notificationPref: model,
       apiCallBudget: model,
+      trainingPreferenceState: model,
       allowlistEntry: model,
       researchConsent: model,
     };
 
     await exportUserData(db as never, "u1");
 
-    expect(query).toHaveBeenCalledTimes(19);
+    expect(query).toHaveBeenCalledTimes(21);
     expect(maximumActiveQueries).toBe(1);
     expect(activeQueries).toBe(0);
   });

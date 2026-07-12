@@ -210,6 +210,21 @@ export async function exportUserData(db: PrismaClient, userId: string) {
       createdAt: true,
     },
   });
+  const skillStateSnapshots = await db.skillStateSnapshot.findMany({
+    where: { userId },
+    orderBy: { runAt: "asc" },
+    select: {
+      id: true,
+      userId: true,
+      dimension: true,
+      estimate: true,
+      uncertainty: true,
+      sampleSize: true,
+      methodologyVersion: true,
+      runAt: true,
+      capturedAt: true,
+    },
+  });
   const scheduleStates = await db.scheduleState.findMany({
     where: { userId },
     select: {
@@ -289,6 +304,18 @@ export async function exportUserData(db: PrismaClient, userId: string) {
       updatedAt: true,
     },
   });
+  const trainingPreferenceState = await db.trainingPreferenceState.findUnique({
+    where: { userId },
+    select: {
+      id: true,
+      userId: true,
+      preferences: true,
+      userOverride: true,
+      resetAt: true,
+      updatedAt: true,
+      createdAt: true,
+    },
+  });
   const allowlistEntries = await db.allowlistEntry.findMany({
     where: { usedByUserId: userId },
     select: {
@@ -327,12 +354,14 @@ export async function exportUserData(db: PrismaClient, userId: string) {
     programs,
     activityEvents,
     skillStates,
+    skillStateSnapshots,
     scheduleStates,
     practiceItems,
     adaptationLogs,
     rewardEvents,
     notificationPref,
     apiCallBudgets,
+    trainingPreferenceState,
     claimedAllowlistEntries: allowlistEntries,
     researchConsents,
   };

@@ -27,16 +27,15 @@ import {
   playingRatingFromSnapshot,
   highestLiveRatingFromSnapshot,
 } from "@/server/assessment";
-import { getCurrentConstraints } from "@/server/constraints";
 import {
   getActiveProgram,
   saveProgram,
   type ActiveProgram,
 } from "@/db/program";
 import { captureOperationalEvent } from "@/server/observability";
-import { findDueScheduleStates, findRecentPuzzleAttempts } from "@/db/tracker";
+import { findRecentPuzzleAttempts } from "@/db/tracker";
 import { ensureEndgameDrills } from "@/server/practice";
-import { EMPTY_CONSTRAINTS } from "@/lib/constraints";
+import { assembleProgramDecisionInput } from "@/server/decision-input";
 
 type Db = Pick<
   PrismaClient,
@@ -51,6 +50,9 @@ type Db = Pick<
   | "scheduleState"
   | "activityEvent"
   | "lichessPuzzle"
+  | "skillState"
+  | "skillStateSnapshot"
+  | "trainingPreferenceState"
   | "$transaction"
 >;
 
@@ -137,7 +139,7 @@ export async function resolveLibraryRating(
 }
 
 /** All client-computed raw features for the user's analysed games (defensively parsed). */
-async function gatherFeatures(
+export async function gatherFeatures(
   db: Db,
   userId: string,
 ): Promise<RawGameFeatures[]> {
@@ -156,7 +158,7 @@ async function gatherFeatures(
 
 /** Rolling success rate per Seam-5 track from recent puzzle-attempt outcomes (servo input,
  *  M7). Plumbing only — the servo decision lives in targetPuzzleRating (Seam 5). */
-async function gatherRecentSuccessByTrack(
+export async function gatherRecentSuccessByTrack(
   db: Db,
   userId: string,
 ): Promise<{ pattern?: number; calculation?: number }> {
@@ -188,6 +190,12 @@ const themeRefId = (theme: string): string => `lichess_theme_${theme}`;
 /**
  * Generate today's program from current state and persist it (superseding any prior active
  * program). Pure decisions inside generateProgram; everything here is plumbing.
+ *
+ * P4: the longitudinal decision state is assembled by the single typed assembler
+ * (`assembleProgramDecisionInput`) and snapshotted verbatim onto `Program.generationInput`
+ * so any historic "Today" can be re-derived exactly (L2 reproducibility). The pure
+ * generator's narrow input is derived from that snapshot — routes never reconstruct partial
+ * decision state themselves.
  */
 export async function generateAndSaveProgram(
   db: Db,
@@ -195,51 +203,38 @@ export async function generateAndSaveProgram(
   clock: Clock = systemClock,
 ): Promise<string> {
   const cfg = loadMethodology();
-  const tacticalRating = await resolveTacticalRating(db, userId, cfg);
-  const band = bandForRating(tacticalRating, cfg);
 
-  // M13: seed the band's curated endgame curriculum (Seam-4 config) as spaced PracticeItems
-  // BEFORE reading due items, so the endgame_drill activity (due-gated) can surface them this
-  // session. Only when endgames are recommended for the band (positive ROI prior) — and
-  // idempotent, so it never re-seeds or resets an in-flight drill.
+  // M13: seed the band's curated endgame curriculum BEFORE assembling the snapshot, so any
+  // newly-due endgames surface in the same session. The decision of whether to seed is
+  // config-only (positive ROI prior); the band comes from the tactical rating, computed
+  // here once so we don't assemble the whole snapshot twice.
+  const tacticalRatingSeed = await resolveTacticalRating(db, userId, cfg);
+  const bandSeed = bandForRating(tacticalRatingSeed, cfg);
   const endgameRecommended = cfg.activities.some(
     (a) =>
       a.activityType === "endgame_drill" &&
-      (a.priorityByBand[band]?.value ?? 0) > 0,
+      (a.priorityByBand[bandSeed]?.value ?? 0) > 0,
   );
   if (endgameRecommended) {
-    await ensureEndgameDrills(db, userId, band, cfg, clock);
+    await ensureEndgameDrills(db, userId, bandSeed, cfg, clock);
   }
 
-  const features = await gatherFeatures(db, userId);
-  const weaknessSignals = interpretGameFeatures({ features, band }, cfg);
-  const constraints = await getCurrentConstraints(db, userId);
-  const minutesPerDay =
-    constraints?.minutesPerDay ?? EMPTY_CONSTRAINTS.minutesPerDay;
-  // Stated preferences that reshape the daily mix (Seam 7). The generator passes these to
-  // the methodology; absent ones leave the un-personalised order untouched.
-  const formats = constraints?.formatPrefs.formats ?? [];
-  const ownedRefs =
-    constraints?.ownedResources.flatMap((r) =>
-      r.externalRef ? [r.externalRef, r.label] : [r.label],
-    ) ?? [];
-  const depthVsBreadth = constraints?.sessionStyle.depthVsBreadth;
-
-  // M7: the loop's feedback — spaced reviews due now + the rolling success that nudges
-  // difficulty. Reading these here is what makes a regenerated session reflect adaptation.
-  const dueRows = await findDueScheduleStates(
+  // Assemble the full longitudinal snapshot from persisted state + the injected Clock.
+  const { snapshot, generateInput } = await assembleProgramDecisionInput(
     db,
     userId,
-    new Date(clock.now()),
+    clock,
+    cfg,
   );
-  const dueItems = dueRows.map((d) => ({
-    itemRef: d.itemRef,
-    itemType: d.itemType,
-  }));
-  const recentSuccessByTrack = await gatherRecentSuccessByTrack(db, userId);
-
-  const libraryRating = await resolveLibraryRating(db, userId, cfg);
-  const libraryBand = bandForRating(libraryRating, cfg);
+  const {
+    band,
+    tacticalRating,
+    libraryBand,
+    weaknessSignals,
+    dueItems,
+    constraints,
+    recentSuccessByTrack,
+  } = generateInput;
 
   const result = generateProgram({
     band,
@@ -247,7 +242,7 @@ export async function generateAndSaveProgram(
     libraryBand,
     weaknessSignals,
     dueItems,
-    constraints: { minutesPerDay, formats, ownedRefs, depthVsBreadth },
+    constraints,
     recentSuccessByTrack,
     clock,
     config: cfg,
@@ -271,21 +266,9 @@ export async function generateAndSaveProgram(
       : [];
   const seededIds = new Set(seeded.map((r) => r.id));
 
-  const generationInput = {
-    band,
-    tacticalRating,
-    libraryBand,
-    minutesPerDay,
-    daysPerWeek: constraints?.daysPerWeek ?? null,
-    formats,
-    ownedRefs,
-    depthVsBreadth: depthVsBreadth ?? null,
-    weaknessSignals,
-    dueItems,
-    recentSuccessByTrack,
-    methodologyVersion: cfg.version,
-    generatedAt: result.generatedAt,
-  } as unknown as Prisma.InputJsonValue;
+  // P4: persist the validated snapshot exactly. `assembledAt` is the injected logical
+  // generation time, so an additional timestamp would make the strict schema unparseable.
+  const generationInput = snapshot as unknown as Prisma.InputJsonValue;
 
   const programId = await saveProgram(db, {
     userId,

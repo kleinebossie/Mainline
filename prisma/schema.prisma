@@ -52,7 +52,9 @@ model User {
   programs              Program[]
   activityEvents        ActivityEvent[]
   skillStates           SkillState[]
+  skillStateSnapshots  SkillStateSnapshot[]
   scheduleStates        ScheduleState[]
+  trainingPreferenceState TrainingPreferenceState?
   adaptationLogs        AdaptationLog[]
   rewardEvents          RewardEvent[]
   notificationPref      NotificationPref?
@@ -465,8 +467,11 @@ model ActivityEvent {
 // Per-dimension skill estimate (§5.5). The adaptation loop maintains a v0 competence
 // proxy — the running success proportion over the dimension's logged outcomes — with its
 // standard error as `uncertainty` (generic statistics in engine/math/estimate.ts, not a
-// graded chess constant). One row per (userId, dimension). Consumed by the dashboard
-// (M8); generation still drives difficulty off the calibrated tactical rating in v0.
+// graded chess constant). One row per (userId, dimension). This is the *latest* state —
+// upserted on every adaptation pass so the dashboard and the decision-state assembler can
+// read it cheaply. The immutable history of every adaptation pass lands in
+// `SkillStateSnapshot` (P4). Consumed by the dashboard (M8) and the longitudinal decision
+// input (P4); generation still drives difficulty off the calibrated tactical rating in v0.
 model SkillState {
   id          String   @id @default(cuid())
   userId      String
@@ -481,6 +486,30 @@ model SkillState {
 
   @@unique([userId, dimension])
   @@index([userId])
+}
+
+// Immutable per-dimension skill snapshot written after each adaptation run (P4). One row
+// per (userId, dimension, capturedAt) — append-only, never updated or deleted (except by
+// the User cascade). `methodologyVersion` records which config produced the estimate so any
+// historic point can be re-derived; `runAt` is the adaptation run's logical time (the same
+// clock-stamped runAt of the AdaptationLog that produced this snapshot). The latest state
+// stays in `SkillState` (an upserted single row); this table is the longitudinal history
+// the decision-state assembler reads to give the generator a memory beyond "now".
+model SkillStateSnapshot {
+  id                 String   @id @default(cuid())
+  userId             String
+  dimension          String // a Seam-1 dimension id
+  estimate           Float
+  uncertainty        Float
+  sampleSize         Int
+  methodologyVersion String
+  runAt              DateTime // the adaptation run's logical time (matches AdaptationLog.runAt)
+  capturedAt         DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, dimension, runAt])
+  @@index([userId, runAt])
 }
 
 // Spacing/due state per spaced item (§5.5, FSRS). `due` is a top-level indexed column
@@ -562,6 +591,28 @@ model AdaptationLog {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, runAt])
+}
+
+// Derived training-fit preferences only — NEVER a skill estimate (P4/P8 boundary). This is
+// the deterministic rollup P8 computes from TrainingFeedback (enjoyment, resource,
+// scheduling, friction) that P5's weekly focus consumes alongside SkillState. Subjective
+// feedback writes here; it can NEVER write SkillState or fabricate a weakness signal
+// (roadmap-wide invariant, §9). P4 ships the table and the reset surface with an empty
+// default; P8 is the first writer. One row per user.
+//   `preferences` — the derived fit state (a typed JSON shape, lib/decision-input).
+//   `userOverride` — a user-side correction stored when the user explicitly resets or
+//   pins a preference (P8). Null when no override is active.
+//   `resetAt` — when the rollup was last reset (P8). Null until the first reset.
+model TrainingPreferenceState {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  preferences Json
+  userOverride Json?
+  resetAt     DateTime?
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 // --- Engagement plumbing (BUILD.md §5.7, §9, M9) ---

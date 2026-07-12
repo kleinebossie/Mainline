@@ -72,10 +72,13 @@ export function AccountActions() {
         </h2>
         <p className="text-graphite text-sm leading-relaxed font-serif">
           Mainline stores account and connection metadata, imported games,
-          analysis measurements, constraints, programs, activity history, and
-          learning state to operate your personal training. Programs and
-          explanations snapshot the methodology version used, so later
-          methodology changes do not rewrite your history.
+          analysis measurements, constraints, programs, activity history,
+          learning state, and the immutable skill-state history that lets the
+          program remember your trajectory. Each program also snapshots the
+          decision input it ran on, so any past session can be re-derived
+          exactly, and your optional training-fit preferences travel with it.
+          Programs and explanations snapshot the methodology version used, so
+          later methodology changes do not rewrite your history.
         </p>
         <p className="text-graphite text-sm leading-relaxed font-serif">
           Personal training works without research consent. Operational records

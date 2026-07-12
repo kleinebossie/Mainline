@@ -5,7 +5,7 @@
 > adaptive training program before adding more training modes. It is split into parts so a fresh AI
 > agent can implement and verify one part at a time.
 >
-> **Status.** P0, P1, and P2 are complete; later parts remain planned. A part is implemented only when its
+> **Status.** P0, P1, P2, P3, and P4 are complete; later parts remain planned. A part is implemented only when its
 > own status and Definition of Done say so.
 >
 > **Central product decision.** Mainline needs a deeper loop, not a larger menu. Real adaptation,
@@ -196,7 +196,7 @@ Every part must end with:
 | P1   | Research methodology release                                    | Before closed beta                       | P0                                  | Complete |
 | P2   | Beta access, API budgets, jobs, monitoring, and PWA             | Before closed beta                       | P0                                  | Complete |
 | P3   | Privacy, consent, export, and hard-deletion completion          | Before closed beta                       | P0                                  | Complete |
-| P4   | Decision-state and skill-history foundation                     | Before closed beta                       | P1, P3                              | Planned |
+| P4   | Decision-state and skill-history foundation                     | Before closed beta                       | P1, P3                              | Complete |
 | P5   | Stable weekly focus and bounded user choice                     | Before closed beta                       | P4                                  | Planned |
 | P6   | Seven-day forecast, revision ledger, and availability model     | Before closed beta                       | P5                                  | Planned |
 | P7   | Program history and forecast experience                         | Before closed beta                       | P6                                  | Planned |
@@ -624,6 +624,90 @@ gates pass.
 
 **Definition of Done:** decision state can be deterministically reconstructed, historic snapshots are
 immutable, export/delete include them, and no new chess decision appears in Engine or server code.
+
+**Status (2026-07-11): COMPLETE.** The repository implementation, migration, and tests pass the full CI
+order, and every P4 Definition of Done gate is met.
+
+The data model gains two new tables, both cascade-on-User-delete (verified by the privacy-schema guard):
+`SkillStateSnapshot` (append-only immutable per-dimension history stamped with
+`methodologyVersion` + `runAt`, no `updatedAt`, no unique key — every adaptation run may append) and
+`TrainingPreferenceState` (one row per user, `userId @unique`, the derived-fit-preferences rollup P4
+ships empty and P8 will populate). The existing `SkillState` table remains the cheap latest-state view
+(upserted); the new snapshot table is the longitudinal memory the assembler reads.
+
+One typed server-side assembler (`assembleProgramDecisionInput` in `src/server/decision-input.ts`) is
+the single constructor of decision state. Routes call it; they never reconstruct partial decision state
+from independent reads. Its output, `ProgramDecisionInput` (typed in `src/lib/decision-input.ts` with a
+strict Zod schema), is persisted verbatim onto `Program.generationInput` on every generation, replacing
+the ad-hoc M6 snapshot. Any historic "Today" can now be re-derived exactly from the persisted
+snapshot + config version: `parsePersistedSnapshot` re-validates it fail-closed. The pure generator's
+narrow `GenerateProgramInput` is a strict projection of the snapshot, so P5's first consumption either
+reads the snapshot or extends it without re-architecting the seam.
+
+Activity recency, completion/skip counts, and actual-duration sums are derived (in
+`src/db/decision-input.ts`) from immutable `ActivityEvent` rows over a trailing 28-day window (the
+BUILD.md active-user window), with a 28-day `activeDays` count and totals per activity type. No graded
+chess decision lives there: it is generic descriptive aggregation.
+
+Every adaptation pass now appends one immutable `SkillStateSnapshot` per dimension it touched, stamped
+with the run's logical time (matches `AdaptationLog.runAt`) and the active methodology version. This is
+wired into `persistAdaptation` in `src/server/tracker.ts` and verified by a new test that pins the
+snapshot row shape. The `runDailyAdaptation` path inherits the same wiring (it reuses the same
+`persistAdaptation` helper).
+
+The export (`exportUserData`) and the deletion cascade now cover both new tables. The credential-redacted
+`mainline-user-export/v2` payload carries `skillStateSnapshots` and `trainingPreferenceState`; the
+privacy-schema guard asserts both new models have `onDelete: Cascade` in both the schema and the
+`20260711040000_p4_decision_state_skill_history` migration. The export test's sequential-query counter
+was updated from 19 to 21 and now asserts the new keys are present.
+
+The Settings privacy section's text now mentions the immutable skill-state history, the per-program
+decision-input snapshot, and the optional training-fit preferences so a user reading /settings sees
+what their export contains. No new full UI surface is warranted by P4's Definition of Done; P5 owns the
+first consumer (weekly focus), P8 owns the training-fit feedback writer and reset surface.
+
+No new chess or learning-science decision appears in Engine or server code (L1 preserved). The assembler
+reads the pure methodology provider for `bandForRating`, `interpretGameFeatures`, and
+`resolveTacticalRating`/`resolveLibraryRating`; it owns no chess constant. The pure core of
+`generateProgram` is unchanged. The L2 lint rule still passes (no `Date.now()`/`Math.random()`/`new Date()`
+in `engine/` or `methodology/`); the new `db/decision-input.ts` default for a missing
+`TrainingPreferenceState` row uses the stable sentinel `updatedAt: 0` rather than `Date.now()` so two
+identically-empty states produce an identical snapshot (L2 reproducibility).
+
+#### P4 handoff
+
+- Migrations: apply `20260711040000_p4_decision_state_skill_history` with `npm run prisma:deploy`. The
+  migration is additive (two new tables + indexes + cascade FKs) and contains no destructive change.
+  After deploy, run `npm run prisma:generate` (already done locally) so the Prisma Client picks up the
+  new models. The configured Supabase production database reports `20260711030000_p3_privacy_consent_purge`
+  as the latest applied migration; this migration is one step further and remains pending until the owner
+  deploys. The e2e suite passes regardless because the auth-gated routes it exercises do not read the
+  new tables, but a real signed-in `/today` regeneration will start writing `SkillStateSnapshot` rows as
+  soon as the migration is live.
+- Owner setup: no new env vars, no new cron kinds, no new admin tools.
+- Verification: Node 25.2.0; Prisma generation; typecheck; lint (0 errors, 0 warnings); 65 Vitest files
+  with 408 tests; 4 guard files with 44 tests (up from 42);
+  production build; and 19 Playwright tests all pass.
+- Deliberate deviations: the assembler runs once per program generation (after `ensureEndgameDrills`
+  seeds endgame schedules) rather than twice. It sits inside `generateAndSaveProgram`, so server code
+  still contains the one orchestration call, but routes never independently read partial decision state.
+  No methodology config values were added, no chess/learning constants were introduced, and
+  `generateProgram` is byte-for-byte unchanged — the snapshot is pure plumbing for P5 consumption. The
+  `TrainingPreferenceState` table ships with an empty default; P8 is the first writer and owns the reset
+  affordance. The `programItem` model was removed from the assembler's `Db` Pick because it is unused
+  there, even though `logOutcome` continues to read it directly via `src/server/tracker.ts`.
+- Remaining risks: `SkillStateSnapshot` is append-only and grows with every adaptation pass; a user
+  training daily can append ~30 rows/day. The free-tier Supabase limit tolerates this for many users, but
+  a future prune roll-up (similar to P2's `pruneOperationalRows`) is a P2 follow-up, intentionally not
+  implemented here to avoid widening P4's scope. The 28-day `findActivityRecency` window reads all
+  ActivityEvents for the user over that window; for very active users this is bounded but not indexed —
+  a future `(userId, occurredAt)` index optimization belongs to P9 (observational capture) when
+  recency becomes a hot read. The snapshot's `constraints` field carries the persisted `id`/`version`
+  in the in-memory record (mirrors `decodeConstraintSet`); the strict outer schema strips them silently
+  during `programDecisionInputSchema.parse`, so the persisted shape matches the parsed shape exactly.
+  A future `Forget my decision history` affordance for the user is intentionally not built (P8 scope).
+  No causal skill claim is added: the skill estimates are competence proxies, never a chess-development
+  prescription (Seam 2 boundary preserved).
 
 ---
 

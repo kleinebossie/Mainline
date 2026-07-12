@@ -10,6 +10,10 @@ const P3_MIGRATION = readFileSync(
   "prisma/migrations/20260711030000_p3_privacy_consent_purge/migration.sql",
   "utf8",
 );
+const P4_MIGRATION = readFileSync(
+  "prisma/migrations/20260711040000_p4_decision_state_skill_history/migration.sql",
+  "utf8",
+);
 
 describe("privacy schema guards", () => {
   it("deletes claimed invitations with an erased account", () => {
@@ -36,6 +40,7 @@ describe("privacy schema guards", () => {
       "Program",
       "ActivityEvent",
       "SkillState",
+      "SkillStateSnapshot",
       "ScheduleState",
       "PracticeItem",
       "AdaptationLog",
@@ -44,6 +49,7 @@ describe("privacy schema guards", () => {
       "AllowlistEntry",
       "ApiCallBudget",
       "ResearchConsent",
+      "TrainingPreferenceState",
     ];
     for (const model of relationBlocks) {
       const block = SCHEMA.match(
@@ -53,6 +59,13 @@ describe("privacy schema guards", () => {
     }
     expect(P3_MIGRATION).toMatch(
       /ResearchConsent_userId_fkey[\s\S]*ON DELETE CASCADE/,
+    );
+    // P4: the new SkillStateSnapshot + TrainingPreferenceState cascade on User delete.
+    expect(P4_MIGRATION).toMatch(
+      /"SkillStateSnapshot_userId_fkey"[\s\S]*ON DELETE CASCADE/,
+    );
+    expect(P4_MIGRATION).toMatch(
+      /"TrainingPreferenceState_userId_fkey"[\s\S]*ON DELETE CASCADE/,
     );
   });
 
@@ -77,5 +90,34 @@ describe("privacy schema guards", () => {
       )?.[0];
       expect(block, model).toMatch(/@relation\([^\n]*onDelete:\s*Cascade\)/);
     }
+  });
+
+  it("P4: SkillStateSnapshot is append-only history (no updatedAt, only capturedAt + runAt)", () => {
+    const block = SCHEMA.match(
+      new RegExp(`model SkillStateSnapshot \\{[\\s\\S]*?\\n\\}`),
+    )?.[0];
+    expect(block, "SkillStateSnapshot block").toBeTruthy();
+    expect(block).toMatch(/methodologyVersion\s+String/);
+    expect(block).toMatch(/runAt\s+DateTime/);
+    expect(block).toMatch(/capturedAt\s+DateTime/);
+    // No `updatedAt @updatedAt` — that would let an adaptation run rewrite a prior snapshot.
+    expect(block).not.toMatch(/updatedAt\s+DateTime\s+@updatedAt/);
+    // No unique constraint — every run may append a new row per dimension.
+    expect(block).not.toMatch(/@@unique/);
+  });
+
+  it("P4: TrainingPreferenceState is one-row-per-user, cascade-on-delete, never a skill claim", () => {
+    const block = SCHEMA.match(
+      new RegExp(`model TrainingPreferenceState \\{[\\s\\S]*?\\n\\}`),
+    )?.[0];
+    expect(block, "TrainingPreferenceState block").toBeTruthy();
+    // One-row-per-user: enforce via the unique constraint on userId.
+    expect(block).toMatch(/userId\s+String\s+@unique/);
+    // Cascade-on-delete so hard-deletion removes training-preference state.
+    expect(block).toMatch(
+      /user User @relation\([^\n]*onDelete:\s*Cascade\)/,
+    );
+    // The relation block above ("cascades every direct user relation") already covered
+    // the cascade assertion separately; this test fixes the model in one place.
   });
 });

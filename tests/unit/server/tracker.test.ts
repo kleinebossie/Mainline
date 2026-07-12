@@ -18,6 +18,13 @@ interface Recorder {
     lastGrade: number;
   }[];
   skillUpserts: { dimension: string; estimate: number; sampleSize: number }[];
+  skillSnapshots: {
+    dimension: string;
+    estimate: number;
+    sampleSize: number;
+    methodologyVersion: unknown;
+    runAt: Date;
+  }[];
   logs: { trigger: string; decisions: unknown; runAt?: Date }[];
   rewardCreates: { type: string; copyKey: string }[];
 }
@@ -34,13 +41,14 @@ function fakeDb(
     itemUpdates: [],
     scheduleUpserts: [],
     skillUpserts: [],
+    skillSnapshots: [],
     logs: [],
     rewardCreates: [],
   };
 
   const db = {
     programItem: {
-      findUnique: async () => item,
+      findFirst: async () => item,
       update: async ({
         where,
         data,
@@ -93,6 +101,29 @@ function fakeDb(
           sampleSize: create.sampleSize,
         });
         return {};
+      },
+    },
+    skillStateSnapshot: {
+      createMany: async ({
+        data,
+      }: {
+        data: {
+          dimension: string;
+          estimate: number;
+          sampleSize: number;
+          methodologyVersion: unknown;
+          runAt: Date;
+        }[];
+      }) => {
+        for (const d of data)
+          rec.skillSnapshots.push({
+            dimension: d.dimension,
+            estimate: d.estimate,
+            sampleSize: d.sampleSize,
+            methodologyVersion: d.methodologyVersion,
+            runAt: d.runAt,
+          });
+        return { count: data.length };
       },
     },
     scheduleState: {
@@ -150,6 +181,29 @@ const puzzleItem = {
 };
 
 describe("logOutcome (applyEvent)", () => {
+  it("rejects another user's program item before writing or mutating anything", async () => {
+    const { db, rec } = fakeDb(null);
+
+    await expect(
+      logOutcome(
+        db,
+        "u1",
+        {
+          programItemId: "owned-by-u2",
+          type: "puzzle_attempt",
+          correct: false,
+        },
+        clock,
+      ),
+    ).rejects.toThrow("Program item not found");
+
+    expect(rec.events).toEqual([]);
+    expect(rec.itemUpdates).toEqual([]);
+    expect(rec.skillUpserts).toEqual([]);
+    expect(rec.scheduleUpserts).toEqual([]);
+    expect(rec.logs).toEqual([]);
+  });
+
   it("a struggled puzzle appends an immutable event, marks the item done, and schedules a redo", async () => {
     const { db, rec } = fakeDb(puzzleItem);
     const res = await logOutcome(
@@ -182,6 +236,18 @@ describe("logOutcome (applyEvent)", () => {
     expect(rec.rewardCreates).toHaveLength(1);
     expect(rec.rewardCreates[0]!.type).toBe("streak_tick");
     expect(res.rewardEvents[0]!.payload.streakDay).toBe(1);
+
+    // P4: an immutable SkillStateSnapshot is appended per dimension this run touched,
+    // stamped with the run's logical time + methodology version.
+    expect(rec.skillSnapshots).toEqual([
+      {
+        dimension: "tactics",
+        estimate: 0,
+        sampleSize: 1,
+        methodologyVersion: expect.any(String),
+        runAt: new Date(T),
+      },
+    ]);
   });
 
   it("the event log is append-only — logging twice writes two rows, never overwrites", async () => {

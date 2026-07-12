@@ -41,12 +41,17 @@ import {
   upsertScheduleState,
   upsertSkillState,
 } from "@/db/tracker";
+import {
+  appendSkillStateSnapshots,
+  type SkillStateSnapshotInput,
+} from "@/db/decision-input";
 import { captureOperationalEvent } from "@/server/observability";
 
 type Db = Pick<
   PrismaClient,
   | "activityEvent"
   | "skillState"
+  | "skillStateSnapshot"
   | "scheduleState"
   | "adaptationLog"
   | "chessProfileSnapshot"
@@ -129,6 +134,8 @@ async function persistAdaptation(
   methodologyVersion: string,
 ): Promise<void> {
   await db.$transaction(async (tx) => {
+    const runAtDate = new Date(result.adaptationLog.runAt);
+    const snapshotInputs: SkillStateSnapshotInput[] = [];
     for (const s of result.skillStateUpdates) {
       await upsertSkillState(tx, {
         userId,
@@ -137,6 +144,21 @@ async function persistAdaptation(
         uncertainty: s.uncertainty,
         sampleSize: s.sampleSize,
       });
+      // P4: also append an immutable history row per dimension this run touched. The
+      // append-only log is the longitudinal memory the generator assembler reads; the
+      // upserted SkillState row stays the cheap "latest" view.
+      snapshotInputs.push({
+        userId,
+        dimension: s.dimension,
+        estimate: s.estimate,
+        uncertainty: s.uncertainty,
+        sampleSize: s.sampleSize,
+        methodologyVersion,
+        runAt: runAtDate,
+      });
+    }
+    if (snapshotInputs.length > 0) {
+      await appendSkillStateSnapshots(tx, snapshotInputs);
     }
     for (const s of result.scheduleUpdates) {
       await upsertScheduleState(tx, {
@@ -151,7 +173,7 @@ async function persistAdaptation(
     }
     await createAdaptationLog(tx, {
       userId,
-      runAt: new Date(result.adaptationLog.runAt),
+      runAt: runAtDate,
       trigger: result.adaptationLog.trigger,
       inputsSnapshot,
       decisions: result.adaptationLog
@@ -194,35 +216,35 @@ export async function logOutcome(
   let itemRef: string | null = null;
   let itemType: string | null = null;
   if (input.programItemId) {
-    const item = await db.programItem.findUnique({
-      where: { id: input.programItemId },
+    const item = await db.programItem.findFirst({
+      where: { id: input.programItemId, program: { userId } },
       select: { dimensionsTargeted: true, params: true, activityType: true },
     });
-    if (item) {
-      dimensions = item.dimensionsTargeted;
-      const p = (item.params ?? {}) as { track?: unknown; theme?: unknown };
-      track =
-        p.track === "pattern" || p.track === "calculation" ? p.track : null;
-      const theme = typeof p.theme === "string" ? p.theme : null;
-      // M11: a puzzle attempt schedules a spaced review of that specific puzzle ID (itemType: "puzzle").
-      // We fall back to the M7 theme-based schedule (itemType: "puzzle_theme") if no puzzleId is provided.
-      if (input.type === "puzzle_attempt") {
-        if (input.puzzleId) {
-          itemRef = input.puzzleId;
-          itemType = "puzzle";
-        } else if (theme) {
-          itemRef = theme;
-          itemType = "puzzle_theme";
-        }
-      } else if (input.type === "drill_done" && input.practiceItemId) {
-        // M12/M13: a drill outcome re-steps that exact personal position's FSRS schedule
-        // (itemRef = PracticeItem.id) — the same loop, no new seam. The itemType follows the
-        // originating activity: an endgame_drill spaces on its own "endgame" queue, every
-        // other drill (blunder) on "blunder_drill".
-        itemRef = input.practiceItemId;
-        itemType =
-          item.activityType === "endgame_drill" ? "endgame" : "blunder_drill";
+    if (!item) {
+      throw new Error("Program item not found");
+    }
+    dimensions = item.dimensionsTargeted;
+    const p = (item.params ?? {}) as { track?: unknown; theme?: unknown };
+    track = p.track === "pattern" || p.track === "calculation" ? p.track : null;
+    const theme = typeof p.theme === "string" ? p.theme : null;
+    // M11: a puzzle attempt schedules a spaced review of that specific puzzle ID (itemType: "puzzle").
+    // We fall back to the M7 theme-based schedule (itemType: "puzzle_theme") if no puzzleId is provided.
+    if (input.type === "puzzle_attempt") {
+      if (input.puzzleId) {
+        itemRef = input.puzzleId;
+        itemType = "puzzle";
+      } else if (theme) {
+        itemRef = theme;
+        itemType = "puzzle_theme";
       }
+    } else if (input.type === "drill_done" && input.practiceItemId) {
+      // M12/M13: a drill outcome re-steps that exact personal position's FSRS schedule
+      // (itemRef = PracticeItem.id) — the same loop, no new seam. The itemType follows the
+      // originating activity: an endgame_drill spaces on its own "endgame" queue, every
+      // other drill (blunder) on "blunder_drill".
+      itemRef = input.practiceItemId;
+      itemType =
+        item.activityType === "endgame_drill" ? "endgame" : "blunder_drill";
     }
   }
 

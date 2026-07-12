@@ -8,6 +8,7 @@ import {
   loadMethodology,
   rationaleFor,
 } from "@/methodology";
+import { parsePersistedSnapshot } from "@/server/decision-input";
 
 // M6 server orchestration: a generate → read round-trip over an in-memory fake Prisma.
 // The graded decisions are golden-tested in engine/generator + methodology/program-seams;
@@ -56,6 +57,8 @@ interface CreatedItem {
   status: string;
   resourceRef: null;
 }
+
+const savedGenerationInputs = new WeakMap<object, unknown>();
 
 function fakeDb(opts: FakeOpts) {
   const state: {
@@ -125,18 +128,26 @@ function fakeDb(opts: FakeOpts) {
       }),
     },
     activityEvent: { findMany: async () => opts.recentAttempts ?? [] },
+    // P4: the assembler reads longitudinal state (latest skill rows, immutable history,
+    // training preferences). The fakes return empty defaults so the assembled snapshot
+    // pins "no prior history" deterministically.
+    skillState: { findMany: async () => [] },
+    skillStateSnapshot: { findMany: async () => [] },
+    trainingPreferenceState: { findUnique: async () => null },
     program: {
       updateMany: async () => ({ count: 0 }),
       create: async ({
         data,
       }: {
         data: {
+          generationInput: unknown;
           methodologyVersion: string;
           items: {
             create: Omit<CreatedItem, "id" | "status" | "resourceRef">[];
           };
         };
       }) => {
+        savedGenerationInputs.set(db, data.generationInput);
         state.created = {
           id: "prog1",
           createdAt: new Date(0),
@@ -166,6 +177,9 @@ describe("generateAndSaveProgram + getTodayProgram (round-trip)", () => {
 
     const id = await generateAndSaveProgram(db, "u1", clock);
     expect(id).toBe("prog1");
+
+    const persisted = savedGenerationInputs.get(db);
+    expect(parsePersistedSnapshot(persisted)).toEqual(persisted);
 
     const today = await getTodayProgram(db, "u1");
     expect(today).not.toBeNull();

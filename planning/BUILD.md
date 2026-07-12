@@ -586,6 +586,7 @@ User 1─* PlatformConnection 1─* ChessProfileSnapshot
 User 1─1 Assessment (current)        User 1─* ConstraintSet (one isCurrent)
 User 1─* Program 1─* ProgramItem 1─* ActivityEvent
 User 1─* SkillState     User 1─* ScheduleState     User 1─* AdaptationLog
+User 1─* SkillStateSnapshot (history, append-only)   User 1─0..1 TrainingPreferenceState
 User 1─* RewardEvent · NotificationPref · ApiCallBudget
 User 1─* ResourceProgress *─1 ResourceRef            User 0..1─* PracticeItem
 ProgramItem *─1 ResourceRef        ResourceRef *─0..1 ActivityDefinition(methodologyKey)
