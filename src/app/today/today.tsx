@@ -266,9 +266,10 @@ export function Today() {
             type="button"
             size="sm"
             variant="outline"
+            disabled={today.isFetching}
             onClick={() => void today.refetch()}
           >
-            Try again
+            {today.isFetching ? "Retrying..." : "Try again"}
           </Button>
         </div>
       </StatusMessage>
@@ -327,6 +328,12 @@ export function Today() {
               type="button"
               size="sm"
               variant="outline"
+              disabled={
+                availability.isFetching ||
+                availabilityOverrides.isFetching ||
+                forecast.isFetching ||
+                weeklyFocus.isFetching
+              }
               onClick={() => {
                 void availability.refetch();
                 void availabilityOverrides.refetch();
@@ -334,7 +341,12 @@ export function Today() {
                 void weeklyFocus.refetch();
               }}
             >
-              Try again
+              {availability.isFetching ||
+              availabilityOverrides.isFetching ||
+              forecast.isFetching ||
+              weeklyFocus.isFetching
+                ? "Retrying..."
+                : "Try again"}
             </Button>
           </div>
         </StatusMessage>
@@ -1302,7 +1314,7 @@ function TodayPrimaryAction({
         })
       }
     >
-      Mark done
+      {busy ? "Saving..." : "Mark done"}
     </Button>
   );
 }
@@ -1335,7 +1347,7 @@ function TodayLogActions({
           })
         }
       >
-        Solved
+        {busy ? "Saving..." : "Solved"}
       </Button>,
       <Button
         key="struggled"
@@ -1351,7 +1363,7 @@ function TodayLogActions({
           })
         }
       >
-        Struggled
+        {busy ? "Saving..." : "Struggled"}
       </Button>,
     );
   } else if (
@@ -1372,7 +1384,7 @@ function TodayLogActions({
           })
         }
       >
-        Mark done
+        {busy ? "Saving..." : "Mark done"}
       </Button>,
     );
   }
@@ -1386,7 +1398,7 @@ function TodayLogActions({
       disabled={busy}
       onClick={() => onLogOutcome({ programItemId: item.id, type: "skip" })}
     >
-      Skip
+      {busy ? "Saving..." : "Skip"}
     </Button>,
   );
 
@@ -1459,7 +1471,7 @@ function TodayBlockDetails({
               onClick={onSkip}
               className="self-start"
             >
-              Skip
+              {busy ? "Saving..." : "Skip"}
             </Button>
           </div>
         ) : (
@@ -1706,7 +1718,7 @@ function BookLogForm({
           onClick={onSkip}
           size="sm"
         >
-          Skip
+          {busy ? "Saving..." : "Skip"}
         </Button>
       </div>
 

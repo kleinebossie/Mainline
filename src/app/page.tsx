@@ -2,7 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { beginSelectedBetaSignIn } from "@/app/signin/actions";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { PendingSubmitButton } from "@/components/pending-submit-button";
+import { buttonVariants } from "@/components/ui/button";
 import { prisma } from "@/db/client";
 import { auth } from "@/server/auth";
 import { getOnboardingStatus } from "@/server/onboarding";
@@ -348,26 +349,30 @@ export default async function Home() {
               className="mt-4 h-12 w-full rounded-md border border-input bg-paper-raised px-3 font-mono text-sm outline-none transition-shadow focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-paper"
             />
             <div className="mt-4 grid gap-3">
-              <Button
-                type="submit"
+              <PendingSubmitButton
                 name="provider"
                 value="lichess"
-                size="lg"
-                className="w-full"
+                pendingLabel="Opening Lichess…"
+                className={buttonVariants({
+                  size: "lg",
+                  className: "w-full",
+                })}
               >
                 Continue with Lichess
-              </Button>
+              </PendingSubmitButton>
               {googleEnabled && (
-                <Button
-                  type="submit"
+                <PendingSubmitButton
                   name="provider"
                   value="google"
-                  variant="outline"
-                  size="lg"
-                  className="w-full"
+                  pendingLabel="Opening Google…"
+                  className={buttonVariants({
+                    variant: "outline",
+                    size: "lg",
+                    className: "w-full",
+                  })}
                 >
                   Continue with Google
-                </Button>
+                </PendingSubmitButton>
               )}
             </div>
             <p className="mt-6 border-t border-line pt-5 text-center font-mono text-[0.68rem] leading-relaxed text-graphite">

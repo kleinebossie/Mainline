@@ -133,7 +133,9 @@ export function AccountActions() {
               }}
               type="button"
             >
-              Record optional consent
+              {grant.isPending
+                ? "Recording consent..."
+                : "Record optional consent"}
             </Button>
           </>
         )}
@@ -145,7 +147,9 @@ export function AccountActions() {
               type="button"
               variant="outline"
             >
-              Withdraw research consent
+              {withdraw.isPending
+                ? "Withdrawing consent..."
+                : "Withdraw research consent"}
             </Button>
             <p className="text-graphite mt-2 text-xs">
               {isOutdated

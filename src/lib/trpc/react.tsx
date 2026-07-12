@@ -20,7 +20,21 @@ function baseUrl() {
 }
 
 export function TRPCReactProvider({ children }: { children: ReactNode }) {
-  const [queryClient] = useState(() => new QueryClient());
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            // Mutations explicitly invalidate the data they change. Keeping
+            // recent reads fresh makes revisiting a screen immediate instead
+            // of issuing the same remote queries after every remount.
+            staleTime: 30_000,
+            gcTime: 10 * 60_000,
+            refetchOnWindowFocus: false,
+          },
+        },
+      }),
+  );
   const [trpcClient] = useState(() =>
     trpc.createClient({
       links: [

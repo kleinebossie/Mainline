@@ -1,7 +1,7 @@
 "use client";
 
 import * as Sentry from "@sentry/nextjs";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export default function GlobalError({
   error,
@@ -10,6 +10,8 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const [resetting, setResetting] = useState(false);
+
   useEffect(() => {
     Sentry.captureException(error);
   }, [error]);
@@ -30,10 +32,14 @@ export default function GlobalError({
           </p>
           <button
             className="w-fit rounded-md border px-4 py-2 font-mono text-sm"
-            onClick={reset}
+            disabled={resetting}
+            onClick={() => {
+              setResetting(true);
+              reset();
+            }}
             type="button"
           >
-            Try again
+            {resetting ? "Retrying..." : "Try again"}
           </button>
         </main>
       </body>

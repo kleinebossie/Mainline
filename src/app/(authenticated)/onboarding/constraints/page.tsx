@@ -1,16 +1,10 @@
-import { redirect } from "next/navigation";
-
-import { auth } from "@/server/auth";
 import { PageShell } from "@/components/app-shell";
 import { ConstraintsForm } from "@/app/onboarding/constraints/constraints-form";
 
 // Constraints step (BUILD.md §8 step 6 · §5.4). Captures the user's reality — time,
 // cadence, goals, format preferences, and a Seam-9 if-then plan. Everything here is
 // constraints/goals self-report (allowed); skill is never self-reported (Seam 2).
-export default async function ConstraintsPage() {
-  const session = await auth();
-  if (!session?.user) redirect("/signin");
-
+export default function ConstraintsPage() {
   return (
     <PageShell
       eyebrow="Step 3 of onboarding"

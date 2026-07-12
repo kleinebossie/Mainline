@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 
 import { signOutAction } from "@/server/auth-actions";
+import { PendingSubmitButton } from "@/components/pending-submit-button";
 import { cn } from "@/lib/utils";
 
 // The account menu (⚙) at the right of the top bar — the home for everything that is
@@ -91,12 +92,12 @@ export function AccountMenu() {
             </Link>
           ))}
           <form action={signOutAction} className="border-t border-line/80">
-            <button
-              type="submit"
+            <PendingSubmitButton
+              pendingLabel="Signing out…"
               className="text-graphite hover:text-clay hover:bg-clay/[0.06] block min-h-9 w-full px-3 py-2 text-left font-mono text-xs tracking-tight transition-colors focus-visible:bg-clay/[0.06] focus-visible:outline-none"
             >
               Sign out
-            </button>
+            </PendingSubmitButton>
           </form>
         </div>
       )}

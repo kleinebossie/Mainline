@@ -162,6 +162,8 @@ export async function getProgressSummary(
     dueStates,
     skillStates,
     ratingSnapshots,
+    userRow,
+    constraintRow,
   ] = await Promise.all([
     getEngagementSummary(db, userId, clock),
     db.programItem.count({
@@ -206,6 +208,15 @@ export async function getProgressSummary(
       select: { platform: true, capturedAt: true, ratings: true },
       orderBy: { capturedAt: "asc" },
     }),
+    db.user.findUnique({
+      where: { id: userId },
+      select: { primaryPlatform: true },
+    }),
+    db.constraintSet.findFirst({
+      where: { userId, isCurrent: true },
+      orderBy: { version: "desc" },
+      select: { formatPrefs: true },
+    }),
   ]);
 
   const minutesLogged = Math.round(
@@ -230,26 +241,16 @@ export async function getProgressSummary(
   }));
 
   // --- Resolve primary platform ---
-  const userRow = await db.user.findUnique({
-    where: { id: userId },
-    select: { primaryPlatform: true },
-  });
   const explicitPlatform = userRow?.primaryPlatform ?? null;
 
   // --- Resolve format preferences from current constraint set ---
   let resolvedFormats: string[] = [];
   let formatsSet = false;
-  {
-    const constraintRow = await db.constraintSet.findFirst({
-      where: { userId, isCurrent: true },
-      orderBy: { version: "desc" },
-    });
-    if (constraintRow) {
-      const parsed = formatPrefsSchema.safeParse(constraintRow.formatPrefs);
-      if (parsed.success && parsed.data.formats.length > 0) {
-        resolvedFormats = parsed.data.formats;
-        formatsSet = true;
-      }
+  if (constraintRow) {
+    const parsed = formatPrefsSchema.safeParse(constraintRow.formatPrefs);
+    if (parsed.success && parsed.data.formats.length > 0) {
+      resolvedFormats = parsed.data.formats;
+      formatsSet = true;
     }
   }
   if (resolvedFormats.length === 0) {

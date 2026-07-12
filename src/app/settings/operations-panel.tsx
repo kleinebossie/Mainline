@@ -20,11 +20,12 @@ export function OperationsPanel() {
           </p>
         </div>
         <button
-          className="rounded-md border px-3 py-1.5 font-mono text-xs"
-          onClick={() => jobs.refetch()}
+          className="rounded-md border px-3 py-1.5 font-mono text-xs disabled:opacity-50"
+          disabled={jobs.isFetching}
+          onClick={() => void jobs.refetch()}
           type="button"
         >
-          Refresh
+          {jobs.isFetching ? "Refreshing..." : "Refresh"}
         </button>
       </div>
 
@@ -53,7 +54,9 @@ export function OperationsPanel() {
                 onClick={() => retry.mutate({ id: job.id })}
                 type="button"
               >
-                Retry
+                {retry.isPending && retry.variables?.id === job.id
+                  ? "Retrying..."
+                  : "Retry"}
               </button>
             )}
           </article>

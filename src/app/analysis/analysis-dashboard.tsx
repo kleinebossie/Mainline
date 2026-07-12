@@ -268,9 +268,11 @@ export function AnalysisDashboard() {
               >
                 Scan recent 20
               </Button>
-              {batchStatus === "running" && batchProgress && (
+              {batchStatus === "running" && (
                 <span className="text-graphite font-mono text-xs">
-                  Scanning {batchProgress.done}/{batchProgress.total}…
+                  {batchProgress
+                    ? `Scanning ${batchProgress.done}/${batchProgress.total}…`
+                    : "Starting scan…"}
                 </span>
               )}
               {(batchStatus === "error" || batchStatus === "partial") &&
@@ -292,9 +294,10 @@ export function AnalysisDashboard() {
                   type="button"
                   size="sm"
                   variant="outline"
+                  disabled={libraryQuery.isFetching}
                   onClick={() => void libraryQuery.refetch()}
                 >
-                  Try again
+                  {libraryQuery.isFetching ? "Retrying..." : "Try again"}
                 </Button>
               </div>
             </StatusMessage>

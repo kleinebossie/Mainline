@@ -1,19 +1,17 @@
-import { redirect } from "next/navigation";
-
-import { auth } from "@/server/auth";
 import { PageShell } from "@/components/app-shell";
 import { ConstraintsForm } from "@/app/onboarding/constraints/constraints-form";
 import { AnalysisRunner } from "@/app/settings/analysis-runner";
 import { AccountActions } from "@/app/settings/account-actions";
 import { OperationsPanel } from "@/app/settings/operations-panel";
 import { prisma } from "@/db/client";
+import { getSession } from "@/server/session";
 
 // Settings (VISION §5/§7). Auth-gated. The post-onboarding home for everything you tune
 // about your training and your account: edit your plan (time/goals/preferences — the same
 // form onboarding uses), run game analysis, and export or erase your data.
 export default async function SettingsPage() {
-  const session = await auth();
-  if (!session?.user) redirect("/signin");
+  const session = await getSession();
+  if (!session?.user) return null;
   const account = await prisma.user.findUnique({
     where: { id: session.user.id },
     select: { role: true },

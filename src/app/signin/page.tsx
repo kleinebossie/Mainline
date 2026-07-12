@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 
 import { auth } from "@/server/auth";
-import { Button } from "@/components/ui/button";
+import { PendingSubmitButton } from "@/components/pending-submit-button";
+import { buttonVariants } from "@/components/ui/button";
 import { Wordmark } from "@/components/app-shell";
 import { beginBetaSignIn } from "@/app/signin/actions";
 
@@ -49,9 +50,12 @@ export default async function SignInPage() {
               maxLength={128}
               className="border-line bg-background mb-3 w-full rounded-md border px-3 py-2 text-sm"
             />
-            <Button type="submit" size="lg" className="w-full">
+            <PendingSubmitButton
+              pendingLabel="Opening Lichess…"
+              className={buttonVariants({ size: "lg", className: "w-full" })}
+            >
               Continue with Lichess
-            </Button>
+            </PendingSubmitButton>
           </form>
 
           {googleEnabled && (
@@ -75,14 +79,16 @@ export default async function SignInPage() {
                 maxLength={128}
                 className="border-line bg-background mb-3 w-full rounded-md border px-3 py-2 text-sm"
               />
-              <Button
-                type="submit"
-                variant="outline"
-                size="lg"
-                className="w-full"
+              <PendingSubmitButton
+                pendingLabel="Opening Google…"
+                className={buttonVariants({
+                  variant: "outline",
+                  size: "lg",
+                  className: "w-full",
+                })}
               >
                 Continue with Google
-              </Button>
+              </PendingSubmitButton>
             </form>
           )}
 

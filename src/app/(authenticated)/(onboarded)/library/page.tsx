@@ -1,21 +1,12 @@
-import { redirect } from "next/navigation";
-
-import { auth } from "@/server/auth";
-import { prisma } from "@/db/client";
 import { PageShell } from "@/components/app-shell";
 import { Library } from "@/app/library/library-view";
-import { requireOnboardingComplete } from "@/server/onboarding";
 
 // The "Library" screen (BUILD.md M14 · §4.2–4.4). Auth-gated. The deliberately-external layer:
 // band-appropriate book/course recommendations (graded, low-band overload books blocked), the
 // book-study protocol (active recall, the 85% rule, Woodpecker cycles), and the 2D/3D modality
 // + over-the-board calibration — gated by the user's play medium. Nothing is hosted; sessions
 // are logged here and feed the same adaptation loop as every in-app outcome.
-export default async function LibraryPage() {
-  const session = await auth();
-  if (!session?.user) redirect("/signin");
-  await requireOnboardingComplete(prisma, session.user.id);
-
+export default function LibraryPage() {
   return (
     <PageShell
       eyebrow="Books, courses & over-the-board"
