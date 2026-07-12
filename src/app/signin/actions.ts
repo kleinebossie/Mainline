@@ -24,3 +24,13 @@ export async function beginBetaSignIn(
   }
   await signIn(provider, { redirectTo: "/connections" });
 }
+
+export async function beginSelectedBetaSignIn(
+  formData: FormData,
+): Promise<void> {
+  const provider = String(formData.get("provider") ?? "");
+  if (provider !== "lichess" && provider !== "google") {
+    throw new Error("Choose a sign-in provider.");
+  }
+  await beginBetaSignIn(provider, formData);
+}

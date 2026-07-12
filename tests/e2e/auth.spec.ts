@@ -23,7 +23,15 @@ test("connections page redirects to sign-in when unauthenticated", async ({
   ).toBeVisible();
 });
 
-test("home links into the get-started flow", async ({ page }) => {
+test("home starts onboarding and offers sign-in directly", async ({ page }) => {
   await page.goto("/");
+  await expect(
+    page.getByRole("heading", { name: /Stop guessing what to train/i }),
+  ).toBeVisible();
   await expect(page.getByRole("link", { name: /Get started/i })).toBeVisible();
+  await expect(page.getByText(/invite required/i)).toBeVisible();
+  await expect(page.getByLabel(/^Invite code$/i)).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: /Continue with Lichess/i }),
+  ).toBeVisible();
 });

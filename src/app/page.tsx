@@ -1,200 +1,416 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { auth } from "@/server/auth";
+import { beginSelectedBetaSignIn } from "@/app/signin/actions";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { prisma } from "@/db/client";
-import { buttonVariants } from "@/components/ui/button";
-import { GradeMark, ConfidenceBar } from "@/components/evidence";
+import { auth } from "@/server/auth";
 import { getOnboardingStatus } from "@/server/onboarding";
-import { cn } from "@/lib/utils";
 
-// The landing hero is the thesis: this is the honest line. It performs the brand rather
-// than describing it — the strongest no-BS statement up top, and a live specimen of the
-// grade-and-confidence annotation right beside it so a visitor grasps the one idea at once.
-
-const GRADE_KEY = [
-  { glyph: "‼", grade: "A", label: "Strong, replicated" },
-  { glyph: "!", grade: "B", label: "Suggestive, limited" },
-  { glyph: "?!", grade: "C", label: "Theory / best-guess" },
-  { glyph: "??", grade: "D", label: "Myth: avoided" },
+const SETUP_STEPS = [
+  {
+    label: "Connect",
+    title: "Bring your games",
+    detail:
+      "Link Lichess or add Chess.com so Mainline can work from your actual play.",
+  },
+  {
+    label: "Calibrate",
+    title: "Establish a baseline",
+    detail:
+      "Complete a short tactical check. We measure play instead of asking you to rate yourself.",
+  },
+  {
+    label: "Constrain",
+    title: "Define your reality",
+    detail:
+      "Set your available time, goals, formats, preferences, and resources you already own.",
+  },
+  {
+    label: "Reveal",
+    title: "See the starting picture",
+    detail:
+      "Review the useful signals, the uncertainty, and what the program can act on first.",
+  },
+  {
+    label: "Train",
+    title: "Open today’s session",
+    detail:
+      "Get a practical plan that fits today, with a reason attached to every activity.",
+  },
 ] as const;
 
-const GRADE_CLR: Record<string, string> = {
-  A: "text-grade-a",
-  B: "text-grade-b",
-  C: "text-grade-c",
-  D: "text-grade-d",
-};
+const PRINCIPLES = [
+  {
+    mark: "∴",
+    title: "Every recommendation explains why",
+    detail:
+      "See why this activity made the plan, why it matters now, and how strong the supporting evidence is.",
+  },
+  {
+    mark: "≠",
+    title: "No rating promises",
+    detail:
+      "No training activity has been proven to cause rating gains. Mainline will not turn uncertainty into a sales pitch.",
+  },
+  {
+    mark: "↻",
+    title: "The plan keeps moving",
+    detail:
+      "New games and completed training reshape what comes next. There is no generic syllabus to fall behind on.",
+  },
+  {
+    mark: "⌁",
+    title: "Your data stays under your control",
+    detail:
+      "Connections are read-only. Your data is never sold, and you can export or delete it whenever you choose.",
+  },
+  {
+    mark: "□",
+    title: "No runtime AI",
+    detail:
+      "The product uses open data, transparent rules, and a client-side chess engine, not an opaque chatbot deciding your training.",
+  },
+  {
+    mark: "0€",
+    title: "Training quality is never paywalled",
+    detail:
+      "Mainline is free, without ads. Optional patronage may support the project, but never buys better training.",
+  },
+] as const;
 
 export default async function Home() {
   const session = await auth();
-  // Signed-in users who haven't finished onboarding go straight to the setup flow.
+
   if (session?.user) {
     const status = await getOnboardingStatus(prisma, session.user.id);
-    if (!status.complete) redirect("/onboarding");
+    redirect(status.complete ? "/today" : "/onboarding");
   }
-  const primaryHref = session?.user ? "/today" : "/signin";
+
+  const googleEnabled = Boolean(
+    process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET,
+  );
 
   return (
-    <main className="min-h-screen">
-      {/* ── Hero: the dark analysis panel ── */}
-      <section className="bg-ink text-paper relative overflow-hidden">
+    <main className="min-h-screen overflow-hidden">
+      <header className="bg-paper/90 sticky top-0 z-30 border-b border-line/80 backdrop-blur-md">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-6 px-4 sm:px-6">
+          <Link
+            href="/"
+            className="rounded-sm font-mono text-sm font-bold uppercase tracking-[0.2em] text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          >
+            Mainline
+            <span className="text-evergreen tracking-normal" aria-hidden>
+              ·!
+            </span>
+          </Link>
+          <nav
+            aria-label="Landing page navigation"
+            className="hidden items-center gap-6 font-mono text-xs text-graphite sm:flex"
+          >
+            <a
+              className="transition-colors hover:text-ink"
+              href="#how-it-works"
+            >
+              How it works
+            </a>
+            <a className="transition-colors hover:text-ink" href="#principles">
+              Principles
+            </a>
+          </nav>
+          <a href="#get-started" className={buttonVariants({ size: "sm" })}>
+            Get started
+          </a>
+        </div>
+      </header>
+
+      <section className="relative border-b border-line/80">
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 opacity-[0.5]"
-          style={{
-            backgroundImage:
-              "linear-gradient(hsl(var(--paper) / 0.05) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--paper) / 0.05) 1px, transparent 1px)",
-            backgroundSize: "28px 28px",
-          }}
+          className="pointer-events-none absolute inset-y-0 left-1/2 hidden w-px bg-line/80 lg:block"
         />
-        <div className="relative mx-auto grid max-w-5xl gap-12 px-6 py-20 sm:py-28 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
-          <div className="settle flex flex-col gap-6">
-            <p className="text-evergreen-bright font-mono text-[0.72rem] font-medium uppercase tracking-[0.22em]">
-              The principal variation · science-based, no-BS chess training
+        <div className="mx-auto grid max-w-6xl lg:grid-cols-2">
+          <div className="settle flex flex-col justify-center px-4 py-16 sm:px-6 sm:py-24 lg:min-h-[690px] lg:pr-16">
+            <p className="eyebrow text-evergreen">
+              Personal chess training, properly directed
             </p>
-
-            <h1 className="font-serif text-6xl font-semibold leading-none tracking-tight sm:text-7xl">
-              Mainline
-              <span aria-hidden className="text-evergreen-bright">
-                {" "}
-                ·!
-              </span>
+            <h1 className="mt-5 max-w-xl font-serif text-5xl font-semibold leading-[0.98] tracking-[-0.04em] sm:text-7xl">
+              Stop guessing what to train.
             </h1>
-
-            <p className="font-serif text-2xl leading-snug sm:text-3xl">
-              No app can prove it will raise your rating.{" "}
-              <span className="text-evergreen-bright italic">
-                This one won&apos;t pretend it can.
-              </span>
+            <p className="mt-7 max-w-lg font-serif text-xl leading-relaxed text-graphite sm:text-2xl">
+              Mainline turns your games, goals, and available time into a daily
+              chess training program that keeps adapting.
             </p>
-
-            <p className="text-paper/70 max-w-md text-base leading-relaxed">
-              A personalized training program built from your real games and
-              your real constraints, then adapted as you play. Every
-              recommendation shows its reasoning and exactly how strong the
-              evidence is.
+            <p className="mt-5 max-w-lg text-base leading-relaxed text-graphite">
+              It sits above puzzle trainers, game analysis, books, and courses.
+              Instead of giving you more material, it decides what deserves your
+              attention today, then tells you why.
             </p>
-
-            <div className="mt-2 flex flex-wrap items-center gap-3">
-              <Link
-                href={primaryHref}
-                className={cn(buttonVariants({ size: "lg" }))}
-              >
-                {session?.user ? "Open today's session →" : "Get started →"}
-              </Link>
+            <div className="mt-9 flex flex-wrap items-center gap-4">
+              <a href="#get-started" className={buttonVariants({ size: "lg" })}>
+                Build my training plan
+              </a>
               <a
-                href="#how"
-                className="text-paper/70 hover:text-paper font-mono text-sm underline-offset-4 transition-colors hover:underline"
+                href="#how-it-works"
+                className="rounded-sm font-mono text-sm text-graphite underline decoration-line underline-offset-4 transition-colors hover:text-ink"
               >
-                How the honesty works
+                See what setup involves
               </a>
             </div>
+            <p className="mt-4 font-mono text-[0.68rem] uppercase tracking-[0.12em] text-graphite">
+              Closed beta · invite required · free to use
+            </p>
           </div>
 
-          {/* The specimen — a real annotated recommendation, the product in one card. */}
-          <div className="settle bg-paper text-ink rounded-lg border border-paper/10 p-5 shadow-sheet [animation-delay:120ms]">
-            <p className="eyebrow flex items-center justify-between">
-              <span>Specimen · today</span>
-              <span className="text-graphite normal-case tracking-normal">
-                ~12 min
-              </span>
-            </p>
-            <h2 className="mt-2 font-serif text-2xl font-semibold tracking-tight">
-              Tactics: knight forks
-            </h2>
-            <p className="text-graphite mt-1 font-mono text-xs">
-              target ~1450 · 8 puzzles · worked example first
-            </p>
-            <div className="bg-paper/70 mt-4 rounded-md border border-dashed p-4">
-              <p className="eyebrow flex items-center gap-2">
-                <span className="text-evergreen not-italic" aria-hidden>
-                  ∴
-                </span>
-                Why this?
-              </p>
-              <p className="mt-2 font-serif text-[0.95rem] leading-relaxed">
-                Your last 20 games leak most rating in the middlegame to missed
-                forks. Spaced practice at a stretch level is the highest-yield
-                response.
-              </p>
-              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
-                <GradeMark grade="B" tier={1} />
-                <ConfidenceBar confidence="medium" />
+          <div className="settle flex items-center bg-ink px-4 py-12 text-paper [animation-delay:100ms] sm:px-6 sm:py-16 lg:min-h-[690px] lg:pl-16">
+            <div className="mx-auto w-full max-w-md">
+              <div className="flex items-end justify-between gap-4 border-b border-paper/15 pb-4">
+                <div>
+                  <p className="font-mono text-[0.65rem] uppercase tracking-[0.2em] text-evergreen-bright">
+                    Illustrative training line
+                  </p>
+                  <h2 className="mt-2 font-serif text-2xl font-semibold">
+                    A plan from your reality
+                  </h2>
+                </div>
+                <span className="font-mono text-xs text-paper/50">Today</span>
+              </div>
+
+              <div className="grid grid-cols-[1fr_auto] gap-x-5 gap-y-3 border-b border-paper/15 py-5 font-mono text-xs">
+                <span className="text-paper/50">Time available</span>
+                <span>25 minutes</span>
+                <span className="text-paper/50">Recent signal</span>
+                <span>missed conversions</span>
+                <span className="text-paper/50">Goal</span>
+                <span>stronger OTB play</span>
+                <span className="text-paper/50">Due practice</span>
+                <span>2 reviews</span>
+              </div>
+
+              <div className="relative space-y-3 py-6 before:absolute before:bottom-10 before:left-[1.18rem] before:top-10 before:w-px before:bg-evergreen-bright/40">
+                <TrainingBlock
+                  number="1"
+                  minutes="10 min"
+                  title="Repair your own mistakes"
+                  reason="Recent games supply the positions."
+                />
+                <TrainingBlock
+                  number="2"
+                  minutes="8 min"
+                  title="Review what is due"
+                  reason="Completed work returns when it is useful."
+                />
+                <TrainingBlock
+                  number="3"
+                  minutes="7 min"
+                  title="Build the current priority"
+                  reason="The session fits the goal and time left."
+                />
+              </div>
+
+              <div className="border-t border-dashed border-paper/20 pt-4">
+                <p className="flex gap-3 font-serif text-sm leading-relaxed text-paper/65">
+                  <span className="font-mono text-evergreen-bright" aria-hidden>
+                    ∴
+                  </span>
+                  Every block carries its evidence grade, the data that
+                  triggered it, and an honest explanation of uncertainty.
+                </p>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ── The evaluation key: the one idea, taught ── */}
-      <section id="how" className="mx-auto max-w-5xl px-6 py-16 sm:py-20">
-        <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
-          <div className="flex flex-col gap-4">
-            <p className="eyebrow">The evaluation key</p>
-            <h2 className="font-serif text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">
-              Borrowed from the board: every claim is annotated.
+      <section
+        id="how-it-works"
+        className="scroll-mt-16 border-b border-line/80 bg-paper-raised/70"
+      >
+        <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-24">
+          <div className="grid gap-8 lg:grid-cols-[0.72fr_1.28fr] lg:gap-16">
+            <div>
+              <p className="eyebrow">Your first session</p>
+              <h2 className="mt-4 font-serif text-4xl font-semibold leading-tight sm:text-5xl">
+                Five steps from scattered data to a useful day.
+              </h2>
+              <p className="mt-5 max-w-md leading-relaxed text-graphite">
+                Setup gives Mainline enough context to make a defensible first
+                plan. You can change every constraint later.
+              </p>
+            </div>
+
+            <ol className="border-t border-line">
+              {SETUP_STEPS.map((step, index) => (
+                <li
+                  key={step.label}
+                  className="grid gap-2 border-b border-line py-5 sm:grid-cols-[2rem_7rem_1fr] sm:items-baseline sm:gap-4"
+                >
+                  <span className="font-mono text-xs text-evergreen">
+                    {index + 1}
+                  </span>
+                  <span className="font-mono text-xs font-semibold uppercase tracking-[0.12em] text-ink">
+                    {step.label}
+                  </span>
+                  <div>
+                    <h3 className="font-serif text-lg font-semibold">
+                      {step.title}
+                    </h3>
+                    <p className="mt-1 text-sm leading-relaxed text-graphite">
+                      {step.detail}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+          <p className="ml-auto mt-10 max-w-2xl border-l-2 border-evergreen/50 pl-5 font-serif text-xl leading-relaxed text-ink">
+            After setup, the loop is simple: train, play, and let new outcomes
+            change what deserves attention next.
+          </p>
+        </div>
+      </section>
+
+      <section id="principles" className="scroll-mt-16 border-b border-line/80">
+        <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-24">
+          <div className="max-w-2xl">
+            <p className="eyebrow">The no-BS part</p>
+            <h2 className="mt-4 font-serif text-4xl font-semibold leading-tight sm:text-5xl">
+              Trust should be visible in the product.
             </h2>
-            <p className="text-graphite leading-relaxed">
-              Chess players already grade moves: a brilliant move, a blunder.
-              Mainline grades its own advice the same way, so you always know
-              whether you&apos;re following strong evidence or a best guess. We
-              never dress a guess up as a fact.
+            <p className="mt-5 text-lg leading-relaxed text-graphite">
+              Mainline is science-based without pretending the science is
+              stronger than it is. Its boundaries are part of the product, not
+              fine print.
             </p>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            {GRADE_KEY.map((g) => (
-              <div
-                key={g.grade}
-                className="bg-card eval-gutter rounded-lg border p-5 pl-6 shadow-sheet transition-all duration-150 hover:translate-y-[-1px]"
-                data-grade={g.grade}
+          <div className="mt-12 grid border-l border-t border-line sm:grid-cols-2 lg:grid-cols-3">
+            {PRINCIPLES.map((principle) => (
+              <article
+                key={principle.title}
+                className="border-b border-r border-line bg-paper-raised/50 p-6 sm:p-7"
               >
-                <div className="flex items-center gap-3">
-                  <span
-                    aria-hidden
-                    className={cn(
-                      "font-mono text-2xl font-bold leading-none select-none",
-                      GRADE_CLR[g.grade],
-                    )}
-                  >
-                    {g.glyph}
-                  </span>
-                  <span className="font-mono text-xs font-semibold uppercase tracking-[0.12em]">
-                    Grade {g.grade}
-                  </span>
-                </div>
-                <p className="text-graphite mt-3 font-serif text-sm leading-relaxed">
-                  {g.label} evidence. Used to mark{" "}
-                  {g.grade === "A"
-                    ? "strong, replicated research results (like FSRS spacing formulas)."
-                    : g.grade === "B"
-                      ? "suggestive studies with limited size or context."
-                      : g.grade === "C"
-                        ? "logical theories, placeholders, or calibration estimates."
-                        : "popular chess improvement myths that the app actively avoids."}
+                <span
+                  className="font-mono text-sm font-semibold text-evergreen"
+                  aria-hidden
+                >
+                  {principle.mark}
+                </span>
+                <h3 className="mt-6 font-serif text-xl font-semibold leading-snug">
+                  {principle.title}
+                </h3>
+                <p className="mt-3 text-sm leading-relaxed text-graphite">
+                  {principle.detail}
                 </p>
-              </div>
+              </article>
             ))}
           </div>
         </div>
-
-        <p className="text-graphite mt-12 max-w-2xl border-l-2 border-evergreen/40 pl-4 font-serif text-lg italic leading-relaxed">
-          The hardest, most honest fact in chess training: no activity has ever
-          been proven to cause a measured rating gain. Mainline helps you train
-          smarter on the best available evidence. It never sells you certainty.
-        </p>
       </section>
 
-      <footer className="border-t border-line/80">
-        <div className="text-graphite mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-4 px-6 py-8 font-mono text-xs">
-          <span className="uppercase tracking-[0.2em]">Mainline</span>
-          <span>
-            Hosts no content · uses no AI · points you to Lichess &amp; the open
-            puzzle database.
+      <section id="get-started" className="scroll-mt-16 bg-ink text-paper">
+        <div className="mx-auto grid max-w-6xl gap-12 px-4 py-20 sm:px-6 sm:py-24 lg:grid-cols-[1fr_0.82fr] lg:items-center lg:gap-20">
+          <div>
+            <p className="font-mono text-[0.68rem] font-medium uppercase tracking-[0.2em] text-evergreen-bright">
+              Step 1 · create your account
+            </p>
+            <h2 className="mt-5 max-w-xl font-serif text-4xl font-semibold leading-tight sm:text-6xl">
+              Give your chess training a main line.
+            </h2>
+            <p className="mt-6 max-w-lg text-lg leading-relaxed text-paper/65">
+              Mainline is currently in closed beta. Enter your invite code, sign
+              in, and we will take you straight to connecting your games.
+            </p>
+          </div>
+
+          <form
+            action={beginSelectedBetaSignIn}
+            className="bg-paper text-ink rounded-lg border border-paper/10 p-6 shadow-sheet sm:p-8"
+          >
+            <label
+              htmlFor="landing-invite"
+              className="font-mono text-xs font-medium uppercase tracking-[0.12em]"
+            >
+              Invite code
+            </label>
+            <p
+              id="landing-invite-help"
+              className="mt-2 text-sm leading-relaxed text-graphite"
+            >
+              Optional if your email is already allowlisted.
+            </p>
+            <input
+              id="landing-invite"
+              name="inviteCode"
+              autoComplete="one-time-code"
+              maxLength={128}
+              aria-describedby="landing-invite-help"
+              className="mt-4 h-12 w-full rounded-md border border-input bg-paper-raised px-3 font-mono text-sm outline-none transition-shadow focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-paper"
+            />
+            <div className="mt-4 grid gap-3">
+              <Button
+                type="submit"
+                name="provider"
+                value="lichess"
+                size="lg"
+                className="w-full"
+              >
+                Continue with Lichess
+              </Button>
+              {googleEnabled && (
+                <Button
+                  type="submit"
+                  name="provider"
+                  value="google"
+                  variant="outline"
+                  size="lg"
+                  className="w-full"
+                >
+                  Continue with Google
+                </Button>
+              )}
+            </div>
+            <p className="mt-6 border-t border-line pt-5 text-center font-mono text-[0.68rem] leading-relaxed text-graphite">
+              Read-only connections · no password stored · export or delete your
+              data at any time
+            </p>
+          </form>
+        </div>
+      </section>
+
+      <footer className="border-t border-paper/10 bg-ink text-paper/50">
+        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-7 font-mono text-[0.68rem] sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <span className="uppercase tracking-[0.18em]">
+            Mainline · science-based chess training
           </span>
+          <span>No ads · no runtime AI · no rating promises</span>
         </div>
       </footer>
     </main>
+  );
+}
+
+function TrainingBlock({
+  number,
+  minutes,
+  title,
+  reason,
+}: {
+  number: string;
+  minutes: string;
+  title: string;
+  reason: string;
+}) {
+  return (
+    <div className="relative grid grid-cols-[2.4rem_1fr_auto] items-start gap-3 rounded-md border border-paper/10 bg-paper/[0.04] p-3.5">
+      <span className="relative z-10 flex h-6 w-6 items-center justify-center rounded-full bg-evergreen font-mono text-[0.65rem] font-semibold text-primary-foreground">
+        {number}
+      </span>
+      <div>
+        <h3 className="font-serif text-base font-semibold">{title}</h3>
+        <p className="mt-1 text-xs leading-relaxed text-paper/50">{reason}</p>
+      </div>
+      <span className="font-mono text-[0.68rem] text-paper/50">{minutes}</span>
+    </div>
   );
 }
