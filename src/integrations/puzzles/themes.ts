@@ -78,8 +78,6 @@ export const LICHESS_PUZZLE_THEMES = [
   "superGM",
 ] as const;
 
-export type LichessPuzzleTheme = (typeof LICHESS_PUZZLE_THEMES)[number];
-
 // A few themes read better with hand-written titles; the rest are humanized from the
 // camelCase key. Pure + golden-tested (display only — carries no methodology).
 const TITLE_OVERRIDES: Readonly<Record<string, string>> = {

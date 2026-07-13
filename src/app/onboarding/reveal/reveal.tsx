@@ -7,14 +7,10 @@ import { useEffect } from "react";
 import { trpc } from "@/lib/trpc/react";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { GradeMark } from "@/components/evidence";
+import { asEvidenceGrade, GradeMark } from "@/components/evidence";
 import { TransparencyCard } from "@/components/transparency-card";
 import { StatusMessage } from "@/components/ui/status-message";
-
-type Grade = "A" | "B" | "C" | "D";
-function asGrade(g: string): Grade {
-  return g === "A" || g === "B" || g === "C" || g === "D" ? g : "C";
-}
+import { CalibrationTrackGauges } from "@/app/onboarding/calibration-track-gauges";
 
 // The reveal: the honest "what your games say vs. what you assumed" moment (VISION §2;
 // the Dunning–Kruger guard, Seam 2). It contrasts the BEHAVIOURAL baseline (calibration +
@@ -73,19 +69,12 @@ export function Reveal() {
     );
   }
 
-  // Display-only axis for the per-dimension gauges (UI scale, not a methodology value).
-  const minRating = 800;
-  const maxRating = 2500;
-  const range = maxRating - minRating;
-  const clampPct = (r: number) =>
-    Math.min(100, Math.max(0, ((r - minRating) / range) * 100));
-
   const goals = constraints.data?.goals ?? [];
 
   return (
     <div className="flex flex-col gap-6">
       {/* 1 — the measured, multi-dimensional baseline */}
-      <Card gutter={asGrade(estimate.evidenceGrade)} className="settle">
+      <Card gutter={asEvidenceGrade(estimate.evidenceGrade)} className="settle">
         <CardHeader className="pb-4">
           <CardTitle className="font-serif text-2xl font-semibold">
             Your starting baseline
@@ -98,42 +87,7 @@ export function Reveal() {
           </p>
         </CardHeader>
         <CardContent className="flex flex-col gap-5">
-          <div className="flex flex-col gap-3">
-            {tracks.map((t) => {
-              const v = t.estimate.tacticalRatingEstimate;
-              const u = t.estimate.uncertainty;
-              const left = clampPct(v - u);
-              const width = clampPct(v + u) - left;
-              return (
-                <div
-                  key={t.id}
-                  className="flex flex-col gap-2 rounded-md border p-4 bg-paper/30"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="font-serif text-base font-semibold text-ink">
-                      {t.label}
-                    </span>
-                    <span className="flex items-center gap-2">
-                      <span className="font-mono text-sm font-semibold tabular-nums text-ink">
-                        ≈ {v} ± {u}
-                      </span>
-                      <GradeMark grade={t.estimate.evidenceGrade} />
-                    </span>
-                  </div>
-                  <div className="relative h-3 w-full bg-ink/5 dark:bg-ink/20 rounded-sm border border-line overflow-hidden">
-                    <div
-                      className="absolute top-0 bottom-0 bg-evergreen/15 dark:bg-evergreen/35 border-x border-evergreen/30"
-                      style={{ left: `${left}%`, width: `${width}%` }}
-                    />
-                    <div
-                      className="absolute top-0 bottom-0 w-0.5 bg-evergreen"
-                      style={{ left: `${clampPct(v)}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <CalibrationTrackGauges tracks={tracks} />
 
           <div className="bg-paper/60 rounded-md border border-dashed p-4">
             <div className="flex items-center gap-2 mb-3">

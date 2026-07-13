@@ -35,7 +35,7 @@ type Db = Pick<
   | "user"
 >;
 
-export interface ProgressEvidence {
+interface ProgressEvidence {
   text: string;
   evidenceGrade: string;
   evidenceTier: number;
@@ -65,21 +65,6 @@ interface RatingFormatSignal {
   realProgress: boolean;
   plateau: { reason: "plateau" | "new_high" | "insufficient" };
   expectation: { text: string } | null;
-}
-
-export interface RatingResponse {
-  platform: string;
-  platformLabel: string;
-  platformSet: boolean;
-  formatsSet: boolean;
-  formats: RatingFormatSignal[];
-  ciMultiplier: number;
-  ciEvidence: {
-    evidenceGrade: string;
-    evidenceTier: number;
-    citationKey: string;
-    citationSource: string | null;
-  };
 }
 
 function ledgerMap(cfg: MethodologyConfig): Map<string, string> {

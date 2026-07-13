@@ -18,7 +18,7 @@ function isUniqueConflict(error: unknown): boolean {
   );
 }
 
-export function safeJobErrorCode(error: unknown): string {
+function safeJobErrorCode(error: unknown): string {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     return `prisma_${error.code.toLowerCase()}`;
   }
@@ -167,15 +167,4 @@ export async function runJob<T>(
     });
     throw error;
   }
-}
-
-export async function releaseJobForRetry(
-  db: JobDb,
-  id: string,
-): Promise<boolean> {
-  const result = await db.jobRun.updateMany({
-    where: { id, status: "error" },
-    data: { lockedUntil: null },
-  });
-  return result.count === 1;
 }

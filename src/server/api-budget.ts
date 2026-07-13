@@ -1,4 +1,4 @@
-import type { PrismaClient } from "@prisma/client";
+import { Prisma, type PrismaClient } from "@prisma/client";
 
 import type { Platform } from "@/integrations/adapter";
 
@@ -24,7 +24,7 @@ function positiveInteger(value: string | undefined, fallback: number): number {
   return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : fallback;
 }
 
-export function apiBudgetPolicy(platform: Platform): ApiBudgetPolicy {
+function apiBudgetPolicy(platform: Platform): ApiBudgetPolicy {
   const specific =
     platform === "lichess"
       ? process.env.LICHESS_API_REQUESTS_PER_HOUR
@@ -75,7 +75,13 @@ export async function consumeApiCallBudget(
   try {
     await db.apiCallBudget.create({ data: { ...key, count: 1 } });
     return { allowed: true, count: 1, limit: policy.limit, windowStart };
-  } catch {
+  } catch (error) {
+    if (
+      !(error instanceof Prisma.PrismaClientKnownRequestError) ||
+      error.code !== "P2002"
+    ) {
+      throw error;
+    }
     const retried = await db.apiCallBudget.updateMany({
       where: { ...key, count: { lt: policy.limit } },
       data: { count: { increment: 1 } },

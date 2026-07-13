@@ -1,10 +1,6 @@
-// Typed query helpers for the P4 decision-state tables (BUILD.md §4: db/ holds query
-// helpers, NO business logic). These cover SkillStateSnapshot (immutable append-only
-// history), TrainingPreferenceState (the derived fit-preferences rollup P4 ships empty and
-// P8 writes), and the ActivityEvent-derived recency/adherence roll-ups. The graded
-// DECISIONS live upstream; this module only reads/writes state.
+// Persistence helpers only. Graded decisions belong upstream.
 
-import { Prisma, type PrismaClient } from "@prisma/client";
+import type { PrismaClient } from "@prisma/client";
 
 import {
   EMPTY_TRAINING_PREFERENCES,
@@ -18,8 +14,6 @@ const DEFAULT_RECENCY_WINDOW_DAYS = 28;
 const DAY_MS = 86_400_000;
 const DEFAULT_SNAPSHOT_HISTORY_LIMIT = 500;
 
-// --- SkillStateSnapshot (append-only history) --------------------------------
-
 export interface SkillStateSnapshotInput {
   userId: string;
   dimension: string;
@@ -30,8 +24,7 @@ export interface SkillStateSnapshotInput {
   runAt: Date;
 }
 
-/** Append one immutable SkillStateSnapshot row per dimension after an adaptation run.
- *  Append-only: never updates or deletes; the User cascade is the sole removal path. */
+/** Append-only except for the User cascade. */
 export async function appendSkillStateSnapshots(
   db: Pick<PrismaClient, "skillStateSnapshot">,
   inputs: readonly SkillStateSnapshotInput[],
@@ -51,8 +44,7 @@ export async function appendSkillStateSnapshots(
   return inputs.length;
 }
 
-/** Recent immutable skill-state history (oldest→newest) for the decision-state assembler.
- *  Capped to keep the snapshot bounded; the full audit history remains queryable. */
+/** Bounded history returned oldest to newest. */
 export async function findRecentSkillStateSnapshots(
   db: Pick<PrismaClient, "skillStateSnapshot">,
   userId: string,
@@ -84,8 +76,6 @@ export async function findRecentSkillStateSnapshots(
   }));
 }
 
-// --- TrainingPreferenceState (derived fit preferences) ------------------------
-
 function decodeTrainingPreferenceState(row: {
   preferences: unknown;
   userOverride: unknown;
@@ -106,8 +96,6 @@ function decodeTrainingPreferenceState(row: {
   };
 }
 
-/** The user's training-preference rollup, decoded, or the empty default when no row exists
- *  yet (P4 — P8 is the first writer). Never a skill estimate (roadmap §1). */
 export async function findTrainingPreferenceState(
   db: Pick<PrismaClient, "trainingPreferenceState">,
   userId: string,
@@ -126,57 +114,13 @@ export async function findTrainingPreferenceState(
       preferences: EMPTY_TRAINING_PREFERENCES,
       userOverride: null,
       resetAt: null,
-      // 0 = "no row exists yet" — a stable sentinel so two identically-empty states
-      // produce an identical snapshot (L2 reproducibility). The clock does NOT enter here.
+      // Stable sentinel keeps identical empty states reproducible.
       updatedAt: 0,
     };
   }
   return decodeTrainingPreferenceState(row);
 }
 
-/** Ensure the user has a training-preference row. Idempotent — used by P4's reset surface
- *  and by P8's writer. No graded decision here; the rolled-up preferences are pure data. */
-export async function upsertTrainingPreferenceState(
-  db: Pick<PrismaClient, "trainingPreferenceState">,
-  input: {
-    userId: string;
-    preferences: Prisma.InputJsonValue;
-    userOverride?: Prisma.InputJsonValue | null;
-    resetAt?: Date | null;
-  },
-) {
-  // Prisma represents SQL NULL on a nullable JSON column as `Prisma.DbNull` (not the
-  // literal `null`), exactly like `ifThenPlan` in src/server/constraints.ts. We use it
-  // when the caller wants a true NULL (no override / no reset stamp).
-  const userOverride =
-    input.userOverride === null || input.userOverride === undefined
-      ? Prisma.DbNull
-      : (input.userOverride as Prisma.InputJsonValue);
-  const resetAt =
-    input.resetAt === null || input.resetAt === undefined
-      ? null
-      : input.resetAt;
-  await db.trainingPreferenceState.upsert({
-    where: { userId: input.userId },
-    create: {
-      userId: input.userId,
-      preferences: input.preferences,
-      userOverride,
-      resetAt,
-    },
-    update: {
-      preferences: input.preferences,
-      ...(input.userOverride !== undefined ? { userOverride } : {}),
-      ...(input.resetAt !== undefined ? { resetAt } : {}),
-    },
-  });
-}
-
-// --- Activity recency + adherence roll-ups (derived from immutable events) ----
-
-/** The counts of distinct UTC days, completions, skips, and total durations per activity
- *  type over the trailing window, derived from immutable ActivityEvents. Generic
- *  aggregation; no graded decision. */
 export async function findActivityRecency(
   db: Pick<PrismaClient, "activityEvent">,
   userId: string,

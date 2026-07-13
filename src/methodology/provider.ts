@@ -1530,6 +1530,14 @@ export function gradeFromOutcome(
   return 3;
 }
 
+export function newItemScheduleGrade(cfg: MethodologyConfig): FsrsGrade {
+  const seed = cfg.scheduling.newItemSeedGrade;
+  if (!seed) {
+    throw new Error("Methodology config is missing the new-item schedule seed");
+  }
+  return seed.value;
+}
+
 /**
  * Seam 6 — step an item's spaced-review schedule for a grade. The Engine owns the FSRS math
  * (engine/math/fsrsStep); this fn only feeds it the Seam-6 parameters (weight vector,

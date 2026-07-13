@@ -5,6 +5,7 @@ import { AccountActions } from "@/app/settings/account-actions";
 import { OperationsPanel } from "@/app/settings/operations-panel";
 import { prisma } from "@/db/client";
 import { getSession } from "@/server/session";
+import { loadMethodology, rationaleFor } from "@/methodology";
 
 // Settings (VISION §5/§7). Auth-gated. The post-onboarding home for everything you tune
 // about your training and your account: edit your plan (time/goals/preferences — the same
@@ -16,6 +17,7 @@ export default async function SettingsPage() {
     where: { id: session.user.id },
     select: { role: true },
   });
+  const ifThenRationale = rationaleFor("if_then_plan", loadMethodology());
 
   return (
     <PageShell
@@ -31,6 +33,7 @@ export default async function SettingsPage() {
             program. Regenerate Today to see it reflected.
           </p>
           <ConstraintsForm
+            ifThenRationale={ifThenRationale}
             continueHref="/today"
             continueLabel="Go to Today →"
           />

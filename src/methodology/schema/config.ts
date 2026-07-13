@@ -356,6 +356,9 @@ const weeklyFocusSchema = z.object({
 // trained artifact with one provenance), semi-evidenced (Anki defaults, not chess-validated).
 const schedulingSchema = z.object({
   scheduler: z.string().min(1),
+  newItemSeedGrade: gradedValue(
+    z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)]),
+  ).optional(),
   // Target recall probability that sets review intervals (≈0.90; Ye et al. 2022).
   desiredRetention: gradedValue(z.number().min(0).max(1)),
   // Hard cap on any scheduled interval (days) — keeps the queue sane.
@@ -429,14 +432,14 @@ const rationaleEntrySchema = z.object({
 // superRefine). Each event rule maps a state-change trigger → an allowed event type + a
 // Seam-8 `copyKey` (its grade/soften travel with the copy, L3). Mechanisms are well-evidenced
 // (Grade A/B); the exact numbers are best-guess (METHODOLOGY Seam 9 STUB).
-export const REWARD_EVENT_TYPES = [
+const REWARD_EVENT_TYPES = [
   "streak_tick",
   "competence_milestone",
   "consistency_grid",
   "recovery_prompt",
 ] as const;
 
-export const ENGAGEMENT_TRIGGERS = [
+const ENGAGEMENT_TRIGGERS = [
   "activity_completed",
   "streak_advanced",
   "milestone_reached",
@@ -611,9 +614,6 @@ const gameAnalysisSchema = z.object({
 // ALL bands; right-click arrows + piece-hover highlight are gated by the user's play medium
 // (`targetFocus`) — an OTB-bound trainer drills without them. Band refinement is deferred to
 // the research config; the stub keys arrows/hover by focus only.
-export const TARGET_FOCUSES = ["online", "otb", "hybrid"] as const;
-export const targetFocusSchema = z.enum(TARGET_FOCUSES);
-
 const byFocusSchema = z.object({
   online: gradedValue(z.boolean()),
   otb: gradedValue(z.boolean()),
@@ -663,7 +663,7 @@ const endgameCurriculumSchema = z.object({
 // graded "why this". Causal grade is C (coaching consensus); the mechanisms it leans on
 // (chunking, retrieval, spacing) are A — so the recommendation copy is softened, the
 // protocol params carry their real grade.
-export const BOOK_CATEGORIES = [
+const BOOK_CATEGORIES = [
   "tactics",
   "strategy",
   "endgame",
@@ -671,7 +671,7 @@ export const BOOK_CATEGORIES = [
   "calculation",
   "games",
 ] as const;
-export const bookCategorySchema = z.enum(BOOK_CATEGORIES);
+const bookCategorySchema = z.enum(BOOK_CATEGORIES);
 
 const bookRecSchema = z.object({
   id: z.string().min(1),
@@ -1244,16 +1244,11 @@ export type BandDefinition = MethodologyConfig["bands"][number];
 export type SkillDimension = MethodologyConfig["dimensions"][number];
 export type InterpretationConfig = MethodologyConfig["interpretation"];
 export type ActivityDefinition = MethodologyConfig["activities"][number];
-export type BoardConfig = MethodologyConfig["board"];
-export type EndgameCurriculumConfig = MethodologyConfig["endgameCurriculum"];
-export type EndgamePosition =
-  EndgameCurriculumConfig["positionsByBand"][string][number];
-export type EndgameObjective = EndgamePosition["objective"]["value"];
 export type BookStudyConfig = MethodologyConfig["bookStudy"];
 export type BookRec = BookStudyConfig["catalogByBand"][string][number];
 export type BookCategory = (typeof BOOK_CATEGORIES)[number];
 export type ModalityConfig = MethodologyConfig["modality"];
-export type TargetFocus = (typeof TARGET_FOCUSES)[number];
+export type TargetFocus = "online" | "otb" | "hybrid";
 export type WeaknessResourceRule =
   MethodologyConfig["weaknessResourceRules"][number];
 export type DifficultyConfig = MethodologyConfig["difficulty"];
@@ -1263,7 +1258,6 @@ export type WeeklyFocusConfig = NonNullable<MethodologyConfig["weeklyFocus"]>;
 export type EngagementConfig = MethodologyConfig["engagement"];
 export type EngagementEventRule = EngagementConfig["events"][number];
 export type RewardEventType = (typeof REWARD_EVENT_TYPES)[number];
-export type EngagementTrigger = (typeof ENGAGEMENT_TRIGGERS)[number];
 export type MeasurementConfig = MethodologyConfig["measurement"];
 export type RationaleEntry = MethodologyConfig["rationale"][number];
 export type AnchorSource = MethodologyConfig["evidenceLedger"][number];

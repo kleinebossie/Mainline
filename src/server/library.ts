@@ -1,10 +1,5 @@
-// Library orchestration (BUILD.md M14 · §4.2–4.4). The deliberately-EXTERNAL layer: books,
-// courses, and real games are recommended + scheduled/logged, never hosted (VISION §6). The graded
-// DECISIONS live in the pure provider functions (recommendBooks / woodpeckerSchedule /
-// bookDifficultyFeedback / modalityRecommendation); this module only gathers DB state, calls
-// them, and rolls up progress (L1: server orchestrates, it does not decide). ResourceProgress
-// (§5.5) is ROLLED UP from book_session ActivityEvents — there is no ResourceProgress table
-// (no schema change, M14); the "current position" is the latest session per resource.
+// External resources are recommended and logged, never hosted. Progress is derived from
+// immutable book-session events; methodology owns recommendations.
 
 import type { PrismaClient } from "@prisma/client";
 
@@ -31,7 +26,6 @@ import {
 } from "@/lib/tracker";
 import type { GradedFlag } from "@/methodology";
 
-/** One graded "why" line resolved for the UI (Seam 8) — copy + how strong its evidence is. */
 export interface GradedCopy {
   text: string;
   grade: Grade;
@@ -42,10 +36,8 @@ export interface GradedCopy {
   flag?: GradedFlag;
 }
 
-/** The current position in one external resource (M14), rolled up from book_session events. */
 export interface ResourceProgressView {
   resourceRefId: string;
-  /** Resolved from the book catalog when the resource is a known book; else null. */
   title: string | null;
   studyUnit: "exercises" | "games" | null;
   position: BookPosition | null;
@@ -53,11 +45,9 @@ export interface ResourceProgressView {
   woodpeckerCycle: number | null;
   sessions: number;
   totalMinutes: number;
-  /** Epoch ms of the most recent session (the list is sorted newest-first). */
   lastSessionAt: number;
 }
 
-/** A book recommendation with its citation source resolved for display. */
 export interface BookView extends BookRecommendation {
   citationSource: string | null;
 }
@@ -108,7 +98,6 @@ function gradedCopy(
   };
 }
 
-/** Defensively parse a book_session payload's M14 fields (the column is untyped JSON). */
 function parseBookSession(payload: unknown): {
   resourceRefId: string | null;
   position: BookPosition | null;
@@ -131,11 +120,7 @@ function parseBookSession(payload: unknown): {
   };
 }
 
-/**
- * Roll up the user's external-resource progress from the immutable book_session log (§5.5):
- * one entry per resource, the latest session's position/success/cycle, plus session count and
- * total minutes. Read-only — needs only the ActivityEvent table, so it is cheaply testable.
- */
+/** Roll up one latest-state view per external resource. */
 export async function getResourceProgress(
   db: Pick<PrismaClient, "activityEvent">,
   userId: string,
@@ -175,7 +160,7 @@ export async function getResourceProgress(
     };
     acc.sessions += 1;
     acc.totalMinutes += parsed.durationMin;
-    // Rows are ascending, so the last write wins → the latest session's state.
+    // Rows are ascending, so the last write is the latest state.
     if (parsed.position) acc.position = parsed.position;
     if (parsed.successRate !== null) acc.lastSuccessRate = parsed.successRate;
     if (parsed.woodpeckerCycle !== null)
@@ -186,11 +171,6 @@ export async function getResourceProgress(
   return [...byRef.values()].sort((a, b) => b.lastSessionAt - a.lastSessionAt);
 }
 
-/**
- * Assemble the /library view from the resolved (band, play medium, owned resources, progress).
- * PURE given those inputs + config — the DB reads happen in the router around it. Every line
- * carries its graded evidence (L3); the cognitive-load block rule lives in recommendBooks.
- */
 export function buildLibrary(
   input: {
     band: Band;
@@ -252,10 +232,6 @@ export function buildLibrary(
   };
 }
 
-/**
- * The /library view for a user: resolve their band (from tactical rating), play medium, owned
- * resources, and rolled-up progress, then assemble. Orchestration only (L1).
- */
 export async function getLibrary(
   db: PrismaClient,
   userId: string,

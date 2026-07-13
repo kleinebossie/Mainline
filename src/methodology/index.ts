@@ -43,6 +43,7 @@ export {
   rationaleFor,
   // Seam 6 (scheduling) + Measurement seams (M7): the adaptation-loop reader functions.
   gradeFromOutcome,
+  newItemScheduleGrade,
   scheduleReview,
   redoFlowPolicy,
   detectPlateau,

@@ -8,10 +8,6 @@ import {
   type EndgameOutcome,
 } from "@/engine/interactive/endgame";
 
-// M13 — pure endgame scoring (golden). `classifyTerminal` reads a played-out position into a
-// result from the player's perspective; `scoreEndgame` judges that result against the drill's
-// objective. Both are deterministic and chess-rules-only (no engine, no clock, no science).
-
 const MATE_FEN = "k7/Q7/K7/8/8/8/8/8 b - - 1 1"; // Black (to move) is checkmated
 const STALEMATE_FEN = "k7/8/1Q6/8/8/8/8/K7 b - - 0 1"; // Black has no move, not in check
 const INSUFFICIENT_FEN = "k7/8/K7/8/8/8/8/7B w - - 0 1"; // KB vs K
@@ -25,8 +21,9 @@ describe("endgamePlayerColor / endgameOrientation", () => {
     expect(endgameOrientation("4k3/8/8/8/8/4K3/4q3/8 b - - 0 1")).toBe("black");
   });
 
-  it("falls back to white on a malformed FEN (never throws)", () => {
-    expect(endgamePlayerColor("not a fen")).toBe("w");
+  it("rejects a malformed FEN", () => {
+    expect(() => endgamePlayerColor("not a fen")).toThrow();
+    expect(() => classifyTerminal("not a fen", "w")).toThrow();
   });
 });
 

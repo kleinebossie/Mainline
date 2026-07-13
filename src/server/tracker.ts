@@ -1,10 +1,5 @@
-// Tracker + adaptation orchestration (BUILD.md M7 · §7.3, §7.4). `logOutcome` is the
-// `applyEvent` of the contract: it appends ONE immutable ActivityEvent, then runs the pure
-// adaptation loop over the new event + current state and persists the result. The graded
-// DECISIONS live in the pure core (engine/adaptation.runAdaptation) + the methodology
-// provider; this module only does I/O and mapping (L1: server orchestrates, never decides).
-// The injected Clock keeps the run reproducible (L2) — the router passes the system clock;
-// tests pass a fixed one.
+// Persists immutable outcomes and adaptation results. Engine and methodology own decisions.
+// Adaptation uses an injected clock for reproducibility.
 
 import type { Prisma, PrismaClient } from "@prisma/client";
 
@@ -62,7 +57,6 @@ type Db = Pick<
   | "$transaction"
 >;
 
-/** Pull a (rating, rd) point from a snapshot's ratings JSON; null if no usable format. */
 function ratingPointFromSnapshot(
   ratings: unknown,
   at: number,
@@ -88,7 +82,7 @@ function ratingPointFromSnapshot(
   return null;
 }
 
-/** The user's Glicko-2 rating history (oldest→newest) for plateau/progress detection. */
+/** Rating history returned oldest to newest. */
 async function loadGlickoHistory(
   db: Db,
   userId: string,
@@ -102,7 +96,6 @@ async function loadGlickoHistory(
   return out;
 }
 
-/** Re-parse persisted ScheduleState rows into the engine's ScheduleStateValue shape. */
 function toScheduleStateValues(
   rows: {
     itemRef: string;
@@ -145,9 +138,7 @@ async function persistAdaptation(
         uncertainty: s.uncertainty,
         sampleSize: s.sampleSize,
       });
-      // P4: also append an immutable history row per dimension this run touched. The
-      // append-only log is the longitudinal memory the generator assembler reads; the
-      // upserted SkillState row stays the cheap "latest" view.
+      // Keep both the latest view and immutable history.
       snapshotInputs.push({
         userId,
         dimension: s.dimension,
@@ -185,21 +176,12 @@ async function persistAdaptation(
 }
 
 export interface LogOutcomeResult {
-  /** Spaced reviews scheduled/updated by this outcome. */
   scheduledReviews: number;
-  /** Decisions recorded in the AdaptationLog. */
   decisions: number;
-  /** Total reviews now due (so the UI can nudge "N due"). */
   dueReviews: number;
-  /** Engagement events fired by this completion (Seam 9) — for an immediate, honest nudge. */
   rewardEvents: RewardEventView[];
 }
 
-/**
- * `applyEvent` (§7.3): append one immutable outcome, run the adaptation loop, persist its
- * updates + log. Returns a small summary the UI surfaces. Pure decisions happen inside
- * runAdaptation; everything here is plumbing.
- */
 export async function logOutcome(
   db: Db,
   userId: string,
@@ -222,7 +204,6 @@ export async function logOutcome(
   if (input.puzzleId !== undefined) payloadObj.puzzleId = input.puzzleId;
   if (input.practiceItemId !== undefined)
     payloadObj.practiceItemId = input.practiceItemId;
-  // M14 — book_session: the external resource progressed + the self-reported position/success.
   if (input.resourceRefId !== undefined)
     payloadObj.resourceRefId = input.resourceRefId;
   if (input.position !== undefined) payloadObj.position = input.position;
@@ -285,17 +266,14 @@ export async function logOutcome(
   });
   const { dimensions, track, itemRef, itemType } = eventContext;
 
-  // 4. Run the pure adaptation loop over the new event + current state.
   const event: AdaptationEvent = {
-    type: input.type,
     occurredAt: now,
     itemRef,
     itemType,
     correct: input.correct ?? null,
     solveTimeMs: input.solveTimeMs ?? null,
-    bandMedianMs: null, // STUB: no band-median solve-time data yet (Seam 6).
+    bandMedianMs: null, // No band-median solve-time data is available.
     dimensions,
-    track,
   };
   const skillState: SkillStateValue[] = await findSkillStates(db, userId);
   const scheduleState =
@@ -316,21 +294,19 @@ export async function logOutcome(
     config: cfg,
   });
 
-  // 5. Persist the updates + the graded log (reproducibility snapshot).
   const inputsSnapshot = {
     event: {
-      type: event.type,
+      type: input.type,
       itemRef: event.itemRef,
       itemType: event.itemType,
       correct: event.correct,
       dimensions: event.dimensions,
-      track: event.track,
+      track,
     },
   } as unknown as Prisma.InputJsonValue;
   await persistAdaptation(db, userId, result, inputsSnapshot, cfg.version);
 
-  // 6. Fire engagement events for the completion (Seam 9 plumbing) — a skip is not a
-  //    completion, so it never ticks the streak or earns a badge (the forgiving design).
+  // A skip is not a completion and must not produce recognition events.
   const rewardEvents =
     input.type === "skip"
       ? []
@@ -350,7 +326,6 @@ export async function logOutcome(
   };
 }
 
-/** Run the pure adaptation loop without a new outcome for the daily plateau/progress check. */
 export async function runDailyAdaptation(
   db: Db,
   userId: string,

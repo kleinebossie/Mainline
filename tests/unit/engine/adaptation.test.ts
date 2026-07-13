@@ -8,15 +8,11 @@ import {
   type RunAdaptationInput,
 } from "@/engine/adaptation";
 
-// Golden tests for the adaptation loop (BUILD.md §13.1 + the M7 DoD): an outcome → FSRS
-// grade → next-due (Seam 6), a per-dimension skill update, and a graded AdaptationLog —
-// all deterministic via the injected Clock (L2).
 const cfg = loadMethodology("stub-0.1.0");
 const T = 1_700_000_000_000;
 const clock = fixedClock(T);
 
 const puzzleEvent = (correct: boolean): AdaptationEvent => ({
-  type: "puzzle_attempt",
   occurredAt: T,
   itemRef: "fork",
   itemType: "puzzle_theme",
@@ -24,7 +20,6 @@ const puzzleEvent = (correct: boolean): AdaptationEvent => ({
   solveTimeMs: null,
   bandMedianMs: null,
   dimensions: ["tactics"],
-  track: "pattern",
 });
 
 const baseInput = (
@@ -41,7 +36,7 @@ const baseInput = (
   ...extra,
 });
 
-describe("runAdaptation — scheduling (Seam 6 / redo flow)", () => {
+describe("runAdaptation scheduling", () => {
   it("a miss schedules a spaced review ~1 day out with a graded decision", () => {
     const res = runAdaptation(baseInput([puzzleEvent(false)]));
 
@@ -51,13 +46,13 @@ describe("runAdaptation — scheduling (Seam 6 / redo flow)", () => {
     expect(s.itemType).toBe("puzzle_theme");
     expect(s.lastGrade).toBe(1);
     expect(s.fsrs.lapses).toBe(1);
-    expect(s.fsrs.due).toBe(T + DAY_MS); // first-review Again → 1 day
+    expect(s.fsrs.due).toBe(T + DAY_MS);
 
     const decision = res.adaptationLog.decisions.find(
       (d) => d.kind === "schedule",
     )!;
     expect(decision.rationaleKey).toBe("redo_failed");
-    expect(decision.soften).toBe(true); // grade C → softened (L3)
+    expect(decision.soften).toBe(true);
     expect(decision.detail).toMatchObject({ itemRef: "fork", grade: 1 });
   });
 
@@ -76,13 +71,13 @@ describe("runAdaptation — scheduling (Seam 6 / redo flow)", () => {
     );
     expect(res.scheduleUpdates).toHaveLength(1);
     const s = res.scheduleUpdates[0]!;
-    expect(s.lastGrade).toBe(3); // correct → Good
-    expect(s.fsrs.lapses).toBe(1); // no new lapse
+    expect(s.lastGrade).toBe(3);
+    expect(s.fsrs.lapses).toBe(1);
     expect(s.fsrs.reps).toBe(2);
   });
 });
 
-describe("runAdaptation — skill update", () => {
+describe("runAdaptation skill updates", () => {
   it("folds the outcome into a per-dimension running proportion", () => {
     const res = runAdaptation(baseInput([puzzleEvent(false)]));
     expect(res.skillStateUpdates).toEqual([
@@ -108,7 +103,7 @@ describe("runAdaptation — skill update", () => {
   });
 });
 
-describe("runAdaptation — plateau + determinism", () => {
+describe("runAdaptation plateau detection and determinism", () => {
   it("logs a plateau decision only when the history can support a verdict", () => {
     const empty = runAdaptation(baseInput([puzzleEvent(false)]));
     expect(

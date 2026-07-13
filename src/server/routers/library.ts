@@ -69,7 +69,10 @@ export const libraryRouter = router({
         input.successRate != null
           ? bookDifficultyFeedback({ successRate: input.successRate }, cfg)
           : null;
-      const copy = rationaleFor("book_difficulty_calibration", cfg);
+      const copy = rationaleFor(cfg.bookStudy.calibrationRationaleKey, cfg);
+      const citationSource =
+        cfg.evidenceLedger.find((entry) => entry.key === copy.citationKey)
+          ?.source ?? null;
       return {
         ...result,
         feedback,
@@ -78,7 +81,10 @@ export const libraryRouter = router({
               text: copy.value,
               grade: copy.grade,
               tier: copy.tier,
+              citationKey: copy.citationKey,
+              citationSource,
               soften: copy.soften,
+              flag: copy.flag,
             }
           : null,
       };

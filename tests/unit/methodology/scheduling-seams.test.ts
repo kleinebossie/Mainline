@@ -7,6 +7,7 @@ import {
   gradeFromOutcome,
   isProgressReal,
   isStableBaseline,
+  newItemScheduleGrade,
   redoFlowPolicy,
   scheduleReview,
   expectationForBand,
@@ -19,6 +20,16 @@ import {
 const cfg = loadMethodology("stub-0.1.0");
 const T = 1_700_000_000_000;
 const day = (n: number): number => n * DAY_MS;
+
+it("reads the graded seed for an unseen scheduled item", () => {
+  expect(newItemScheduleGrade(cfg)).toBe(3);
+  expect(cfg.scheduling.newItemSeedGrade).toMatchObject({
+    grade: "C",
+    tier: 1,
+    citationKey: "stub_open_question",
+    flag: "best-guess",
+  });
+});
 
 describe("gradeFromOutcome (Seam 6 outcome → FSRS grade)", () => {
   it("wrong → Again(1); correct (no timing) → Good(3)", () => {

@@ -1,0 +1,12 @@
+{
+  "scheduling": {
+    "newItemSeedGrade": {
+      "value": 3,
+      "grade": "C",
+      "tier": 1,
+      "citationKey": "stub_open_question",
+      "flag": "best-guess",
+      "note": "Seeds required FSRS memory for an unseen curated item as Good while leaving it immediately due. This compatibility default has no chess-specific validation."
+    }
+  }
+}

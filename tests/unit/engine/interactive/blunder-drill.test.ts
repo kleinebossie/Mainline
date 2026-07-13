@@ -65,13 +65,12 @@ describe("blunder drill solve parity", () => {
   const startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
   it("returns wrong legal move feedback and resets to the drill checkpoint", () => {
-    const { solveState, orientation, setupMove } = drillToSolveState(
+    const { solveState, orientation } = drillToSolveState(
       startFen,
       ["e2e4"],
       1000,
     );
 
-    expect(setupMove).toBeNull();
     expect(orientation).toBe("white");
     expect(solveState.checkpointPosition).toBe(solveState.position);
 

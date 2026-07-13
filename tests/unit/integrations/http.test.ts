@@ -6,10 +6,24 @@ import {
   politeFetch,
 } from "@/integrations/http";
 
-// M2: rate-limit middleware. The back-off schedule is a pure function (golden); the
-// fetch wrapper retries 429s and gives up after maxRetries with a typed error.
-
 afterEach(() => vi.unstubAllGlobals());
+
+const NO_DELAY_BACKOFF = { ...DEFAULT_BACKOFF, baseMs: 0, capMs: 0 };
+
+function pendingUntilAbort(
+  _url: string,
+  init?: RequestInit,
+): Promise<Response> {
+  return new Promise<Response>((_resolve, reject) => {
+    if (init?.signal?.aborted) {
+      reject(init.signal.reason);
+      return;
+    }
+    init?.signal?.addEventListener("abort", () => reject(init.signal?.reason), {
+      once: true,
+    });
+  });
+}
 
 describe("backoffDelayMs", () => {
   const policy = { maxRetries: 3, baseMs: 1000, capMs: 30_000 };
@@ -55,7 +69,7 @@ describe("politeFetch", () => {
       "lichess",
       "https://x/y",
       {},
-      DEFAULT_BACKOFF,
+      NO_DELAY_BACKOFF,
       beforeAttempt,
     );
     expect(res.status).toBe(200);
@@ -87,23 +101,7 @@ describe("politeFetch", () => {
   });
 
   it("bounds the whole request and maps its timeout to a network error", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(
-        (_url: string, init?: RequestInit) =>
-          new Promise<Response>((_resolve, reject) => {
-            if (init?.signal?.aborted) {
-              reject(init.signal.reason);
-              return;
-            }
-            init?.signal?.addEventListener(
-              "abort",
-              () => reject(init.signal?.reason),
-              { once: true },
-            );
-          }),
-      ),
-    );
+    vi.stubGlobal("fetch", vi.fn(pendingUntilAbort));
 
     await expect(
       politeFetch(
@@ -134,23 +132,7 @@ describe("politeFetch", () => {
   it("preserves an earlier caller abort instead of reporting a timeout", async () => {
     const controller = new AbortController();
     const callerError = new Error("caller_cancelled");
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(
-        (_url: string, init?: RequestInit) =>
-          new Promise<Response>((_resolve, reject) => {
-            if (init?.signal?.aborted) {
-              reject(init.signal.reason);
-              return;
-            }
-            init?.signal?.addEventListener(
-              "abort",
-              () => reject(init.signal?.reason),
-              { once: true },
-            );
-          }),
-      ),
-    );
+    vi.stubGlobal("fetch", vi.fn(pendingUntilAbort));
 
     const request = politeFetch(
       "lichess",

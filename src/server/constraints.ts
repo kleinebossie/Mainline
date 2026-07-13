@@ -23,7 +23,7 @@ type Db = Pick<PrismaClient, "constraintSet" | "$transaction">;
 
 /** Re-parse the stored JSON columns into typed values (defensive; falls back to empty).
  *  Tolerant of rows written before sessionStyle/structured ownedResources existed. */
-export function decodeConstraintSet(row: {
+function decodeConstraintSet(row: {
   id: string;
   minutesPerDay: number;
   daysPerWeek: number;

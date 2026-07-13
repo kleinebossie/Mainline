@@ -6,10 +6,10 @@
 
 import { cn } from "@/lib/utils";
 
-type Grade = "A" | "B" | "C" | "D";
+export type EvidenceGrade = "A" | "B" | "C" | "D";
 
 const GRADE: Record<
-  Grade,
+  EvidenceGrade,
   { glyph: string; label: string; note: string; cls: string }
 > = {
   A: {
@@ -43,7 +43,7 @@ const TIER_NOTE: Record<number, string> = {
   2: "general learning science",
 };
 
-function asGrade(g: string): Grade {
+export function asEvidenceGrade(g: string): EvidenceGrade {
   return g === "A" || g === "B" || g === "C" || g === "D" ? g : "C";
 }
 
@@ -60,7 +60,7 @@ export function GradeMark({
   tier?: number;
   className?: string;
 }) {
-  const g = asGrade(grade);
+  const g = asEvidenceGrade(grade);
   const meta = GRADE[g];
   return (
     <span

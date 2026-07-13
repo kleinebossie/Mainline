@@ -4,13 +4,13 @@ import type { EpochMs } from "@/lib/clock";
 export type San = string;
 
 export interface SolveState {
-  position: string; // Current FEN
-  solutionLine: San[]; // Expected moves in SAN or UCI format
-  cursor: number; // Current index in solutionLine
-  checkpointPosition?: string; // Last accepted stable FEN; wrong legal moves reset here.
-  checkpointCursor?: number; // Cursor paired with checkpointPosition.
-  startedMs: EpochMs; // Start time of the solve attempt
-  attempts: number; // Count of wrong attempts
+  position: string;
+  solutionLine: San[];
+  cursor: number;
+  checkpointPosition?: string;
+  checkpointCursor?: number;
+  startedMs: EpochMs;
+  attempts: number;
 }
 
 export interface StepResult {
@@ -37,7 +37,6 @@ export function stepSolve(
   const checkpointPosition = state.checkpointPosition ?? state.position;
   const checkpointCursor = state.checkpointCursor ?? state.cursor;
 
-  // If the puzzle is already solved, return it as solved
   if (state.cursor >= state.solutionLine.length) {
     return {
       state,
@@ -48,40 +47,26 @@ export function stepSolve(
   }
 
   const chess = new Chess(state.position);
-  let moveResult: Move | null = null;
-
-  // 1. Try to parse and apply the move guess locally
+  let moveResult: Move;
   try {
-    // Attempt 1: As standard SAN (e.g. "Nf3", "e4", "O-O")
-    moveResult = chess.move(move.san);
+    moveResult = applyMove(chess, move.san);
   } catch {
-    try {
-      // Attempt 2: As UCI format (e.g. "g1f3", "e2e4", "e7e8q")
-      const from = move.san.substring(0, 2);
-      const to = move.san.substring(2, 4);
-      const promotion =
-        move.san.length > 4 ? move.san.substring(4, 5) : undefined;
-      moveResult = chess.move({ from, to, promotion });
-    } catch {
-      // Illegal move on this board position -> treat as wrong guess
-      return {
-        state: {
-          ...state,
-          position: checkpointPosition,
-          cursor: checkpointCursor,
-          checkpointPosition,
-          checkpointCursor,
-          attempts: state.attempts + 1,
-        },
-        step: "wrong",
-        solveMs,
+    return {
+      state: {
+        ...state,
+        position: checkpointPosition,
+        cursor: checkpointCursor,
         checkpointPosition,
-        wrongMoveKind: "illegal",
-      };
-    }
+        checkpointCursor,
+        attempts: state.attempts + 1,
+      },
+      step: "wrong",
+      solveMs,
+      checkpointPosition,
+      wrongMoveKind: "illegal",
+    };
   }
 
-  // 2. Validate if the legal move made matches the expected solution line move
   const expected = state.solutionLine[state.cursor];
   if (!expected) {
     return {
@@ -124,31 +109,13 @@ export function stepSolve(
     };
   }
 
-  // 3. Move is correct! Advance board position and cursor.
   let currentFen = chess.fen();
   let nextCursor = state.cursor + 1;
 
-  // 4. If there are subsequent opponent moves in the solution line (odd index), auto-play them
   while (nextCursor < state.solutionLine.length && nextCursor % 2 === 1) {
     const opponentMove = state.solutionLine[nextCursor];
     if (!opponentMove) break;
-    try {
-      // Try as SAN first
-      chess.move(opponentMove);
-    } catch {
-      try {
-        // Try as UCI next
-        const from = opponentMove.substring(0, 2);
-        const to = opponentMove.substring(2, 4);
-        const promotion =
-          opponentMove.length > 4 ? opponentMove.substring(4, 5) : undefined;
-        chess.move({ from, to, promotion });
-      } catch {
-        // A malformed opponent reply is a data bug upstream; stop auto-playing the line
-        // here and leave it to the caller. Stay pure — no I/O in the state machine.
-        break;
-      }
-    }
+    applyMove(chess, opponentMove);
     currentFen = chess.fen();
     nextCursor++;
   }
@@ -167,4 +134,16 @@ export function stepSolve(
     solveMs,
     checkpointPosition: currentFen,
   };
+}
+
+function applyMove(chess: Chess, notation: string): Move {
+  try {
+    return chess.move(notation);
+  } catch {
+    const from = notation.substring(0, 2);
+    const to = notation.substring(2, 4);
+    const promotion =
+      notation.length > 4 ? notation.substring(4, 5) : undefined;
+    return chess.move({ from, to, promotion });
+  }
 }

@@ -12,15 +12,17 @@ import {
 import { fixedClock } from "@/lib/clock";
 
 const cfg = loadMethodology("stub-0.1.0");
+const PLAYED_AT = new Date(0);
+const LONG_PGN =
+  "1. e4 e5 2. Nf3 Nc6 3. Bc4 Nf6 4. Ng5 d5 5. exd5 Na5 6. Bb5+ c6 7. dxc6 bxc6";
+const GAME_BASE = { pgn: LONG_PGN, playedAt: PLAYED_AT, color: "w" } as const;
 
 describe("gameAnalysisProtocol", () => {
   it("orchestrates the 5-step game analysis protocol", () => {
     const game = {
+      ...GAME_BASE,
       id: "game1",
-      pgn: "1. e4 e5 2. Nf3 Nc6 3. Bc4 Nf6 4. Ng5 d5 5. exd5 Na5 6. Bb5+ c6 7. dxc6 bxc6",
-      playedAt: new Date(),
       result: "win",
-      color: "w",
       rawFeatures: {
         acplOverall: 40,
         acplByPhase: { opening: 10, middlegame: 50, endgame: 0 },
@@ -67,15 +69,11 @@ describe("gameAnalysisProtocol", () => {
   });
 
   it("returns critical moments in chronological (ply) order even when selected by severity", () => {
-    // b800_1200 allows up to 2 critical moments. The worse blunder (500cp) happens
-    // later in the game (ply 7) than the milder one (210cp, ply 3) — severity-based
-    // selection would pick both, but the player must reproduce them in game order.
+    // Severity selects both moments, but the player must receive them in game order.
     const game = {
+      ...GAME_BASE,
       id: "game2",
-      pgn: "1. e4 e5 2. Nf3 Nc6 3. Bc4 Nf6 4. Ng5 d5 5. exd5 Na5 6. Bb5+ c6 7. dxc6 bxc6",
-      playedAt: new Date(),
       result: "loss",
-      color: "w",
       rawFeatures: {
         acplOverall: 60,
         acplByPhase: { opening: 10, middlegame: 80, endgame: 0 },
@@ -104,11 +102,10 @@ describe("gameAnalysisProtocol", () => {
 
   it("reconstructs the FEN for a mistake (not in blunders array) by replaying the PGN", () => {
     const game = {
+      ...GAME_BASE,
       id: "game-mistake",
       pgn: "1. e4 e5 2. Nf3 Nc6",
-      playedAt: new Date(),
       result: "loss",
-      color: "w",
       rawFeatures: {
         acplOverall: 30,
         acplByPhase: { opening: 30, middlegame: 0, endgame: 0 },
@@ -141,23 +138,19 @@ describe("gameAnalysisProtocol", () => {
   });
 
   it("does NOT flag a missed mate that stays winning as a critical moment (low band)", () => {
-    // The user (White) makes two moves: ply 3 is a real swing (winning → equal); ply 5 is
-    // a missed forced mate that STAYS clearly winning (mate ≈ +1000 → +600). The raw cp gap
-    // at ply 5 is huge, but its win-probability drop is ~0 and the position stayed decided —
-    // so at a low band it must NOT be a critical moment, even though b800_1200 allows two.
+    // Ply 3 changes the likely result. Ply 5 misses mate but remains clearly winning,
+    // so the low-band protocol should not surface it as another critical moment.
     const game = {
+      ...GAME_BASE,
       id: "game3",
-      pgn: "1. e4 e5 2. Nf3 Nc6 3. Bc4 Nf6 4. Ng5 d5 5. exd5 Na5 6. Bb5+ c6 7. dxc6 bxc6",
-      playedAt: new Date(),
       result: "win",
-      color: "w",
       rawFeatures: {
         acplOverall: 40,
         acplByPhase: { opening: 10, middlegame: 50, endgame: 0 },
         phaseBoundaries: { openingEndsPly: 10, endgameStartsPly: 20 },
         moveEvals: [
           { ply: 1, cpBefore: 30, cpAfter: 30, cpLoss: 0, winProbDrop: 0 },
-          // Real swing: winning → equal (a big win-probability drop).
+          // Real swing with a large win-probability drop.
           {
             ply: 3,
             cpBefore: 30,
@@ -165,7 +158,7 @@ describe("gameAnalysisProtocol", () => {
             cpLoss: 350,
             winProbDrop: 0.29,
           },
-          // Missed mate but stayed winning: huge cp gap, ~0 win-probability drop.
+          // Missed mate with little change in win probability.
           {
             ply: 5,
             cpBefore: 1000,

@@ -1,9 +1,5 @@
-// Engagement orchestration (BUILD.md §9, M9). The Engine owns the mechanism; Seam 9 owns the
-// policy. This module is the I/O around the pure core: it rolls up the plumbing facts (active
-// days → streak, completed count → milestones), calls onStateChange (which delegates the
-// graded which/when/copy to engagementEventsFor), and persists/reads RewardEvent +
-// NotificationPref. No graded decision lives here (L1: server orchestrates, it does not
-// decide). The injected Clock keeps it reproducible (L2) — the router passes the system clock.
+// Persists engagement events and preferences. Engine and methodology own policy.
+// Summary generation uses an injected clock for reproducibility.
 
 import type { Prisma, PrismaClient } from "@prisma/client";
 
@@ -38,11 +34,9 @@ type Db = Pick<
   "activityEvent" | "rewardEvent" | "notificationPref" | "programItem"
 >;
 
-// How many days of the consistency window the grid renders (≈13 weeks); the streak/active
-// counts still use the full Seam-9 window. Display bound only, not a methodology number.
+// Display bound only; streak calculations still use the full methodology window.
 const MAX_GRID_DAYS = 91;
 
-/** A reward event shaped for the UI — copy/grade resolved from its Seam-8 copyKey (L3). */
 export interface RewardEventView {
   id: string | null;
   type: string;
@@ -68,7 +62,6 @@ function payloadOf(raw: unknown): RewardEventView["payload"] {
   return out;
 }
 
-/** Resolve a fired/persisted event's graded copy from its copyKey (Seam 8). */
 function toRewardView(
   e: {
     id?: string | null;
@@ -102,7 +95,6 @@ function ledgerMap(cfg: MethodologyConfig): Map<string, string> {
   return new Map(cfg.evidenceLedger.map((a) => [a.key, a.source]));
 }
 
-/** The user's active-day set within the Seam-9 consistency window, plus `today`. */
 async function activeDaySet(
   db: Db,
   userId: string,
@@ -122,12 +114,6 @@ export interface EngagementOutcome {
   rewardEvents: RewardEventView[];
 }
 
-/**
- * Record the engagement events for a completed (non-skip) activity (§9). Rolls up the streak
- * + cumulative completion count, fires the Seam-9 events via the engine bus, and appends them.
- * Called by the tracker after an outcome is logged — this is how "completing a session emits a
- * competence event" (M9 DoD). Returns the fired events (copy resolved) for an immediate nudge.
- */
 export async function recordEngagementForCompletion(
   db: Db,
   userId: string,
@@ -141,7 +127,7 @@ export async function recordEngagementForCompletion(
     now,
     cfg.engagement.consistencyWindowDays.value,
   );
-  active.add(today); // the just-logged completion makes today active
+  active.add(today);
   const activeDayStreak = consistencyStreak(active, today);
   const completedCount = await countCompletedActivities(db, userId);
 
@@ -246,12 +232,9 @@ export async function recordEngagementForMissedDay(
 
 export interface EngagementSummary {
   streak: {
-    /** Capped, forgiving streak position (1..cap), or 0 when today isn't active. */
     day: number;
     cap: number;
-    /** The true consecutive-day run (for an honest, non-headline detail). */
     rawStreak: number;
-    /** Active days within the consistency window. */
     activeDayCount: number;
     windowDays: number;
   };
@@ -269,14 +252,11 @@ export interface EngagementSummary {
     channel: string;
     cadenceCap: number;
     quietHours: string | null;
-    /** The Seam-9 ceiling the UI shows ("capped at N/day"). */
     cap: number;
   };
   habitExpectationDays: number;
 }
 
-/** The engagement dashboard's data: the consistency grid + capped streak, recent recognition,
- *  and the (capped) reminder settings. All copy graded via Seam 8. */
 export async function getEngagementSummary(
   db: Db,
   userId: string,
@@ -343,11 +323,7 @@ export interface SavedNotificationPref {
   cap: number;
 }
 
-/**
- * Save reminder preferences, clamping the requested cadence to the Seam-9 ceiling
- * (clampReminderCadence) before write — the anti-nag cap is enforced in code and can never be
- * exceeded by a client (M9 DoD: reminders capped & user-configurable).
- */
+/** Clamp reminder cadence to methodology policy before persistence. */
 export async function saveNotificationPref(
   db: Db,
   userId: string,

@@ -14,5 +14,3 @@ const ADAPTERS: Record<Platform, PlatformAdapter> = {
 export function getAdapter(platform: Platform): PlatformAdapter {
   return ADAPTERS[platform];
 }
-
-export const PLATFORMS = Object.keys(ADAPTERS) as Platform[];

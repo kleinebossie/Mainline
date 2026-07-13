@@ -704,6 +704,11 @@ Leitner ladder retained only as an explainable **fallback**.
 Solve-time thresholds are **relative to the Lichess band median** and are a **STUB** until the app has
 its own timing data.
 
+An unseen curated item is seeded as Good but remains immediately due. This is an FSRS-state
+compatibility default, not evidence that the learner already knows the item. It is Grade C/1,
+`best-guess`, and should be replaced if the persistence model gains an unreviewed state or telemetry
+supports a better initialization.
+
 **Redo-failed-puzzles flow (3-phase)** — directly from `SPACED_REPETITION.md` §Q4 (Finn & Metcalfe 2010;
 Smith & Kimball 2010; Grade A/2, C chess):
 

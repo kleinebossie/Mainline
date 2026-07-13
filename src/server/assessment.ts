@@ -1,14 +1,5 @@
-// Assessment orchestration (BUILD.md M4 · Seam 2). The graded DECISIONS live in the
-// pure methodology functions (nextCalibrationItem/scoreCalibration); this module only
-// plumbs DB state into and out of them (L1: server orchestrates, it does not decide).
-// The append-only calibration responses are BEHAVIOURAL — skill is never read from
-// self-report (Seam 2 / Dunning-Kruger).
-//
-// MULTI-TRACK (Seam 2 tracks): calibration runs one adaptive ladder per configured track
-// (tactics → calculation → endgames…), reusing the same pure staircase/estimator. Each
-// stored response is tagged with its track; the ladders run in sequence; the assessment is
-// complete when every track's stop rule has fired. The first track is the primary tactical
-// estimate that seeds the band (resolveTacticalRating).
+// Persists behavioral calibration outcomes. Methodology owns all graded decisions.
+// Tracks run in configured order, with the first track supplying the primary estimate.
 
 import type { Prisma, PrismaClient, LichessPuzzle } from "@prisma/client";
 import { z } from "zod";
@@ -36,9 +27,8 @@ type Db = Pick<
   "assessment" | "chessProfileSnapshot" | "lichessPuzzle" | "constraintSet"
 >;
 
-// A stored response is a behavioural outcome tagged with its track (track optional for
-// back-compat with single-track rows written before multi-track; those default to track 0).
-export const calibrationResponseSchema = z.object({
+// Legacy single-track responses have no track and belong to the first configured track.
+const calibrationResponseSchema = z.object({
   track: z.string().min(1).optional(),
   ratingShown: z.number().int(),
   correct: z.boolean(),
@@ -48,13 +38,11 @@ type StoredResponse = z.infer<typeof calibrationResponseSchema>;
 
 const responsesSchema = z.array(calibrationResponseSchema);
 
-/** Parse the stored JSON responses defensively (server-written, but never trust JSON). */
 function parseResponses(stored: unknown): StoredResponse[] {
   const r = responsesSchema.safeParse(stored);
   return r.success ? r.data : [];
 }
 
-/** The behavioural responses for one track (track-tagged; untagged → the first track). */
 function responsesForTrack(
   all: StoredResponse[],
   trackId: string,
@@ -65,26 +53,17 @@ function responsesForTrack(
     .map((r) => ({ ratingShown: r.ratingShown, correct: r.correct }));
 }
 
-/** Pull a tactical-ish rating (puzzle, else rapid) from a snapshot's ratings JSON. Used to
- *  SEED puzzle difficulty (Seam 5) — where the puzzle ladder is the right signal. */
+/** Prefer puzzle rating when seeding calibration difficulty. */
 export function ratingFromSnapshot(ratings: unknown): number | null {
   return ratingForFormats(ratings, ["puzzle", "rapid"]);
 }
 
-/** Pull a PLAYING-strength rating from a snapshot — a real game format
- *  (rapid → blitz → classical → bullet), never the puzzle rating. Lichess puzzle ratings
- *  run far above playing strength, so they must NOT decide the game-analysis band (the
- *  "bad move" / RPL cp thresholds): a 930-rapid player belongs in 800–1200 (200cp), not
- *  1600–2000 (50cp). Returns null when the user has no rated games of any format. */
+/** Prefer actual game ratings for analysis instead of inflated puzzle ratings. */
 export function playingRatingFromSnapshot(ratings: unknown): number | null {
   return ratingForFormats(ratings, ["rapid", "blitz", "classical", "bullet"]);
 }
 
-/** The user's highest rating across actual live-game formats (bullet/blitz/rapid) from a
- *  snapshot — the true playing-strength signal for picking a book-catalog band. Unlike
- *  `playingRatingFromSnapshot` (first found in preference order), this takes the MAX across
- *  all three, so a strong blitz player isn't pointed at a "beginner rapid" pick because rapid
- *  happened to come first. Returns null when none of the three formats has a rating. */
+/** Use the highest live-game rating when selecting the library band. */
 export function highestLiveRatingFromSnapshot(ratings: unknown): number | null {
   if (!ratings || typeof ratings !== "object") return null;
   const r = ratings as Record<string, unknown>;
@@ -103,7 +82,6 @@ export function highestLiveRatingFromSnapshot(ratings: unknown): number | null {
   return values.length > 0 ? Math.round(Math.max(...values)) : null;
 }
 
-/** First finite `ratings[fmt].rating` for the formats, in preference order, else null. */
 function ratingForFormats(ratings: unknown, formats: string[]): number | null {
   if (!ratings || typeof ratings !== "object") return null;
   const r = ratings as Record<string, unknown>;
@@ -119,12 +97,7 @@ function ratingForFormats(ratings: unknown, formats: string[]): number | null {
   return null;
 }
 
-/**
- * Seam 2 startRating rule: the user's platform puzzle/rapid rating if present, else the
- * config default (which is effectively the no-data band midpoint — without a rating
- * there is no band). Only used to seed the very first ladder item.
- */
-export async function resolveStartRating(
+async function resolveStartRating(
   db: Db,
   userId: string,
   cfg: MethodologyConfig,
@@ -140,12 +113,11 @@ export async function resolveStartRating(
   );
 }
 
-export interface CalibrationTrackState {
+interface CalibrationTrackState {
   id: string;
   dimension: string;
   label: string;
   theme: string;
-  /** True once this track's own ladder stop rule has fired. */
   completed: boolean;
   responseCount: number;
   next: NextCalibrationItem;
@@ -153,29 +125,21 @@ export interface CalibrationTrackState {
 }
 
 export interface CalibrationState {
-  /** True once EVERY track is complete (the whole assessment is done). */
   completed: boolean;
-  // Active-track convenience (what the live ladder UI serves now).
   responseCount: number;
   maxItems: number;
   timeBudgetMin: number;
   next: NextCalibrationItem;
-  /** The PRIMARY (first/tactical) track estimate — what the reveal gauge shows (L3). */
   estimate: CalibrationEstimate;
-  // Multi-track.
   trackCount: number;
-  /** Index of the track currently being probed, or -1 when all are complete. */
   activeTrackIndex: number;
   activeTrack: CalibrationTrackState | null;
   tracks: CalibrationTrackState[];
   activePuzzle: LichessPuzzle | null;
-  /** Seam-4 §4.4(c) board interface affordances for the calibration board (from config). */
   affordances: BoardAffordances;
-  /** Graded "why are these hidden?" copy, when any crutch is restricted. */
   restrictionRationale: RationaleEntry | null;
 }
 
-/** Build the per-track states from the stored responses + config (pure given inputs). */
 function buildTrackStates(
   cfg: MethodologyConfig,
   all: StoredResponse[],
@@ -199,14 +163,12 @@ function buildTrackStates(
   });
 }
 
-/** Assemble the full calibration state the UI renders from current DB + config. */
 export async function getCalibrationState(
   db: Db,
   userId: string,
 ): Promise<CalibrationState> {
   const row = await db.assessment.findUnique({ where: { userId } });
-  // Continue an existing assessment under the methodology that created it.
-  // New and reset assessments have no row yet and therefore use the active release.
+  // Existing assessments stay pinned to the methodology release that created them.
   const cfg = loadMethodology(row?.methodologyVersion ?? undefined);
   const all = parseResponses(row?.calibrationResponses);
   const startRating = await resolveStartRating(db, userId, cfg);
@@ -232,7 +194,7 @@ export async function getCalibrationState(
     });
 
     if (puzzles.length > 0) {
-      // Pick a puzzle deterministically based on the userId + track + itemNumber
+      // Stable selection prevents a new puzzle on every render.
       const seedStr = userId + activeTrack.id + activeTrack.next.itemNumber;
       let hash = 0;
       for (let i = 0; i < seedStr.length; i++) {
@@ -243,9 +205,6 @@ export async function getCalibrationState(
     }
   }
 
-  // Seam 4 §4.4(c) — the calibration board hides the same crutches as the training board,
-  // from config (L1). The user's stored play medium (M14) gates arrows/hover; the band
-  // derives from the seed rating.
   const targetFocus = await getTargetFocus(db, userId);
   const affordances = interfaceAffordancesFor(
     { band: bandForRating(startRating, cfg), targetFocus },
@@ -272,12 +231,7 @@ export async function getCalibrationState(
   };
 }
 
-/**
- * Append one calibration response to the ACTIVE track, persist, and — once every track's
- * stop rule has fired — score each track into a graded estimate and snapshot the seeds
- * (grade + citation travel onto `derivedSkillSeed`, an array, one per dimension; L3). The
- * server picks the active track (no client/server race). Returns the fresh state.
- */
+/** Append to the server-selected active track and return the refreshed state. */
 export async function applyCalibrationResponse(
   db: Db,
   userId: string,
@@ -287,17 +241,14 @@ export async function applyCalibrationResponse(
   const row = await db.assessment.findUnique({ where: { userId } });
   const cfg = loadMethodology(row?.methodologyVersion ?? undefined);
 
-  // Once complete, submissions are a no-op (idempotent): just return current state.
   if (row?.completedAt) return getCalibrationState(db, userId);
 
   const prev = parseResponses(row?.calibrationResponses);
   const startRating = await resolveStartRating(db, userId, cfg);
 
-  // The active track = the first whose ladder has not yet stopped.
   const states = buildTrackStates(cfg, prev, startRating);
   const active = states.find((t) => !t.completed) ?? null;
 
-  // No active track means everything already finished — finalise idempotently.
   const all =
     active == null
       ? prev
@@ -311,17 +262,15 @@ export async function applyCalibrationResponse(
           } satisfies StoredResponse,
         ];
 
-  // Recompute after appending; the assessment is finished when all tracks are done.
   const after = buildTrackStates(cfg, all, startRating);
   const finished = after.every((t) => t.completed);
 
   const completion = finished
     ? {
         completedAt: now,
-        // Primary (tactical) track seeds the band-driving estimate.
         tacticalRatingEstimate: after[0]!.estimate.tacticalRatingEstimate,
         uncertainty: after[0]!.estimate.uncertainty,
-        // L3 snapshot: one graded seed per probed dimension.
+        // Snapshot evidence with each derived seed.
         derivedSkillSeed: after.map((t) => ({
           track: t.id,
           dimension: t.dimension,

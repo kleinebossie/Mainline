@@ -11,8 +11,7 @@ import { systemClock, type Clock } from "@/lib/clock";
 import { runJob } from "@/server/jobs";
 
 export const ACCOUNT_PURGE_JOB_KIND = "account_purge";
-export const RESEARCH_SCOPE: ResearchConsentScope =
-  "aggregate_observational_training";
+const RESEARCH_SCOPE: ResearchConsentScope = "aggregate_observational_training";
 
 export class StaleDataUseNoticeError extends Error {
   override name = "StaleDataUseNoticeError";

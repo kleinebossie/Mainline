@@ -61,35 +61,30 @@ describe("calibration-puzzle test", () => {
       chessProfileSnapshot: {
         findFirst: async () => null,
       },
-      // M14: the calibration board reads the user's play medium (targetFocus) for its interface
-      // restrictions; with no saved constraints it defaults to "online".
+      // With no saved constraints, target focus defaults to online.
       constraintSet: {
         findFirst: async () => null,
       },
       lichessPuzzle: {
-        findMany: async () => {
-          // Filter to simulate selectPuzzles behavior roughly
-          return puzzlesPool.filter((p) => {
-            const excludeIds = savedResponses
-              ? savedResponses.map((r) => r.puzzleId)
-              : [];
-            return !excludeIds.includes(p.puzzleId);
-          });
-        },
+        findMany: async ({
+          where,
+        }: {
+          where: { puzzleId?: { notIn?: string[] } };
+        }) =>
+          puzzlesPool.filter(
+            (p) => !where.puzzleId?.notIn?.includes(p.puzzleId),
+          ),
       },
     } as unknown as PrismaClient;
 
-    // 1. Initial State: activePuzzle should be selected from the pool
     const state1 = await getCalibrationState(db, "user-1");
     expect(state1.activePuzzle).not.toBeNull();
     const firstPuzzleId = state1.activePuzzle!.puzzleId;
     expect(["p1", "p2", "p3"]).toContain(firstPuzzleId);
 
-    // 2. Deterministic check: same user gets the same puzzle
     const state1b = await getCalibrationState(db, "user-1");
     expect(state1b.activePuzzle!.puzzleId).toBe(firstPuzzleId);
 
-    // 3. Apply Calibration Response (Solve it!)
     const date = new Date();
     const state2 = await applyCalibrationResponse(
       db,
@@ -102,7 +97,6 @@ describe("calibration-puzzle test", () => {
       date,
     );
 
-    // Verify response was saved and the solved puzzle is excluded, yielding a new active puzzle
     expect(savedResponses).not.toBeNull();
     expect(savedResponses).toHaveLength(1);
     expect(savedResponses![0]!.puzzleId).toBe(firstPuzzleId);

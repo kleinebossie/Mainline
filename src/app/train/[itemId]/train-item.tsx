@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { trpc } from "@/lib/trpc/react";
@@ -80,51 +80,11 @@ export function TrainItem({ programItemId }: TrainItemProps) {
   const retestDelaySec = data?.redoFlow.retestDelaySec ?? 0;
   const [delayRemaining, setDelayRemaining] = useState<number>(retestDelaySec);
   const delayTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const activeSolvableId =
-    phase === "retest"
-      ? retestQueue[currentIdx]?.id
-      : solvables[currentIdx]?.id;
-
-  // Initialise solvables when loaded
-  useEffect(() => {
-    if (data?.solvables) {
-      setSolvables(data.solvables);
-      setCurrentIdx(0);
-      setRetestQueue([]);
-      setPhase(data.solvables.length > 0 ? "training" : "complete");
-    }
-  }, [data]);
-
-  // Set up solve state when the active item (by phase + index) changes.
-  useEffect(() => {
-    const list = phase === "retest" ? retestQueue : solvables;
-    const activeItem = list[currentIdx];
-    if ((phase === "training" || phase === "retest") && activeItem) {
-      initSolvable(activeItem);
-    }
-    // We explicitly omit solvables and retestQueue from the dependencies to prevent
-    // updates (like appending a failed puzzle to the retestQueue during training)
-    // from resetting the ongoing solve session. We only want to re-initialize
-    // when the active puzzle's ID, index, or phase changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeSolvableId, currentIdx, phase]);
-
-  // Clean up timers on unmount
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-      if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
-      if (delayTimerRef.current) clearInterval(delayTimerRef.current);
-    };
-  }, []);
-
-  const initSolvable = (s: Solvable) => {
+  const initSolvable = useCallback((s: Solvable) => {
     if (timerRef.current) clearInterval(timerRef.current);
     if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
 
     const now = systemClock.now();
-    // A puzzle has an opponent setup move (moves[0]); a blunder drill is the position the
-    // player already faces, so its line starts with the player's move.
     const { solveState: setup, orientation: playerSide } =
       s.kind === "blunder_drill"
         ? drillToSolveState(s.fen, s.line, now)
@@ -142,7 +102,35 @@ export function TrainItem({ programItemId }: TrainItemProps) {
     timerRef.current = setInterval(() => {
       setElapsedMs(Math.max(0, systemClock.now() - now));
     }, 100);
-  };
+  }, []);
+
+  const activeSolvable =
+    phase === "retest" ? retestQueue[currentIdx] : solvables[currentIdx];
+
+  // Initialise solvables when loaded
+  useEffect(() => {
+    if (data?.solvables) {
+      setSolvables(data.solvables);
+      setCurrentIdx(0);
+      setRetestQueue([]);
+      setPhase(data.solvables.length > 0 ? "training" : "complete");
+    }
+  }, [data]);
+
+  useEffect(() => {
+    if ((phase === "training" || phase === "retest") && activeSolvable) {
+      initSolvable(activeSolvable);
+    }
+  }, [activeSolvable, initSolvable, phase]);
+
+  // Clean up timers on unmount
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
+      if (delayTimerRef.current) clearInterval(delayTimerRef.current);
+    };
+  }, []);
 
   // Log one outcome, routing to the right event type by kind (puzzle_attempt vs drill_done).
   const logOutcome = (s: Solvable, correct: boolean, solveTimeMs: number) => {
@@ -208,6 +196,7 @@ export function TrainItem({ programItemId }: TrainItemProps) {
       }
 
       const resetPosition = result.checkpointPosition;
+      if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
       feedbackTimerRef.current = setTimeout(() => {
         setBoardPosition(resetPosition);
         setSolveStatus((prev) => (prev === "wrong" ? "pending" : prev));
@@ -215,7 +204,8 @@ export function TrainItem({ programItemId }: TrainItemProps) {
     } else if (result.step === "continue" || result.step === "correct") {
       setSolveStatus("correct");
       setBoardPosition(result.state.position);
-      setTimeout(() => {
+      if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
+      feedbackTimerRef.current = setTimeout(() => {
         setSolveStatus((prev) => (prev === "correct" ? "pending" : prev));
       }, 1000);
     }
@@ -245,10 +235,10 @@ export function TrainItem({ programItemId }: TrainItemProps) {
 
   const startDelayTimer = () => {
     if (delayTimerRef.current) clearInterval(delayTimerRef.current);
-    delayTimerRef.current = setInterval(() => {
+    const timer = setInterval(() => {
       setDelayRemaining((prev) => {
         if (prev <= 1) {
-          clearInterval(delayTimerRef.current!);
+          clearInterval(timer);
           setPhase("retest");
           setCurrentIdx(0);
           return 0;
@@ -256,6 +246,7 @@ export function TrainItem({ programItemId }: TrainItemProps) {
         return prev - 1;
       });
     }, 1000);
+    delayTimerRef.current = timer;
   };
 
   const skipDelay = () => {
@@ -268,7 +259,8 @@ export function TrainItem({ programItemId }: TrainItemProps) {
     if (timerRef.current) clearInterval(timerRef.current);
 
     if (phase === "training") {
-      const current = solvables[currentIdx]!;
+      const current = solvables[currentIdx];
+      if (!current) return;
       logOutcome(current, false, 0);
       setRetestQueue((prev) => [...prev, current]);
     }

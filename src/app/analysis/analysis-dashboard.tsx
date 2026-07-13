@@ -7,6 +7,7 @@ import { PageShell } from "@/components/app-shell";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { StatusMessage } from "@/components/ui/status-message";
+import { MethodologyRationaleCard } from "@/components/methodology-rationale-card";
 import { cn } from "@/lib/utils";
 import {
   resultLabel,
@@ -57,6 +58,8 @@ export function AnalysisDashboard() {
   const [analyzingGameId, setAnalyzingGameId] = useState<string | null>(null);
 
   const ratio = suggestionsQuery.data?.ratio;
+  const ownGamesRationale = suggestionsQuery.data?.ownGamesRationale;
+  const successBiasRationale = suggestionsQuery.data?.successBiasRationale;
 
   const library = libraryQuery.data;
   const platforms = library?.platforms ?? [];
@@ -182,10 +185,13 @@ export function AnalysisDashboard() {
     <PageShell
       eyebrow="Structured Game Review"
       title="Review Own Games"
-      lede="Pick one of your games and walk through a 3-step, science-backed review. We prioritise wins for pattern reinforcement and self-correction, avoiding ego-threat while training."
+      lede="Pick one of your games, think through its critical moments before seeing engine feedback, then schedule the mistakes for review."
       width="default"
     >
       <div className="flex flex-col gap-8">
+        {ownGamesRationale && (
+          <MethodologyRationaleCard rationale={ownGamesRationale} />
+        )}
         {/* Pick a game — the library, most recent first, filtered by primary platform. */}
         <section className="flex flex-col gap-4">
           <div className="flex flex-wrap items-end justify-between gap-3">
@@ -414,7 +420,7 @@ export function AnalysisDashboard() {
 
         {/* Honest one-line recommendation (Seam 4.1 §Step5) — no curated list, since the
             player can already pick any game above. */}
-        {ratio && (
+        {ratio && successBiasRationale && (
           <section className="flex flex-col gap-3 rounded-lg border border-line bg-card px-5 py-4 shadow-sheet">
             <p className="text-ink font-serif text-sm leading-relaxed">
               When picking a game above, aim for roughly{" "}
@@ -427,6 +433,7 @@ export function AnalysisDashboard() {
               </span>{" "}
               : {ratio.focusDescription}.
             </p>
+            <MethodologyRationaleCard rationale={successBiasRationale} />
           </section>
         )}
       </div>

@@ -1,7 +1,3 @@
-// P4 — ProgramDecisionInput schema (lib/decision-input). The single typed snapshot of
-// longitudinal state the assembler persists onto `Program.generationInput`. Validating at
-// the boundary is what makes a historic program reproducible end-to-end (L2).
-
 import { describe, expect, it } from "vitest";
 
 import {
@@ -10,6 +6,20 @@ import {
   trainingPreferencesSchema,
   type ProgramDecisionInput,
 } from "@/lib/decision-input";
+
+const EMPTY_CONSTRAINTS: ProgramDecisionInput["constraints"] = {
+  minutesPerDay: 30,
+  daysPerWeek: 5,
+  goals: [],
+  ownedResources: [],
+  formatPrefs: {
+    formats: [],
+    preferredVariety: false,
+    targetFocus: "online",
+  },
+  sessionStyle: { depthVsBreadth: "balanced", interleave: true },
+  ifThenPlan: null,
+};
 
 describe("programDecisionInputSchema", () => {
   it("parses a minimal snapshot, filling TrainingPreferences + activityRecency defaults", () => {
@@ -21,19 +31,7 @@ describe("programDecisionInputSchema", () => {
       band: "band1200_1600",
       tacticalRating: 1300,
       libraryBand: "band1200_1600",
-      constraints: {
-        minutesPerDay: 30,
-        daysPerWeek: 5,
-        goals: [],
-        ownedResources: [],
-        formatPrefs: {
-          formats: [],
-          preferredVariety: false,
-          targetFocus: "online",
-        },
-        sessionStyle: { depthVsBreadth: "balanced", interleave: true },
-        ifThenPlan: null,
-      },
+      constraints: EMPTY_CONSTRAINTS,
       goals: [],
       ownedResources: [],
       latestSkillState: [],
@@ -161,19 +159,7 @@ describe("programDecisionInputSchema", () => {
       band: "x",
       tacticalRating: 0,
       libraryBand: "x",
-      constraints: {
-        minutesPerDay: 20,
-        daysPerWeek: 5,
-        goals: [],
-        ownedResources: [],
-        formatPrefs: {
-          formats: [],
-          preferredVariety: false,
-          targetFocus: "online",
-        },
-        sessionStyle: { depthVsBreadth: "balanced", interleave: true },
-        ifThenPlan: null,
-      },
+      constraints: { ...EMPTY_CONSTRAINTS, minutesPerDay: 20 },
       goals: [],
       ownedResources: [],
       latestSkillState: [],
@@ -192,19 +178,13 @@ describe("programDecisionInputSchema", () => {
   });
 
   it("rejects a skill estimate slipping into TrainingPreferences (boundary)", () => {
-    // TrainingPreferences must NEVER carry a skill estimate (roadmap-wide invariant, §9).
     const bad = {
       enjoyment: { puzzle_theme: 0.7 },
       resourceAffinity: {},
       frictionTags: [],
       evidenceCount: 0,
-      // a sneaky "skill" field — must be stripped by strict()
       skill_estimate: 0.8,
     };
-    expect(() =>
-      // strict() schema must reject the extra key — a sneaky "skill" field on a
-      // TRAINING preferences object must never slip through (roadmap-wide invariant, §9).
-      trainingPreferencesSchema.parse(bad),
-    ).toThrow();
+    expect(() => trainingPreferencesSchema.parse(bad)).toThrow();
   });
 });

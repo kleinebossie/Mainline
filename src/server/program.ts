@@ -1,8 +1,5 @@
-// Program orchestration (BUILD.md M6 · §7.1). The graded DECISIONS live in the pure
-// generator + provider functions; this module only gathers DB state, calls them, and
-// persists/reads the result (L1: server orchestrates, it does not decide). The injected
-// Clock keeps generation reproducible (L2) — the router passes the system clock; tests
-// pass a fixed one.
+// Program persistence and DTO shaping. Engine and methodology own graded decisions.
+// Generation uses an injected clock for reproducibility.
 
 import type { Prisma, PrismaClient } from "@prisma/client";
 
@@ -151,7 +148,6 @@ export function preserveUnfinishedActivities<
   });
 }
 
-/** Start-of-day (UTC) for an epoch — the day a generated session belongs to. */
 function startOfDayUTC(epoch: number): Date {
   const d = new Date(epoch);
   return new Date(
@@ -159,8 +155,7 @@ function startOfDayUTC(epoch: number): Date {
   );
 }
 
-/** The rating that drives Seam-5 difficulty: the behavioural calibration estimate first,
- *  then a platform puzzle/rapid rating, else the config's no-data start (Seam 2 rule). */
+/** Prefer behavioral calibration when choosing puzzle difficulty. */
 export async function resolveTacticalRating(
   db: Db,
   userId: string,
@@ -182,12 +177,7 @@ export async function resolveTacticalRating(
   );
 }
 
-/** The rating that drives the GAME-ANALYSIS band (the "bad move" / RPL cp thresholds): the
- *  user's PLAYING strength, NOT their puzzle rating. Prefers the rating they actually had in
- *  THIS game (`gameRating`), then a recent playing-format snapshot, then falls back to the
- *  tactical/calibration estimate. (`resolveTacticalRating`, which leans on the inflated
- *  puzzle rating, still seeds Seam-5 puzzle DIFFICULTY — only the analysis band differs, so
- *  a 930-rapid player lands in 800–1200 (200cp) instead of 1600–2000 (50cp).) */
+/** Use playing strength for analysis bands, never puzzle rating. */
 export async function resolvePlayingRating(
   db: Db,
   userId: string,
@@ -206,11 +196,7 @@ export async function resolvePlayingRating(
   );
 }
 
-/** The rating that drives book-catalog BAND selection (Seam 4 §4.2): the user's highest
- *  actual live-game rating (bullet/blitz/rapid — never puzzle) on their PRIMARY platform.
- *  Puzzle rating runs far above playing strength (`resolveTacticalRating`'s job is puzzle
- *  DIFFICULTY, not this), and the catalog is pitched at playing strength. Falls back to the
- *  tactical estimate when the user has no live-game rating on record. */
+/** Use the highest live-game rating on the primary platform for library bands. */
 export async function resolveLibraryRating(
   db: Db,
   userId: string,
@@ -233,7 +219,6 @@ export async function resolveLibraryRating(
   );
 }
 
-/** All client-computed raw features for the user's analysed games (defensively parsed). */
 export async function gatherFeatures(
   db: Db,
   userId: string,
@@ -251,8 +236,7 @@ export async function gatherFeatures(
   return features;
 }
 
-/** Rolling success rate per Seam-5 track from recent puzzle-attempt outcomes (servo input,
- *  M7). Plumbing only — the servo decision lives in targetPuzzleRating (Seam 5). */
+/** Raw recent success rates by puzzle track. */
 export async function gatherRecentSuccessByTrack(
   db: Db,
   userId: string,
@@ -282,16 +266,6 @@ export async function gatherRecentSuccessByTrack(
 
 const themeRefId = (theme: string): string => `lichess_theme_${theme}`;
 
-/**
- * Generate today's program from current state and persist it (superseding any prior active
- * program). Pure decisions inside generateProgram; everything here is plumbing.
- *
- * P4: the longitudinal decision state is assembled by the single typed assembler
- * (`assembleProgramDecisionInput`) and snapshotted verbatim onto `Program.generationInput`
- * so any historic "Today" can be re-derived exactly (L2 reproducibility). The pure
- * generator's narrow input is derived from that snapshot — routes never reconstruct partial
- * decision state themselves.
- */
 export interface PreparedProgram {
   saveInput: SaveProgramInput;
   forecastSource: ForecastSource;
@@ -305,10 +279,7 @@ export async function prepareProgram(
 ): Promise<PreparedProgram> {
   const cfg = loadMethodology();
 
-  // M13: seed the band's curated endgame curriculum BEFORE assembling the snapshot, so any
-  // newly-due endgames surface in the same session. The decision of whether to seed is
-  // config-only (positive ROI prior); the band comes from the tactical rating, computed
-  // here once so we don't assemble the whole snapshot twice.
+  // Seed due endgames before snapshot assembly so they can enter this session.
   const tacticalRatingSeed = await resolveTacticalRating(db, userId, cfg);
   const bandSeed = bandForRating(tacticalRatingSeed, cfg);
   const endgameRecommended = cfg.activities.some(
@@ -320,7 +291,6 @@ export async function prepareProgram(
     await ensureEndgameDrills(db, userId, bandSeed, cfg, clock);
   }
 
-  // Assemble the full longitudinal snapshot from persisted state + the injected Clock.
   const { snapshot, generateInput } = await assembleProgramDecisionInput(
     db,
     userId,
@@ -351,9 +321,7 @@ export async function prepareProgram(
     config: cfg,
   });
 
-  // Explicit Replan keeps completed work in the immutable prior Program and must not
-  // schedule the same completed activity again in replacement Today. ActivityEvents stay
-  // linked to their original ProgramItems; only pending work is regenerated.
+  // Replanning keeps completed events on the prior program and regenerates pending work.
   const completedRows = preserveCompletedToday
     ? await db.program.findFirst({
         where: { userId, status: "active" },
@@ -371,7 +339,6 @@ export async function prepareProgram(
     completedRows?.items ?? [],
   );
 
-  // Link each puzzle-theme item to its catalog ResourceRef when one has been seeded.
   const wantedRefIds = [
     ...new Set(
       itemsToPersist
@@ -389,8 +356,7 @@ export async function prepareProgram(
       : [];
   const seededIds = new Set(seeded.map((r) => r.id));
 
-  // P4: persist the validated snapshot exactly. `assembledAt` is the injected logical
-  // generation time, so an additional timestamp would make the strict schema unparseable.
+  // Persist the validated snapshot exactly; the schema is strict.
   const generationInput = {
     ...snapshot,
     weeklyFocus: programWeeklyFocusSnapshotSchema.parse(weeklyFocus),
@@ -409,7 +375,7 @@ export async function prepareProgram(
         it.resourceTheme && seededIds.has(themeRefId(it.resourceTheme))
           ? themeRefId(it.resourceTheme)
           : null,
-      // estMinutes rides along in params for display; it is a packing input, not a column.
+      // Display-only packing input stored with the item parameters.
       params: {
         ...it.params,
         estMinutes: it.estMinutes,
@@ -489,8 +455,6 @@ export async function generateAndSaveProgram(
   return { programId, reusedStartedProgram: saved.reusedStartedProgram };
 }
 
-// --- Read side: the shaped DTO the /today screen renders -------------------
-
 export interface TodayItem {
   id: string;
   orderIndex: number;
@@ -499,14 +463,12 @@ export interface TodayItem {
   dimensionLabels: string[];
   estMinutes: number | null;
   params: Omit<ProgramItemParams, "dueItemRefs">;
-  /** Human-readable display tags for due review work; raw due refs stay server/internal. */
+  /** Display tags only; raw due references remain private. */
   reviewThemes: string[];
   externalUrl: string | null;
-  /** The label for the external-link button (e.g. "Play on Lichess ↗"). */
   externalLabel: string | null;
   url: string | null;
   delivery: "internal" | "external";
-  /** Concrete owned book/course selected for a scheduled external book-study item. */
   bookResource: ProgramItemParams["bookResource"] | null;
   rationaleText: string;
   evidenceGrade: string;
@@ -532,7 +494,6 @@ export interface TodayProgram {
   id: string;
   createdAt: Date;
   methodologyVersion: string;
-  /** Always-on honesty copy (Seam 8) shown above the session. */
   honesty: {
     expectations: string;
     processGoal: string;
@@ -655,8 +616,6 @@ export function toTodayItem(
       : def?.delivery?.value === "internal"
         ? "internal"
         : "external";
-  // "Play a game" resolves to a one-click deep link to the user's preferred platform
-  // (Goal 3); themed puzzles keep their Lichess training-page link.
   const isPlayGame = item.activityType === "play_game";
   const externalUrl = isPlayGame
     ? platformPlayUrl(primaryPlatform)
@@ -699,12 +658,10 @@ export function toTodayItem(
   };
 }
 
-// --- Read side: the honest "reveal" — what the user's games actually show -----------
-
 export interface GameSignal {
   dimension: string;
   dimensionLabel: string;
-  /** 0..1 — how far the measured rate exceeds the band threshold. */
+  /** Normalized amount above the band threshold. */
   severity: number;
   confidence: string;
   sampleSize: number;
@@ -721,8 +678,6 @@ export interface GameSignalsResult {
   signals: GameSignal[];
 }
 
-/** The graded weakness signals from the user's analysed games (Seam 3), shaped for the
- *  reveal. Pure decisions stay in interpretGameFeatures; this only gathers + maps (L1). */
 export async function getGameSignals(
   db: Db,
   userId: string,
@@ -757,7 +712,6 @@ export async function getGameSignals(
   };
 }
 
-/** The active program shaped for the UI, or null if none has been generated yet. */
 export async function getTodayProgram(
   db: Db,
   userId: string,

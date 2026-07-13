@@ -8,6 +8,11 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { StatusMessage } from "@/components/ui/status-message";
+import { MethodologyRationaleCard } from "@/components/methodology-rationale-card";
+import {
+  MAX_MINUTES_PER_DAY,
+  MIN_MINUTES_PER_DAY,
+} from "@/lib/constraint-limits";
 import { platformLabel } from "@/lib/format-game";
 import {
   CHESS_FORMATS,
@@ -21,6 +26,7 @@ import {
   type SessionStyle,
   type TargetFocus,
 } from "@/lib/constraints";
+import type { RationaleEntry } from "@/methodology";
 
 // Labels for the play-medium choice (M14) — drives the 2D/3D modality + OTB recommendations.
 const TARGET_FOCUS_LABELS: Record<TargetFocus, string> = {
@@ -58,12 +64,14 @@ const GOAL_OPTIONS: ReadonlyArray<{ kind: Goal["kind"]; label: string }> = [
 // Reused in onboarding (continue → reveal) and in Settings (continue → today). The
 // continuation is the only thing that differs between the two contexts.
 export function ConstraintsForm({
+  ifThenRationale,
   continueHref = "/onboarding/reveal",
   continueLabel = "Continue →",
 }: {
+  ifThenRationale: RationaleEntry;
   continueHref?: string;
   continueLabel?: string;
-} = {}) {
+}) {
   const current = trpc.constraints.getCurrent.useQuery();
   if (current.isLoading) {
     return <StatusMessage tone="loading">Loading your plan…</StatusMessage>;
@@ -73,6 +81,7 @@ export function ConstraintsForm({
     <Form
       key={current.data?.id ?? "new"}
       initial={current.data ?? EMPTY_CONSTRAINTS}
+      ifThenRationale={ifThenRationale}
       continueHref={continueHref}
       continueLabel={continueLabel}
     />
@@ -81,10 +90,12 @@ export function ConstraintsForm({
 
 function Form({
   initial,
+  ifThenRationale,
   continueHref,
   continueLabel,
 }: {
   initial: ConstraintsInput;
+  ifThenRationale: RationaleEntry;
   continueHref: string;
   continueLabel: string;
 }) {
@@ -244,15 +255,15 @@ function Form({
           </span>
           <Input
             type="number"
-            min={5}
-            max={1440}
+            min={MIN_MINUTES_PER_DAY}
+            max={MAX_MINUTES_PER_DAY}
             value={minutesPerDay}
             onChange={(e) => setMinutes(Number(e.target.value))}
           />
           <span className="text-graphite font-serif text-xs font-normal leading-relaxed">
             This is a <span className="text-ink font-medium">hard maximum</span>
-            . Sessions are sized to stay at or under it, never over. 5–1440 min
-            (up to 24 hours).
+            . Sessions are sized to stay at or under it, never over.{" "}
+            {MIN_MINUTES_PER_DAY}-{MAX_MINUTES_PER_DAY} min (up to 24 hours).
           </span>
         </label>
         <label className="flex flex-col gap-2 font-serif text-sm font-medium">
@@ -524,11 +535,7 @@ function Form({
         <legend className="eyebrow border-b border-line/80 pb-2 w-full mb-1">
           Your if-then plan
         </legend>
-        <p className="text-graphite font-serif text-sm leading-relaxed mb-2">
-          Anchoring training to an existing daily habit roughly doubles
-          follow-through (Gollwitzer &amp; Sheeran 2006). Optional, but it
-          helps.
-        </p>
+        <MethodologyRationaleCard rationale={ifThenRationale} />
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <span className="font-serif text-sm text-graphite shrink-0">
             After

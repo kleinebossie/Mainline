@@ -122,6 +122,34 @@ describe("stepSolve pure state machine", () => {
     expect(result.state.cursor).toBe(0);
     expect(result.state.position).toBe(startFen);
   });
+
+  it("rejects malformed positions and corrupt opponent replies", () => {
+    expect(() =>
+      stepSolve(
+        {
+          position: "not a fen",
+          solutionLine: ["e4"],
+          cursor: 0,
+          startedMs: 0,
+          attempts: 0,
+        },
+        { san: "e4", atMs: 1 },
+      ),
+    ).toThrow();
+
+    expect(() =>
+      stepSolve(
+        {
+          position: startFen,
+          solutionLine: ["e2e4", "not-a-move", "g1f3"],
+          cursor: 0,
+          startedMs: 0,
+          attempts: 0,
+        },
+        { san: "e4", atMs: 1 },
+      ),
+    ).toThrow();
+  });
 });
 
 describe("createEnginePlay Stockfish opponent harness", () => {

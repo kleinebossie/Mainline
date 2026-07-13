@@ -6,8 +6,9 @@ import Link from "next/link";
 import { trpc } from "@/lib/trpc/react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { GradeMark } from "@/components/evidence";
+import { asEvidenceGrade } from "@/components/evidence";
 import { StatusMessage } from "@/components/ui/status-message";
+import { CalibrationTrackGauges } from "@/app/onboarding/calibration-track-gauges";
 import {
   BOARD_SIZE_CLASS,
   InteractiveBoard,
@@ -24,18 +25,6 @@ import { cn } from "@/lib/utils";
 // (config-driven ladder); we present it as a strength target and record only the
 // behavioural outcome (solved / missed). The active methodology controls the tracks
 // and ladder length; an in-progress historic assessment keeps its original release.
-
-type Grade = "A" | "B" | "C" | "D";
-function asGrade(g: string): Grade {
-  return g === "A" || g === "B" || g === "C" || g === "D" ? g : "C";
-}
-
-// Display-only gauge axis (UI scale, not a methodology value).
-const MIN = 800;
-const MAX = 2500;
-function pct(r: number): number {
-  return Math.min(100, Math.max(0, ((r - MIN) / (MAX - MIN)) * 100));
-}
 
 export function Calibration() {
   const utils = trpc.useUtils();
@@ -142,7 +131,10 @@ export function Calibration() {
   if (completed || !activeTrack) {
     const primary = tracks[0]!;
     return (
-      <Card gutter={asGrade(primary.estimate.evidenceGrade)} className="settle">
+      <Card
+        gutter={asEvidenceGrade(primary.estimate.evidenceGrade)}
+        className="settle"
+      >
         <CardHeader className="pb-4">
           <CardTitle className="font-serif text-3xl font-semibold">
             Your starting baseline
@@ -155,42 +147,7 @@ export function Calibration() {
           </p>
         </CardHeader>
         <CardContent className="flex flex-col gap-5">
-          <div className="flex flex-col gap-4">
-            {tracks.map((t) => {
-              const v = t.estimate.tacticalRatingEstimate;
-              const u = t.estimate.uncertainty;
-              const left = pct(v - u);
-              const width = pct(v + u) - left;
-              return (
-                <div
-                  key={t.id}
-                  className="flex flex-col gap-2 rounded-md border p-4 bg-paper/30"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="font-serif text-base font-semibold text-ink">
-                      {t.label}
-                    </span>
-                    <span className="flex items-center gap-2">
-                      <span className="font-mono text-sm font-semibold tabular-nums text-ink">
-                        ≈ {v} ± {u}
-                      </span>
-                      <GradeMark grade={t.estimate.evidenceGrade} />
-                    </span>
-                  </div>
-                  <div className="relative h-3 w-full bg-ink/5 dark:bg-ink/20 rounded-sm border border-line overflow-hidden">
-                    <div
-                      className="absolute top-0 bottom-0 bg-evergreen/15 dark:bg-evergreen/35 border-x border-evergreen/30"
-                      style={{ left: `${left}%`, width: `${width}%` }}
-                    />
-                    <div
-                      className="absolute top-0 bottom-0 w-0.5 bg-evergreen"
-                      style={{ left: `${pct(v)}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <CalibrationTrackGauges tracks={tracks} className="gap-4" />
 
           <p className="text-graphite font-serif text-sm leading-relaxed border-t border-line/80 pt-4">
             {tracks.length === 1

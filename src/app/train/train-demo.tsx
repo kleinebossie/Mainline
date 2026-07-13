@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { PageShell } from "@/components/app-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -27,25 +27,15 @@ import {
   DEMO_PUZZLE_SOLUTION,
 } from "@/app/train/train-demo-fixtures";
 
-// A genuine mate-in-1 ENDGAME for the M13 substrate demo: White Ka6 + Qg7 vs lone Black Ka8.
-// 1. Qa7# (g7→a7) is checkmate, so the play-out ends immediately — no engine reply needed,
-// keeping the demo deterministic and engine-free (the e2e drives exactly this).
-// FEN: k7/6Q1/K7/8/8/8/8/8 w - - 0 1   Objective: win (deliver checkmate).
+type TrainingMode = "puzzle" | "spar" | "endgame";
+type SolveStatus = "pending" | "correct" | "wrong" | "solved";
 
-// A genuine, verifiable mate-in-1 for the substrate demo. Black king is boxed on g8 by
-// its own pawns (f7/g7/h7); the rook swings to a8 and mates along the back rank — the rook
-// is unreachable, so it is real checkmate (not a hanging-piece "win").
-// FEN: 6k1/5ppp/8/8/8/8/8/R6K w - - 0 1   Solution: 1. Ra8#  (UCI a1a8)
+const INITIAL_POSITION = new Chess().fen();
 
 export function TrainDemo() {
-  const [mode, setMode] = useState<"puzzle" | "spar" | "endgame">("puzzle");
-
-  // State for Endgame-drill mode (M13). Played out vs the engine; the mate-in-1 demo ends on
-  // the user's move, so we judge with the real engine scorer (classifyTerminal + scoreEndgame).
+  const [mode, setMode] = useState<TrainingMode>("puzzle");
   const [endgameFen, setEndgameFen] = useState<string>(DEMO_ENDGAME_FEN);
   const [endgameResult, setEndgameResult] = useState<EndgameScore | null>(null);
-
-  // State for Puzzle mode
   const [solveState, setSolveState] = useState<SolveState>({
     position: DEMO_PUZZLE_FEN,
     solutionLine: DEMO_PUZZLE_SOLUTION,
@@ -53,27 +43,20 @@ export function TrainDemo() {
     startedMs: 0,
     attempts: 0,
   });
-  const [solveStatus, setSolveStatus] = useState<
-    "pending" | "correct" | "wrong" | "solved"
-  >("pending");
+  const [solveStatus, setSolveStatus] = useState<SolveStatus>("pending");
   const [elapsedMs, setElapsedMs] = useState<number>(0);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-
-  // State for Sparring mode
-  const [sparFen, setSparFen] = useState<string>(
-    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-  );
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const feedbackRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [sparFen, setSparFen] = useState(INITIAL_POSITION);
   const [engineLoading, setEngineLoading] = useState<boolean>(false);
   const [engineReady, setEngineReady] = useState<boolean>(false);
-  const [engineLog, setEngineLog] = useState<string[]>([]);
+  const [engineError, setEngineError] = useState<string | null>(null);
   const [sparHistory, setSparHistory] = useState<string[]>([]);
-
-  // Engine instance ref
   const engineRef = useRef<StockfishAnalysisEngine | null>(null);
 
-  // Initialize/reset puzzle
-  const resetPuzzle = () => {
+  const resetPuzzle = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
+    if (feedbackRef.current) clearTimeout(feedbackRef.current);
 
     const now = systemClock.now();
     setSolveState({
@@ -89,7 +72,7 @@ export function TrainDemo() {
     timerRef.current = setInterval(() => {
       setElapsedMs(Math.max(0, systemClock.now() - now));
     }, 100);
-  };
+  }, []);
 
   useEffect(() => {
     if (mode === "puzzle") {
@@ -103,9 +86,8 @@ export function TrainDemo() {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [mode]);
+  }, [mode, resetPuzzle]);
 
-  // Handle puzzle move guesses
   const handlePuzzleMove = (move: { san: string }) => {
     const result = stepSolve(solveState, {
       san: move.san,
@@ -118,21 +100,19 @@ export function TrainDemo() {
       if (timerRef.current) clearInterval(timerRef.current);
     } else if (result.step === "wrong") {
       setSolveStatus("wrong");
-      // Flash wrong status, then revert back to pending to allow typing/dragging again
-      setTimeout(() => {
+      if (feedbackRef.current) clearTimeout(feedbackRef.current);
+      feedbackRef.current = setTimeout(() => {
         setSolveStatus((prev) => (prev === "wrong" ? "pending" : prev));
       }, 1500);
     } else if (result.step === "continue" || result.step === "correct") {
       setSolveStatus("correct");
-      setTimeout(() => {
+      if (feedbackRef.current) clearTimeout(feedbackRef.current);
+      feedbackRef.current = setTimeout(() => {
         setSolveStatus((prev) => (prev === "correct" ? "pending" : prev));
       }, 1000);
     }
   };
 
-  // Handle endgame play-out moves (M13). Apply locally; when the game ends, judge the result
-  // against the "win" objective with the real engine scorer (the mate-in-1 demo ends here, so
-  // no opponent reply is needed — deterministic and engine-free).
   const handleEndgameMove = (move: { san: string }) => {
     const chess = new Chess(endgameFen);
     try {
@@ -156,81 +136,60 @@ export function TrainDemo() {
     setEndgameResult(null);
   };
 
-  // Lazy initialize Stockfish client-side
   const initEngine = async () => {
     if (engineRef.current) return;
+    setEngineError(null);
     setEngineLoading(true);
     try {
       const engine = new StockfishAnalysisEngine();
       await engine.init();
       engineRef.current = engine;
       setEngineReady(true);
-      setEngineLog((prev) => [
-        ...prev,
-        "Engine worker booted successfully client-side.",
-      ]);
     } catch (e: unknown) {
-      console.error(e);
       const errMsg = e instanceof Error ? e.message : String(e);
-      setEngineLog((prev) => [...prev, `Error booting engine: ${errMsg}`]);
+      setEngineError(`Stockfish could not start: ${errMsg}`);
     } finally {
       setEngineLoading(false);
     }
   };
 
-  // Clean up engine worker on unmount
   useEffect(() => {
     return () => {
+      if (feedbackRef.current) clearTimeout(feedbackRef.current);
       if (engineRef.current) {
         engineRef.current.dispose();
       }
     };
   }, []);
 
-  // Handle sparring user moves and trigger engine reply
-  const handleSparMove = async (move: { san: string; uci: string }) => {
+  const handleSparMove = async (move: { san: string }) => {
     setSparHistory((prev) => [...prev, `User: ${move.san}`]);
 
-    // The board state FEN has updated inside InteractiveBoard.
-    // Calculate the new FEN using chess.js locally.
-    const { Chess } = await import("chess.js");
     const chess = new Chess(sparFen);
     chess.move(move.san);
     const afterUserFen = chess.fen();
     setSparFen(afterUserFen);
 
-    // If game is over, stop
     if (chess.isGameOver()) {
       setSparHistory((prev) => [...prev, "Game Over!"]);
       return;
     }
 
-    // Trigger engine opponent move if ready
     if (engineRef.current) {
+      setEngineError(null);
       setEngineLoading(true);
       try {
         const enginePlay = createEnginePlay(engineRef.current, systemClock);
-        setEngineLog((prev) => [...prev, "Engine is thinking..."]);
-        // Search limit depth 8 for quick client response
         const opponent = await enginePlay.getOpponentMove(afterUserFen, {
           depth: 8,
         });
 
-        // Apply opponent move
         chess.move(opponent.san);
         setSparFen(chess.fen());
-        setSparHistory((prev) => [
-          ...prev,
-          `Engine: ${opponent.san} (${opponent.solveMs}ms)`,
-        ]);
-        setEngineLog((prev) => [
-          ...prev,
-          `Engine played ${opponent.san} in ${opponent.solveMs}ms.`,
-        ]);
+        setSparHistory((prev) => [...prev, `Engine: ${opponent.san}`]);
       } catch (err: unknown) {
-        console.error(err);
         const errMsg = err instanceof Error ? err.message : String(err);
-        setEngineLog((prev) => [...prev, `Opponent error: ${errMsg}`]);
+        setEngineError(`Stockfish could not move: ${errMsg}`);
       } finally {
         setEngineLoading(false);
       }
@@ -243,9 +202,9 @@ export function TrainDemo() {
   };
 
   const resetSpar = () => {
-    setSparFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+    setSparFen(INITIAL_POSITION);
     setSparHistory([]);
-    setEngineLog([]);
+    setEngineError(null);
   };
 
   return (
@@ -261,7 +220,6 @@ export function TrainDemo() {
           </p>
         </div>
 
-        {/* Mode Selector */}
         <div className="grid gap-2 sm:grid-cols-3">
           <Button
             variant={mode === "puzzle" ? "default" : "outline"}
@@ -290,7 +248,6 @@ export function TrainDemo() {
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
-          {/* Chessboard View */}
           <div className="flex flex-col items-center gap-3">
             <InteractiveBoard
               fen={
@@ -331,7 +288,6 @@ export function TrainDemo() {
             )}
           </div>
 
-          {/* Sidebar / Info */}
           <div className="flex flex-col gap-4">
             {mode === "puzzle" ? (
               <Card className="h-full">
@@ -410,7 +366,6 @@ export function TrainDemo() {
                     )}
                   </div>
 
-                  {/* History & Logs */}
                   <div className="flex flex-col gap-2 border-t border-line/80 pt-4">
                     <span className="text-ink font-mono text-xs font-semibold uppercase tracking-wider">
                       Game History:
@@ -428,22 +383,11 @@ export function TrainDemo() {
                     </div>
                   </div>
 
-                  <div className="flex flex-col gap-2">
-                    <span className="text-ink font-mono text-xs font-semibold uppercase tracking-wider">
-                      Engine Console Logs:
-                    </span>
-                    <div className="h-20 overflow-y-auto rounded-md border border-line bg-paper p-2 font-mono text-[10px] text-graphite/80 flex flex-col gap-0.5">
-                      {engineLog.length === 0 ? (
-                        <span className="text-graphite/40 italic">
-                          Engine idle.
-                        </span>
-                      ) : (
-                        engineLog.map((line, idx) => (
-                          <span key={idx}>{line}</span>
-                        ))
-                      )}
-                    </div>
-                  </div>
+                  {engineError && (
+                    <p role="alert" className="text-sm text-destructive">
+                      {engineError}
+                    </p>
+                  )}
 
                   <Button
                     onClick={resetSpar}

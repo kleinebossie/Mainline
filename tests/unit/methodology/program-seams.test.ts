@@ -17,11 +17,8 @@ import {
 } from "@/methodology/provider";
 import type { RawGameFeatures } from "@/lib/raw-features";
 
-// Golden tests for the M6 program-engine seams (BUILD.md §13.1): fixed inputs + a pinned
-// config version → exact output, including evidence grades + rationale keys (L3).
 const cfg = loadMethodology("stub-0.1.0");
 
-/** A RawGameFeatures with only the fields Seam 3 reads filled in (others are zeroed). */
 function game(moves: { cpBefore: number; cpLoss: number }[]): RawGameFeatures {
   return {
     acplOverall: 0,
@@ -42,6 +39,25 @@ function game(moves: { cpBefore: number; cpLoss: number }[]): RawGameFeatures {
     },
   };
 }
+
+const candidate = (
+  activityId: string,
+  activityType: string,
+  priority: number,
+  drivingSignal: WeaknessSignal | null = null,
+): CandidateActivity => ({
+  activityId,
+  activityType,
+  label: activityId,
+  resourceTheme: null,
+  dimensionsTargeted: [],
+  track: null,
+  estMinutes: 10,
+  priority,
+  formats: null,
+  rationaleKey: "play_games",
+  drivingSignal,
+});
 
 const repeat = <T>(n: number, v: T): T[] => Array.from({ length: n }, () => v);
 // 3 blunders (≥150cp) + 2 clean moves per game → blunder rate 0.6 over considered moves.
@@ -350,25 +366,6 @@ describe("allocationUnitForActivity", () => {
 });
 
 describe("prioritizeDailyMix", () => {
-  const candidate = (
-    activityId: string,
-    activityType: string,
-    priority: number,
-    drivingSignal: WeaknessSignal | null = null,
-  ): CandidateActivity => ({
-    activityId,
-    activityType,
-    label: activityId,
-    resourceTheme: null,
-    dimensionsTargeted: [],
-    track: null,
-    estMinutes: 10,
-    priority,
-    formats: null,
-    rationaleKey: "play_games",
-    drivingSignal,
-  });
-
   it("scores ROI prior, drops spaced-review when nothing is due, orders deterministically", () => {
     const ordered = prioritizeDailyMix(
       {
@@ -468,26 +465,7 @@ describe("prioritizeDailyMix", () => {
   });
 });
 
-describe("prioritizeDailyMix — preferences (Seam 7 personalisation)", () => {
-  const candidate = (
-    activityId: string,
-    activityType: string,
-    priority: number,
-    drivingSignal: WeaknessSignal | null = null,
-  ): CandidateActivity => ({
-    activityId,
-    activityType,
-    label: activityId,
-    resourceTheme: null,
-    dimensionsTargeted: [],
-    track: null,
-    estMinutes: 10,
-    priority,
-    formats: null,
-    rationaleKey: "play_games",
-    drivingSignal,
-  });
-
+describe("prioritizeDailyMix preferences", () => {
   const signal: WeaknessSignal = {
     dimension: "board_vision",
     severity: 1,

@@ -5,9 +5,6 @@ import { loadMethodology } from "@/methodology/loader";
 import { generateProgram } from "@/engine/generator";
 import type { WeaknessSignal } from "@/methodology/provider";
 
-// Golden tests for the program generator (BUILD.md §13.1 + the M6 DoD): fixed inputs +
-// a pinned config version → an exact ordered program, including rationale keys + grades
-// (L3), and a session that fits the time budget. Deterministic (L2) via the injected Clock.
 const cfg = loadMethodology("stub-0.1.0");
 const clock = fixedClock(1_700_000_000_000);
 
@@ -26,9 +23,7 @@ describe("generateProgram (golden)", () => {
     expect(band).toBe("b1200_1600");
     expect(generatedAt).toBe(1_700_000_000_000); // from the injected clock (L2)
 
-    // Order by ROI prior with id tiebreak. Hard-time-limit packing (Goal 1) fits the budget
-    // with time-divisible puzzles: analyse(15, fixed) + themed_tactics(15 puzzles,
-    // rounded to a 12-minute visible cap) + calculation_drill(1 ×3 = 3) = 30.
+    // The fixed activity and divisible activities fill, but never exceed, the budget.
     expect(items.map((i) => i.activityId)).toEqual([
       "analyse_own_games",
       "themed_tactics",
@@ -162,7 +157,7 @@ describe("generateProgram (golden)", () => {
     expect(tactics.soften).toBe(true); // blunder_focus is grade C
   });
 
-  it("sizes the session to the hard time budget — never over, fewer puzzles when shorter (Goal 1)", () => {
+  it("never exceeds the time budget and fits fewer puzzles when shorter", () => {
     const common = {
       band: "b1200_1600" as const,
       tacticalRating: 1300,
@@ -246,7 +241,7 @@ describe("generateProgram (golden)", () => {
     expect(items.length).toBe(1);
   });
 
-  it("surfaces due reviews as a spaced-review item carrying the due refs (M7)", () => {
+  it("surfaces due reviews as a spaced-review item carrying the due refs", () => {
     const { items } = generateProgram({
       band: "b1200_1600",
       tacticalRating: 1300,
@@ -260,10 +255,9 @@ describe("generateProgram (golden)", () => {
     expect(review).toBeDefined();
     expect(review!.params.dueItemRefs).toEqual(["fork"]);
     expect(review!.params.count).toBe(1);
-    // No due items → no spaced-review item (the prior goldens confirm it's dropped).
   });
 
-  it("a higher recent success nudges the puzzle target harder (servo, M7)", () => {
+  it("nudges the puzzle target harder after higher recent success", () => {
     const common = {
       band: "b1200_1600" as const,
       tacticalRating: 1300,

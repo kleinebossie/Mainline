@@ -8,18 +8,16 @@ import {
   saveAnalysisResult,
   userOwnsGame,
 } from "@/db/analysis";
-import {
-  rawGameFeaturesSchema,
-  type RawGameFeatures,
-} from "@/lib/raw-features";
+import { rawGameFeaturesSchema } from "@/lib/raw-features";
+import { fsrsStateSchema } from "@/lib/tracker";
 import {
   loadMethodology,
   bandForRating,
   gameAnalysisProtocol,
   rationaleFor,
   gameSelectionRatioFor,
+  gradeFromOutcome,
   scheduleReview,
-  type FsrsState,
 } from "@/methodology";
 import { resolvePlayingRating } from "@/server/program";
 import { gameIdentity } from "@/server/game-identity";
@@ -30,11 +28,7 @@ import { captureOperationalEvent } from "@/server/observability";
 const PLATFORMS = ["lichess", "chesscom"] as const;
 
 export const analysisRouter = router({
-  // The instant-eval work queue. With no input: the most-recent unanalysed games, capped at
-  // the Seam-2 instant-eval budget (config, M4's deferred `instantEvalGames`) — unchanged
-  // default used by the /settings maintenance runner. With `limit`: the `limit` most recent
-  // games (optionally platform-scoped) that aren't analysed yet — "analyse my last N games",
-  // used by the analysis dashboard's batch buttons.
+  // The default queue uses the methodology cap; callers may request a bounded window.
   pending: protectedProcedure
     .input(
       z
@@ -63,7 +57,7 @@ export const analysisRouter = router({
       return games.map((g) => ({
         id: g.id,
         pgn: g.pgn,
-        color: g.color, // "w" | "b" | null — the user's side, for user-centric aggregates
+        color: g.color,
         platform: g.platform,
         playedAt: g.playedAt,
         opening: g.opening,
@@ -71,8 +65,6 @@ export const analysisRouter = router({
       }));
     }),
 
-  // Persist one game's raw features. The payload is fully validated (strict) and the game
-  // is checked to belong to the caller before anything is written.
   save: protectedProcedure
     .input(
       z.object({
@@ -94,17 +86,12 @@ export const analysisRouter = router({
       return { saved: true as const };
     }),
 
-  // Progress for the dashboard (how many games have raw features yet).
   summary: protectedProcedure.query(({ ctx }) =>
     analysisCounts(ctx.prisma, ctx.userId),
   ),
 
-  // The honest win:loss analysis-ratio recommendation (Seam 4.1 §Step5) for the dashboard. No
-  // curated game list — the player picks from their own recent games directly, with no lock
-  // or cooldown (tilt detection lives only in the per-game `session` flow's calibration step).
   suggestions: protectedProcedure.query(async ({ ctx }) => {
     const cfg = loadMethodology();
-    // The win:loss recommendation keys off PLAYING strength, not the inflated puzzle rating.
     const playingRating = await resolvePlayingRating(
       ctx.prisma,
       ctx.userId,
@@ -114,12 +101,11 @@ export const analysisRouter = router({
 
     return {
       ratio: gameSelectionRatioFor(band, cfg),
-      rationale: rationaleFor("analysis_success_bias", cfg),
+      ownGamesRationale: rationaleFor("analyse_own_games", cfg),
+      successBiasRationale: rationaleFor("analysis_success_bias", cfg),
     };
   }),
 
-  // The game library: the user's recent games (most-recent-first) for self-directed pick-a-
-  // game analysis, plus the resolved primary platform that defaults the picker.
   library: protectedProcedure.query(async ({ ctx }) => {
     const [user, games] = await Promise.all([
       ctx.prisma.user.findUnique({
@@ -148,8 +134,7 @@ export const analysisRouter = router({
 
     const platforms = [...new Set(games.map((g) => g.platform))];
     const primaryPlatform = user?.primaryPlatform ?? null;
-    // Prefer the explicit choice (if it still has games); otherwise fall back to the platform
-    // of the most recent game so the picker is useful before any preference is set.
+    // Ignore a stale preference when it no longer has imported games.
     const effectivePlatform =
       primaryPlatform && platforms.includes(primaryPlatform)
         ? primaryPlatform
@@ -179,7 +164,6 @@ export const analysisRouter = router({
     };
   }),
 
-  // Set the user's home platform (defaults the game picker + analysis surfaces).
   setPrimaryPlatform: protectedProcedure
     .input(z.object({ platform: z.enum(PLATFORMS) }))
     .mutation(async ({ ctx, input }) => {
@@ -190,7 +174,6 @@ export const analysisRouter = router({
       return { primaryPlatform: input.platform };
     }),
 
-  // Retrieve/setup analysis session for a specific game
   session: protectedProcedure
     .input(z.object({ gameId: z.string() }))
     .query(async ({ ctx, input }) => {
@@ -204,9 +187,7 @@ export const analysisRouter = router({
       if (!game) throw new Error("Game not found");
 
       const cfg = loadMethodology();
-      // The analysis band reflects how the user PLAYS — the rating they had in THIS game
-      // (falling back to a recent playing-format rating, then the calibration estimate) —
-      // not their puzzle rating, which would over-promote a beginner into a strict band.
+      // Use playing strength for the analysis band, never puzzle rating.
       const playingRating = await resolvePlayingRating(
         ctx.prisma,
         ctx.userId,
@@ -215,7 +196,6 @@ export const analysisRouter = router({
       );
       const band = bandForRating(playingRating, cfg);
 
-      // Fetch recent results for tilt detection
       const recentAllGames = await ctx.prisma.importedGame.findMany({
         where: { userId: ctx.userId },
         orderBy: { playedAt: "desc" },
@@ -227,6 +207,9 @@ export const analysisRouter = router({
         result: g.result,
       }));
 
+      const storedFeatures = game.analysis
+        ? rawGameFeaturesSchema.safeParse(game.analysis.rawFeatures)
+        : null;
       const parsedGame = {
         id: game.id,
         pgn: game.pgn,
@@ -234,8 +217,7 @@ export const analysisRouter = router({
         result: game.result,
         color: game.color,
         userRatingAtGame: game.userRatingAtGame,
-        rawFeatures: game.analysis
-          ?.rawFeatures as unknown as RawGameFeatures | null,
+        rawFeatures: storedFeatures?.success ? storedFeatures.data : null,
       };
 
       const session = gameAnalysisProtocol(parsedGame, band, cfg, {
@@ -260,7 +242,6 @@ export const analysisRouter = router({
           ...gameIdentity(game.pgn, game.color),
         },
         rationales: {
-          analyse_own_games: rationaleFor("analyse_own_games", cfg),
           analysis_tilt_pause: rationaleFor("analysis_tilt_pause", cfg),
           analysis_engine_delay: rationaleFor("analysis_engine_delay", cfg),
           analysis_rpl_filter: rationaleFor("analysis_rpl_filter", cfg),
@@ -268,13 +249,11 @@ export const analysisRouter = router({
             "analysis_guess_tolerance",
             cfg,
           ),
-          analysis_entropy: rationaleFor("analysis_entropy", cfg),
           analysis_srs_puzzle: rationaleFor("analysis_srs_puzzle", cfg),
         },
       };
     }),
 
-  // Submit session outcomes and schedule review states
   saveSession: protectedProcedure
     .input(
       z.object({
@@ -299,12 +278,12 @@ export const analysisRouter = router({
       });
       if (!game || !game.analysis) throw new Error("Game analysis not found");
 
-      const rawFeatures = game.analysis
-        .rawFeatures as unknown as RawGameFeatures;
+      const rawFeatures = rawGameFeaturesSchema.parse(
+        game.analysis.rawFeatures,
+      );
       const cfg = loadMethodology();
-      const now = Date.now();
+      const now = systemClock.now();
 
-      // Log the game_analysed activity event
       await ctx.prisma.activityEvent.create({
         data: {
           userId: ctx.userId,
@@ -322,13 +301,10 @@ export const analysisRouter = router({
       let scheduledCount = 0;
 
       for (const outcome of input.outcomes) {
-        const blunder = rawFeatures.blunders?.find(
-          (b) => b.ply === outcome.ply,
-        );
+        const blunder = rawFeatures.blunders.find((b) => b.ply === outcome.ply);
         const fen = blunder?.fen;
         if (!fen || !outcome.bestUci) continue;
 
-        // 1. Create/upsert the PracticeItem of kind "blunder_drill"
         const sourceRef = `blunder:${input.gameId}:${outcome.ply}`;
         const item = await ctx.prisma.practiceItem.upsert({
           where: {
@@ -350,7 +326,6 @@ export const analysisRouter = router({
           },
         });
 
-        // 2. Schedule/upsert the ScheduleState of itemType "blunder_drill"
         const itemType = "blunder_drill";
         const itemRef = item.id;
 
@@ -365,9 +340,9 @@ export const analysisRouter = router({
         });
 
         const fsrsState = existing
-          ? (existing.fsrsState as unknown as FsrsState)
+          ? fsrsStateSchema.parse(existing.fsrsState)
           : null;
-        const grade = outcome.correct ? 3 : 1; // Good vs Again
+        const grade = gradeFromOutcome({ correct: outcome.correct }, cfg);
 
         const { newState } = scheduleReview({ grade, fsrsState, now }, cfg);
 
@@ -401,9 +376,7 @@ export const analysisRouter = router({
       return { success: true, scheduledCount };
     }),
 
-  // Source PGN + the user's side, for running the engine on ONE specific game (the per-game
-  // "Engine analysis" button). Ownership-scoped; returns only what the client needs to
-  // analyse the game with Stockfish and persist its raw features via `save`.
+  // Ownership-scoped source for client-side analysis.
   gameSource: protectedProcedure
     .input(z.object({ gameId: z.string() }))
     .query(async ({ ctx, input }) => {

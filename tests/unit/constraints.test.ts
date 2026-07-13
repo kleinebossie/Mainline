@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  MAX_MINUTES_PER_DAY,
+  MIN_MINUTES_PER_DAY,
+} from "@/lib/constraint-limits";
+import {
   EMPTY_CONSTRAINTS,
   constraintsInputSchema,
   type ConstraintsInput,
@@ -42,11 +46,16 @@ describe("constraintsInputSchema", () => {
 
   it("rejects out-of-range time/cadence", () => {
     expect(
-      constraintsInputSchema.safeParse({ ...valid, minutesPerDay: 0 }).success,
+      constraintsInputSchema.safeParse({
+        ...valid,
+        minutesPerDay: MIN_MINUTES_PER_DAY - 1,
+      }).success,
     ).toBe(false);
     expect(
-      constraintsInputSchema.safeParse({ ...valid, minutesPerDay: 1441 })
-        .success,
+      constraintsInputSchema.safeParse({
+        ...valid,
+        minutesPerDay: MAX_MINUTES_PER_DAY + 1,
+      }).success,
     ).toBe(false);
     expect(
       constraintsInputSchema.safeParse({ ...valid, daysPerWeek: 0 }).success,

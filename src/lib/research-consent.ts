@@ -7,11 +7,7 @@ export const CURRENT_DATA_USE_NOTICE = {
     "Withdrawal stops future optional secondary inclusion. It does not remove operational storage needed for personal training. Use account deletion to erase your account data.",
 } as const;
 
-export const RESEARCH_CONSENT_SCOPES = [
-  "aggregate_observational_training",
-] as const;
-
-export type ResearchConsentScope = (typeof RESEARCH_CONSENT_SCOPES)[number];
+export type ResearchConsentScope = "aggregate_observational_training";
 
 export interface DataUseNoticeVersion {
   id: string;

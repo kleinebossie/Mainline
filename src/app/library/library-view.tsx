@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 
 import { trpc } from "@/lib/trpc/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { GradeMark } from "@/components/evidence";
+import { asEvidenceGrade, GradeMark } from "@/components/evidence";
 import { TransparencyCard } from "@/components/transparency-card";
 import { StatusMessage } from "@/components/ui/status-message";
 import type { GradedCopy, LibraryView } from "@/server/library";
@@ -14,11 +14,6 @@ import type { GradedCopy, LibraryView } from "@/server/library";
 // book-study protocol, the 2D/3D modality + OTB guidance (gated by the user's play medium),
 // and rolled-up progress. Study-session logging lives on Today, where scheduled external
 // work is completed. Every recommendation shows how strong its evidence is — never a rating promise.
-
-type Grade = "A" | "B" | "C" | "D";
-function asGrade(g: string): Grade {
-  return g === "A" || g === "B" || g === "C" || g === "D" ? g : "C";
-}
 
 /** A graded "why" block rendered as the brand's TransparencyCard (confidence is a band prior). */
 function Why({
@@ -78,7 +73,7 @@ function BookStudyProtocol({ protocol }: { protocol: Protocol }) {
   const hasWoodpecker = protocol.woodpecker.cycles.length > 0;
 
   return (
-    <Card gutter={asGrade(protocol.activeRecall.grade)}>
+    <Card gutter={asEvidenceGrade(protocol.activeRecall.grade)}>
       <CardHeader>
         <CardTitle>How to study a book</CardTitle>
         <p className="text-graphite font-serif text-sm leading-relaxed">
@@ -206,7 +201,7 @@ export function Library() {
         <h2 className="font-serif text-2xl font-semibold tracking-tight">
           Screen vs. board
         </h2>
-        <Card gutter={asGrade(data.modality.split.grade)}>
+        <Card gutter={asEvidenceGrade(data.modality.split.grade)}>
           <CardHeader>
             <CardTitle className="flex flex-wrap items-baseline justify-between gap-3">
               <span>Your modality split</span>
@@ -265,7 +260,11 @@ export function Library() {
           </StatusMessage>
         ) : (
           data.books.map((b) => (
-            <Card key={b.id} gutter={asGrade(b.evidenceGrade)} provisional>
+            <Card
+              key={b.id}
+              gutter={asEvidenceGrade(b.evidenceGrade)}
+              provisional
+            >
               <CardHeader className="pb-3">
                 <CardTitle className="flex flex-wrap items-baseline justify-between gap-2">
                   <span>{b.title}</span>

@@ -9,15 +9,14 @@
 import { z } from "zod";
 
 /** A = strong/replicated · B = suggestive · C = theory/expert · D = myth-to-avoid. */
-export const GRADES = ["A", "B", "C", "D"] as const;
+const GRADES = ["A", "B", "C", "D"] as const;
 export type Grade = (typeof GRADES)[number];
 
 /** Tier 1 = chess-specific evidence · Tier 2 = general learning-science, extrapolated. */
-export const TIERS = [1, 2] as const;
-export type Tier = (typeof TIERS)[number];
+export type Tier = 1 | 2;
 
 /** Honesty flags: a value carrying any of these must never render as Grade-A fact. */
-export const GRADED_FLAGS = [
+const GRADED_FLAGS = [
   "best-guess",
   "semi-evidenced",
   "contested",

@@ -19,9 +19,9 @@ describe("protected procedure authorization", () => {
     } as never;
     const caller = testRouter.createCaller(context);
 
-    await expect(Promise.all([caller.first(), caller.second()])).resolves.toEqual(
-      ["u1", "u1"],
-    );
+    await expect(
+      Promise.all([caller.first(), caller.second()]),
+    ).resolves.toEqual(["u1", "u1"]);
     expect(findUnique).toHaveBeenCalledTimes(1);
   });
 });

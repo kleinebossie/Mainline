@@ -1,17 +1,14 @@
 import * as Sentry from "@sentry/nextjs";
 
-export const OPERATION_NAMES = [
-  "analysis_handoff",
-  "program_generation",
-  "import",
-  "adaptation",
-  "job",
-] as const;
+type OperationName =
+  | "analysis_handoff"
+  | "program_generation"
+  | "import"
+  | "adaptation"
+  | "job";
+type OperationStatus = "success" | "error" | "skipped" | "blocked";
 
-export type OperationName = (typeof OPERATION_NAMES)[number];
-export type OperationStatus = "success" | "error" | "skipped" | "blocked";
-
-export interface OperationalEventInput {
+interface OperationalEventInput {
   operation: OperationName;
   status: OperationStatus;
   durationMs?: number;
@@ -20,7 +17,7 @@ export interface OperationalEventInput {
   platform?: string;
 }
 
-export interface SafeOperationalEvent {
+interface SafeOperationalEvent {
   message: string;
   level: "info" | "warning" | "error";
   tags: Record<string, string>;

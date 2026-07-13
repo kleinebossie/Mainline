@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { Prisma } from "@prisma/client";
 
 import {
   apiBudgetWindowStart,
@@ -25,7 +26,12 @@ function fakeDb() {
       },
       create: async ({ data }: { data: Record<string, unknown> }) => {
         const key = keyFor(data as never);
-        if (counts.has(key)) throw new Error("unique");
+        if (counts.has(key)) {
+          throw new Prisma.PrismaClientKnownRequestError("unique", {
+            code: "P2002",
+            clientVersion: "test",
+          });
+        }
         counts.set(key, data.count as number);
       },
       findUniqueOrThrow: async ({
@@ -81,5 +87,23 @@ describe("per-user external API budgets", () => {
     await expect(
       consumeApiCallBudget(db as never, "user-1", "chesscom", next, policy),
     ).resolves.toMatchObject({ allowed: true, count: 1 });
+  });
+
+  it("propagates unexpected database errors", async () => {
+    const failure = new Error("database unavailable");
+    const db = fakeDb();
+    db.apiCallBudget.create = async () => {
+      throw failure;
+    };
+
+    await expect(
+      consumeApiCallBudget(
+        db as never,
+        "user-1",
+        "lichess",
+        new Date("2026-07-11T12:00:30.000Z"),
+        { limit: 1, windowMs: 60_000 },
+      ),
+    ).rejects.toBe(failure);
   });
 });

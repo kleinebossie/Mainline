@@ -1,11 +1,5 @@
 import type { TodayItem, TodayProgram } from "@/server/program";
 
-export type Grade = "A" | "B" | "C" | "D";
-
-export function asGrade(g: string): Grade {
-  return g === "A" || g === "B" || g === "C" || g === "D" ? g : "C";
-}
-
 export function humanizeFocusArea(focusArea: string): string {
   const words = focusArea.replace(/_/g, " ").trim();
   return words.length > 0

@@ -5,15 +5,8 @@ import { Chess, type Square } from "chess.js";
 import { Chessboard } from "react-chessboard";
 import { cn } from "@/lib/utils";
 
-// The in-app board (M10 substrate). It is a thin, CONTROLLED wrapper around
-// `react-chessboard` (the mature, ubiquitous board named in BUILD.md §3): the displayed
-// position is always exactly the `fen` prop. Solving surfaces may briefly pass a
-// transient legal-move FEN before resetting to their own checkpoint; this component only
-// supplies move legality + SAN/UCI and stays generic/science-free (L1). Every affordance toggle
-// defaults to the permissive generic board and is overridden only by graded Seam-4 config
-// on the solving surfaces (METHODOLOGY §4.4(c)).
+// Controlled board: the parent owns the FEN; this component derives legal moves and notation.
 
-// Board palette — keep the app's drafting-paper + evergreen identity, not a stock blue board.
 const LIGHT_SQUARE = "#e9e7d8";
 const DARK_SQUARE = "#6f8a7d";
 const SELECT_FILL = "rgba(111, 138, 125, 0.45)";
@@ -38,33 +31,17 @@ export interface BoardMove {
 }
 
 export interface InteractiveBoardProps {
-  /** The current position FEN. The board renders exactly this — change it to move/reset. */
   fen: string;
-  /** Fired when a legal move is played; the parent decides whether to accept it. */
   onMove?: (move: BoardMove) => void;
-  /** Board perspective. Defaults to "white". */
   orientation?: "white" | "black";
-  /** Read-only board (no selecting, dragging, or clicking). */
   disabled?: boolean;
-  /** Squares to wash (e.g. a scaffolded hint or last-move). */
   highlightedSquares?: string[];
-  /** Optional layout classes. The board always uses the shared responsive measure. */
   className?: string;
-  /** Distinct id when several boards share a page. */
   id?: string;
-
-  // --- M10/M11 interface-affordance props (science-free toggles; graded values are
-  // Seam-4 config — METHODOLOGY §4.4(c) "anti-crutch" doctrine). Safe defaults = the
-  // permissive generic board; the solving surfaces pass the config-derived values. ---
-  /** Show a Stockfish eval bar beside the board (needs `evalCp`). Default off. */
   showEvalBar?: boolean;
-  /** Centipawn eval (White-positive) for the eval bar, when shown. */
   evalCp?: number | null;
-  /** Show legal-destination dots when a piece is selected. Default on. */
   showLegalMoveDots?: boolean;
-  /** Allow right-click arrow drawing. Default on. */
   allowArrows?: boolean;
-  /** Highlight a movable piece on hover. Default on. */
   allowHover?: boolean;
 }
 
@@ -82,9 +59,8 @@ export function InteractiveBoard({
   allowArrows = true,
   allowHover = true,
 }: InteractiveBoardProps) {
-  // A fresh chess.js per position: cheap, and keeps legality/SAN derivation in sync with
-  // the controlled `fen`. We never mutate it — moves are tried on a throwaway clone.
-  const game = useMemo(() => safeChess(fen), [fen]);
+  // Keep legality and SAN derivation synchronized with the controlled FEN.
+  const game = useMemo(() => new Chess(fen), [fen]);
   const turn = game.turn();
 
   const [selected, setSelected] = useState<Square | null>(null);
@@ -111,12 +87,11 @@ export function InteractiveBoard({
     }
   }, [game, selected]);
 
-  // Try a move on a throwaway board; if legal, report it upward. We always leave the
-  // displayed board equal to `fen` — the parent re-points `fen` if it accepts the move.
+  // Try moves on a clone; the parent decides whether to advance the controlled FEN.
   const attemptMove = useCallback(
     (from: string, to: string): boolean => {
       if (disabled) return false;
-      const probe = safeChess(fen);
+      const probe = new Chess(fen);
       let legal;
       try {
         legal = probe
@@ -302,14 +277,6 @@ function EvalBar({ cp }: { cp: number }) {
       />
     </div>
   );
-}
-
-function safeChess(fen: string): Chess {
-  try {
-    return new Chess(fen);
-  } catch {
-    return new Chess();
-  }
 }
 
 function findKing(game: Chess, color: "w" | "b"): string | null {

@@ -10,6 +10,7 @@ import {
 import research100 from "@/methodology/configs/research-1.0.0.json";
 import stub010 from "@/methodology/configs/stub-0.1.0.json";
 import stub010Compat from "@/methodology/configs/stub-0.1.0.compat.json";
+import sharedCompat from "@/methodology/configs/shared.compat.json";
 import research110 from "@/methodology/configs/research-1.1.0.json";
 import research120 from "@/methodology/configs/research-1.2.0.json";
 import research130 from "@/methodology/configs/research-1.3.0.json";
@@ -26,12 +27,18 @@ const RAW_CONFIGS: Readonly<Record<string, unknown>> = {
 
 // Additive, versioned data preserves provider behavior for immutable historic
 // config files that predate newly typed seams. It may add fields, never replace them.
+const STUB_COMPATIBILITY = mergeAdditive(
+  mergeAdditive(stub010Compat, research110),
+  sharedCompat,
+);
+const RESEARCH_COMPATIBILITY = mergeAdditive(research110, sharedCompat);
+
 const COMPATIBILITY_OVERLAYS: Readonly<Record<string, unknown>> = {
-  "stub-0.1.0": mergeAdditive(stub010Compat, research110),
-  "research-1.0.0": research110,
-  "research-1.1.0": research110,
-  "research-1.2.0": research110,
-  "research-1.3.0": research110,
+  "stub-0.1.0": STUB_COMPATIBILITY,
+  "research-1.0.0": RESEARCH_COMPATIBILITY,
+  "research-1.1.0": RESEARCH_COMPATIBILITY,
+  "research-1.2.0": RESEARCH_COMPATIBILITY,
+  "research-1.3.0": RESEARCH_COMPATIBILITY,
 };
 
 // A release delta may replace existing values only for a new version. Historic
@@ -128,7 +135,10 @@ export function loadMethodology(version?: string): MethodologyConfig {
       : released;
 
   const rawString = JSON.stringify(raw);
-  const updatedString = rawString.replace(/Calculation \/ visualisation/g, "Calculation / Visualisation");
+  const updatedString = rawString.replace(
+    /Calculation \/ visualisation/g,
+    "Calculation / Visualisation",
+  );
   const sanitizedRaw = JSON.parse(updatedString);
 
   const parsed = methodologyConfigSchema.parse(sanitizedRaw); // throws on any violation (L3)

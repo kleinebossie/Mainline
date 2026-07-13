@@ -10,7 +10,7 @@ export const focusRationaleSnapshotSchema = z.object({
   soften: z.boolean(),
 });
 
-export const focusAlternativeSchema = z.object({
+const focusAlternativeSchema = z.object({
   focusArea: z.string().min(1),
   score: z.number().finite(),
   supportingSources: z.array(z.string().min(1)),
@@ -64,7 +64,3 @@ export const weeklyFocusSchema = z.object({
 });
 
 export type WeeklyFocus = z.infer<typeof weeklyFocusSchema>;
-export type FocusAlternative = z.infer<typeof focusAlternativeSchema>;
-export type ProgramGenerationInput = z.infer<
-  typeof programGenerationInputSchema
->;

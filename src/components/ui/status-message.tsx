@@ -83,4 +83,4 @@ const StatusMessage = React.forwardRef<HTMLDivElement, StatusMessageProps>(
 );
 StatusMessage.displayName = "StatusMessage";
 
-export { StatusMessage, type StatusTone };
+export { StatusMessage };

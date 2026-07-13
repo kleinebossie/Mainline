@@ -1,4 +1,4 @@
-export interface NavItem {
+interface NavItem {
   href: string;
   label: string;
   secondary?: boolean;

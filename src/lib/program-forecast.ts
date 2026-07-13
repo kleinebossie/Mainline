@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import { focusRationaleSnapshotSchema } from "@/lib/weekly-focus";
 
-export const weekdaySchema = z.number().int().min(0).max(6);
+const weekdaySchema = z.number().int().min(0).max(6);
 export const weeklyAvailabilityInputSchema = z
   .object({
     mode: z.enum(["flexible", "preferred"]),
@@ -96,7 +96,7 @@ export const programDayForecastSchema = z
   .strict();
 export type ProgramDayForecast = z.infer<typeof programDayForecastSchema>;
 
-export const revisionDecisionSchema = focusRationaleSnapshotSchema;
+const revisionDecisionSchema = focusRationaleSnapshotSchema;
 export const programRevisionSchema = z
   .object({
     id: z.string().min(1),
