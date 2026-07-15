@@ -1,0 +1,133 @@
+{
+  "version": "research-1.4.0",
+  "weeklyFocus": {
+    "weights": {
+      "fitPreference": {
+        "value": 0,
+        "grade": "C",
+        "tier": 2,
+        "citationKey": "deci1999",
+        "flag": "best-guess",
+        "note": "P8 keeps subjective delivery fit out of weekly focus selection. Historic releases retain their prior non-zero weight for reproducibility."
+      }
+    }
+  },
+  "trainingFit": {
+    "weeklyCheckInDays": {
+      "value": 7,
+      "grade": "C",
+      "tier": 2,
+      "citationKey": "deci1999",
+      "flag": "best-guess"
+    },
+    "contextualCooldownDays": {
+      "value": 14,
+      "grade": "C",
+      "tier": 2,
+      "citationKey": "deci1999",
+      "flag": "best-guess"
+    },
+    "repeatedProblemCount": {
+      "value": 2,
+      "grade": "C",
+      "tier": 2,
+      "citationKey": "wisniewski2020",
+      "flag": "best-guess"
+    },
+    "positiveTieBreakEnabled": {
+      "value": true,
+      "grade": "C",
+      "tier": 2,
+      "citationKey": "deci1999",
+      "flag": "best-guess"
+    },
+    "relevanceScores": {
+      "relevant": {
+        "value": 1,
+        "grade": "C",
+        "tier": 2,
+        "citationKey": "deci1999",
+        "flag": "best-guess"
+      },
+      "neutral": {
+        "value": 0,
+        "grade": "C",
+        "tier": 2,
+        "citationKey": "deci1999",
+        "flag": "best-guess"
+      },
+      "notRelevant": {
+        "value": 0,
+        "grade": "C",
+        "tier": 2,
+        "citationKey": "deci1999",
+        "flag": "best-guess"
+      }
+    },
+    "enjoymentScores": {
+      "enjoyed": {
+        "value": 1,
+        "grade": "C",
+        "tier": 2,
+        "citationKey": "deci1999",
+        "flag": "best-guess"
+      },
+      "neutral": {
+        "value": 0,
+        "grade": "C",
+        "tier": 2,
+        "citationKey": "deci1999",
+        "flag": "best-guess"
+      },
+      "notEnjoyed": {
+        "value": 0,
+        "grade": "C",
+        "tier": 2,
+        "citationKey": "deci1999",
+        "flag": "best-guess"
+      }
+    },
+    "frictionTags": [
+      { "id": "setup", "label": "Setup took too long" },
+      { "id": "unclear_instructions", "label": "Instructions were unclear" },
+      { "id": "external_handoff", "label": "Leaving Mainline broke the flow" },
+      { "id": "technical_problem", "label": "Something did not work" },
+      { "id": "too_many_steps", "label": "Too many steps" },
+      { "id": "other", "label": "Something else" }
+    ],
+    "weeklyPrompt": {
+      "value": "How did training fit this week? A short check-in can improve delivery without lowering the training standard.",
+      "grade": "C",
+      "tier": 2,
+      "citationKey": "deci1999",
+      "flag": "best-guess"
+    },
+    "novelActivityPrompt": {
+      "value": "You tried a new training format. Tell us whether the delivery fit so an equivalent future choice can work better.",
+      "grade": "C",
+      "tier": 2,
+      "citationKey": "deci1999",
+      "flag": "best-guess"
+    },
+    "repeatedProblemPrompt": {
+      "value": "This training format has caused repeated friction. Tell us what got in the way; the measured training need will stay intact.",
+      "grade": "C",
+      "tier": 2,
+      "citationKey": "wisniewski2020",
+      "flag": "best-guess"
+    },
+    "appliedExplanation": {
+      "value": "Positive fit feedback broke a tie between activities that already served the same focus. Measured needs, due work, and difficulty stayed unchanged.",
+      "grade": "C",
+      "tier": 2,
+      "citationKey": "deci1999",
+      "flag": "best-guess"
+    },
+    "boundaryExplanation": {
+      "value": "Your feedback can improve delivery and remove friction. It cannot lower difficulty or hide a measured training need.",
+      "grade": "A",
+      "tier": 1,
+      "citationKey": "heck2025"
+    }
+  }
+}

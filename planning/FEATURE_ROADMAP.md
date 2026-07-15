@@ -5,7 +5,7 @@
 > adaptive training program before adding more training modes. It is split into parts so a fresh AI
 > agent can implement and verify one part at a time.
 >
-> **Status.** P0 through P7 are complete; later parts remain planned. A part is implemented only when its
+> **Status.** P0 through P8 are complete; later parts remain planned. A part is implemented only when its
 > own status and Definition of Done say so.
 >
 > **Central product decision.** Mainline needs a deeper loop, not a larger menu. Real adaptation,
@@ -64,8 +64,10 @@ implementation agent unless implementation uncovers a direct contradiction:
 - Optimise for the builder first while keeping every decision generalisable across users and rating
   bands.
 - Validate primarily with a below-1200 hybrid online/OTB user, without hardcoding that profile.
-- Behavioral evidence and due learning normally lead the plan. The user retains autonomy through a
-  bounded, goal-aligned alternative with an honest tradeoff explanation.
+- Behavioral evidence and due learning lead the prescribed skill focus. User autonomy operates
+  through goals, real constraints, and equivalent delivery choices inside that focus. Subjective
+  dislike or difficulty may identify friction, but it never suppresses due work, lowers difficulty,
+  or removes a methodology-selected skill area.
 - Weekly direction stays understandable and relatively stable. Difficulty, due work, activity
   allocation, and exact daily contents may tune each day.
 - Show immutable history and a committed Today. Keep the rolling seven-day forecast as an internal,
@@ -76,8 +78,9 @@ implementation agent unless implementation uncovers a direct contradiction:
 - Once the user starts Today, it does not silently regenerate. Completed work is preserved, and
   changing the remaining session requires an explicit Replan action.
 - Subjective input and behavioral diagnosis are separate lanes.
-- Feedback cadence is one short weekly check-in, an always-available feedback action, and occasional
-  contextual prompts only after a new or repeatedly problematic activity.
+- Feedback cadence is one short weekly check-in in Settings/assessment, an always-available feedback
+  action, and occasional contextual links after a new or repeatedly problematic activity. Today may
+  link to the relevant Settings section, but it does not become a plan-settings surface.
 - Population learning is observational first. Methodology never rewrites itself automatically.
 - Aggregate findings and methodology changes are published with limitations and evidence grades.
 - Manual PGN and OTB import is required before inviting closed-beta users.
@@ -203,7 +206,7 @@ Every part must end with:
 | P5   | Stable weekly focus and bounded user choice                     | Before closed beta                       | P4                                  | Complete |
 | P6   | Seven-day forecast, revision ledger, and availability model     | Before closed beta                       | P5                                  | Complete |
 | P7   | Program history experience                                      | Before closed beta                       | P6                                  | Complete |
-| P8   | Training-fit and product-feedback loop                          | Before closed beta                       | P5, P7                              | Planned  |
+| P8   | Training-fit and product-feedback loop                          | Before closed beta                       | P5, P7                              | Complete |
 | P9   | Observational research capture and public methodology changelog | Before closed beta                       | P3, P8                              | Planned  |
 | P10  | Manual PGN and OTB import                                       | Before closed beta                       | P2, P3                              | Planned  |
 | P11  | User-zero acceptance and closed-beta release audit              | Before closed beta                       | P1-P10                              | Planned  |
@@ -623,7 +626,8 @@ gates pass.
 - Derive activity recency, completion/skip history, and actual duration summaries from immutable
   events and program history.
 - Snapshot the assembled decision input on each generated focus/program for reproducibility.
-- Do not change recommendations yet; P5 is the first consumer.
+- Do not change recommendations yet. P5 consumes behavioral state for weekly focus; P8 may later
+  consume positive fit only in downstream delivery selection.
 
 **Definition of Done:** decision state can be deterministically reconstructed, historic snapshots are
 immutable, export/delete include them, and no new chess decision appears in Engine or server code.
@@ -644,8 +648,8 @@ from independent reads. Its output, `ProgramDecisionInput` (typed in `src/lib/de
 strict Zod schema), is persisted verbatim onto `Program.generationInput` on every generation, replacing
 the ad-hoc M6 snapshot. Any historic "Today" can now be re-derived exactly from the persisted
 snapshot + config version: `parsePersistedSnapshot` re-validates it fail-closed. The pure generator's
-narrow `GenerateProgramInput` is a strict projection of the snapshot, so P5's first consumption either
-reads the snapshot or extends it without re-architecting the seam.
+narrow `GenerateProgramInput` is a strict projection of the snapshot, so later decision consumers can
+read or extend it without re-architecting the seam.
 
 Activity recency, completion/skip counts, and actual-duration sums are derived (in
 `src/db/decision-input.ts`) from immutable `ActivityEvent` rows over a trailing 28-day window (the
@@ -667,7 +671,8 @@ was updated from 19 to 21 and now asserts the new keys are present.
 The Settings privacy section's text now mentions the immutable skill-state history, the per-program
 decision-input snapshot, and the optional training-fit preferences so a user reading /settings sees
 what their export contains. No new full UI surface is warranted by P4's Definition of Done; P5 owns the
-first consumer (weekly focus), P8 owns the training-fit feedback writer and reset surface.
+first behavioral-state consumer for weekly focus, while P8 owns the training-fit writer, downstream
+delivery tie-break, and reset surface.
 
 No new chess or learning-science decision appears in Engine or server code (L1 preserved). The assembler
 reads the pure methodology provider for `bandForRating`, `interpretGameFeatures`, and
@@ -695,7 +700,7 @@ identically-empty states produce an identical snapshot (L2 reproducibility).
   seeds endgame schedules) rather than twice. It sits inside `generateAndSaveProgram`, so server code
   still contains the one orchestration call, but routes never independently read partial decision state.
   No methodology config values were added, no chess/learning constants were introduced, and
-  `generateProgram` is byte-for-byte unchanged — the snapshot is pure plumbing for P5 consumption. The
+  `generateProgram` is byte-for-byte unchanged; the snapshot is pure plumbing for later consumption. The
   `TrainingPreferenceState` table ships with an empty default; P8 is the first writer and owns the reset
   affordance. The `programItem` model was removed from the assembler's `Db` Pick because it is unused
   there, even though `logOutcome` continues to read it directly via `src/server/tracker.ts`.
@@ -730,8 +735,9 @@ identically-empty states produce an identical snapshot (L2 reproducibility).
 
 - Add graded config for focus selection, stability/revision policy, and bounded alternatives. Exact
   stability values are Grade C/best-guess until telemetry supports calibration.
-- Feed SkillState, confidence-gated game signals, due learning, goals, constraints, owned resources,
-  recency, and fit preferences into weekly focus selection.
+- Feed SkillState, confidence-gated game signals, due learning, goals, constraints, and recency into
+  weekly focus selection. Carry owned-resource and fit state in the decision snapshot for downstream
+  delivery selection, but do not use either to select or suppress a skill focus.
 - Make evidence lead by default. Offer a bounded goal-aligned alternative instead of an unrestricted
   manual category override.
 - Keep rating goals out of the daily objective. Translate them into process-focused work.
@@ -761,7 +767,13 @@ Program generation now creates or reuses the active focus from the single P4 ass
 it to discretionary candidate selection while preserving due learning. Medium-confidence crossings,
 meaningful constraint changes, accumulated skill changes, stability-window expiry, and methodology
 changes can create a traceable revision. One low-confidence result cannot. Training-fit preferences
-are read-only bounded fit signals and no P5 path writes `SkillState`.
+remain part of the reproducible decision snapshot and no P5 path writes `SkillState`.
+
+**Product correction (2026-07-15).** Subjective training fit no longer contributes to weekly skill
+focus scores. P8 may use positive fit feedback only as a tie-break among activities that already
+serve the selected focus. Negative enjoyment, perceived difficulty, and friction may be stored and
+explained, but they cannot remove due work, weaken difficulty, manufacture a weakness, or lower the
+priority of a measured need.
 
 Today shows the persisted focus, confidence, rationale, and only the snapshotted approved
 alternatives. Selecting an alternative is authorized against that snapshot, persists the choice,
@@ -973,23 +985,82 @@ diagnosis.
 **Public interfaces:**
 
 - `TrainingFeedback`: program/item scope, relevance, enjoyment preference, time fit, friction tags,
-  optional comment, methodology version, and timestamp.
+  optional comment, idempotency key, methodology version, and timestamp.
 - `ProductFeedback`: category (`bug`, `confusing`, `idea`, `other`), message, optional safe route
-  context, contact permission, and timestamp.
-- `TrainingPreferenceState`: deterministic rollup consumed by P5, with reset and user override.
+  context, idempotency key, contact permission, and timestamp.
+- `TrainingPreferenceState`: deterministic positive-fit rollup consumed by the daily mix downstream
+  of P5, with reset and a positive-only user override. It never selects the weekly skill focus.
 
 **Agent work:**
 
-- Add one short weekly check-in, an always-available feedback action, and config-driven contextual
-  prompts after novel or repeatedly skipped/problematic activities.
+- Put one short weekly check-in, the preference reset/override, and the always-available feedback
+  actions in Settings/assessment. Today may show a config-driven contextual link after a novel or
+  repeatedly skipped/problematic activity, but no plan controls or future program return there.
 - Keep product feedback separate from training outcomes and training-fit feedback.
-- Allow fit feedback to adjust enjoyment, resource, scheduling, and friction preferences only.
+- Capture relevance, enjoyment, time fit, resource fit, and friction. Only positive fit may break a
+  tie among methodology-eligible activities serving the already-selected focus. Negative feedback
+  can expose friction and guide an explicit settings change, but cannot suppress an activity family,
+  reduce behavioral difficulty, displace due learning, or alter a skill priority.
+- Keep scheduling changes explicit in general Settings/assessment. Feedback may explain that a
+  session or activity did not fit, but must not silently rewrite weekly availability or time budgets.
 - Prohibit all feedback paths from writing SkillState or manufacturing a weakness signal.
 - Avoid prompting after every item, repeated reminders, required comments, or penalties for silence.
 - Add export/delete coverage and ensure monitoring scrubs free text.
 
-**Definition of Done:** fit feedback can change an eligible future mix with an explanation, cannot
-change measured skill, and product feedback arrives with enough safe context to diagnose the issue.
+**Definition of Done:** positive fit feedback can change an eligible future mix with a persisted
+explanation while negative preference cannot weaken the prescribed focus, due work, or difficulty;
+no feedback path can change measured skill; prompt silence has no penalty or repeated reminder; and
+product feedback arrives with enough safe context to diagnose the issue.
+
+**Status (2026-07-15): COMPLETE.** P8 adds append-only `TrainingFeedback`, separate
+`ProductFeedback`, and unique `TrainingFeedbackPrompt` exposure records. The protected feedback API
+checks Program and ProgramItem ownership, rebuilds `TrainingPreferenceState` deterministically after
+methodology changes and otherwise updates it incrementally, supports a positive-only activity
+override and non-destructive reset, and exports all three new record sets. Training and product
+submissions use per-user idempotency keys and daily infrastructure limits. User deletion cascades
+through each new table. Product reports keep a server-normalized route template, app version,
+methodology version, and contact permission while the existing monitoring scrubber continues to
+discard free text and request payloads.
+
+`research-1.4.0` is active with a graded weekly cadence, contextual cooldown, repeated-problem
+trigger, positive-only response scoring, prompt copy, tie-break explanation, and boundary copy.
+Negative and neutral responses remain in the append-only source data but do not enter activity or
+resource affinity and do not dilute an earlier positive signal. Weekly focus no longer reads
+subjective fit. The daily mix applies positive fit only after methodology scoring, only across equal
+scores among focus-serving candidates with the same due status, and snapshots a softened
+`best-guess` explanation only when the tie-break actually changes order. The release delta sets the
+legacy weekly-focus fit weight to zero while older versions retain their original value for replay.
+Time-fit and friction observations do not mutate availability, time budgets, due work, difficulty,
+or `SkillState`.
+
+The full training-fit and product-feedback forms, reset, and optional positive override live in
+Settings. The account menu provides route-aware access from any page. Today contains no feedback or
+plan controls: it may show one graded, config-driven link to the relevant Settings form. The usable
+Today view atomically claims and records that prompt under the per-user mutation lock, so loading,
+error, and stale-session branches do not consume an exposure and concurrent tabs cannot both claim
+it. Today also directly identifies a block whose eligible equal-score tie was resolved by positive
+fit.
+
+#### P8 handoff
+
+- Migration and owner action: apply `20260715010000_p8_feedback_loop` with the normal production
+  migration command before serving the new API. Then smoke an authenticated account by submitting
+  one training-fit response and one product report, exporting the account, resetting fit, and
+  confirming deletion removes all new records. Seed or naturally reach a contextual prompt to
+  confirm its Today link selects the intended recent block in Settings.
+- Verification: Node 25.2.0 and npm 11.6.2; Prisma format, validation, and client generation;
+  typecheck; full lint; 91 Vitest files with 553 tests; 4 guard files with 83 tests; production build;
+  and 25 Playwright tests all pass. Focused P8 verification covered 98 tests before the full suite.
+  Browser coverage includes the visible persisted fit explanation and responsive Today states.
+- Deliberate deviations: the weekly check-in shares the general Settings feedback panel instead of
+  adding a separate assessment step. A novel-activity prompt means the first recorded event for an
+  activity type; a repeated-problem prompt currently means the configured number of skips for that
+  activity type. No product-triage administration screen or outbound notification was added.
+- Remaining risks: CI still has no signed-in OAuth browser fixture, so authenticated form submission,
+  export, and deletion need the owner smoke above. Prompt heuristics are intentionally Grade C product
+  best guesses and should change only through a later methodology release. Product feedback is
+  stored for direct operational review; P9 remains responsible for any consented observational
+  research path and no P9 capture was started here.
 
 ---
 

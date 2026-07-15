@@ -67,6 +67,8 @@ export interface AssembledSnapshot {
       formats: readonly string[];
       ownedRefs: readonly string[];
       depthVsBreadth: "depth" | "balanced" | "breadth" | undefined;
+      activityFit: Readonly<Record<string, number>>;
+      resourceFit: Readonly<Record<string, number>>;
     };
     recentSuccessByTrack: { pattern?: number; calculation?: number };
   };
@@ -118,6 +120,18 @@ export async function assembleProgramDecisionInput(
   const recentSuccessByTrack = await gatherRecentSuccessByTrack(db, userId);
 
   const trainingPrefRow = await findTrainingPreferenceState(db, userId);
+  const activityFit = { ...trainingPrefRow.preferences.enjoyment };
+  const resourceFit = { ...trainingPrefRow.preferences.resourceAffinity };
+  for (const [key, value] of Object.entries(
+    trainingPrefRow.userOverride?.enjoyment ?? {},
+  )) {
+    activityFit[key] = Math.max(activityFit[key] ?? 0, value);
+  }
+  for (const [key, value] of Object.entries(
+    trainingPrefRow.userOverride?.resourceAffinity ?? {},
+  )) {
+    resourceFit[key] = Math.max(resourceFit[key] ?? 0, value);
+  }
 
   const rawSnapshot: ProgramDecisionInput = {
     schemaVersion: PROGRAM_DECISION_INPUT_SCHEMA_VERSION,
@@ -173,6 +187,8 @@ export async function assembleProgramDecisionInput(
         formats,
         ownedRefs,
         depthVsBreadth,
+        activityFit,
+        resourceFit,
       },
       recentSuccessByTrack,
     },

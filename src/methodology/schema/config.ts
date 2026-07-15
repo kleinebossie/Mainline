@@ -349,6 +349,36 @@ const weeklyFocusSchema = z.object({
   revisionRationale: gradedValue(z.string().min(1)),
 });
 
+// P8 training-fit policy. Subjective feedback may tune equivalent delivery only;
+// it never changes SkillState, difficulty, due work, or the weekly skill focus.
+const trainingFitSchema = z.object({
+  weeklyCheckInDays: gradedValue(z.number().int().positive()),
+  contextualCooldownDays: gradedValue(z.number().int().positive()),
+  repeatedProblemCount: gradedValue(z.number().int().positive()),
+  positiveTieBreakEnabled: gradedValue(z.boolean()),
+  relevanceScores: z.object({
+    relevant: gradedValue(z.number().min(0).max(1)),
+    neutral: gradedValue(z.number().min(0).max(1)),
+    notRelevant: gradedValue(z.number().min(0).max(1)),
+  }),
+  enjoymentScores: z.object({
+    enjoyed: gradedValue(z.number().min(0).max(1)),
+    neutral: gradedValue(z.number().min(0).max(1)),
+    notEnjoyed: gradedValue(z.number().min(0).max(1)),
+  }),
+  frictionTags: z.array(
+    z.object({
+      id: z.string().min(1),
+      label: z.string().min(1),
+    }),
+  ),
+  weeklyPrompt: gradedValue(z.string().min(1)),
+  novelActivityPrompt: gradedValue(z.string().min(1)),
+  repeatedProblemPrompt: gradedValue(z.string().min(1)),
+  appliedExplanation: gradedValue(z.string().min(1)),
+  boundaryExplanation: gradedValue(z.string().min(1)),
+});
+
 // Seam 6 — spacing / scheduling (SPACED_REPETITION). FSRS v6: the Engine owns the generic
 // `fsrsStep` math (engine/math/fsrs.ts); this seam supplies its parameters and the
 // outcome→grade mapping. `scheduler` is a structural selector (which algorithm), like a
@@ -788,6 +818,7 @@ export const methodologyConfigSchema = z
     scheduling: schedulingSchema,
     prioritization: prioritizationSchema,
     weeklyFocus: weeklyFocusSchema.optional(),
+    trainingFit: trainingFitSchema.optional(),
     engagement: engagementSchema,
     measurement: measurementSchema,
     rationale: z.array(rationaleEntrySchema).min(1),
@@ -813,6 +844,7 @@ export const methodologyConfigSchema = z
       cfg.scheduling,
       cfg.prioritization,
       cfg.weeklyFocus,
+      cfg.trainingFit,
       cfg.engagement,
       cfg.measurement,
       cfg.rationale,
@@ -1255,6 +1287,7 @@ export type DifficultyConfig = MethodologyConfig["difficulty"];
 export type SchedulingConfig = MethodologyConfig["scheduling"];
 export type PrioritizationConfig = MethodologyConfig["prioritization"];
 export type WeeklyFocusConfig = NonNullable<MethodologyConfig["weeklyFocus"]>;
+export type TrainingFitConfig = NonNullable<MethodologyConfig["trainingFit"]>;
 export type EngagementConfig = MethodologyConfig["engagement"];
 export type EngagementEventRule = EngagementConfig["events"][number];
 export type RewardEventType = (typeof REWARD_EVENT_TYPES)[number];

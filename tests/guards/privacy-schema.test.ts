@@ -22,6 +22,11 @@ const P6_MIGRATION = readFileSync(
   "prisma/migrations/20260712010000_p6_forecast_availability_revision/migration.sql",
   "utf8",
 );
+const P8_MIGRATION = readFileSync(
+  "prisma/migrations/20260715010000_p8_feedback_loop/migration.sql",
+  "utf8",
+);
+const P8_SERVICE = readFileSync("src/server/feedback.ts", "utf8");
 
 describe("privacy schema guards", () => {
   it("deletes claimed invitations with an erased account", () => {
@@ -47,6 +52,9 @@ describe("privacy schema guards", () => {
       "ConstraintSet",
       "Program",
       "ActivityEvent",
+      "TrainingFeedback",
+      "ProductFeedback",
+      "TrainingFeedbackPrompt",
       "SkillState",
       "SkillStateSnapshot",
       "ScheduleState",
@@ -90,6 +98,15 @@ describe("privacy schema guards", () => {
       "ProgramRevision",
     ]) {
       expect(P6_MIGRATION).toMatch(
+        new RegExp(`${model}_userId_fkey[\\s\\S]*ON DELETE CASCADE`),
+      );
+    }
+    for (const model of [
+      "TrainingFeedback",
+      "ProductFeedback",
+      "TrainingFeedbackPrompt",
+    ]) {
+      expect(P8_MIGRATION).toMatch(
         new RegExp(`${model}_userId_fkey[\\s\\S]*ON DELETE CASCADE`),
       );
     }
@@ -143,5 +160,19 @@ describe("privacy schema guards", () => {
     expect(block).toMatch(/user User @relation\([^\n]*onDelete:\s*Cascade\)/);
     // The relation block above ("cascades every direct user relation") already covered
     // the cascade assertion separately; this test fixes the model in one place.
+  });
+
+  it("P8: keeps training fit, product feedback, and prompt exposure separate", () => {
+    const training = SCHEMA.match(/model TrainingFeedback \{[\s\S]*?\n\}/)?.[0];
+    const product = SCHEMA.match(/model ProductFeedback \{[\s\S]*?\n\}/)?.[0];
+    const prompt = SCHEMA.match(
+      /model TrainingFeedbackPrompt \{[\s\S]*?\n\}/,
+    )?.[0];
+    expect(training).toMatch(/methodologyVersion\s+String/);
+    expect(training).not.toMatch(/dimension|estimate|uncertainty/);
+    expect(product).toMatch(/appVersion\s+String/);
+    expect(product).not.toMatch(/programItem\s+ProgramItem/);
+    expect(prompt).toMatch(/@@unique\(\[userId, promptKey\]\)/);
+    expect(P8_SERVICE).not.toMatch(/\.skillState\b|\.skillStateSnapshot\b/);
   });
 });

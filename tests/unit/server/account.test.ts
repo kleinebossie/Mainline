@@ -108,6 +108,9 @@ describe("account privacy service", () => {
       constraintSet: model(),
       program: model(),
       activityEvent: model(),
+      trainingFeedback: model(),
+      productFeedback: model(),
+      trainingFeedbackPrompt: model(),
       skillState: model(),
       skillStateSnapshot: model(),
       scheduleState: model(),
@@ -127,7 +130,7 @@ describe("account privacy service", () => {
     };
 
     const exported = await exportUserData(db as never, "u1");
-    expect(exported.exportFormat).toBe("mainline-user-export/v2");
+    expect(exported.exportFormat).toBe("mainline-user-export/v3");
     expect(Object.keys(exported)).toEqual(
       expect.arrayContaining([
         "accounts",
@@ -139,6 +142,9 @@ describe("account privacy service", () => {
         "constraintSets",
         "programs",
         "activityEvents",
+        "trainingFeedback",
+        "productFeedback",
+        "trainingFeedbackPrompts",
         "skillStates",
         "skillStateSnapshots",
         "scheduleStates",
@@ -209,6 +215,9 @@ describe("account privacy service", () => {
       constraintSet: model,
       program: model,
       activityEvent: model,
+      trainingFeedback: model,
+      productFeedback: model,
+      trainingFeedbackPrompt: model,
       skillState: model,
       skillStateSnapshot: model,
       scheduleState: model,
@@ -229,7 +238,7 @@ describe("account privacy service", () => {
 
     await exportUserData(db as never, "u1");
 
-    expect(query).toHaveBeenCalledTimes(26);
+    expect(query).toHaveBeenCalledTimes(29);
     expect(maximumActiveQueries).toBe(1);
     expect(activeQueries).toBe(0);
   });

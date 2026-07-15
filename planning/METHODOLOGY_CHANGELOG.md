@@ -82,11 +82,32 @@ methodology version and calibration behavior. Rollback is `research-1.1.0`.
 
 ## research-1.3.0
 
-Status: active by default from 2026-07-12. Keeps the `research-1.2.0` calibration behavior and clarifies the
+Status: released on 2026-07-12 and retained for reproducibility. Keeps the `research-1.2.0` calibration behavior and clarifies the
 bounded weekly-focus alternative rationale. Optional choice is now framed around giving more weight
 to a user-selected goal while keeping the evidence-led recommendation available. The rationale
 remains Grade C, Tier 2, softened, and cited to `williamson2022`; no evidence grade or training rule
 changed. Rollback is `research-1.2.0`.
+
+## research-1.4.0
+
+Status: active by default from 2026-07-15. Adds the P8 training-fit policy without changing any
+measured skill rule, due-work rule, difficulty target, or weekly focus selection.
+
+The release adds a seven-day weekly check-in cadence, a fourteen-day contextual cooldown, and a
+two-problem contextual trigger. These exact prompt values are Grade C product best guesses.
+Persisted prompt exposure starts the cooldown even when the user gives no response.
+
+Subjective fit is positive-only in the decision path. An enjoyed activity or relevant resource may
+break a tie between activities with the same methodology score, the same due status, and the
+already-selected focus. The release delta sets the earlier weekly-focus fit weight to zero while
+older releases keep their original value for reproducible replay. Neutral and negative responses
+contribute no penalty, do not dilute earlier positive fit, and cannot suppress an activity, lower
+difficulty, displace due work, or alter weekly skill focus. The chosen ProgramItem snapshots a
+softened Grade C explanation and its `best-guess` flag when the tie-break changes order.
+
+The user-facing boundary copy is Grade A, Tier 1 and cites `heck2025`: self-report and behavior are
+kept separate. Product feedback is also separate from training evidence. No effectiveness or rating
+gain claim is introduced. Rollback is `research-1.3.0`.
 
 ## stub-0.1.0
 

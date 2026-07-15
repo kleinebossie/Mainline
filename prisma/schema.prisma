@@ -52,6 +52,9 @@ model User {
   constraintSets          ConstraintSet[]
   programs                Program[]
   activityEvents          ActivityEvent[]
+  trainingFeedback        TrainingFeedback[]
+  productFeedback         ProductFeedback[]
+  trainingFeedbackPrompts TrainingFeedbackPrompt[]
   skillStates             SkillState[]
   skillStateSnapshots     SkillStateSnapshot[]
   scheduleStates          ScheduleState[]
@@ -405,8 +408,10 @@ model Program {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
-  user  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  items ProgramItem[]
+  user                    User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items                   ProgramItem[]
+  trainingFeedback        TrainingFeedback[]
+  trainingFeedbackPrompts TrainingFeedbackPrompt[]
 
   @@index([userId, status])
   @@index([userId, createdAt, id])
@@ -439,9 +444,11 @@ model ProgramItem {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
-  program        Program         @relation(fields: [programId], references: [id], onDelete: Cascade)
-  resourceRef    ResourceRef?    @relation(fields: [resourceRefId], references: [id], onDelete: SetNull)
-  activityEvents ActivityEvent[]
+  program                 Program                  @relation(fields: [programId], references: [id], onDelete: Cascade)
+  resourceRef             ResourceRef?             @relation(fields: [resourceRefId], references: [id], onDelete: SetNull)
+  activityEvents          ActivityEvent[]
+  trainingFeedback        TrainingFeedback[]
+  trainingFeedbackPrompts TrainingFeedbackPrompt[]
 
   @@index([programId, date, orderIndex])
 }
@@ -472,6 +479,77 @@ model ActivityEvent {
   @@unique([userId, requestId])
   @@index([userId, occurredAt])
   @@index([programItemId, occurredAt])
+}
+
+// Subjective delivery-fit evidence (P8), kept strictly separate from ActivityEvent and
+// SkillState. These append-only records may tune equivalent activity delivery, but can
+// never manufacture a behavioral outcome or suppress a prescribed skill focus.
+model TrainingFeedback {
+  id                 String   @id @default(cuid())
+  userId             String
+  requestId          String
+  programId          String?
+  programItemId      String?
+  scope              String // program | item
+  source             String // weekly_check_in | always_available | contextual
+  relevance          String // relevant | neutral | not_relevant
+  enjoyment          String // enjoyed | neutral | not_enjoyed
+  timeFit            String // too_short | fits | too_long
+  frictionTags       String[]
+  comment            String?
+  methodologyVersion String
+  occurredAt         DateTime
+  createdAt          DateTime @default(now())
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  program     Program?     @relation(fields: [programId], references: [id], onDelete: SetNull)
+  programItem ProgramItem? @relation(fields: [programItemId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, requestId])
+  @@index([userId, occurredAt, id])
+  @@index([userId, programItemId])
+}
+
+// Product feedback is operational input, not a training outcome or preference signal.
+// Route context is a server-normalized route template and never stores a query string or id.
+model ProductFeedback {
+  id                 String   @id @default(cuid())
+  userId             String
+  requestId          String
+  category           String // bug | confusing | idea | other
+  message            String
+  routeContext       String?
+  contactAllowed     Boolean  @default(false)
+  methodologyVersion String
+  appVersion         String
+  occurredAt         DateTime
+  createdAt          DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, requestId])
+  @@index([userId, occurredAt, id])
+  @@index([category, occurredAt])
+}
+
+// A persisted prompt exposure is the anti-nag boundary. Showing a prompt once records
+// its deterministic key; silence creates no outcome, penalty, or repeated reminder.
+model TrainingFeedbackPrompt {
+  id            String   @id @default(cuid())
+  userId        String
+  programId     String?
+  programItemId String?
+  promptKey     String
+  kind          String // weekly | novel_activity | repeated_problem
+  shownAt       DateTime
+  createdAt     DateTime @default(now())
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  program     Program?     @relation(fields: [programId], references: [id], onDelete: SetNull)
+  programItem ProgramItem? @relation(fields: [programItemId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, promptKey])
+  @@index([userId, shownAt, id])
 }
 
 // Per-dimension skill estimate (§5.5). The adaptation loop maintains a v0 competence
@@ -605,10 +683,10 @@ model AdaptationLog {
 
 // Derived training-fit preferences only — NEVER a skill estimate (P4/P8 boundary). This is
 // the deterministic rollup P8 computes from TrainingFeedback (enjoyment, resource,
-// scheduling, friction) that P5's weekly focus consumes alongside SkillState. Subjective
-// feedback writes here; it can NEVER write SkillState or fabricate a weakness signal
-// (roadmap-wide invariant, §9). P4 ships the table and the reset surface with an empty
-// default; P8 is the first writer. One row per user.
+// scheduling, friction) that the daily mix may use only as a positive delivery tie-break.
+// Subjective feedback writes here; it can NEVER write SkillState, select a weekly focus,
+// or fabricate a weakness signal (roadmap-wide invariant, §9). P4 ships the table with an
+// empty default; P8 is the first writer and owns reset. One row per user.
 //   `preferences` — the derived fit state (a typed JSON shape, lib/decision-input).
 //   `userOverride` — a user-side correction stored when the user explicitly resets or
 //   pins a preference (P8). Null when no override is active.

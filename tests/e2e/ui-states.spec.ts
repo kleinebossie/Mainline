@@ -70,6 +70,14 @@ test("Today states stay clear and responsive", async ({ page }, testInfo) => {
   await expect(page.getByText("Next 7 days", { exact: true })).toHaveCount(0);
   await expect(page.getByText("Plan settings", { exact: true })).toHaveCount(0);
   await expect(page.getByText("No training history yet.")).toBeVisible();
+  await expect(
+    page.getByText("Positive fit feedback broke an equal methodology tie."),
+  ).toBeVisible();
+  await expect(
+    page.getByText(
+      "Best-guess delivery rule, not evidence that this activity works better.",
+    ),
+  ).toBeVisible();
   await expectNoPageOverflow(page);
   await capture(page, testInfo, "today-desktop");
 

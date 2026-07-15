@@ -2,6 +2,7 @@ import researchRelease from "@/methodology/releases/research-1.0.0.json";
 import research110Release from "@/methodology/releases/research-1.1.0.json";
 import research120Release from "@/methodology/releases/research-1.2.0.json";
 import research130Release from "@/methodology/releases/research-1.3.0.json";
+import research140Release from "@/methodology/releases/research-1.4.0.json";
 
 export type MethodologyReleaseChannel = "stub" | "research";
 
@@ -52,6 +53,9 @@ const RESEARCH_120_RELEASE = freezeMetadata(
 const RESEARCH_130_RELEASE = freezeMetadata(
   research130Release as MethodologyReleaseMetadata,
 );
+const RESEARCH_140_RELEASE = freezeMetadata(
+  research140Release as MethodologyReleaseMetadata,
+);
 
 export const METHODOLOGY_RELEASES: Readonly<
   Record<string, MethodologyReleaseMetadata>
@@ -61,6 +65,7 @@ export const METHODOLOGY_RELEASES: Readonly<
   [RESEARCH_110_RELEASE.version]: RESEARCH_110_RELEASE,
   [RESEARCH_120_RELEASE.version]: RESEARCH_120_RELEASE,
   [RESEARCH_130_RELEASE.version]: RESEARCH_130_RELEASE,
+  [RESEARCH_140_RELEASE.version]: RESEARCH_140_RELEASE,
 });
 
 export function methodologyReleaseFor(

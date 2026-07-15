@@ -110,8 +110,7 @@ export function TodayHeader({
   ).length;
   const remaining = program.items.length - done - skipped;
   const allHandled = remaining === 0;
-  const notStarted =
-    !historyLoading && !historyError && actualEventCount === 0;
+  const notStarted = !historyLoading && !historyError && actualEventCount === 0;
   const statusTitle =
     program.items.length === 0
       ? "No training scheduled"
@@ -192,10 +191,10 @@ export function TodayHeader({
                     ? "Unavailable"
                     : notStarted
                       ? "Not started"
-                    : formatMeasuredMinutes(
-                        actualMinutes,
-                        actualMeasurementTruncated,
-                      )}
+                      : formatMeasuredMinutes(
+                          actualMinutes,
+                          actualMeasurementTruncated,
+                        )}
               </p>
               {!historyLoading && !historyError && !notStarted && (
                 <p className="mt-1 font-mono text-[0.6rem] leading-relaxed text-graphite">
@@ -451,6 +450,26 @@ function TodayBlockCard({
         <p className="text-graphite min-w-0 text-sm leading-relaxed">
           {itemSummary(item)}
         </p>
+
+        {item.params.fitExplanation && (
+          <div className="border-l-2 border-evergreen/40 pl-3 text-sm leading-relaxed text-ink">
+            <p className="font-serif">
+              {item.params.fitExplanation.text}{" "}
+              <span className="font-mono text-[0.65rem] uppercase tracking-[0.08em] text-graphite">
+                Grade {item.params.fitExplanation.evidenceGrade} · Tier{" "}
+                {item.params.fitExplanation.evidenceTier} ·{" "}
+                {item.params.fitExplanation.citationKey}
+              </span>
+            </p>
+            {item.params.fitExplanation.soften && (
+              <p className="text-graphite mt-1 font-mono text-[0.68rem] leading-relaxed">
+                {item.params.fitExplanation.flag === "best-guess"
+                  ? "Best-guess delivery rule, not evidence that this activity works better."
+                  : "Low-confidence delivery rule, not evidence that this activity works better."}
+              </p>
+            )}
+          </div>
+        )}
 
         {meta.length > 0 && (
           <div className="flex min-w-0 flex-wrap gap-1.5">

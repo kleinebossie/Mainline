@@ -1,7 +1,7 @@
 import type { Prisma } from "@prisma/client";
 import { Prisma as PrismaRuntime } from "@prisma/client";
 
-/** Serialize program replacement and outcome capture for one user inside a transaction. */
+/** Serialize decision-state mutations for one user inside a transaction. */
 export async function lockUserProgramMutation(
   db: Partial<Prisma.TransactionClient>,
   userId: string,

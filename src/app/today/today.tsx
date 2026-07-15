@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { trpc } from "@/lib/trpc/react";
 import {
@@ -308,6 +309,12 @@ export function Today() {
         />
       )}
 
+      <TrainingFeedbackPrompt
+        refreshKey={program.items
+          .map((item) => `${item.id}:${item.status}`)
+          .join("|")}
+      />
+
       {supportingError && (
         <ErrorNotice
           error={supportingError}
@@ -393,6 +400,51 @@ export function Today() {
         {program.methodologyVersion}
       </p>
     </div>
+  );
+}
+
+function TrainingFeedbackPrompt({ refreshKey }: { refreshKey: string }) {
+  const lastAttemptedFor = useRef<string | null>(null);
+  const claim = trpc.feedback.claimPrompt.useMutation({ retry: 2 });
+  const mutate = claim.mutate;
+  useEffect(() => {
+    if (lastAttemptedFor.current === refreshKey) return;
+    lastAttemptedFor.current = refreshKey;
+    mutate();
+  }, [mutate, refreshKey]);
+
+  const prompt = claim.data;
+  if (!prompt) return null;
+  return (
+    <aside className="rounded-md border border-line bg-paper/60 px-4 py-3 shadow-sheet">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="eyebrow">Quick check-in</p>
+          <p className="text-graphite mt-1 font-serif text-sm leading-relaxed">
+            {prompt.text}
+          </p>
+          <p className="text-graphite mt-1 font-mono text-[0.65rem] uppercase tracking-[0.1em]">
+            Grade {prompt.grade} · Tier {prompt.tier} · {prompt.citationKey}
+          </p>
+        </div>
+        <Link
+          href={`/settings?feedbackFrom=%2Ftoday&source=${
+            prompt.kind === "weekly" ? "weekly_check_in" : "contextual"
+          }${
+            prompt.programId
+              ? `&programId=${encodeURIComponent(prompt.programId)}`
+              : ""
+          }${
+            prompt.programItemId
+              ? `&programItemId=${encodeURIComponent(prompt.programItemId)}`
+              : ""
+          }#training-fit`}
+          className="shrink-0 rounded-md border border-ink/25 px-3 py-2 font-mono text-xs text-ink transition-colors hover:border-ink/50 hover:bg-ink/[0.04]"
+        >
+          Open feedback settings
+        </Link>
+      </div>
+    </aside>
   );
 }
 

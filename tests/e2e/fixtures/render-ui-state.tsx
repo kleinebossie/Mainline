@@ -35,7 +35,22 @@ function item(id: string, status: string): TodayItem {
     activityType: id === "3" ? "play_game" : "study",
     dimensionLabels: ["calculation"],
     estMinutes: id === "3" ? 15 : 10,
-    params: { theme: null, track: null },
+    params: {
+      theme: null,
+      track: null,
+      ...(id === "1"
+        ? {
+            fitExplanation: {
+              text: "Positive fit feedback broke an equal methodology tie.",
+              evidenceGrade: "C" as const,
+              evidenceTier: 2 as const,
+              citationKey: "qa.fit",
+              flag: "best-guess" as const,
+              soften: true,
+            },
+          }
+        : {}),
+    },
     reviewThemes: [],
     externalUrl: null,
     externalLabel: null,

@@ -205,6 +205,8 @@ interface MethodologyConfig {
   difficulty: DifficultyConfig; // Seam 5
   scheduling: SchedulingConfig; // Seam 6
   prioritization: PrioritizationConfig; // Seam 7
+  weeklyFocus?: WeeklyFocusConfig; // P5 focus policy, added by versioned compatibility data
+  trainingFit?: TrainingFitConfig; // P8 positive-only delivery fit and prompt policy
   rationale: RationaleEntry[]; // Seam 8
   engagement: EngagementConfig; // Seam 9
   measurement: MeasurementConfig; // Measurement & expectations (Glicko-2 CI, expectations, FIDE rule)
@@ -231,7 +233,7 @@ restate those fields' values** (§0.3); it guarantees the _container_ exists and
 // Configs ship as immutable repo JSON: src/methodology/configs/<version>.json.
 // Additive compatibility data for a historic version may live in <version>.compat.json.
 function loadMethodology(version?: string): MethodologyConfig;
-//  1. resolve version: explicit arg > env METHODOLOGY_VERSION > "active" pointer (default: research-1.0.0)
+//  1. resolve version: explicit arg > env METHODOLOGY_VERSION > "active" pointer (default: research-1.4.0)
 //  2. read the JSON file for that version
 //  3. add any version-matched compatibility data without replacing historic fields
 //  4. validate with the Zod schema (structure + EVERY leaf is a GradedValue); throw on any violation
@@ -249,7 +251,7 @@ Loader rules:
   `methodologyVersion` they were produced under. Any past decision can be re-derived.
 - **Historic files stay byte-stable.** When a typed seam is extracted from old provider behavior,
   an additive compatibility JSON carries those graded values. The released config file is not edited.
-- **Active-version selection.** Environment chooses the active config: `research-1.3.0` by default,
+- **Active-version selection.** Environment chooses the active config: `research-1.4.0` by default,
   with `stub-0.1.0` retained for rollback. Swapping is a one-line env/pointer change plus the new
   JSON file.
 
@@ -262,7 +264,7 @@ Loader rules:
 | Purpose            | Preserve historic behavior and provide an intentional rollback baseline | Run the approved, graded methodology release                          |
 | Swap cost          | n/a                                                                     | **One file + one version bump.** No engine change (VISION §4).        |
 
-The 2026-07-12 release status is: `research-1.3.0` is active by default and all earlier releases,
+The 2026-07-15 release status is: `research-1.4.0` is active by default and all earlier releases,
 including `stub-0.1.0`, remain loadable for historic programs. The research release retains explicit
 best guesses and deliberate stubs from `METHODOLOGY.md`; see `planning/METHODOLOGY_CHANGELOG.md` for
 the release inventory.
@@ -582,6 +584,23 @@ lastReview }`), `lastGrade?`, `source`. Index `(userId, due)` for "what's due to
 
 ### 5.7 Engagement & ops
 
+- **TrainingFeedback**: append-only subjective delivery-fit evidence scoped to a Program or
+  ProgramItem. Stores an idempotency request key, relevance, enjoyment, time fit, structural
+  friction tags, optional comment, source, methodology version, and timestamps. Per-user write
+  limits are infrastructure safeguards. It never represents an outcome or skill estimate.
+- **TrainingPreferenceState**: one deterministic positive-only fit rollup per user, plus an optional
+  positive override and reset boundary. The daily mix may use it only after methodology scoring to
+  break an equal-score tie among focus-serving candidates with the same due status. Positive
+  evidence counts allow normal submissions to update this read model incrementally.
+- **ProductFeedback**: operational product report with category, message, server-normalized route
+  template, idempotency request key, contact permission, app version, methodology version, and
+  timestamp. Per-user write limits are infrastructure safeguards. It is never read by the training
+  decision path.
+- **TrainingFeedbackPrompt**: unique prompt-exposure ledger. The server selects and persists a prompt
+  atomically under the per-user mutation lock only after the usable Today view requests a claim.
+  Persisting exposure applies the methodology cooldown even when the user gives no response, so
+  silence cannot trigger a reminder.
+
 - **RewardEvent** — engagement plumbing (Seam 9 decides which/when/copy; Engine fires/persists).
   `userId`, `type` (`streak_tick|competence_milestone|consistency_grid|…`), `occurredAt`, `copyKey`,
   `payload` JSON, `seen` (bool). No tangible/contingent rewards (Seam 9 forbid list).
@@ -601,6 +620,8 @@ User 1─* PlatformConnection 1─* ChessProfileSnapshot
                             └─* ImportedGame 1─0..1 AnalysisResult
 User 1─1 Assessment (current)        User 1─* ConstraintSet (one isCurrent)
 User 1─* Program 1─* ProgramItem 1─* ActivityEvent
+User 1─* TrainingFeedback · ProductFeedback · TrainingFeedbackPrompt
+Program · ProgramItem 1─* TrainingFeedback · TrainingFeedbackPrompt
 User 1─* SkillState     User 1─* ScheduleState     User 1─* AdaptationLog
 User 1─* SkillStateSnapshot (history, append-only)   User 1─0..1 TrainingPreferenceState
 User 1─* RewardEvent · NotificationPref · ApiCallBudget

@@ -74,19 +74,36 @@ export const trainingPreferencesSchema = z
     enjoyment: z
       .record(z.string(), z.number().finite().min(0).max(1))
       .default({}),
+    enjoymentEvidenceCount: z
+      .record(z.string(), z.number().int().nonnegative())
+      .default({}),
     resourceAffinity: z
       .record(z.string(), z.number().finite().min(0).max(1))
       .default({}),
+    resourceEvidenceCount: z
+      .record(z.string(), z.number().int().nonnegative())
+      .default({}),
+    timeFit: z
+      .record(z.string(), z.enum(["too_short", "fits", "too_long"]))
+      .default({}),
+    sessionTimeFit: z
+      .enum(["too_short", "fits", "too_long"])
+      .nullable()
+      .default(null),
     frictionTags: z.array(z.string().min(1).max(80)).max(50).default([]),
     evidenceCount: z.number().int().nonnegative().default(0),
     methodologyVersion: z.string().min(1).max(80).optional(),
   })
   .strict();
-type TrainingPreferences = z.infer<typeof trainingPreferencesSchema>;
+export type TrainingPreferences = z.infer<typeof trainingPreferencesSchema>;
 
 export const EMPTY_TRAINING_PREFERENCES: TrainingPreferences = {
   enjoyment: {},
+  enjoymentEvidenceCount: {},
   resourceAffinity: {},
+  resourceEvidenceCount: {},
+  timeFit: {},
+  sessionTimeFit: null,
   frictionTags: [],
   evidenceCount: 0,
 };

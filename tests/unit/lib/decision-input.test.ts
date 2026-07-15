@@ -135,7 +135,11 @@ describe("programDecisionInputSchema", () => {
       trainingPreferences: {
         preferences: {
           enjoyment: { puzzle_theme: 0.7 },
+          enjoymentEvidenceCount: { puzzle_theme: 3 },
           resourceAffinity: {},
+          resourceEvidenceCount: {},
+          timeFit: {},
+          sessionTimeFit: null,
           frictionTags: ["too_long"],
           evidenceCount: 3,
           methodologyVersion: "research-1.0.0",

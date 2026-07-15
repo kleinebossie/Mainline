@@ -15,7 +15,6 @@ import type {
 } from "@/methodology/schema/config";
 import type { RawGameFeatures } from "@/lib/raw-features";
 import { servoOffset } from "@/engine/math/servo";
-import { stableSortByScoreDesc } from "@/engine/math/weighted-sort";
 import { fsrsStep, type FsrsGrade, type FsrsState } from "@/engine/math/fsrs";
 import { glickoConfidenceInterval } from "@/engine/math/glicko";
 import { DAY_MS, type Clock } from "@/lib/clock";
@@ -342,6 +341,7 @@ export interface FocusRationaleSnapshot {
   grade: Grade;
   tier: Tier;
   citationKey: string;
+  flag?: GradedFlag;
   soften: boolean;
 }
 
@@ -362,6 +362,56 @@ export interface WeeklyFocusSelection {
   confidence: Confidence;
   rationale: FocusRationaleSnapshot;
   alternatives: FocusAlternative[];
+}
+
+export type TrainingFeedbackRelevance = "relevant" | "neutral" | "not_relevant";
+export type TrainingFeedbackEnjoyment = "enjoyed" | "neutral" | "not_enjoyed";
+export type TrainingFeedbackTimeFit = "too_short" | "fits" | "too_long";
+
+export interface TrainingFitObservation {
+  id: string;
+  activityType: string | null;
+  resourceKey: string | null;
+  relevance: TrainingFeedbackRelevance;
+  enjoyment: TrainingFeedbackEnjoyment;
+  timeFit: TrainingFeedbackTimeFit;
+  frictionTags: readonly string[];
+  occurredAt: number;
+}
+
+export interface TrainingFitPreferenceRollup {
+  enjoyment: Record<string, number>;
+  enjoymentEvidenceCount: Record<string, number>;
+  resourceAffinity: Record<string, number>;
+  resourceEvidenceCount: Record<string, number>;
+  timeFit: Record<string, TrainingFeedbackTimeFit>;
+  sessionTimeFit: TrainingFeedbackTimeFit | null;
+  frictionTags: string[];
+  evidenceCount: number;
+  methodologyVersion: string;
+}
+
+export interface TrainingFitPromptInput {
+  now: number;
+  trainingStartedAt: number | null;
+  lastWeeklyFeedbackAt: number | null;
+  lastWeeklyPromptAt: number | null;
+  lastContextPromptAt: number | null;
+  contextualCandidate: {
+    activityType: string;
+    novel: boolean;
+    problemCount: number;
+  } | null;
+}
+
+export interface TrainingFitPrompt {
+  kind: "weekly" | "novel_activity" | "repeated_problem";
+  activityType: string | null;
+  text: string;
+  grade: Grade;
+  tier: Tier;
+  citationKey: string;
+  soften: boolean;
 }
 
 export interface WeeklyFocusRevisionInput {
@@ -414,11 +464,18 @@ export interface MixPreferences {
   ownedRefs?: readonly string[];
   /** Depth-vs-breadth lever; "balanced" (or absent) is neutral. */
   depthVsBreadth?: "depth" | "balanced" | "breadth";
+  /** Positive-only fit scores. They break methodology-score ties, never lower a score. */
+  activityFit?: Readonly<Record<string, number>>;
+  /** Positive-only affinity for a concrete resource/theme already eligible in the mix. */
+  resourceFit?: Readonly<Record<string, number>>;
+  /** Candidates that serve the persisted focus and may use subjective fit as a tie-break. */
+  fitEligibleActivityIds?: readonly string[];
 }
 
 /** A candidate with its daily-mix score attached (Seam 7). */
 export interface ScoredCandidate extends CandidateActivity {
   score: number;
+  fitExplanation?: FocusRationaleSnapshot;
 }
 
 /** A spaced-review item that is due (Seam 6, M7). The generator surfaces these refs on the
@@ -1161,10 +1218,9 @@ export function useWorkedExample(
  * (no point reviewing an empty queue). Ordering is a stable score-desc sort with an
  * activity-id tiebreak (the generic engine sort) — fully deterministic (L2).
  *
- * PERSONALISATION (Seam 7 preferences): when the caller passes the user's `preferences`,
- * the score is reshaped by their stated reality — a format-mismatch penalty, an owned-
- * resource bonus, and a depth-vs-breadth tilt (depth amplifies weakness focus, breadth
- * amplifies ROI spread). Absent preferences ⇒ the un-personalised score (back-compatible).
+ * PERSONALISATION (Seam 7/P8 preferences): real constraints may reshape the base score.
+ * Subjective fit is weaker: positive fit breaks only an equal methodology-score tie and
+ * never subtracts, so it cannot displace due work or a stronger prescription.
  */
 export function prioritizeDailyMix(
   input: {
@@ -1240,11 +1296,82 @@ export function prioritizeDailyMix(
         score: roiTerm + weaknessTerm + dueTerm + ownedBonus - formatPenalty,
       };
     });
-  return stableSortByScoreDesc(
-    scored,
-    (c) => c.score,
-    (c) => c.activityId,
+  const fitEnabled = cfg.trainingFit?.positiveTieBreakEnabled.value === true;
+  const fitEligibleIds = prefs?.fitEligibleActivityIds
+    ? new Set(prefs.fitEligibleActivityIds)
+    : null;
+  const ranked = scored.map((candidate) => {
+    const activityFit = prefs?.activityFit?.[candidate.activityType] ?? 0;
+    const resourceKeys = [
+      candidate.bookResource?.id,
+      candidate.resourceTheme,
+      candidate.activityId,
+    ].filter((value): value is string => Boolean(value));
+    const resourceFit = Math.max(
+      0,
+      ...resourceKeys.map((key) => prefs?.resourceFit?.[key] ?? 0),
+    );
+    return {
+      candidate,
+      fitScore: fitEnabled ? Math.max(activityFit, resourceFit) : 0,
+      fitEligible:
+        fitEnabled &&
+        (fitEligibleIds === null || fitEligibleIds.has(candidate.activityId)),
+      dueClass: dueSatisfied(candidate.activityType) === true,
+    };
+  });
+  const baseOrder = [...ranked].sort(
+    (a, b) =>
+      b.candidate.score - a.candidate.score ||
+      a.candidate.activityId.localeCompare(b.candidate.activityId),
   );
+  const baseRank = new Map(
+    baseOrder.map((entry, index) => [entry.candidate.activityId, index]),
+  );
+
+  // Keep every ineligible or differently-due candidate in its baseline slot. Within
+  // equal-score, equal-due groups, reorder only the focus-serving candidates among the
+  // slots they already occupied. This makes fit incapable of crossing either boundary.
+  const ordered = [...baseOrder];
+  let start = 0;
+  while (start < baseOrder.length) {
+    const first = baseOrder[start]!;
+    if (!first.fitEligible) {
+      start += 1;
+      continue;
+    }
+    let end = start + 1;
+    while (
+      end < baseOrder.length &&
+      baseOrder[end]!.fitEligible &&
+      baseOrder[end]!.candidate.score === first.candidate.score &&
+      baseOrder[end]!.dueClass === first.dueClass
+    ) {
+      end += 1;
+    }
+    const byFit = baseOrder
+      .slice(start, end)
+      .sort(
+        (a, b) =>
+          b.fitScore - a.fitScore ||
+          a.candidate.activityId.localeCompare(b.candidate.activityId),
+      );
+    ordered.splice(start, end - start, ...byFit);
+    start = end;
+  }
+
+  return ordered.map(({ candidate, fitScore, fitEligible }, index) => {
+    const changedTie =
+      fitEligible &&
+      fitScore > 0 &&
+      index < (baseRank.get(candidate.activityId) ?? Number.POSITIVE_INFINITY);
+    return changedTie && cfg.trainingFit
+      ? {
+          ...candidate,
+          fitExplanation: focusSnapshot(cfg.trainingFit.appliedExplanation),
+        }
+      : candidate;
+  });
 }
 
 /** Match a candidate to the user's owned-resource identifiers (theme / activity id). Loose
@@ -1279,6 +1406,7 @@ function focusSnapshot(value: {
   grade: Grade;
   tier: Tier;
   citationKey: string;
+  flag?: GradedFlag;
   soften?: boolean;
 }): FocusRationaleSnapshot {
   return {
@@ -1286,8 +1414,196 @@ function focusSnapshot(value: {
     grade: value.grade,
     tier: value.tier,
     citationKey: value.citationKey,
+    ...(value.flag ? { flag: value.flag } : {}),
     soften: value.soften ?? (value.grade === "C" || value.grade === "D"),
   };
+}
+
+function trainingFitPolicy(cfg: MethodologyConfig) {
+  if (!cfg.trainingFit) {
+    throw new Error("Methodology config has no training-fit policy");
+  }
+  return cfg.trainingFit;
+}
+
+function positiveAverage(
+  currentValue: number | undefined,
+  currentCount: number | undefined,
+  nextValue: number,
+): { value: number; count: number } {
+  const count = currentCount ?? (currentValue === undefined ? 0 : 1);
+  return {
+    value: ((currentValue ?? 0) * count + nextValue) / (count + 1),
+    count: count + 1,
+  };
+}
+
+/** P8: append one observation to the derived preference state in constant work. */
+export function updateTrainingPreferences(
+  current: TrainingFitPreferenceRollup,
+  observation: TrainingFitObservation,
+  cfg: MethodologyConfig,
+): TrainingFitPreferenceRollup {
+  const policy = trainingFitPolicy(cfg);
+  const enjoyment = { ...current.enjoyment };
+  const enjoymentEvidenceCount = { ...current.enjoymentEvidenceCount };
+  const resourceAffinity = { ...current.resourceAffinity };
+  const resourceEvidenceCount = { ...current.resourceEvidenceCount };
+  const timeFit = { ...current.timeFit };
+  let sessionTimeFit = current.sessionTimeFit;
+  const enjoymentScore =
+    observation.enjoyment === "enjoyed"
+      ? policy.enjoymentScores.enjoyed.value
+      : observation.enjoyment === "not_enjoyed"
+        ? policy.enjoymentScores.notEnjoyed.value
+        : policy.enjoymentScores.neutral.value;
+  const relevanceScore =
+    observation.relevance === "relevant"
+      ? policy.relevanceScores.relevant.value
+      : observation.relevance === "not_relevant"
+        ? policy.relevanceScores.notRelevant.value
+        : policy.relevanceScores.neutral.value;
+
+  if (observation.activityType) {
+    if (enjoymentScore > 0) {
+      const next = positiveAverage(
+        enjoyment[observation.activityType],
+        enjoymentEvidenceCount[observation.activityType],
+        enjoymentScore,
+      );
+      enjoyment[observation.activityType] = next.value;
+      enjoymentEvidenceCount[observation.activityType] = next.count;
+    }
+    timeFit[observation.activityType] = observation.timeFit;
+  } else {
+    sessionTimeFit = observation.timeFit;
+  }
+  if (observation.resourceKey && relevanceScore > 0) {
+    const next = positiveAverage(
+      resourceAffinity[observation.resourceKey],
+      resourceEvidenceCount[observation.resourceKey],
+      relevanceScore,
+    );
+    resourceAffinity[observation.resourceKey] = next.value;
+    resourceEvidenceCount[observation.resourceKey] = next.count;
+  }
+
+  return {
+    enjoyment: Object.fromEntries(
+      Object.entries(enjoyment).sort(([a], [b]) => a.localeCompare(b)),
+    ),
+    enjoymentEvidenceCount: Object.fromEntries(
+      Object.entries(enjoymentEvidenceCount).sort(([a], [b]) =>
+        a.localeCompare(b),
+      ),
+    ),
+    resourceAffinity: Object.fromEntries(
+      Object.entries(resourceAffinity).sort(([a], [b]) => a.localeCompare(b)),
+    ),
+    resourceEvidenceCount: Object.fromEntries(
+      Object.entries(resourceEvidenceCount).sort(([a], [b]) =>
+        a.localeCompare(b),
+      ),
+    ),
+    timeFit,
+    sessionTimeFit,
+    frictionTags: [
+      ...new Set([...current.frictionTags, ...observation.frictionTags]),
+    ].sort(),
+    evidenceCount: current.evidenceCount + 1,
+    methodologyVersion: cfg.version,
+  };
+}
+
+/** P8: reduce append-only fit observations into descriptive, positive-only preferences.
+ * Negative and neutral responses remain in the source records but never become a penalty. */
+export function rollUpTrainingPreferences(
+  observations: readonly TrainingFitObservation[],
+  cfg: MethodologyConfig,
+): TrainingFitPreferenceRollup {
+  const ordered = [...observations].sort(
+    (a, b) => a.occurredAt - b.occurredAt || a.id.localeCompare(b.id),
+  );
+  return ordered.reduce<TrainingFitPreferenceRollup>(
+    (current, observation) =>
+      updateTrainingPreferences(current, observation, cfg),
+    {
+      enjoyment: {},
+      enjoymentEvidenceCount: {},
+      resourceAffinity: {},
+      resourceEvidenceCount: {},
+      timeFit: {},
+      sessionTimeFit: null,
+      frictionTags: [],
+      evidenceCount: 0,
+      methodologyVersion: cfg.version,
+    },
+  );
+}
+
+function promptFrom(
+  kind: TrainingFitPrompt["kind"],
+  activityType: string | null,
+  value: {
+    value: string;
+    grade: Grade;
+    tier: Tier;
+    citationKey: string;
+  },
+): TrainingFitPrompt {
+  const snapshot = focusSnapshot(value);
+  return { kind, activityType, ...snapshot };
+}
+
+/** P8: sparse prompt selection. A persisted exposure timestamp is an input, so silence
+ * creates a cooldown rather than another reminder. */
+export function selectTrainingFitPrompt(
+  input: TrainingFitPromptInput,
+  cfg: MethodologyConfig,
+): TrainingFitPrompt | null {
+  const policy = trainingFitPolicy(cfg);
+  const lastAnyPromptAt = Math.max(
+    input.lastWeeklyPromptAt ?? Number.NEGATIVE_INFINITY,
+    input.lastContextPromptAt ?? Number.NEGATIVE_INFINITY,
+  );
+  const minimumPromptGapReady =
+    lastAnyPromptAt === Number.NEGATIVE_INFINITY ||
+    input.now - lastAnyPromptAt >= policy.weeklyCheckInDays.value * DAY_MS;
+  const contextReady =
+    minimumPromptGapReady &&
+    (input.lastContextPromptAt === null ||
+      input.now - input.lastContextPromptAt >=
+        policy.contextualCooldownDays.value * DAY_MS);
+  const candidate = input.contextualCandidate;
+  if (
+    contextReady &&
+    candidate &&
+    candidate.problemCount >= policy.repeatedProblemCount.value
+  ) {
+    return promptFrom(
+      "repeated_problem",
+      candidate.activityType,
+      policy.repeatedProblemPrompt,
+    );
+  }
+  if (contextReady && candidate?.novel) {
+    return promptFrom(
+      "novel_activity",
+      candidate.activityType,
+      policy.novelActivityPrompt,
+    );
+  }
+
+  if (input.trainingStartedAt === null) return null;
+  const weeklyAnchor = Math.max(
+    input.trainingStartedAt,
+    input.lastWeeklyFeedbackAt ?? input.trainingStartedAt,
+    input.lastWeeklyPromptAt ?? input.trainingStartedAt,
+    input.lastContextPromptAt ?? input.trainingStartedAt,
+  );
+  return input.now - weeklyAnchor >= policy.weeklyCheckInDays.value * DAY_MS
+    ? promptFrom("weekly", null, policy.weeklyPrompt)
+    : null;
 }
 
 /** P5: choose a stable, evidence-led weekly direction. Free-form goal labels are never
@@ -1343,13 +1659,17 @@ export function selectWeeklyFocus(
         add(dimension, policy.weights.dueWork.value, "due learning");
     }
   }
-  const owned = new Set(
-    input.ownedResources.flatMap((resource) =>
-      [resource.label, resource.externalRef]
-        .filter((value): value is string => Boolean(value))
-        .map(normalizeOwnedRef),
-    ),
-  );
+  const fitWeight = policy.weights.fitPreference.value;
+  const owned =
+    fitWeight > 0
+      ? new Set(
+          input.ownedResources.flatMap((resource) =>
+            [resource.label, resource.externalRef]
+              .filter((value): value is string => Boolean(value))
+              .map(normalizeOwnedRef),
+          ),
+        )
+      : null;
   for (const activity of cfg.activities) {
     if (
       input.activityRecency.lastEventAtByType[activity.activityType] ===
@@ -1358,6 +1678,7 @@ export function selectWeeklyFocus(
       for (const dimension of activity.dimensions)
         add(dimension, policy.weights.recency.value, "variety fit");
     }
+    if (!owned) continue;
     const enjoyment =
       input.trainingPreferences.preferences.enjoyment[activity.activityType];
     const ownedFit =
@@ -1367,12 +1688,9 @@ export function selectWeeklyFocus(
         : false);
     if (enjoyment !== undefined || ownedFit) {
       const fit = (enjoyment ?? 0) + (ownedFit ? 1 : 0);
-      for (const dimension of activity.dimensions)
-        add(
-          dimension,
-          fit * policy.weights.fitPreference.value,
-          "bounded fit preference",
-        );
+      for (const dimension of activity.dimensions) {
+        add(dimension, fit * fitWeight, "bounded fit preference");
+      }
     }
   }
   const ranked = [...scores.entries()]

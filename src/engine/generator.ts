@@ -14,6 +14,7 @@ import {
   type Confidence,
   type DueItem,
   type Grade,
+  type GradedFlag,
   type MethodologyConfig,
   type CandidateBookResource,
   type MixPreferences,
@@ -39,6 +40,14 @@ export interface ProgramItemParams {
   dueItemRefs?: string[];
   bookResource?: ProgramBookResource;
   studyMinutes?: number;
+  fitExplanation?: {
+    text: string;
+    evidenceGrade: Grade;
+    evidenceTier: Tier;
+    citationKey: string;
+    flag?: GradedFlag;
+    soften: boolean;
+  };
 }
 
 /** One activity with its rationale snapshot preserved across config changes. */
@@ -72,6 +81,8 @@ export interface GenerateProgramInput {
     formats?: readonly string[];
     ownedRefs?: readonly string[];
     depthVsBreadth?: MixPreferences["depthVsBreadth"];
+    activityFit?: Readonly<Record<string, number>>;
+    resourceFit?: Readonly<Record<string, number>>;
   };
   recentSuccessByTrack?: { pattern?: number; calculation?: number };
   clock: Clock;
@@ -134,6 +145,11 @@ export function generateProgram(
     cfg,
   );
   const focus = new Set(input.focusAreas ?? []);
+  const fitEligibleActivityIds = candidates
+    .filter((candidate) =>
+      candidate.dimensionsTargeted.some((dimension) => focus.has(dimension)),
+    )
+    .map((candidate) => candidate.activityId);
   const focusedCandidates =
     focus.size === 0
       ? candidates
@@ -153,6 +169,9 @@ export function generateProgram(
         formats: input.constraints.formats,
         ownedRefs: input.constraints.ownedRefs,
         depthVsBreadth: input.constraints.depthVsBreadth,
+        activityFit: input.constraints.activityFit,
+        resourceFit: input.constraints.resourceFit,
+        fitEligibleActivityIds,
       },
     },
     cfg,
@@ -224,6 +243,20 @@ export function generateProgram(
         track: candidate.track,
         dueItemRefs: due.slice(0, count).map((d) => d.itemRef),
         count,
+        ...(candidate.fitExplanation
+          ? {
+              fitExplanation: {
+                text: candidate.fitExplanation.text,
+                evidenceGrade: candidate.fitExplanation.grade,
+                evidenceTier: candidate.fitExplanation.tier,
+                citationKey: candidate.fitExplanation.citationKey,
+                ...(candidate.fitExplanation.flag
+                  ? { flag: candidate.fitExplanation.flag }
+                  : {}),
+                soften: candidate.fitExplanation.soften,
+              },
+            }
+          : {}),
       };
     } else if (candidate.track) {
       const recentSuccess = input.recentSuccessByTrack?.[candidate.track];
@@ -245,6 +278,20 @@ export function generateProgram(
         count: p.units ?? dose,
         structure: practiceStructure({ band }, cfg),
         workedExample: useWorkedExample({ band }, cfg),
+        ...(candidate.fitExplanation
+          ? {
+              fitExplanation: {
+                text: candidate.fitExplanation.text,
+                evidenceGrade: candidate.fitExplanation.grade,
+                evidenceTier: candidate.fitExplanation.tier,
+                citationKey: candidate.fitExplanation.citationKey,
+                ...(candidate.fitExplanation.flag
+                  ? { flag: candidate.fitExplanation.flag }
+                  : {}),
+                soften: candidate.fitExplanation.soften,
+              },
+            }
+          : {}),
       };
     } else {
       const isPlayGame = candidate.activityType === "play_game";
@@ -263,6 +310,20 @@ export function generateProgram(
           ? {
               bookResource: candidate.bookResource,
               studyMinutes: estMinutes,
+            }
+          : {}),
+        ...(candidate.fitExplanation
+          ? {
+              fitExplanation: {
+                text: candidate.fitExplanation.text,
+                evidenceGrade: candidate.fitExplanation.grade,
+                evidenceTier: candidate.fitExplanation.tier,
+                citationKey: candidate.fitExplanation.citationKey,
+                ...(candidate.fitExplanation.flag
+                  ? { flag: candidate.fitExplanation.flag }
+                  : {}),
+                soften: candidate.fitExplanation.soften,
+              },
             }
           : {}),
       };

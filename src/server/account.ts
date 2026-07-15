@@ -197,6 +197,56 @@ export async function exportUserData(db: PrismaClient, userId: string) {
       createdAt: true,
     },
   });
+  const trainingFeedback = await db.trainingFeedback.findMany({
+    where: { userId },
+    orderBy: [{ occurredAt: "asc" }, { id: "asc" }],
+    select: {
+      id: true,
+      userId: true,
+      programId: true,
+      programItemId: true,
+      scope: true,
+      source: true,
+      relevance: true,
+      enjoyment: true,
+      timeFit: true,
+      frictionTags: true,
+      comment: true,
+      methodologyVersion: true,
+      occurredAt: true,
+      createdAt: true,
+    },
+  });
+  const productFeedback = await db.productFeedback.findMany({
+    where: { userId },
+    orderBy: [{ occurredAt: "asc" }, { id: "asc" }],
+    select: {
+      id: true,
+      userId: true,
+      category: true,
+      message: true,
+      routeContext: true,
+      contactAllowed: true,
+      methodologyVersion: true,
+      appVersion: true,
+      occurredAt: true,
+      createdAt: true,
+    },
+  });
+  const trainingFeedbackPrompts = await db.trainingFeedbackPrompt.findMany({
+    where: { userId },
+    orderBy: [{ shownAt: "asc" }, { id: "asc" }],
+    select: {
+      id: true,
+      userId: true,
+      programId: true,
+      programItemId: true,
+      promptKey: true,
+      kind: true,
+      shownAt: true,
+      createdAt: true,
+    },
+  });
   const skillStates = await db.skillState.findMany({
     where: { userId },
     select: {
@@ -376,7 +426,7 @@ export async function exportUserData(db: PrismaClient, userId: string) {
   });
 
   return {
-    exportFormat: "mainline-user-export/v2",
+    exportFormat: "mainline-user-export/v3",
     generatedForUserId: userId,
     user,
     accounts,
@@ -388,6 +438,9 @@ export async function exportUserData(db: PrismaClient, userId: string) {
     constraintSets,
     programs,
     activityEvents,
+    trainingFeedback,
+    productFeedback,
+    trainingFeedbackPrompts,
     skillStates,
     skillStateSnapshots,
     scheduleStates,

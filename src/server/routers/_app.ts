@@ -7,6 +7,7 @@ import { assessmentRouter } from "@/server/routers/assessment";
 import { connectionsRouter } from "@/server/routers/connections";
 import { constraintsRouter } from "@/server/routers/constraints";
 import { engagementRouter } from "@/server/routers/engagement";
+import { feedbackRouter } from "@/server/routers/feedback";
 import { importRouter } from "@/server/routers/import";
 import { libraryRouter } from "@/server/routers/library";
 import { operationsRouter } from "@/server/routers/operations";
@@ -24,6 +25,7 @@ export const appRouter = router({
   program: programRouter,
   tracker: trackerRouter,
   engagement: engagementRouter,
+  feedback: feedbackRouter,
   account: accountRouter,
   library: libraryRouter,
   progress: progressRouter,

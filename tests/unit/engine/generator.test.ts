@@ -257,6 +257,52 @@ describe("generateProgram (golden)", () => {
     expect(review!.params.count).toBe(1);
   });
 
+  it("keeps fit inside the persisted focus and due-status boundary", () => {
+    const current = loadMethodology("research-1.4.0");
+    const common = {
+      band: "b2200plus" as const,
+      tacticalRating: 2300,
+      weaknessSignals: [],
+      dueItems: [{ itemRef: "review-1", itemType: "puzzle" }],
+      focusAreas: ["calculation"],
+      clock,
+      config: current,
+    };
+    const baseline = generateProgram({
+      ...common,
+      constraints: { minutesPerDay: 300 },
+    });
+    const dueFit = generateProgram({
+      ...common,
+      constraints: {
+        minutesPerDay: 300,
+        activityFit: { spaced_review: 1 },
+      },
+    });
+    expect(dueFit.items.map((item) => item.activityId)).toEqual(
+      baseline.items.map((item) => item.activityId),
+    );
+    expect(dueFit.items.every((item) => !item.params.fitExplanation)).toBe(
+      true,
+    );
+
+    const focusedFit = generateProgram({
+      ...common,
+      constraints: {
+        minutesPerDay: 300,
+        activityFit: { puzzle_theme: 1 },
+      },
+    });
+    expect(focusedFit.items[0]!.activityId).toBe("calculation_drill");
+    expect(focusedFit.items[0]!.params.fitExplanation).toMatchObject({
+      evidenceGrade: "C",
+      evidenceTier: 2,
+      citationKey: "deci1999",
+      flag: "best-guess",
+      soften: true,
+    });
+  });
+
   it("nudges the puzzle target harder after higher recent success", () => {
     const common = {
       band: "b1200_1600" as const,

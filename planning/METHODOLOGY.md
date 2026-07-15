@@ -1081,14 +1081,48 @@ and explicitly disclose the tradeoff against the evidence-led default.
 The seven-day stability window, medium-confidence crossing, ten-minute constraint threshold,
 0.15 skill-state threshold, weights, and two-alternative cap are Grade C, Tier 1 or Tier 2 best
 guesses. Their exact values have no chess-specific causal validation. Low-confidence isolated
-signals cannot revise focus. Fit preferences can rank an already-approved option but cannot write
-SkillState or manufacture a weakness. Source anchors: `weakness_diagnosis`, `williamson2022`, and
-`fsrs_spaced_repetition`.
+signals cannot revise focus. Releases `research-1.1.0` through `research-1.3.0` retain their original
+bounded fit-preference weight for historical replay. The `research-1.4.0` release delta sets that
+weight to zero, so current training-fit preferences remain in the reproducible decision snapshot but
+do not score, select, or suppress a skill focus. Source anchors: `weakness_diagnosis`,
+`williamson2022`, `fsrs_spaced_repetition`, and `deci1999`.
 
 The bounded-alternative rationale is optional-choice copy, not a warning or a second diagnosis. It
 states that the option remains methodology-approved, gives more weight to a goal the user chose, and
 leaves the evidence-led recommendation available. The choice remains Grade C, Tier 2, softened, and
 cited to `williamson2022`; this copy clarification does not upgrade its evidence.
+
+### P8 training-fit policy (`research-1.4.0`)
+
+Training-fit feedback describes delivery fit, not chess ability. Relevance, enjoyment, time fit,
+resource fit, friction tags, and optional comments may be captured, but no subjective response may
+write SkillState, create a weakness signal, remove due learning, reduce difficulty, or change the
+weekly skill focus. In particular, reporting that calculation is hard or unenjoyable cannot remove
+calculation when behavioral evidence selects it.
+
+Positive fit is a bounded tie-break among activities that already target the persisted weekly focus,
+have equal methodology scores, and share the same due status. Negative or neutral responses
+contribute no negative activity weight. They remain visible as friction evidence and may direct the
+user to an explicit constraint or accessibility setting. A positive user override follows the same
+rule. Reset removes the derived and overridden fit state; it does not change behavioral history or
+the prescribed focus.
+
+Prompt policy is deliberately sparse: one weekly check-in after seven days, contextual prompting
+after a genuinely novel activity or two repeated skips/problem reports, and a fourteen-day contextual
+cooldown. Silence records no failure, changes no state, and must not cause the same prompt to appear
+again during its cooldown. These cadence and threshold values are Grade C, Tier 2 product best
+guesses cited to `deci1999` and `wisniewski2020`; they are anti-nag defaults, not findings about chess.
+
+The positive daily-mix fit tie-break is enabled, Grade C, Tier 2, `best-guess`, and cited to
+`deci1999`. An `enjoyed` or `relevant` response contributes a positive score of 1; neutral,
+unenjoyed, or irrelevant responses contribute 0 and never a penalty. Fit is compared only after the
+methodology score, so it cannot outrank due work or a stronger prescription. The explanation shown on
+an adjusted item states that positive fit broke a tie inside the evidence-led focus. It is Grade C,
+Tier 2, softened, and cited to `deci1999`. The boundary copy states that difficulty and skill
+priorities remain based on measured work; it is Grade A, Tier 1, cited to `heck2025`.
+
+Product feedback is a separate operational record. Its free text and safe route context never enter
+the Methodology, training outcomes, decision input, or preference rollup.
 
 Everything here ships as a **clearly-labelled best-guess**, defaults conservatively, and is a candidate
 for resolution by the app's own outcome telemetry (the built-in study, VISION §7). The app is uniquely

@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 
 import { signOutAction } from "@/server/auth-actions";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
+import { safeRouteContext } from "@/lib/feedback";
 import { cn } from "@/lib/utils";
 
 // The account menu (⚙) at the right of the top bar — the home for everything that is
@@ -15,11 +17,14 @@ import { cn } from "@/lib/utils";
 const ITEMS: ReadonlyArray<{ href: string; label: string }> = [
   { href: "/onboarding", label: "Setup" },
   { href: "/settings", label: "Settings" },
+  { href: "/settings#feedback", label: "Feedback" },
   { href: "/connections", label: "Connections" },
   { href: "/settings#data", label: "Export data" },
 ];
 
 export function AccountMenu() {
+  const pathname = usePathname();
+  const feedbackFrom = safeRouteContext(pathname) ?? "/settings";
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -83,7 +88,11 @@ export function AccountMenu() {
           {ITEMS.map((item) => (
             <Link
               key={item.href}
-              href={item.href}
+              href={
+                item.label === "Feedback"
+                  ? `/settings?feedbackFrom=${encodeURIComponent(feedbackFrom)}#feedback`
+                  : item.href
+              }
               ref={item === ITEMS[0] ? firstItemRef : undefined}
               onClick={() => setOpen(false)}
               className="text-graphite hover:text-ink hover:bg-ink/[0.05] block min-h-9 px-3 py-2 font-mono text-xs tracking-tight transition-colors focus-visible:bg-ink/[0.05] focus-visible:outline-none"

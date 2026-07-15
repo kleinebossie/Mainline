@@ -1,0 +1,14 @@
+{
+  "version": "research-1.4.0",
+  "channel": "research",
+  "releasedOn": "2026-07-15",
+  "sourceDocument": "planning/METHODOLOGY.md",
+  "summary": "Adds the sparse P8 training-fit prompt policy and restricts subjective fit to a positive tie-break inside the evidence-led daily mix.",
+  "retainedBestGuesses": [
+    "The seven-day weekly cadence, fourteen-day contextual cooldown, two-problem trigger, response scores, and positive tie-break are Grade C product best guesses."
+  ],
+  "deliberateStubs": [
+    "Training-fit feedback is not evidence of chess skill and no adherence or rating effect is claimed."
+  ],
+  "rollbackVersion": "research-1.3.0"
+}

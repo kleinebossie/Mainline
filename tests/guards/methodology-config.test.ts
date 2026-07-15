@@ -24,6 +24,7 @@ const SHIPPED = [
   "research-1.1.0",
   "research-1.2.0",
   "research-1.3.0",
+  "research-1.4.0",
 ];
 
 function walkCitationKeys(node: unknown, into: Set<string>): void {
@@ -37,9 +38,9 @@ function walkCitationKeys(node: unknown, into: Set<string>): void {
 
 describe("L3: methodology config integrity", () => {
   it("uses the checked-in research release as the active pointer", () => {
-    expect(DEFAULT_METHODOLOGY_VERSION).toBe("research-1.3.0");
+    expect(DEFAULT_METHODOLOGY_VERSION).toBe("research-1.4.0");
     expect(loadMethodology(DEFAULT_METHODOLOGY_VERSION).version).toBe(
-      "research-1.3.0",
+      "research-1.4.0",
     );
   });
 

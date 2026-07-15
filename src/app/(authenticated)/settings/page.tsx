@@ -3,13 +3,13 @@ import { ConstraintsForm } from "@/app/onboarding/constraints/constraints-form";
 import { AnalysisRunner } from "@/app/settings/analysis-runner";
 import { AccountActions } from "@/app/settings/account-actions";
 import { OperationsPanel } from "@/app/settings/operations-panel";
+import { FeedbackPanel } from "@/app/settings/feedback-panel";
 import { prisma } from "@/db/client";
 import { getSession } from "@/server/session";
 import { loadMethodology, rationaleFor } from "@/methodology";
 
-// Settings (VISION §5/§7). Auth-gated. The post-onboarding home for everything you tune
-// about your training and your account: edit your plan (time/goals/preferences — the same
-// form onboarding uses), run game analysis, and export or erase your data.
+// Settings (VISION §5/§7). Auth-gated. The post-onboarding home for constraints,
+// assessment, delivery-fit feedback, analysis, and account controls.
 export default async function SettingsPage() {
   const session = await getSession();
   if (!session?.user) return null;
@@ -21,9 +21,9 @@ export default async function SettingsPage() {
 
   return (
     <PageShell
-      eyebrow="Tune your training & account"
+      eyebrow="Training and account controls"
       title="Settings"
-      lede="Change anything, anytime. Your constraints feed the next session the moment you save."
+      lede="Set real constraints, review assessment inputs, and tell Mainline where delivery can improve."
     >
       <div className="flex flex-col gap-14">
         <section className="flex flex-col gap-4">
@@ -37,6 +37,11 @@ export default async function SettingsPage() {
             continueHref="/today"
             continueLabel="Go to Today →"
           />
+        </section>
+
+        <section id="feedback" className="scroll-mt-24 flex flex-col gap-4">
+          <h2 className="eyebrow border-b border-line/80 pb-3">Feedback</h2>
+          <FeedbackPanel />
         </section>
 
         <AnalysisRunner />
