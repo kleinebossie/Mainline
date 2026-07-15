@@ -713,22 +713,29 @@ function TodayBlockDetails({
   onSkip: () => void;
 }) {
   const closed = isClosedItem(item);
+  const showsBookLog =
+    isBook &&
+    !closed &&
+    !(scheduledBook == null && libraryLoading) &&
+    bookOptions.length > 0;
 
   return (
     <div
       id={id}
       className="flex min-w-0 flex-col gap-4 rounded-md bg-paper/45 p-3 sm:p-4"
     >
-      <TransparencyCard
-        rationaleText={item.rationaleText}
-        evidenceGrade={item.evidenceGrade}
-        evidenceTier={item.evidenceTier}
-        citationKey={item.citationKey}
-        citationSource={item.citationSource}
-        confidence={item.confidence}
-        soften={item.soften}
-        defaultCollapsed={false}
-      />
+      {!showsBookLog && (
+        <TransparencyCard
+          rationaleText={item.rationaleText}
+          evidenceGrade={item.evidenceGrade}
+          evidenceTier={item.evidenceTier}
+          citationKey={item.citationKey}
+          citationSource={item.citationSource}
+          confidence={item.confidence}
+          soften={item.soften}
+          defaultCollapsed={false}
+        />
+      )}
 
       {isBook && !closed ? (
         scheduledBook == null && libraryLoading ? (

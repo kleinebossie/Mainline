@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { TransparencyCard } from "@/components/transparency-card";
+import {
+  TransparencyCard,
+  TransparencyCardGroup,
+} from "@/components/transparency-card";
 import React from "react";
 
 describe("TransparencyCard", () => {
@@ -46,5 +49,39 @@ describe("TransparencyCard", () => {
       />,
     );
     expect(html).toContain("a band prior, not your own data yet");
+  });
+
+  it("combines multiple rationales under one toggle", () => {
+    const html = renderToStaticMarkup(
+      <TransparencyCardGroup
+        defaultCollapsed={false}
+        items={[
+          {
+            title: "First choice",
+            rationaleText: "The first rationale.",
+            evidenceGrade: "B",
+            evidenceTier: 1,
+            citationKey: "first",
+            confidence: "medium",
+            soften: false,
+          },
+          {
+            title: "Second choice",
+            rationaleText: "The second rationale.",
+            evidenceGrade: "C",
+            evidenceTier: 2,
+            citationKey: "second",
+            confidence: "low",
+            soften: true,
+          },
+        ]}
+      />,
+    );
+
+    expect(html.match(/Why this\?/g)).toHaveLength(1);
+    expect(html).toContain("First choice");
+    expect(html).toContain("The first rationale.");
+    expect(html).toContain("Second choice");
+    expect(html).toContain("The second rationale.");
   });
 });

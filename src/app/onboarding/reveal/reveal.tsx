@@ -8,7 +8,7 @@ import { trpc } from "@/lib/trpc/react";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GradeMark, type EvidenceGrade } from "@/components/evidence";
-import { TransparencyCard } from "@/components/transparency-card";
+import { TransparencyCardGroup } from "@/components/transparency-card";
 import { StatusMessage } from "@/components/ui/status-message";
 import { CalibrationTrackGauges } from "@/app/onboarding/calibration-track-gauges";
 
@@ -145,22 +145,18 @@ export function Reveal() {
                 From {signals.data.gamesAnalysed} analysed game
                 {signals.data.gamesAnalysed === 1 ? "" : "s"}:
               </p>
-              {signals.data.signals.map((s) => (
-                <div key={s.dimension} className="flex flex-col gap-2">
-                  <p className="font-serif text-base font-semibold text-ink">
-                    {s.dimensionLabel}
-                  </p>
-                  <TransparencyCard
-                    rationaleText={s.rationaleText}
-                    evidenceGrade={s.evidenceGrade}
-                    evidenceTier={s.evidenceTier}
-                    citationKey={s.citationKey}
-                    citationSource={s.citationSource}
-                    confidence={s.confidence}
-                    soften={s.soften}
-                  />
-                </div>
-              ))}
+              <TransparencyCardGroup
+                items={signals.data.signals.map((signal) => ({
+                  title: signal.dimensionLabel,
+                  rationaleText: signal.rationaleText,
+                  evidenceGrade: signal.evidenceGrade,
+                  evidenceTier: signal.evidenceTier,
+                  citationKey: signal.citationKey,
+                  citationSource: signal.citationSource,
+                  confidence: signal.confidence,
+                  soften: signal.soften,
+                }))}
+              />
             </div>
           )}
         </CardContent>

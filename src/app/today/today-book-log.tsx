@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { TransparencyCard } from "@/components/transparency-card";
+import { TransparencyCardGroup } from "@/components/transparency-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -79,6 +79,34 @@ export function BookLogForm({
     selectedBook?.studyUnit === "games" ? "Games studied" : "Exercises done";
   const unitPlaceholder =
     selectedBook?.studyUnit === "games" ? "e.g. 3" : "e.g. 10";
+  const feedbackCopy = log.data?.feedbackCopy;
+  const rationaleItems = [
+    {
+      title: "Training block",
+      rationaleText: item.rationaleText,
+      evidenceGrade: item.evidenceGrade,
+      evidenceTier: item.evidenceTier,
+      citationKey: item.citationKey,
+      citationSource: item.citationSource,
+      confidence: item.confidence,
+      soften: item.soften,
+    },
+    ...(feedbackCopy
+      ? [
+          {
+            title: "Session feedback",
+            rationaleText: feedbackCopy.text,
+            evidenceGrade: feedbackCopy.grade,
+            evidenceTier: feedbackCopy.tier,
+            citationKey: feedbackCopy.citationKey,
+            citationSource: feedbackCopy.citationSource,
+            confidence: "low",
+            soften: feedbackCopy.soften,
+            flag: feedbackCopy.flag,
+          },
+        ]
+      : []),
+  ];
 
   const onLog = () => {
     setFormError(null);
@@ -126,6 +154,7 @@ export function BookLogForm({
         onLog();
       }}
     >
+      <TransparencyCardGroup items={rationaleItems} defaultCollapsed={false} />
       <div className="flex flex-col gap-1">
         <h3 className="font-serif text-sm font-semibold text-ink">
           Log your study session
@@ -266,23 +295,10 @@ export function BookLogForm({
         </StatusMessage>
       )}
 
-      {log.data?.feedback && log.data.feedbackCopy && (
-        <div className="flex flex-col gap-3">
-          <p className="text-graphite border-l-2 border-evergreen/40 pl-3 font-serif text-sm leading-relaxed">
-            {FEEDBACK_SUMMARY[log.data.feedback.verdict]}
-          </p>
-          <TransparencyCard
-            rationaleText={log.data.feedbackCopy.text}
-            evidenceGrade={log.data.feedbackCopy.grade}
-            evidenceTier={log.data.feedbackCopy.tier}
-            citationKey={log.data.feedbackCopy.citationKey}
-            citationSource={log.data.feedbackCopy.citationSource}
-            confidence="low"
-            soften={log.data.feedbackCopy.soften}
-            flag={log.data.feedbackCopy.flag}
-            defaultCollapsed={false}
-          />
-        </div>
+      {log.data?.feedback && feedbackCopy && (
+        <p className="text-graphite border-l-2 border-evergreen/40 pl-3 font-serif text-sm leading-relaxed">
+          {FEEDBACK_SUMMARY[log.data.feedback.verdict]}
+        </p>
       )}
     </form>
   );

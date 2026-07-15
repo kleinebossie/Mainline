@@ -5,7 +5,11 @@ import type { ReactNode } from "react";
 import { trpc } from "@/lib/trpc/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { asEvidenceGrade, GradeMark } from "@/components/evidence";
-import { TransparencyCard } from "@/components/transparency-card";
+import {
+  TransparencyCard,
+  TransparencyCardGroup,
+  type TransparencyCardItem,
+} from "@/components/transparency-card";
 import { StatusMessage } from "@/components/ui/status-message";
 import type { GradedCopy, LibraryView } from "@/server/library";
 
@@ -36,6 +40,20 @@ function Why({
       defaultCollapsed={defaultCollapsed}
     />
   );
+}
+
+function whyItem(title: string, copy: GradedCopy): TransparencyCardItem {
+  return {
+    title,
+    rationaleText: copy.text,
+    evidenceGrade: copy.grade,
+    evidenceTier: copy.tier,
+    citationKey: copy.citationKey,
+    citationSource: copy.citationSource,
+    confidence: "low",
+    soften: copy.soften,
+    flag: copy.flag,
+  };
 }
 
 type Protocol = LibraryView["protocol"];
@@ -156,11 +174,13 @@ function BookStudyProtocol({ protocol }: { protocol: Protocol }) {
           </div>
         )}
 
-        <div className="flex flex-col gap-3">
-          <Why copy={protocol.activeRecall} />
-          <Why copy={protocol.calibration} />
-          <Why copy={protocol.woodpecker} />
-        </div>
+        <TransparencyCardGroup
+          items={[
+            whyItem("Active recall", protocol.activeRecall),
+            whyItem("Difficulty calibration", protocol.calibration),
+            whyItem("Woodpecker cycles", protocol.woodpecker),
+          ]}
+        />
       </CardContent>
     </Card>
   );
@@ -225,7 +245,6 @@ export function Library() {
                     {data.modality.otbCadence}
                   </p>
                 </div>
-                <Why copy={data.modality.otb} />
               </>
             ) : (
               <p className="text-graphite font-serif text-sm leading-relaxed">
@@ -235,7 +254,16 @@ export function Library() {
                 add physical-board work.
               </p>
             )}
-            <Why copy={data.modality.split} />
+            {data.modality.surfacePhysical ? (
+              <TransparencyCardGroup
+                items={[
+                  whyItem("Modality split", data.modality.split),
+                  whyItem("Tournament simulation", data.modality.otb),
+                ]}
+              />
+            ) : (
+              <Why copy={data.modality.split} />
+            )}
           </CardContent>
         </Card>
       </section>

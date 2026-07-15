@@ -7,7 +7,10 @@ import type {
   GameAnalysisRationale,
   GameAnalysisSession,
 } from "@/app/analysis/[gameId]/game-analysis-types";
-import { MethodologyRationaleCard } from "@/components/methodology-rationale-card";
+import {
+  MethodologyRationaleCard,
+  MethodologyRationaleGroup,
+} from "@/components/methodology-rationale-card";
 import {
   BOARD_SIZE_CLASS,
   InteractiveBoard,
@@ -234,11 +237,23 @@ export function ActiveReproductionStep({
             <Button onClick={onContinue}>Continue</Button>
           )}
 
-          <div className="mt-2 flex flex-col gap-4 border-t border-line/60 pt-4">
-            <MethodologyRationaleCard rationale={engineDelayRationale} />
-            {(lastAttempt || revealed) && (
-              <MethodologyRationaleCard rationale={guessToleranceRationale} />
-            )}
+          <div className="mt-2 border-t border-line/60 pt-4">
+            <MethodologyRationaleGroup
+              items={[
+                {
+                  title: "Delayed engine feedback",
+                  rationale: engineDelayRationale,
+                },
+                ...(lastAttempt || revealed
+                  ? [
+                      {
+                        title: "Move grading tolerance",
+                        rationale: guessToleranceRationale,
+                      },
+                    ]
+                  : []),
+              ]}
+            />
           </div>
         </CardContent>
       </Card>
