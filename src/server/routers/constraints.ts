@@ -2,10 +2,9 @@
 // ConstraintSet (or null); `save` validates and supersedes it (version bump). Input is
 // validated by the shared lib/constraints Zod schema — the same schema the form uses.
 
-import { TRPCError } from "@trpc/server";
-
 import { constraintsInputSchema } from "@/lib/constraints";
 import { getCurrentConstraints, saveConstraints } from "@/server/constraints";
+import { expectedError } from "@/server/errors";
 import { protectedProcedure, router } from "@/server/trpc";
 
 export const constraintsRouter = router({
@@ -20,11 +19,9 @@ export const constraintsRouter = router({
       // Enforced here (BAD_REQUEST) so the client gets a clear message, and again
       // in saveConstraints as defense-in-depth.
       if (input.formatPrefs.formats.length === 0) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message:
-            "Select at least one format you play (bullet, blitz, rapid, or classical).",
-        });
+        throw expectedError.badRequest(
+          "Select at least one format you play: bullet, blitz, rapid, or classical.",
+        );
       }
       return saveConstraints(ctx.prisma, ctx.userId, input);
     }),

@@ -1,6 +1,7 @@
 "use client";
 
 import { trpc } from "@/lib/trpc/react";
+import { ErrorNotice } from "@/components/ui/error-notice";
 
 export function OperationsPanel() {
   const jobs = trpc.operations.recentJobs.useQuery(undefined, {
@@ -31,7 +32,21 @@ export function OperationsPanel() {
 
       {jobs.isLoading && <p className="text-sm">Loading job status...</p>}
       {jobs.error && (
-        <p className="text-clay text-sm">Job status is unavailable.</p>
+        <ErrorNotice
+          error={jobs.error}
+          heading="Job status unavailable"
+          message="Mainline could not load recent operations. Try the status list again."
+          onRetry={() => void jobs.refetch()}
+          retrying={jobs.isFetching}
+          retryLabel="Reload job status"
+        />
+      )}
+      {retry.error && (
+        <ErrorNotice
+          error={retry.error}
+          heading="Job not retried"
+          message="The job stayed in its previous state. Try the retry action again."
+        />
       )}
       <div className="flex flex-col gap-2">
         {jobs.data?.map((job) => (

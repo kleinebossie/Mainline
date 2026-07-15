@@ -9,7 +9,12 @@ import { DAY_MS, fixedClock } from "@/lib/clock";
 // plumbing — the append-only log, the item status flip, and the persisted FSRS/skill/log.
 
 interface Recorder {
-  events: { type: string; payload: unknown; programItemId: string | null }[];
+  events: {
+    requestId: string | null;
+    type: string;
+    payload: unknown;
+    programItemId: string | null;
+  }[];
   itemUpdates: { id: string; status: string }[];
   scheduleUpserts: {
     itemRef: string;
@@ -61,12 +66,28 @@ function fakeDb(
       },
     },
     activityEvent: {
+      findUnique: async ({
+        where,
+      }: {
+        where: { userId_requestId: { requestId: string } };
+      }) =>
+        rec.events.some(
+          (event) => event.requestId === where.userId_requestId.requestId,
+        )
+          ? { id: "existing-event" }
+          : null,
       create: async ({
         data,
       }: {
-        data: { type: string; payload: unknown; programItemId: string | null };
+        data: {
+          requestId: string | null;
+          type: string;
+          payload: unknown;
+          programItemId: string | null;
+        };
       }) => {
         rec.events.push({
+          requestId: data.requestId,
           type: data.type,
           payload: data.payload,
           programItemId: data.programItemId,
@@ -175,6 +196,8 @@ function fakeDb(
 
 const T = 1_700_000_000_000;
 const clock = fixedClock(T);
+const REQUEST_ID = "00000000-0000-4000-8000-000000000001";
+const SECOND_REQUEST_ID = "00000000-0000-4000-8000-000000000002";
 const puzzleItem = {
   dimensionsTargeted: ["tactics"],
   params: { track: "pattern", theme: "fork" },
@@ -189,13 +212,18 @@ describe("logOutcome (applyEvent)", () => {
         db,
         "u1",
         {
+          requestId: REQUEST_ID,
           programItemId: "owned-by-u2",
           type: "puzzle_attempt",
           correct: false,
         },
         clock,
       ),
-    ).rejects.toThrow("Program item not found");
+    ).rejects.toMatchObject({
+      code: "CONFLICT",
+      message:
+        "That block changed since this page loaded. Reload Today before logging it.",
+    });
 
     expect(rec.events).toEqual([]);
     expect(rec.itemUpdates).toEqual([]);
@@ -209,7 +237,12 @@ describe("logOutcome (applyEvent)", () => {
     const res = await logOutcome(
       db,
       "u1",
-      { programItemId: "p1", type: "puzzle_attempt", correct: false },
+      {
+        requestId: REQUEST_ID,
+        programItemId: "p1",
+        type: "puzzle_attempt",
+        correct: false,
+      },
       clock,
     );
 
@@ -255,16 +288,48 @@ describe("logOutcome (applyEvent)", () => {
     await logOutcome(
       db,
       "u1",
-      { programItemId: "p1", type: "puzzle_attempt", correct: false },
+      {
+        requestId: REQUEST_ID,
+        programItemId: "p1",
+        type: "puzzle_attempt",
+        correct: false,
+      },
       clock,
     );
     await logOutcome(
       db,
       "u1",
-      { programItemId: "p1", type: "puzzle_attempt", correct: true },
+      {
+        requestId: SECOND_REQUEST_ID,
+        programItemId: "p1",
+        type: "puzzle_attempt",
+        correct: true,
+      },
       clock,
     );
     expect(rec.events).toHaveLength(2);
+  });
+
+  it("treats a repeated request as a no-op", async () => {
+    const { db, rec } = fakeDb(puzzleItem);
+    const input = {
+      requestId: REQUEST_ID,
+      programItemId: "p1",
+      type: "puzzle_attempt" as const,
+      correct: false,
+    };
+
+    await logOutcome(db, "u1", input, clock);
+    const retry = await logOutcome(db, "u1", input, clock);
+
+    expect(rec.events).toHaveLength(1);
+    expect(rec.logs).toHaveLength(1);
+    expect(rec.rewardCreates).toHaveLength(1);
+    expect(retry).toMatchObject({
+      scheduledReviews: 0,
+      decisions: 0,
+      rewardEvents: [],
+    });
   });
 
   it("a solved puzzle records the outcome but schedules no review", async () => {
@@ -272,7 +337,12 @@ describe("logOutcome (applyEvent)", () => {
     const res = await logOutcome(
       db,
       "u1",
-      { programItemId: "p1", type: "puzzle_attempt", correct: true },
+      {
+        requestId: REQUEST_ID,
+        programItemId: "p1",
+        type: "puzzle_attempt",
+        correct: true,
+      },
       clock,
     );
     expect(rec.scheduleUpserts).toEqual([]);
@@ -293,6 +363,7 @@ describe("logOutcome (applyEvent)", () => {
       db,
       "u1",
       {
+        requestId: REQUEST_ID,
         programItemId: "p1",
         type: "drill_done",
         correct: false,
@@ -321,6 +392,7 @@ describe("logOutcome (applyEvent)", () => {
       db,
       "u1",
       {
+        requestId: REQUEST_ID,
         type: "book_session",
         resourceRefId: "silman_reassess_your_chess",
         durationMin: 30,

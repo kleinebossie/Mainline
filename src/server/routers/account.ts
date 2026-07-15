@@ -1,7 +1,6 @@
 // Account API (VISION §7 — data export & erase). `exportData` returns the user's own data
 // for a client-side JSON download; `deleteAccount` soft-deletes (the client then signs out).
 
-import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 import {
@@ -13,6 +12,7 @@ import {
   StaleDataUseNoticeError,
   withdrawResearchConsent,
 } from "@/server/account";
+import { expectedError } from "@/server/errors";
 import { protectedProcedure, router } from "@/server/trpc";
 
 export const accountRouter = router({
@@ -41,11 +41,10 @@ export const accountRouter = router({
         );
       } catch (error) {
         if (error instanceof StaleDataUseNoticeError) {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message:
-              "The data-use notice changed. Review the current notice and try again.",
-          });
+          throw expectedError.conflict(
+            "The data-use notice changed. Review the current notice and try again.",
+            error,
+          );
         }
         throw error;
       }

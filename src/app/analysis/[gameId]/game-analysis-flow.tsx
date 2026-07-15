@@ -6,6 +6,7 @@ import { Chess } from "chess.js";
 import { trpc } from "@/lib/trpc/react";
 import { PageShell } from "@/components/app-shell";
 import { StatusMessage } from "@/components/ui/status-message";
+import { ErrorNotice } from "@/components/ui/error-notice";
 import type { BoardMove } from "@/components/interactive-board";
 import { winProb } from "@/engine/math/winprob";
 import {
@@ -24,6 +25,7 @@ import {
 } from "@/app/analysis/[gameId]/game-analysis-evaluation";
 import { SaveReviewStep } from "@/app/analysis/[gameId]/game-analysis-save";
 import { GameIdentity } from "@/app/analysis/[gameId]/game-analysis-shared";
+import { errorMessage } from "@/lib/error-presentation";
 
 // Loaded lazily so Stockfish stays client-side.
 type AnalysisEngine = import("@/analysis").StockfishAnalysisEngine;
@@ -306,9 +308,10 @@ export function GameAnalysisFlow() {
       router.push("/analysis");
     } catch (error) {
       setSaveError(
-        error instanceof Error
-          ? error.message
-          : "We could not save this review.",
+        errorMessage(
+          error,
+          "The review was not saved. Your notes remain on this page, so try saving again.",
+        ),
       );
     }
   };
@@ -326,11 +329,14 @@ export function GameAnalysisFlow() {
   if (!session || !game || !rationales) {
     return (
       <PageShell width="default">
-        <StatusMessage tone="error" heading="Review unavailable">
-          {sessionQuery.error
-            ? "We could not load this game review. Return to Analysis and try again."
-            : "This game review session was not found."}
-        </StatusMessage>
+        <ErrorNotice
+          error={sessionQuery.error}
+          heading="Review unavailable"
+          message="Mainline could not load this game review. Try it again, or return to Analysis and choose another game."
+          onRetry={() => void sessionQuery.refetch()}
+          retrying={sessionQuery.isFetching}
+          retryLabel="Reload review"
+        />
       </PageShell>
     );
   }

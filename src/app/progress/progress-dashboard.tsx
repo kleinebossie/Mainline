@@ -4,6 +4,7 @@ import Link from "next/link";
 import { trpc } from "@/lib/trpc/react";
 import { cn } from "@/lib/utils";
 import { StatusMessage } from "@/components/ui/status-message";
+import { ErrorNotice } from "@/components/ui/error-notice";
 import type { AppRouter } from "@/server/routers/_app";
 import type { inferRouterOutputs } from "@trpc/server";
 
@@ -373,9 +374,14 @@ export function ProgressDashboard() {
 
   if (summary.error) {
     return (
-      <StatusMessage tone="error" heading="Progress unavailable">
-        We could not load your training signals. Refresh the page and try again.
-      </StatusMessage>
+      <ErrorNotice
+        error={summary.error}
+        heading="Progress unavailable"
+        message="Mainline could not load your training signals. Try the summary again."
+        onRetry={() => void summary.refetch()}
+        retrying={summary.isFetching}
+        retryLabel="Reload progress"
+      />
     );
   }
 

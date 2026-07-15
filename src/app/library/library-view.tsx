@@ -11,6 +11,7 @@ import {
   type TransparencyCardItem,
 } from "@/components/transparency-card";
 import { StatusMessage } from "@/components/ui/status-message";
+import { ErrorNotice } from "@/components/ui/error-notice";
 import type { GradedCopy, LibraryView } from "@/server/library";
 
 // The "Library" client (BUILD.md M14). Renders the deliberately-external layer: graded book
@@ -194,9 +195,14 @@ export function Library() {
   }
   if (library.error) {
     return (
-      <StatusMessage tone="error" heading="Library unavailable">
-        We could not load your recommendations. Refresh the page and try again.
-      </StatusMessage>
+      <ErrorNotice
+        error={library.error}
+        heading="Library unavailable"
+        message="Mainline could not load your recommendations. Try the library again."
+        onRetry={() => void library.refetch()}
+        retrying={library.isFetching}
+        retryLabel="Reload library"
+      />
     );
   }
   const data = library.data;

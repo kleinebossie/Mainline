@@ -49,6 +49,7 @@ const ACTIVITY_EVENT_TYPES = [
 ] as const;
 
 export const logOutcomeInputSchema = z.object({
+  requestId: z.string().uuid(),
   programItemId: z.string().min(1).optional(),
   type: z.enum(ACTIVITY_EVENT_TYPES),
   correct: z.boolean().optional(),

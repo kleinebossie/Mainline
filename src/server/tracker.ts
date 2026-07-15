@@ -42,8 +42,9 @@ import {
 } from "@/db/decision-input";
 import { captureOperationalEvent } from "@/server/observability";
 import { lockUserProgramMutation } from "@/db/user-mutation-lock";
+import { expectedError } from "@/server/errors";
 
-type Db = Pick<
+type TrackerDb = Pick<
   PrismaClient,
   | "activityEvent"
   | "skillState"
@@ -54,8 +55,9 @@ type Db = Pick<
   | "programItem"
   | "rewardEvent"
   | "notificationPref"
-  | "$transaction"
 >;
+
+type Db = TrackerDb & Pick<PrismaClient, "$transaction">;
 
 function ratingPointFromSnapshot(
   ratings: unknown,
@@ -84,7 +86,7 @@ function ratingPointFromSnapshot(
 
 /** Rating history returned oldest to newest. */
 async function loadGlickoHistory(
-  db: Db,
+  db: TrackerDb,
   userId: string,
 ): Promise<RatingPoint[]> {
   const snaps = await findRatingSnapshots(db, userId);
@@ -121,57 +123,55 @@ function toScheduleStateValues(
 }
 
 async function persistAdaptation(
-  db: Db,
+  db: TrackerDb,
   userId: string,
   result: RunAdaptationResult,
   inputsSnapshot: Prisma.InputJsonValue,
   methodologyVersion: string,
 ): Promise<void> {
-  await db.$transaction(async (tx) => {
-    const runAtDate = new Date(result.adaptationLog.runAt);
-    const snapshotInputs: SkillStateSnapshotInput[] = [];
-    for (const s of result.skillStateUpdates) {
-      await upsertSkillState(tx, {
-        userId,
-        dimension: s.dimension,
-        estimate: s.estimate,
-        uncertainty: s.uncertainty,
-        sampleSize: s.sampleSize,
-      });
-      // Keep both the latest view and immutable history.
-      snapshotInputs.push({
-        userId,
-        dimension: s.dimension,
-        estimate: s.estimate,
-        uncertainty: s.uncertainty,
-        sampleSize: s.sampleSize,
-        methodologyVersion,
-        runAt: runAtDate,
-      });
-    }
-    if (snapshotInputs.length > 0) {
-      await appendSkillStateSnapshots(tx, snapshotInputs);
-    }
-    for (const s of result.scheduleUpdates) {
-      await upsertScheduleState(tx, {
-        userId,
-        itemRef: s.itemRef,
-        itemType: s.itemType,
-        fsrsState: s.fsrs as unknown as Prisma.InputJsonValue,
-        due: new Date(s.fsrs.due),
-        lastGrade: s.lastGrade,
-        source: s.source,
-      });
-    }
-    await createAdaptationLog(tx, {
+  const runAtDate = new Date(result.adaptationLog.runAt);
+  const snapshotInputs: SkillStateSnapshotInput[] = [];
+  for (const s of result.skillStateUpdates) {
+    await upsertSkillState(db, {
       userId,
-      runAt: runAtDate,
-      trigger: result.adaptationLog.trigger,
-      inputsSnapshot,
-      decisions: result.adaptationLog
-        .decisions as unknown as Prisma.InputJsonValue,
-      methodologyVersion,
+      dimension: s.dimension,
+      estimate: s.estimate,
+      uncertainty: s.uncertainty,
+      sampleSize: s.sampleSize,
     });
+    // Keep both the latest view and immutable history.
+    snapshotInputs.push({
+      userId,
+      dimension: s.dimension,
+      estimate: s.estimate,
+      uncertainty: s.uncertainty,
+      sampleSize: s.sampleSize,
+      methodologyVersion,
+      runAt: runAtDate,
+    });
+  }
+  if (snapshotInputs.length > 0) {
+    await appendSkillStateSnapshots(db, snapshotInputs);
+  }
+  for (const s of result.scheduleUpdates) {
+    await upsertScheduleState(db, {
+      userId,
+      itemRef: s.itemRef,
+      itemType: s.itemType,
+      fsrsState: s.fsrs as unknown as Prisma.InputJsonValue,
+      due: new Date(s.fsrs.due),
+      lastGrade: s.lastGrade,
+      source: s.source,
+    });
+  }
+  await createAdaptationLog(db, {
+    userId,
+    runAt: runAtDate,
+    trigger: result.adaptationLog.trigger,
+    inputsSnapshot,
+    decisions: result.adaptationLog
+      .decisions as unknown as Prisma.InputJsonValue,
+    methodologyVersion,
   });
 }
 
@@ -207,7 +207,9 @@ export async function undoSkip(
     });
     const skippedEvent = item?.activityEvents[0];
     if (!skippedEvent)
-      throw new Error("Skipped item not found or no longer active");
+      throw expectedError.conflict(
+        "That block changed since this page loaded. Reload Today before undoing the skip.",
+      );
 
     await appendActivityEvent(tx, {
       userId,
@@ -250,10 +252,28 @@ export async function logOutcome(
     payloadObj.resourceRefId = input.resourceRefId;
   if (input.position !== undefined) payloadObj.position = input.position;
   if (input.selfReport !== undefined) payloadObj.selfReport = input.selfReport;
-  // Resolve, append, and mark the item while holding the same per-user lock used by
-  // program replacement. A stale client cannot start a superseded Program.
-  const eventContext = await db.$transaction(async (tx) => {
+  // Keep the append-only event, adaptation state, and rewards atomic. The request id makes
+  // a retry after a lost response a no-op while the per-user lock serializes concurrent work.
+  const transactionResult = await db.$transaction(async (tx) => {
     await lockUserProgramMutation(tx, userId);
+    const existing = await tx.activityEvent.findUnique({
+      where: {
+        userId_requestId: { userId, requestId: input.requestId },
+      },
+      select: { id: true },
+    });
+    if (existing) {
+      return {
+        duplicate: true,
+        result: {
+          scheduledReviews: 0,
+          decisions: 0,
+          dueReviews: await countDueScheduleStates(tx, userId, occurredAt),
+          rewardEvents: [],
+        } satisfies LogOutcomeResult,
+      };
+    }
+
     let dimensions: string[] = [];
     let track: Track | null = null;
     let itemRef: string | null = null;
@@ -266,7 +286,11 @@ export async function logOutcome(
         },
         select: { dimensionsTargeted: true, params: true, activityType: true },
       });
-      if (!item) throw new Error("Program item not found or no longer active");
+      if (!item) {
+        throw expectedError.conflict(
+          "That block changed since this page loaded. Reload Today before logging it.",
+        );
+      }
       dimensions = item.dimensionsTargeted;
       const p = (item.params ?? {}) as { track?: unknown; theme?: unknown };
       track =
@@ -292,6 +316,7 @@ export async function logOutcome(
     }
     await appendActivityEvent(tx, {
       userId,
+      requestId: input.requestId,
       programItemId: input.programItemId ?? null,
       type: input.type,
       occurredAt,
@@ -304,68 +329,76 @@ export async function logOutcome(
         data: { status: input.type === "skip" ? "skipped" : "done" },
       });
     }
-    return { dimensions, track, itemRef, itemType };
+
+    const event: AdaptationEvent = {
+      occurredAt: now,
+      itemRef,
+      itemType,
+      correct: input.correct ?? null,
+      solveTimeMs: input.solveTimeMs ?? null,
+      bandMedianMs: null, // No band-median solve-time data is available.
+      dimensions,
+    };
+    const skillState: SkillStateValue[] = await findSkillStates(tx, userId);
+    const scheduleState =
+      itemRef && itemType
+        ? toScheduleStateValues(
+            await findScheduleStates(tx, userId, [{ itemType, itemRef }]),
+          )
+        : [];
+    const glickoHistory = await loadGlickoHistory(tx, userId);
+
+    const adaptation = runAdaptation({
+      events: [event],
+      skillState,
+      scheduleState,
+      glickoHistory,
+      trigger: "new_events",
+      clock,
+      config: cfg,
+    });
+
+    const inputsSnapshot = {
+      event: {
+        type: input.type,
+        itemRef: event.itemRef,
+        itemType: event.itemType,
+        correct: event.correct,
+        dimensions: event.dimensions,
+        track,
+      },
+    } as unknown as Prisma.InputJsonValue;
+    await persistAdaptation(
+      tx,
+      userId,
+      adaptation,
+      inputsSnapshot,
+      cfg.version,
+    );
+
+    // A skip is not a completion and must not produce recognition events.
+    const rewardEvents =
+      input.type === "skip"
+        ? []
+        : (await recordEngagementForCompletion(tx, userId, now)).rewardEvents;
+
+    return {
+      duplicate: false,
+      result: {
+        scheduledReviews: adaptation.scheduleUpdates.length,
+        decisions: adaptation.adaptationLog.decisions.length,
+        dueReviews: await countDueScheduleStates(tx, userId, occurredAt),
+        rewardEvents,
+      } satisfies LogOutcomeResult,
+    };
   });
-  const { dimensions, track, itemRef, itemType } = eventContext;
 
-  const event: AdaptationEvent = {
-    occurredAt: now,
-    itemRef,
-    itemType,
-    correct: input.correct ?? null,
-    solveTimeMs: input.solveTimeMs ?? null,
-    bandMedianMs: null, // No band-median solve-time data is available.
-    dimensions,
-  };
-  const skillState: SkillStateValue[] = await findSkillStates(db, userId);
-  const scheduleState =
-    itemRef && itemType
-      ? toScheduleStateValues(
-          await findScheduleStates(db, userId, [{ itemType, itemRef }]),
-        )
-      : [];
-  const glickoHistory = await loadGlickoHistory(db, userId);
-
-  const result = runAdaptation({
-    events: [event],
-    skillState,
-    scheduleState,
-    glickoHistory,
-    trigger: "new_events",
-    clock,
-    config: cfg,
-  });
-
-  const inputsSnapshot = {
-    event: {
-      type: input.type,
-      itemRef: event.itemRef,
-      itemType: event.itemType,
-      correct: event.correct,
-      dimensions: event.dimensions,
-      track,
-    },
-  } as unknown as Prisma.InputJsonValue;
-  await persistAdaptation(db, userId, result, inputsSnapshot, cfg.version);
-
-  // A skip is not a completion and must not produce recognition events.
-  const rewardEvents =
-    input.type === "skip"
-      ? []
-      : (await recordEngagementForCompletion(db, userId, now)).rewardEvents;
-
-  const dueReviews = await countDueScheduleStates(db, userId, occurredAt);
   captureOperationalEvent({
     operation: "adaptation",
-    status: "success",
-    count: result.adaptationLog.decisions.length,
+    status: transactionResult.duplicate ? "skipped" : "success",
+    count: transactionResult.result.decisions,
   });
-  return {
-    scheduledReviews: result.scheduleUpdates.length,
-    decisions: result.adaptationLog.decisions.length,
-    dueReviews,
-    rewardEvents,
-  };
+  return transactionResult.result;
 }
 
 export async function runDailyAdaptation(

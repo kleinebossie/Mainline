@@ -1,6 +1,7 @@
 import type { Breadcrumb, ErrorEvent } from "@sentry/nextjs";
 
 const SAFE_OPERATIONS = new Set([
+  "api",
   "analysis_handoff",
   "program_generation",
   "import",

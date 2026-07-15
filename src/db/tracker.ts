@@ -11,6 +11,7 @@ import type { Prisma, PrismaClient } from "@prisma/client";
 
 export interface ActivityEventInput {
   userId: string;
+  requestId?: string | null;
   programItemId: string | null;
   type: string;
   occurredAt: Date;
@@ -26,6 +27,7 @@ export async function appendActivityEvent(
   const row = await db.activityEvent.create({
     data: {
       userId: input.userId,
+      requestId: input.requestId ?? null,
       programItemId: input.programItemId,
       type: input.type,
       occurredAt: input.occurredAt,

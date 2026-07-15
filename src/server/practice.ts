@@ -16,6 +16,7 @@ import { upsertPracticeItem } from "@/db/practice";
 import { findScheduleStates, upsertScheduleState } from "@/db/tracker";
 import { userOwnsGame } from "@/db/analysis";
 import { systemClock, type Clock } from "@/lib/clock";
+import { expectedError } from "@/server/errors";
 
 type Db = Pick<
   PrismaClient,
@@ -38,7 +39,11 @@ export async function createBlunderDrillsFromGame(
   clock: Clock = systemClock,
 ): Promise<{ created: number }> {
   const owns = await userOwnsGame(db, userId, input.gameId);
-  if (!owns) throw new Error("Unauthorized");
+  if (!owns) {
+    throw expectedError.notFound(
+      "That game is no longer in your library. Return to Analysis and choose another game.",
+    );
+  }
 
   const cfg = loadMethodology();
   const minCpLoss = cfg.interpretation.thresholds.blunderCpLoss.value;

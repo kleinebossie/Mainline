@@ -8,6 +8,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { StatusMessage } from "@/components/ui/status-message";
+import { ErrorNotice } from "@/components/ui/error-notice";
 import { MethodologyRationaleCard } from "@/components/methodology-rationale-card";
 import {
   MAX_MINUTES_PER_DAY,
@@ -27,6 +28,8 @@ import {
   type TargetFocus,
 } from "@/lib/constraints";
 import type { RationaleEntry } from "@/methodology";
+import { errorMessage } from "@/lib/error-presentation";
+import { shouldPersistPrimaryPlatform } from "@/lib/primary-platform";
 
 // Labels for the play-medium choice (M14) — drives the 2D/3D modality + OTB recommendations.
 const TARGET_FOCUS_LABELS: Record<TargetFocus, string> = {
@@ -76,6 +79,18 @@ export function ConstraintsForm({
   if (current.isLoading) {
     return <StatusMessage tone="loading">Loading your plan…</StatusMessage>;
   }
+  if (current.error) {
+    return (
+      <ErrorNotice
+        error={current.error}
+        heading="Training preferences unavailable"
+        message="Mainline could not load your saved preferences. Try this step again."
+        onRetry={() => void current.refetch()}
+        retrying={current.isFetching}
+        retryLabel="Reload preferences"
+      />
+    );
+  }
   // Key on the loaded row so the form initialises its state from saved values once.
   return (
     <Form
@@ -105,7 +120,13 @@ function Form({
       setSaved(true);
       void utils.constraints.getCurrent.invalidate();
     },
-    onError: (e) => setError(e.message),
+    onError: (e) =>
+      setError(
+        errorMessage(
+          e,
+          "Your preferences were not saved. Check the form and try again.",
+        ),
+      ),
   });
 
   // Preferred home platform (Goal 3): stored on the User row, not the ConstraintSet — saved
@@ -114,11 +135,20 @@ function Form({
   const primaryQuery = trpc.connections.getPrimaryPlatform.useQuery();
   const setPrimary = trpc.analysis.setPrimaryPlatform.useMutation({
     onSuccess: () => void utils.connections.getPrimaryPlatform.invalidate(),
+    onError: (e) =>
+      setError(
+        errorMessage(
+          e,
+          "Your preferred platform was not saved. The other preferences can still be saved, then try this platform again.",
+        ),
+      ),
   });
   const connectedPlatforms = [
     ...new Set((connections.data ?? []).map((c) => c.platform)),
   ];
-  const [primaryPlatform, setPrimaryPlatform] = useState<string | null>(null);
+  const [primaryPlatform, setPrimaryPlatform] = useState<
+    "lichess" | "chesscom" | null
+  >(null);
 
   const [minutesPerDay, setMinutes] = useState(initial.minutesPerDay);
   const [daysPerWeek, setDays] = useState(initial.daysPerWeek);
@@ -201,8 +231,15 @@ function Form({
 
   // The platform the picker should show: the in-form choice, else the saved preference, else
   // a connected account, else Lichess.
+  const savedPrimaryPlatform =
+    primaryQuery.data?.primaryPlatform === "lichess" ||
+    primaryQuery.data?.primaryPlatform === "chesscom"
+      ? primaryQuery.data.primaryPlatform
+      : primaryQuery.data?.primaryPlatform === null
+        ? null
+        : undefined;
   const effectivePrimary: "lichess" | "chesscom" = (primaryPlatform ??
-    primaryQuery.data?.primaryPlatform ??
+    savedPrimaryPlatform ??
     connectedPlatforms[0] ??
     "lichess") as "lichess" | "chesscom";
 
@@ -217,7 +254,14 @@ function Form({
       return;
     }
     // Persist the preferred platform on the User row (Goal 3) alongside the constraints.
-    if (effectivePrimary !== primaryQuery.data?.primaryPlatform) {
+    if (
+      shouldPersistPrimaryPlatform({
+        explicitSelection: primaryPlatform,
+        effectivePlatform: effectivePrimary,
+        savedPlatform: savedPrimaryPlatform,
+        savedPlatformLoaded: primaryQuery.isSuccess,
+      })
+    ) {
       setPrimary.mutate({ platform: effectivePrimary });
     }
     const goals: Goal[] = [
@@ -248,6 +292,24 @@ function Form({
 
   return (
     <form className="flex flex-col gap-10 settle" onSubmit={onSubmit}>
+      {(connections.error || primaryQuery.error || libraryQuery.error) && (
+        <ErrorNotice
+          error={connections.error ?? primaryQuery.error ?? libraryQuery.error}
+          heading="Some saved choices are unavailable"
+          message="The form is open, but Mainline could not load connected platforms or book suggestions. Reload those choices before saving."
+          onRetry={() => {
+            void connections.refetch();
+            void primaryQuery.refetch();
+            void libraryQuery.refetch();
+          }}
+          retrying={
+            connections.isFetching ||
+            primaryQuery.isFetching ||
+            libraryQuery.isFetching
+          }
+          retryLabel="Reload saved choices"
+        />
+      )}
       <fieldset className="grid grid-cols-1 gap-6 sm:grid-cols-2">
         <label className="flex flex-col gap-2 font-serif text-sm font-medium">
           <span className="eyebrow !text-[0.65rem] !tracking-wider">

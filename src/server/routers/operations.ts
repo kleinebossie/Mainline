@@ -1,7 +1,7 @@
-import { TRPCError } from "@trpc/server";
 import type { PrismaClient } from "@prisma/client";
 import { z } from "zod";
 
+import { expectedError } from "@/server/errors";
 import { retryFailedJob } from "@/server/maintenance";
 import { protectedProcedure, router } from "@/server/trpc";
 
@@ -14,7 +14,7 @@ async function requireAdmin(
     select: { role: true, deletedAt: true },
   });
   if (!user || user.deletedAt || user.role !== "admin") {
-    throw new TRPCError({ code: "FORBIDDEN" });
+    throw expectedError.forbidden("This area is limited to administrators.");
   }
 }
 

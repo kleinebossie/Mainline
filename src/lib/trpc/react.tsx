@@ -11,6 +11,7 @@ import { createTRPCReact } from "@trpc/react-query";
 import superjson from "superjson";
 
 import type { AppRouter } from "@/server/routers/_app";
+import { shouldRetryRequest } from "@/lib/error-presentation";
 
 export const trpc = createTRPCReact<AppRouter>();
 
@@ -31,6 +32,7 @@ export function TRPCReactProvider({ children }: { children: ReactNode }) {
             staleTime: 30_000,
             gcTime: 10 * 60_000,
             refetchOnWindowFocus: false,
+            retry: shouldRetryRequest,
           },
         },
       }),

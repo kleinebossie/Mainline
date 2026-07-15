@@ -8,7 +8,9 @@ type UiState =
   | "today-done"
   | "today-mixed"
   | "setup"
-  | "history-grouped";
+  | "history-grouped"
+  | "error-notices"
+  | "unexpected-error";
 
 function renderState(state: UiState): string {
   return execFileSync(
@@ -128,4 +130,72 @@ test("History groups same-day plan versions under one session", async ({
   await expect(page.getByText("Sun, Jul 5", { exact: true })).toHaveCount(1);
   await expectNoPageOverflow(page);
   await capture(page, testInfo, "history-grouped-mobile");
+});
+
+test("Error notices explain recovery without exposing internal detail", async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 1365, height: 900 });
+  await mountWithAppStyles(page, renderState("error-notices"));
+
+  await expect(page.getByRole("alert")).toHaveCount(3);
+  await expect(
+    page.getByRole("heading", {
+      name: "Clear next moves when a line stops",
+    }),
+  ).toBeVisible();
+  await expect(page.getByText("Your saved work is safe.")).toBeVisible();
+  await expect(page.getByText("The page changed")).toBeVisible();
+  await expect(page.getByText("Connection lost")).toBeVisible();
+  await expect(page.getByText(/private database host/i)).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Reload session" }),
+  ).toBeEnabled();
+  await expect(
+    page.getByRole("button", { name: "Trying again..." }),
+  ).toBeDisabled();
+  await page.getByRole("button", { name: "Reload session" }).focus();
+  await expect(
+    page.getByRole("button", { name: "Reload session" }),
+  ).toBeFocused();
+  await expectNoPageOverflow(page);
+  await capture(page, testInfo, "error-notices-desktop");
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.getByRole("alert")).toHaveCount(3);
+  await expectNoPageOverflow(page);
+  await capture(page, testInfo, "error-notices-mobile");
+});
+
+test("Unexpected error page offers retry and a safe way back", async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 1365, height: 900 });
+  await mountWithAppStyles(page, renderState("unexpected-error"));
+
+  await expect(
+    page.getByText("Line interrupted", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", {
+      name: "This page could not finish loading.",
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Try this page again" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Return to Today" }),
+  ).toHaveAttribute("href", "/today");
+  await expect(page.getByText("Reference: qa-safe-reference")).toBeVisible();
+  await expect(page.getByText(/private exception text/i)).toHaveCount(0);
+  await expectNoPageOverflow(page);
+  await capture(page, testInfo, "unexpected-error-desktop");
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expectNoPageOverflow(page);
+  await expect(
+    page.getByRole("button", { name: "Try this page again" }),
+  ).toBeVisible();
+  await capture(page, testInfo, "unexpected-error-mobile");
 });

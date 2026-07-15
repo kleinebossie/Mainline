@@ -6,8 +6,20 @@ import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 
 import type { TRPCContext } from "@/server/context";
+import { ExpectedError, safeTRPCErrorMessage } from "@/server/errors";
 
-const t = initTRPC.context<TRPCContext>().create({ transformer: superjson });
+const t = initTRPC.context<TRPCContext>().create({
+  transformer: superjson,
+  errorFormatter({ shape, error }) {
+    const data = { ...shape.data };
+    delete data.stack;
+    return {
+      ...shape,
+      message: safeTRPCErrorMessage(error, shape.message),
+      data,
+    };
+  },
+});
 
 export const router = t.router;
 
@@ -36,15 +48,30 @@ function authorizedUser(ctx: TRPCContext): Promise<AuthorizedUser> {
   return pending;
 }
 
-/** Requires an authenticated session; narrows `ctx.userId` for downstream procedures. */
-export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
-  const userId = ctx.session?.user?.id;
-  if (!userId) {
-    throw new TRPCError({ code: "UNAUTHORIZED" });
+const mapExpectedErrors = t.middleware(async ({ next }) => {
+  const result = await next();
+  const expected = result.ok ? null : result.error.cause;
+  if (expected instanceof ExpectedError) {
+    throw new TRPCError({
+      code: expected.code,
+      message: expected.message,
+      cause: expected.cause,
+    });
   }
-  const user = await authorizedUser(ctx);
-  if (!user || user.deletedAt || !user.betaAccessGrantedAt) {
-    throw new TRPCError({ code: "UNAUTHORIZED" });
-  }
-  return next({ ctx: { ...ctx, userId } });
+  return result;
 });
+
+/** Requires an authenticated session; narrows `ctx.userId` for downstream procedures. */
+export const protectedProcedure = t.procedure
+  .use(mapExpectedErrors)
+  .use(async ({ ctx, next }) => {
+    const userId = ctx.session?.user?.id;
+    if (!userId) {
+      throw new TRPCError({ code: "UNAUTHORIZED" });
+    }
+    const user = await authorizedUser(ctx);
+    if (!user || user.deletedAt || !user.betaAccessGrantedAt) {
+      throw new TRPCError({ code: "UNAUTHORIZED" });
+    }
+    return next({ ctx: { ...ctx, userId } });
+  });

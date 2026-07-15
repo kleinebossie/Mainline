@@ -3,7 +3,9 @@
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { ErrorNotice } from "@/components/ui/error-notice";
 import { StatusMessage } from "@/components/ui/status-message";
+import { errorMessage } from "@/lib/error-presentation";
 import { trpc } from "@/lib/trpc/react";
 import { signOutAction } from "@/server/auth-actions";
 
@@ -21,7 +23,10 @@ export function AccountActions() {
       setNotice("Optional research consent recorded.");
       await consent.refetch();
     },
-    onError: (e) => setError(e.message),
+    onError: (e) =>
+      setError(
+        errorMessage(e, "Research consent was not recorded. Try again."),
+      ),
   });
   const withdraw = trpc.account.withdrawResearchConsent.useMutation({
     onSuccess: async () => {
@@ -30,11 +35,20 @@ export function AccountActions() {
       );
       await consent.refetch();
     },
-    onError: (e) => setError(e.message),
+    onError: (e) =>
+      setError(
+        errorMessage(e, "Research consent was not withdrawn. Try again."),
+      ),
   });
   const del = trpc.account.deleteAccount.useMutation({
     onSuccess: () => void signOutAction(),
-    onError: (e) => setError(e.message),
+    onError: (e) =>
+      setError(
+        errorMessage(
+          e,
+          "Account deletion was not requested. Your account is unchanged. Try again.",
+        ),
+      ),
   });
 
   const isEligible = consent.data?.isEligible ?? false;
@@ -58,7 +72,12 @@ export function AccountActions() {
       URL.revokeObjectURL(url);
       setNotice("Your JSON export is ready.");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Export failed.");
+      setError(
+        errorMessage(
+          e,
+          "Your export was not created. Your data is unchanged. Try again.",
+        ),
+      );
     } finally {
       setExporting(false);
     }
@@ -90,23 +109,41 @@ export function AccountActions() {
       </div>
 
       <div className="bg-card flex flex-col gap-4 rounded-md border p-5">
+        {consent.error && (
+          <ErrorNotice
+            error={consent.error}
+            heading="Research settings unavailable"
+            message="Mainline could not load your current consent status. No consent change can be made until it is reloaded."
+            onRetry={() => void consent.refetch()}
+            retrying={consent.isFetching}
+            retryLabel="Reload consent status"
+          />
+        )}
         <div>
           <h3 className="font-serif text-lg">
             Optional aggregate observational research
           </h3>
           <p className="text-graphite mt-2 text-sm leading-relaxed">
-            {consent.data?.notice.summary ?? "Loading the current notice."}
+            {consent.error
+              ? "Consent status was not loaded. No consent change is available until it reloads."
+              : (consent.data?.notice.summary ?? "Loading the current notice.")}
           </p>
         </div>
         <p className="font-mono text-xs">
-          Notice: {consent.data?.notice.id ?? "Loading"} · Status:{" "}
-          {isEligible
-            ? "consented"
-            : isOutdated
-              ? "outdated consent, not eligible"
-              : "not consented"}
+          Notice:{" "}
+          {consent.error
+            ? "Unavailable"
+            : (consent.data?.notice.id ?? "Loading")}{" "}
+          · Status:{" "}
+          {consent.error
+            ? "unavailable"
+            : isEligible
+              ? "consented"
+              : isOutdated
+                ? "outdated consent, not eligible"
+                : "not consented"}
         </p>
-        {!isEligible && (
+        {!consent.error && !isEligible && (
           <>
             <label className="flex items-start gap-3 text-sm">
               <input
@@ -139,7 +176,7 @@ export function AccountActions() {
             </Button>
           </>
         )}
-        {hasActiveGrant && (
+        {!consent.error && hasActiveGrant && (
           <div>
             <Button
               disabled={withdraw.isPending}

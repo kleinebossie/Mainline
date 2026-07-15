@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { TransparencyCardGroup } from "@/components/transparency-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { StatusMessage } from "@/components/ui/status-message";
+import { errorMessage } from "@/lib/error-presentation";
 import { trpc } from "@/lib/trpc/react";
 import type { LibraryView } from "@/server/library";
 import type { TodayItem } from "@/server/program";
@@ -51,6 +52,7 @@ export function BookLogForm({
   const [cycle, setCycle] = useState<string>("");
   const [minutes, setMinutes] = useState<string>(defaultMinutes);
   const [formError, setFormError] = useState<string | null>(null);
+  const requestIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     setBookId(firstBookId);
@@ -62,6 +64,7 @@ export function BookLogForm({
 
   const log = trpc.library.logSession.useMutation({
     onSuccess: () => {
+      requestIdRef.current = null;
       setFormError(null);
       onSuccess();
       setUnitCount("");
@@ -70,7 +73,13 @@ export function BookLogForm({
       setCycle("");
       setSuccessPct("");
     },
-    onError: (error) => setFormError(error.message),
+    onError: (error) =>
+      setFormError(
+        errorMessage(
+          error,
+          "The study session was not logged. Check the form and try again.",
+        ),
+      ),
   });
 
   const selectedBook =
@@ -133,7 +142,9 @@ export function BookLogForm({
       setFormError("Enter a success rate from 0 to 100.");
       return;
     }
+    requestIdRef.current ??= crypto.randomUUID();
     log.mutate({
+      requestId: requestIdRef.current,
       programItemId: item.id,
       resourceRefId,
       successRate: pct === undefined ? undefined : pct / 100,

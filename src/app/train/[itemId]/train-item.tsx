@@ -9,6 +9,7 @@ import type { AppRouter } from "@/server/routers/_app";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusMessage } from "@/components/ui/status-message";
+import { ErrorNotice } from "@/components/ui/error-notice";
 import {
   BOARD_SIZE_CLASS,
   InteractiveBoard,
@@ -39,9 +40,8 @@ export function TrainItem({ programItemId }: TrainItemProps) {
   const router = useRouter();
   const utils = trpc.useUtils();
 
-  const { data, isLoading, error } = trpc.program.getTrainItem.useQuery({
-    programItemId,
-  });
+  const { data, isLoading, error, refetch, isFetching } =
+    trpc.program.getTrainItem.useQuery({ programItemId });
 
   const logMutation = trpc.tracker.logOutcome.useMutation({
     onSuccess: () => {
@@ -136,6 +136,7 @@ export function TrainItem({ programItemId }: TrainItemProps) {
   const logOutcome = (s: Solvable, correct: boolean, solveTimeMs: number) => {
     if (s.kind === "blunder_drill") {
       logMutation.mutate({
+        requestId: crypto.randomUUID(),
         programItemId,
         type: "drill_done",
         correct,
@@ -144,6 +145,7 @@ export function TrainItem({ programItemId }: TrainItemProps) {
       });
     } else {
       logMutation.mutate({
+        requestId: crypto.randomUUID(),
         programItemId,
         type: "puzzle_attempt",
         correct,
@@ -276,20 +278,22 @@ export function TrainItem({ programItemId }: TrainItemProps) {
 
   if (error || !data) {
     return (
-      <Card gutter="D">
-        <CardHeader>
-          <CardTitle>Practice session unavailable</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-graphite text-sm leading-relaxed mb-4">
-            We could not retrieve this practice item. Return to Today and try
-            again.
-          </p>
-          <Link href="/today" className={buttonVariants()}>
+      <ErrorNotice
+        error={error}
+        heading="Practice session unavailable"
+        message="Mainline could not load this training block. Try it again, or return to Today for the latest session."
+        onRetry={() => void refetch()}
+        retrying={isFetching}
+        retryLabel="Reload practice session"
+        secondaryAction={
+          <Link
+            href="/today"
+            className={buttonVariants({ variant: "ghost", size: "sm" })}
+          >
             Back to Today
           </Link>
-        </CardContent>
-      </Card>
+        }
+      />
     );
   }
 
@@ -396,6 +400,20 @@ export function TrainItem({ programItemId }: TrainItemProps) {
 
   return (
     <div className="flex flex-col gap-6 py-6 settle">
+      {logMutation.error && (
+        <ErrorNotice
+          error={logMutation.error}
+          heading="Result not saved"
+          message="The practice board can continue, but this result did not reach your training history. Try saving it again."
+          onRetry={() => {
+            if (logMutation.variables) {
+              logMutation.mutate(logMutation.variables);
+            }
+          }}
+          retrying={logMutation.isPending}
+          retryLabel="Try saving result"
+        />
+      )}
       <div className="flex flex-col gap-2 border-b border-line pb-3 sm:flex-row sm:items-baseline sm:justify-between">
         <div className="flex flex-col gap-1">
           <p className="eyebrow !text-[0.65rem] uppercase tracking-wider">

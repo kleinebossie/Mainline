@@ -51,6 +51,7 @@ import {
   programHistoryPageSchema,
 } from "@/lib/program-history";
 import { getProgramHistory } from "@/server/program-history";
+import { expectedError } from "@/server/errors";
 
 /** Normalized position for the board trainer. */
 interface Solvable {
@@ -94,7 +95,9 @@ export const programRouter = router({
       });
 
       if (!item || item.program.userId !== ctx.userId) {
-        throw new Error("Program item not found");
+        throw expectedError.notFound(
+          "This training block is no longer in your plan. Return to Today for the latest session.",
+        );
       }
 
       // Historic items must render under the version that generated them.
@@ -174,7 +177,9 @@ export const programRouter = router({
             .map(toPuzzleSolvable);
         }
       } else if (item.activityType !== "puzzle_theme") {
-        throw new Error("This activity does not use the board trainer");
+        throw expectedError.badRequest(
+          "This activity does not open in the board trainer. Return to Today to start it.",
+        );
       } else {
         const pastEvents = await ctx.prisma.activityEvent.findMany({
           where: { userId: ctx.userId, type: "puzzle_attempt" },

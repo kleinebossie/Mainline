@@ -10,6 +10,7 @@ import type { AppRouter } from "@/server/routers/_app";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusMessage } from "@/components/ui/status-message";
+import { ErrorNotice } from "@/components/ui/error-notice";
 import {
   BOARD_SIZE_CLASS,
   InteractiveBoard,
@@ -72,6 +73,7 @@ export function EndgameDrillSession({
   const [engineError, setEngineError] = useState<string | null>(null);
   const startRef = useRef<number>(systemClock.now());
   const pliesRef = useRef<number>(0);
+  const outcomeRequestIdRef = useRef<string | null>(null);
 
   // Optional tablebase ground truth for the start position (cache-first, server-side).
   const tb = trpc.program.probeTablebase.useQuery(
@@ -105,6 +107,7 @@ export function EndgameDrillSession({
     setResult(null);
     setEngineError(null);
     pliesRef.current = 0;
+    outcomeRequestIdRef.current = null;
     startRef.current = systemClock.now();
   }, [current]);
 
@@ -119,7 +122,9 @@ export function EndgameDrillSession({
       const score = scoreEndgame(outcome, objective);
       setResult({ correct: score.correct, outcome, reason: score.reason });
       setStatus("done");
+      outcomeRequestIdRef.current ??= crypto.randomUUID();
       logMutation.mutate({
+        requestId: outcomeRequestIdRef.current,
         programItemId,
         type: "drill_done",
         correct: score.correct,
@@ -277,10 +282,23 @@ export function EndgameDrillSession({
                 </StatusMessage>
               )}
 
+              {tb.error && (
+                <ErrorNotice
+                  error={tb.error}
+                  heading="Tablebase check unavailable"
+                  message="The drill still works with the local engine, but Mainline could not verify the starting result."
+                  onRetry={() => void tb.refetch()}
+                  retrying={tb.isFetching}
+                  retryLabel="Retry tablebase check"
+                />
+              )}
+
               {logMutation.error && (
-                <StatusMessage tone="error" heading="Result not saved">
-                  {logMutation.error.message}
-                </StatusMessage>
+                <ErrorNotice
+                  error={logMutation.error}
+                  heading="Result not saved"
+                  message="This drill is still open and its review schedule is unchanged. Finish it again to retry."
+                />
               )}
 
               {/* Tablebase ground truth (optional oracle). */}

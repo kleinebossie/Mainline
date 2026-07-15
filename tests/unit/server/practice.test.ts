@@ -105,6 +105,10 @@ describe("createBlunderDrillsFromGame", () => {
     const { db } = fakeDb({ owns: false });
     await expect(
       createBlunderDrillsFromGame(db, "u1", { gameId: "g1", drills }),
-    ).rejects.toThrow(/Unauthorized/);
+    ).rejects.toMatchObject({
+      code: "NOT_FOUND",
+      message:
+        "That game is no longer in your library. Return to Analysis and choose another game.",
+    });
   });
 });

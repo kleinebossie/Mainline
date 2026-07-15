@@ -37,6 +37,7 @@ export const libraryRouter = router({
   logSession: protectedProcedure
     .input(
       z.object({
+        requestId: z.string().uuid(),
         programItemId: z.string().min(1).optional(),
         resourceRefId: z.string().min(1).max(200),
         durationMin: z.number().nonnegative().max(600).optional(),
@@ -56,6 +57,7 @@ export const libraryRouter = router({
             }
           : undefined;
       const result = await logOutcome(ctx.prisma, ctx.userId, {
+        requestId: input.requestId,
         programItemId: input.programItemId,
         type: "book_session",
         resourceRefId: input.resourceRefId,

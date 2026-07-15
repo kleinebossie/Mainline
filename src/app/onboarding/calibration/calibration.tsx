@@ -8,6 +8,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { asEvidenceGrade } from "@/components/evidence";
 import { StatusMessage } from "@/components/ui/status-message";
+import { ErrorNotice } from "@/components/ui/error-notice";
 import { CalibrationTrackGauges } from "@/app/onboarding/calibration-track-gauges";
 import {
   BOARD_SIZE_CLASS,
@@ -110,11 +111,16 @@ export function Calibration() {
     return <StatusMessage tone="loading">Loading calibration…</StatusMessage>;
   }
 
-  if (!state.data) {
+  if (state.error || !state.data) {
     return (
-      <StatusMessage tone="error" heading="Calibration unavailable">
-        We could not load your calibration. Refresh the page and try again.
-      </StatusMessage>
+      <ErrorNotice
+        error={state.error}
+        heading="Calibration unavailable"
+        message="Mainline could not load your calibration. Try this step again."
+        onRetry={() => void state.refetch()}
+        retrying={state.isFetching}
+        retryLabel="Reload calibration"
+      />
     );
   }
 
@@ -147,6 +153,13 @@ export function Calibration() {
           </p>
         </CardHeader>
         <CardContent className="flex flex-col gap-5">
+          {reset.error && (
+            <ErrorNotice
+              error={reset.error}
+              heading="Calibration not restarted"
+              message="Your existing result is unchanged. Try retaking the calibration again."
+            />
+          )}
           <CalibrationTrackGauges tracks={tracks} className="gap-4" />
 
           <p className="text-graphite font-serif text-sm leading-relaxed border-t border-line/80 pt-4">
@@ -200,6 +213,19 @@ export function Calibration() {
         </p>
       </CardHeader>
       <CardContent className="flex flex-col gap-5">
+        {(submit.error || reset.error) && (
+          <ErrorNotice
+            error={submit.error ?? reset.error}
+            heading={
+              submit.error ? "Answer not recorded" : "Calibration not restarted"
+            }
+            message={
+              submit.error
+                ? "This puzzle is still open. Submit the same answer again."
+                : "Your current calibration is unchanged. Try starting over again."
+            }
+          />
+        )}
         {/* Track progress dots */}
         <div className="flex items-center gap-1.5">
           {tracks.map((t, i) => (

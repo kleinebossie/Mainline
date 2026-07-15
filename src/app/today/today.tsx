@@ -8,6 +8,7 @@ import {
 } from "@/lib/constraint-limits";
 import { Button } from "@/components/ui/button";
 import { StatusMessage } from "@/components/ui/status-message";
+import { ErrorNotice } from "@/components/ui/error-notice";
 import {
   EmptyTodayCard,
   TodayBlockList,
@@ -129,6 +130,8 @@ export function Today() {
   const constraints = trpc.constraints.getCurrent.useQuery();
   const library = trpc.library.get.useQuery();
   const ownedBooks = library.data?.books.filter((b) => b.owned) ?? [];
+  const supportingError =
+    constraints.error ?? library.error ?? dueReviews.error ?? null;
 
   const saveConstraints = trpc.constraints.save.useMutation({
     onSuccess: () => {
@@ -177,20 +180,14 @@ export function Today() {
 
   if (today.error) {
     return (
-      <StatusMessage tone="error" heading="Session unavailable">
-        <div className="flex flex-wrap items-center gap-3">
-          <span>We could not load today&apos;s session.</span>
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            disabled={today.isFetching}
-            onClick={() => void today.refetch()}
-          >
-            {today.isFetching ? "Retrying..." : "Try again"}
-          </Button>
-        </div>
-      </StatusMessage>
+      <ErrorNotice
+        error={today.error}
+        heading="Session unavailable"
+        message="Mainline could not load today's session. Try the session again."
+        onRetry={() => void today.refetch()}
+        retrying={today.isFetching}
+        retryLabel="Reload session"
+      />
     );
   }
 
@@ -206,22 +203,17 @@ export function Today() {
     return (
       <div className="flex min-w-0 flex-col gap-5">
         {generate.error ? (
-          <StatusMessage tone="error" heading="Today could not be prepared">
-            <div className="flex flex-wrap items-center gap-3">
-              <span>Your earlier session is safe in History.</span>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  rolloverAttemptedFor.current = program.id;
-                  generate.mutate();
-                }}
-              >
-                Try again
-              </Button>
-            </div>
-          </StatusMessage>
+          <ErrorNotice
+            error={generate.error}
+            heading="Today could not be prepared"
+            message="Your earlier session is safe in History. Try building today's session again."
+            onRetry={() => {
+              rolloverAttemptedFor.current = program.id;
+              generate.mutate();
+            }}
+            retrying={generate.isPending}
+            retryLabel="Build today's session"
+          />
         ) : (
           <StatusMessage tone="loading">
             Preparing today&apos;s session…
@@ -231,9 +223,9 @@ export function Today() {
           entries={historyEntries}
           currentProgramId=""
           loading={history.isLoading}
-          error={history.isError}
+          error={history.error}
           hasMore={history.hasNextPage === true}
-          loadingMore={history.isFetchingNextPage}
+          loadingMore={history.isFetching}
           onRetry={() => void history.refetch()}
           onLoadMore={() => void history.fetchNextPage()}
         />
@@ -244,6 +236,24 @@ export function Today() {
   if (!program) {
     return (
       <div className="flex min-w-0 flex-col gap-5">
+        {supportingError && (
+          <ErrorNotice
+            error={supportingError}
+            heading="Session details unavailable"
+            message="Mainline could not load your time budget, books, or review queue. Reload those details before building a session."
+            onRetry={() => {
+              void constraints.refetch();
+              void library.refetch();
+              void dueReviews.refetch();
+            }}
+            retrying={
+              constraints.isFetching ||
+              library.isFetching ||
+              dueReviews.isFetching
+            }
+            retryLabel="Reload session details"
+          />
+        )}
         <EmptyTodayCard
           timeInput={timeInput}
           setTimeInput={setTimeInput}
@@ -255,9 +265,9 @@ export function Today() {
           entries={historyEntries}
           currentProgramId=""
           loading={history.isLoading}
-          error={history.isError}
+          error={history.error}
           hasMore={history.hasNextPage === true}
-          loadingMore={history.isFetchingNextPage}
+          loadingMore={history.isFetching}
           onRetry={() => void history.refetch()}
           onLoadMore={() => void history.fetchNextPage()}
         />
@@ -298,13 +308,34 @@ export function Today() {
         />
       )}
 
+      {supportingError && (
+        <ErrorNotice
+          error={supportingError}
+          heading="Some session details are unavailable"
+          message="Your session is still usable, but Mainline could not load your time budget, books, or review count."
+          onRetry={() => {
+            void constraints.refetch();
+            void library.refetch();
+            void dueReviews.refetch();
+          }}
+          retrying={
+            constraints.isFetching ||
+            library.isFetching ||
+            dueReviews.isFetching
+          }
+          retryLabel="Reload session details"
+        />
+      )}
+
       <div id="today-work" className="scroll-mt-24">
         <TodayBlockList
           items={program.items}
           ownedBooks={ownedBooks}
           libraryLoading={library.isLoading}
           pendingItemId={pendingItemId}
-          onLogOutcome={(input) => log.mutate(input)}
+          onLogOutcome={(input) =>
+            log.mutate({ ...input, requestId: crypto.randomUUID() })
+          }
           onUndoSkip={(programItemId) => undoSkip.mutate({ programItemId })}
           onBookLogged={() => {
             void utils.library.get.invalidate();
@@ -323,9 +354,16 @@ export function Today() {
       )}
 
       {log.error && (
-        <StatusMessage tone="error" heading="Training not logged">
-          {log.error.message}
-        </StatusMessage>
+        <ErrorNotice
+          error={log.error}
+          heading="Training not logged"
+          message="The block is still open and your progress was not changed. Try logging it again."
+          onRetry={() => {
+            if (log.variables) log.mutate(log.variables);
+          }}
+          retrying={log.isPending}
+          retryLabel="Try logging again"
+        />
       )}
 
       {log.data?.rewardEvents.map((event, index) => (
@@ -342,9 +380,9 @@ export function Today() {
           entries={historyEntries}
           currentProgramId={program.id}
           loading={history.isLoading}
-          error={history.isError}
+          error={history.error}
           hasMore={history.hasNextPage === true}
-          loadingMore={history.isFetchingNextPage}
+          loadingMore={history.isFetching}
           onRetry={() => void history.refetch()}
           onLoadMore={() => void history.fetchNextPage()}
         />

@@ -6,10 +6,17 @@ import { trpc } from "@/lib/trpc/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { StatusMessage } from "@/components/ui/status-message";
+import { ErrorNotice } from "@/components/ui/error-notice";
+import { errorMessage } from "@/lib/error-presentation";
 
 const PLATFORM_LABEL: Record<string, string> = {
   lichess: "Lichess",
   chesscom: "Chess.com",
+};
+
+type ConnectionError = {
+  scope: "lichess" | "chesscom" | "disconnect";
+  message: string;
 };
 
 export function ConnectionsManager() {
@@ -18,7 +25,7 @@ export function ConnectionsManager() {
 
   const [lichessUsername, setLichessUsername] = useState("");
   const [chessComUsername, setChessComUsername] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ConnectionError | null>(null);
 
   const addLichess = trpc.connections.addLichessUsername.useMutation({
     onSuccess: () => {
@@ -26,7 +33,14 @@ export function ConnectionsManager() {
       setError(null);
       void utils.connections.list.invalidate();
     },
-    onError: (e) => setError(e.message),
+    onError: (e) =>
+      setError({
+        scope: "lichess",
+        message: errorMessage(
+          e,
+          "The Lichess account was not added. Try again.",
+        ),
+      }),
   });
 
   const addChessCom = trpc.connections.addChessComUsername.useMutation({
@@ -35,12 +49,26 @@ export function ConnectionsManager() {
       setError(null);
       void utils.connections.list.invalidate();
     },
-    onError: (e) => setError(e.message),
+    onError: (e) =>
+      setError({
+        scope: "chesscom",
+        message: errorMessage(
+          e,
+          "The Chess.com account was not added. Try again.",
+        ),
+      }),
   });
 
   const disconnect = trpc.connections.disconnect.useMutation({
     onSuccess: () => void utils.connections.list.invalidate(),
-    onError: (e) => setError(e.message),
+    onError: (e) =>
+      setError({
+        scope: "disconnect",
+        message: errorMessage(
+          e,
+          "The account stayed connected. Reload the list and try again.",
+        ),
+      }),
   });
 
   return (
@@ -73,6 +101,12 @@ export function ConnectionsManager() {
               placeholder="e.g. yourusername"
               autoComplete="username"
               disabled={addLichess.isPending}
+              aria-invalid={error?.scope === "lichess"}
+              aria-describedby={
+                error?.scope === "lichess"
+                  ? "lichess-connection-error"
+                  : undefined
+              }
             />
             <Button
               type="submit"
@@ -82,6 +116,11 @@ export function ConnectionsManager() {
             </Button>
           </form>
         </div>
+        {error?.scope === "lichess" && (
+          <StatusMessage id="lichess-connection-error" tone="error">
+            {error.message}
+          </StatusMessage>
+        )}
       </section>
 
       <section className="flex flex-col gap-4">
@@ -114,8 +153,12 @@ export function ConnectionsManager() {
               placeholder="e.g. yourusername"
               autoComplete="username"
               disabled={addChessCom.isPending}
-              aria-invalid={error != null}
-              aria-describedby={error ? "connection-error" : undefined}
+              aria-invalid={error?.scope === "chesscom"}
+              aria-describedby={
+                error?.scope === "chesscom"
+                  ? "chesscom-connection-error"
+                  : undefined
+              }
             />
             <Button
               type="submit"
@@ -125,9 +168,9 @@ export function ConnectionsManager() {
             </Button>
           </form>
         </div>
-        {error && (
-          <StatusMessage id="connection-error" tone="error">
-            {error}
+        {error?.scope === "chesscom" && (
+          <StatusMessage id="chesscom-connection-error" tone="error">
+            {error.message}
           </StatusMessage>
         )}
       </section>
@@ -136,15 +179,24 @@ export function ConnectionsManager() {
         <h2 className="eyebrow border-b border-line/80 pb-3">
           Connected accounts
         </h2>
+        {error?.scope === "disconnect" && (
+          <StatusMessage tone="error" heading="Account still connected">
+            {error.message}
+          </StatusMessage>
+        )}
         {list.isLoading ? (
           <StatusMessage tone="loading">
             Loading connected accounts…
           </StatusMessage>
         ) : list.error ? (
-          <StatusMessage tone="error" heading="Connections unavailable">
-            We could not load your connected accounts. Refresh the page and try
-            again.
-          </StatusMessage>
+          <ErrorNotice
+            error={list.error}
+            heading="Connections unavailable"
+            message="Mainline could not load your connected accounts. Try the list again."
+            onRetry={() => void list.refetch()}
+            retrying={list.isFetching}
+            retryLabel="Reload connections"
+          />
         ) : list.data && list.data.length > 0 ? (
           <ul className="flex flex-col gap-2">
             {list.data.map((conn) => (

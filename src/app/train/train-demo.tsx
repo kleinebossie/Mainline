@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { PageShell } from "@/components/app-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { ErrorNotice } from "@/components/ui/error-notice";
 import { Chess } from "chess.js";
 import {
   BOARD_SIZE_CLASS,
@@ -145,9 +146,10 @@ export function TrainDemo() {
       await engine.init();
       engineRef.current = engine;
       setEngineReady(true);
-    } catch (e: unknown) {
-      const errMsg = e instanceof Error ? e.message : String(e);
-      setEngineError(`Stockfish could not start: ${errMsg}`);
+    } catch {
+      setEngineError(
+        "The local analysis engine could not start. Reload the page, or continue with the puzzle board without it.",
+      );
     } finally {
       setEngineLoading(false);
     }
@@ -187,9 +189,10 @@ export function TrainDemo() {
         chess.move(opponent.san);
         setSparFen(chess.fen());
         setSparHistory((prev) => [...prev, `Engine: ${opponent.san}`]);
-      } catch (err: unknown) {
-        const errMsg = err instanceof Error ? err.message : String(err);
-        setEngineError(`Stockfish could not move: ${errMsg}`);
+      } catch {
+        setEngineError(
+          "The local analysis engine could not reply. Your position is still on the board. Try another move or reset the board.",
+        );
       } finally {
         setEngineLoading(false);
       }
@@ -384,9 +387,15 @@ export function TrainDemo() {
                   </div>
 
                   {engineError && (
-                    <p role="alert" className="text-sm text-destructive">
-                      {engineError}
-                    </p>
+                    <ErrorNotice
+                      heading="Local engine unavailable"
+                      message={engineError}
+                      onRetry={
+                        engineReady ? undefined : () => void initEngine()
+                      }
+                      retrying={engineLoading}
+                      retryLabel="Try starting engine again"
+                    />
                   )}
 
                   <Button

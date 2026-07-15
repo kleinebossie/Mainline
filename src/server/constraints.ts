@@ -18,6 +18,7 @@ import {
   type ConstraintsInput,
   type TargetFocus,
 } from "@/lib/constraints";
+import { expectedError } from "@/server/errors";
 
 type Db = Pick<PrismaClient, "constraintSet" | "$transaction">;
 
@@ -99,8 +100,8 @@ export async function saveConstraints(
   // This is a UX/input-sanity rule (not a methodology value), enforced on save
   // so existing rows with empty formats still load and render.
   if (input.formatPrefs.formats.length === 0) {
-    throw new Error(
-      "Select at least one format you play (bullet, blitz, rapid, or classical).",
+    throw expectedError.badRequest(
+      "Select at least one format you play: bullet, blitz, rapid, or classical.",
     );
   }
   const ifThenPlan = input.ifThenPlan

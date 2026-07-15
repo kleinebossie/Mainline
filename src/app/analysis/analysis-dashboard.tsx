@@ -7,6 +7,7 @@ import { PageShell } from "@/components/app-shell";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { StatusMessage } from "@/components/ui/status-message";
+import { ErrorNotice } from "@/components/ui/error-notice";
 import { MethodologyRationaleCard } from "@/components/methodology-rationale-card";
 import { cn } from "@/lib/utils";
 import {
@@ -15,6 +16,7 @@ import {
   platformLabel,
   formatGameDate,
 } from "@/lib/format-game";
+import { errorMessage } from "@/lib/error-presentation";
 
 function resultChipClass(result: string | null | undefined): string {
   if (result === "win") return "bg-grade-a/10 text-grade-a";
@@ -113,7 +115,12 @@ export function AnalysisDashboard() {
         utils.analysis.summary.invalidate(),
       ]);
     } catch (e) {
-      setBatchError(e instanceof Error ? e.message : "Game scanning failed.");
+      setBatchError(
+        errorMessage(
+          e,
+          "This game could not be scanned. No result was saved. Try it again.",
+        ),
+      );
     } finally {
       setAnalyzingGameId(null);
     }
@@ -146,14 +153,14 @@ export function AnalysisDashboard() {
       const { StockfishAnalysisEngine } = await import("@/analysis");
       const engine = new StockfishAnalysisEngine();
       await engine.init();
-      const failures: string[] = [];
+      let failures = 0;
       try {
         let done = 0;
         for (const game of pendingGames) {
           try {
             await analyzeAndSave(engine, game);
-          } catch (e) {
-            failures.push(e instanceof Error ? e.message : "Analysis failed.");
+          } catch {
+            failures += 1;
             continue;
           }
           done += 1;
@@ -167,16 +174,21 @@ export function AnalysisDashboard() {
         utils.analysis.library.invalidate(),
         utils.analysis.summary.invalidate(),
       ]);
-      if (failures.length > 0) {
+      if (failures > 0) {
         setBatchError(
-          `${failures.length} game${failures.length === 1 ? "" : "s"} failed and were skipped: ${failures[0]}`,
+          `${failures} game${failures === 1 ? "" : "s"} could not be scanned. Completed scans were saved. Try the remaining games again individually.`,
         );
         setBatchStatus("partial");
       } else {
         setBatchStatus("idle");
       }
     } catch (e) {
-      setBatchError(e instanceof Error ? e.message : "Analysis failed.");
+      setBatchError(
+        errorMessage(
+          e,
+          "The scan stopped before it finished. Completed games are saved. Try the scan again.",
+        ),
+      );
       setBatchStatus("error");
     }
   }
@@ -189,6 +201,16 @@ export function AnalysisDashboard() {
       width="default"
     >
       <div className="flex flex-col gap-8">
+        {suggestionsQuery.error && (
+          <ErrorNotice
+            error={suggestionsQuery.error}
+            heading="Review guidance unavailable"
+            message="Your games can still be reviewed, but Mainline could not load the explanation for this recommendation."
+            onRetry={() => void suggestionsQuery.refetch()}
+            retrying={suggestionsQuery.isFetching}
+            retryLabel="Reload guidance"
+          />
+        )}
         {ownGamesRationale && (
           <MethodologyRationaleCard rationale={ownGamesRationale} />
         )}
@@ -245,15 +267,22 @@ export function AnalysisDashboard() {
           )}
 
           {sync.error && (
-            <StatusMessage tone="error" heading="Games not synced">
-              {sync.error.message}
-            </StatusMessage>
+            <ErrorNotice
+              error={sync.error}
+              heading="Games not synced"
+              message="No new games were imported. Your existing library is unchanged."
+              onRetry={() => sync.mutate()}
+              retrying={sync.isPending}
+              retryLabel="Try sync again"
+            />
           )}
 
           {setPrimary.error && (
-            <StatusMessage tone="error" heading="Platform not saved">
-              {setPrimary.error.message}
-            </StatusMessage>
+            <ErrorNotice
+              error={setPrimary.error}
+              heading="Platform not saved"
+              message="The game list changed for this visit, but your default platform is unchanged. Choose it again to retry."
+            />
           )}
 
           {selectedPlatform && games.length > 0 && (
@@ -283,9 +312,17 @@ export function AnalysisDashboard() {
               )}
               {(batchStatus === "error" || batchStatus === "partial") &&
                 batchError && (
-                  <StatusMessage tone="error" className="basis-full">
-                    {batchError}
-                  </StatusMessage>
+                  <ErrorNotice
+                    className="basis-full"
+                    heading={
+                      batchStatus === "partial"
+                        ? "Some games were not scanned"
+                        : "Game scan stopped"
+                    }
+                    message={batchError}
+                    onRetry={() => void runBatchAnalysis()}
+                    retryLabel="Scan remaining games"
+                  />
                 )}
             </div>
           )}
@@ -293,20 +330,14 @@ export function AnalysisDashboard() {
           {libraryQuery.isLoading ? (
             <StatusMessage tone="loading">Loading your games…</StatusMessage>
           ) : libraryQuery.error ? (
-            <StatusMessage tone="error" heading="Games unavailable">
-              <div className="flex flex-wrap items-center gap-3">
-                <span>We could not load your imported games.</span>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  disabled={libraryQuery.isFetching}
-                  onClick={() => void libraryQuery.refetch()}
-                >
-                  {libraryQuery.isFetching ? "Retrying..." : "Try again"}
-                </Button>
-              </div>
-            </StatusMessage>
+            <ErrorNotice
+              error={libraryQuery.error}
+              heading="Games unavailable"
+              message="Mainline could not load your imported games. Try the list again."
+              onRetry={() => void libraryQuery.refetch()}
+              retrying={libraryQuery.isFetching}
+              retryLabel="Reload games"
+            />
           ) : games.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center gap-3 py-6 text-center">

@@ -1,6 +1,7 @@
 import * as Sentry from "@sentry/nextjs";
 
 type OperationName =
+  | "api"
   | "analysis_handoff"
   | "program_generation"
   | "import"

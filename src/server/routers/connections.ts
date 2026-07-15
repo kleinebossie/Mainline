@@ -4,18 +4,51 @@
 // its Auth.js event can still create a token-backed connection.
 
 import { z } from "zod";
-import { TRPCError } from "@trpc/server";
 
-import { PlatformError } from "@/integrations/adapter";
+import { PlatformError, type Platform } from "@/integrations/adapter";
 import { chessComAdapter } from "@/integrations/chesscom/adapter";
 import { lichessAdapter } from "@/integrations/lichess/adapter";
 import { revokeLichessToken } from "@/integrations/lichess/adapter";
-import { assertApiCallBudget } from "@/server/api-budget";
+import {
+  ApiCallBudgetExceededError,
+  assertApiCallBudget,
+} from "@/server/api-budget";
 import {
   replacesOAuthUsername,
   upsertPlatformConnection,
 } from "@/server/connections";
+import { expectedError } from "@/server/errors";
 import { protectedProcedure, router } from "@/server/trpc";
+
+function profileLookupError(
+  error: unknown,
+  platform: Platform,
+  username: string,
+) {
+  const label = platform === "lichess" ? "Lichess" : "Chess.com";
+  if (error instanceof PlatformError && error.code === "not_found") {
+    return expectedError.badRequest(
+      `No ${label} player "${username}" was found. Check the spelling and try again.`,
+      error,
+    );
+  }
+  if (
+    error instanceof ApiCallBudgetExceededError ||
+    (error instanceof PlatformError && error.code === "rate_limited")
+  ) {
+    return expectedError.tooManyRequests(
+      `${label} is limiting requests right now. Wait a moment, then try again.`,
+      error,
+    );
+  }
+  if (error instanceof PlatformError) {
+    return expectedError.upstreamUnavailable(
+      `${label} did not respond. Your account was not added. Try again in a moment.`,
+      error,
+    );
+  }
+  throw error;
+}
 
 export const connectionsRouter = router({
   // Tokens are NEVER selected — the client only sees safe metadata.
@@ -56,16 +89,7 @@ export const connectionsRouter = router({
             assertApiCallBudget(ctx.prisma, ctx.userId, "lichess", new Date()),
         });
       } catch (err) {
-        if (err instanceof PlatformError && err.code === "not_found") {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: `No Lichess player "${input.username}".`,
-          });
-        }
-        throw new TRPCError({
-          code: "BAD_GATEWAY",
-          message: "Couldn't reach Lichess right now. Please try again.",
-        });
+        throw profileLookupError(err, "lichess", input.username);
       }
       const existing = await ctx.prisma.platformConnection.findUnique({
         where: {
@@ -74,11 +98,9 @@ export const connectionsRouter = router({
         select: { externalUsername: true, accessToken: true },
       });
       if (replacesOAuthUsername(existing, profile.externalUsername)) {
-        throw new TRPCError({
-          code: "CONFLICT",
-          message:
-            "Disconnect the OAuth-backed Lichess account before linking a different username.",
-        });
+        throw expectedError.conflict(
+          "Disconnect the signed-in Lichess account before linking a different username.",
+        );
       }
       const conn = await upsertPlatformConnection({
         userId: ctx.userId,
@@ -105,16 +127,7 @@ export const connectionsRouter = router({
             assertApiCallBudget(ctx.prisma, ctx.userId, "chesscom", new Date()),
         });
       } catch (err) {
-        if (err instanceof PlatformError && err.code === "not_found") {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: `No Chess.com player "${input.username}".`,
-          });
-        }
-        throw new TRPCError({
-          code: "BAD_GATEWAY",
-          message: "Couldn't reach Chess.com right now. Please try again.",
-        });
+        throw profileLookupError(err, "chesscom", input.username);
       }
       const conn = await upsertPlatformConnection({
         userId: ctx.userId,
@@ -135,7 +148,9 @@ export const connectionsRouter = router({
         where: { id: input.id, userId: ctx.userId },
       });
       if (!conn) {
-        throw new TRPCError({ code: "NOT_FOUND" });
+        throw expectedError.notFound(
+          "That connection no longer exists. Reload your connections to see the latest list.",
+        );
       }
       // Best-effort token revocation so we stop holding a live Lichess credential.
       if (conn.platform === "lichess" && conn.accessToken) {

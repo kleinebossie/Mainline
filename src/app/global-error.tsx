@@ -1,7 +1,6 @@
 "use client";
 
-import * as Sentry from "@sentry/nextjs";
-import { useEffect, useState } from "react";
+import { UnexpectedError } from "@/components/unexpected-error";
 
 export default function GlobalError({
   error,
@@ -10,37 +9,11 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  const [resetting, setResetting] = useState(false);
-
-  useEffect(() => {
-    Sentry.captureException(error);
-  }, [error]);
-
   return (
     <html lang="en">
-      <body>
-        <main className="mx-auto flex min-h-screen max-w-xl flex-col justify-center gap-5 px-6">
-          <p className="font-mono text-xs uppercase tracking-widest">
-            Something went wrong
-          </p>
-          <h1 className="font-serif text-4xl font-semibold">
-            Something went wrong.
-          </h1>
-          <p>
-            Mainline excludes game data, account credentials, and form text from
-            error reports.
-          </p>
-          <button
-            className="w-fit rounded-md border px-4 py-2 font-mono text-sm"
-            disabled={resetting}
-            onClick={() => {
-              setResetting(true);
-              reset();
-            }}
-            type="button"
-          >
-            {resetting ? "Retrying..." : "Try again"}
-          </button>
+      <body className="min-h-screen bg-paper text-ink antialiased">
+        <main className="flex min-h-screen items-center px-5 py-12 sm:px-8">
+          <UnexpectedError error={error} reset={reset} />
         </main>
       </body>
     </html>

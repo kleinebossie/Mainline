@@ -458,6 +458,7 @@ model ProgramItem {
 model ActivityEvent {
   id            String   @id @default(cuid())
   userId        String
+  requestId     String?
   programItemId String?
   type          String // puzzle_attempt | drill_done | game_played | skip | self_report
   occurredAt    DateTime
@@ -468,6 +469,7 @@ model ActivityEvent {
   user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   programItem ProgramItem? @relation(fields: [programItemId], references: [id], onDelete: SetNull)
 
+  @@unique([userId, requestId])
   @@index([userId, occurredAt])
   @@index([programItemId, occurredAt])
 }

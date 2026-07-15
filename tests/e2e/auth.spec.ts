@@ -13,6 +13,20 @@ test("sign-in page offers Lichess", async ({ page }) => {
   ).toBeVisible();
 });
 
+test("sign-in callback errors explain what the user can do next", async ({
+  page,
+}) => {
+  await page.goto("/signin?error=AccessDenied");
+  const errorNotice = page
+    .getByRole("alert")
+    .filter({ hasText: "Beta access not granted" });
+  await expect(errorNotice).toContainText("Beta access not granted");
+  await expect(errorNotice).toContainText("Check the code and try again");
+  await expect(
+    page.getByRole("button", { name: /Continue with Lichess/i }),
+  ).toBeVisible();
+});
+
 test("connections page redirects to sign-in when unauthenticated", async ({
   page,
 }) => {

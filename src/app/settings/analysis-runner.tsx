@@ -9,7 +9,9 @@ import { useState } from "react";
 
 import { trpc } from "@/lib/trpc/react";
 import { Button } from "@/components/ui/button";
+import { ErrorNotice } from "@/components/ui/error-notice";
 import { StatusMessage } from "@/components/ui/status-message";
+import { errorMessage } from "@/lib/error-presentation";
 
 // Bounded analysis depth (infrastructure: responsive UI / sane battery, §6.5 — not science).
 const ANALYSIS_DEPTH = 12;
@@ -73,7 +75,12 @@ export function AnalysisRunner() {
       ]);
       setStatus("done");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Analysis failed.");
+      setError(
+        errorMessage(
+          e,
+          "Analysis stopped. Completed games are saved. Try the remaining queue again.",
+        ),
+      );
       setStatus("error");
     }
   }
@@ -127,16 +134,26 @@ export function AnalysisRunner() {
       ) : null}
 
       {(pending.error || summary.error) && (
-        <StatusMessage tone="error" heading="Analysis unavailable">
-          We could not check your analysis queue. Refresh the page and try
-          again.
-        </StatusMessage>
+        <ErrorNotice
+          error={pending.error ?? summary.error}
+          heading="Analysis queue unavailable"
+          message="Mainline could not check which games still need analysis. Try the queue again."
+          onRetry={() => {
+            void pending.refetch();
+            void summary.refetch();
+          }}
+          retrying={pending.isFetching || summary.isFetching}
+          retryLabel="Reload queue"
+        />
       )}
 
       {status === "error" && error ? (
-        <StatusMessage tone="error" heading="Analysis stopped">
-          {error}
-        </StatusMessage>
+        <ErrorNotice
+          heading="Analysis stopped"
+          message={error}
+          onRetry={() => void run()}
+          retryLabel="Analyse remaining games"
+        />
       ) : null}
 
       {status === "done" && (

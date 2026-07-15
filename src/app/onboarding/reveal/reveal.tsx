@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GradeMark, type EvidenceGrade } from "@/components/evidence";
 import { TransparencyCardGroup } from "@/components/transparency-card";
 import { StatusMessage } from "@/components/ui/status-message";
+import { ErrorNotice } from "@/components/ui/error-notice";
 import { CalibrationTrackGauges } from "@/app/onboarding/calibration-track-gauges";
 
 // The reveal: the honest "what your games say vs. what you assumed" moment (VISION §2;
@@ -38,11 +39,16 @@ export function Reveal() {
     );
   }
 
-  if (!state.data) {
+  if (state.error || !state.data) {
     return (
-      <StatusMessage tone="error" heading="Starting picture unavailable">
-        We could not load this step. Refresh the page and try again.
-      </StatusMessage>
+      <ErrorNotice
+        error={state.error}
+        heading="Starting picture unavailable"
+        message="Mainline could not load your calibration result. Try this step again."
+        onRetry={() => void state.refetch()}
+        retrying={state.isFetching}
+        retryLabel="Reload starting picture"
+      />
     );
   }
 
@@ -70,9 +76,27 @@ export function Reveal() {
   }
 
   const goals = constraints.data?.goals ?? [];
+  const supportingError =
+    signals.error ?? constraints.error ?? library.error ?? null;
 
   return (
     <div className="flex flex-col gap-6">
+      {supportingError && (
+        <ErrorNotice
+          error={supportingError}
+          heading="Some supporting data is unavailable"
+          message="Your calibration result is ready, but Mainline could not load game signals, goals, or review options. Reload them for the complete picture."
+          onRetry={() => {
+            void signals.refetch();
+            void constraints.refetch();
+            void library.refetch();
+          }}
+          retrying={
+            signals.isFetching || constraints.isFetching || library.isFetching
+          }
+          retryLabel="Reload supporting data"
+        />
+      )}
       {/* 1 — the measured, multi-dimensional baseline */}
       <Card gutter={estimate.evidenceGrade as EvidenceGrade} className="settle">
         <CardHeader className="pb-4">

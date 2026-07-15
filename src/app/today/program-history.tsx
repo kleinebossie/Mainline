@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { ErrorNotice } from "@/components/ui/error-notice";
 import { StatusMessage } from "@/components/ui/status-message";
 import type { ProgramHistoryEntry } from "@/lib/program-history";
 import {
@@ -51,13 +52,14 @@ export function ProgramArchive({
   entries: ProgramHistoryEntry[];
   currentProgramId: string;
   loading: boolean;
-  error: boolean;
+  error: unknown;
   hasMore: boolean;
   loadingMore: boolean;
   onRetry: () => void;
   onLoadMore: () => void;
 }) {
   const days = groupProgramHistoryByDay(entries);
+  const hasError = error != null && error !== false;
 
   return (
     <section className="overflow-hidden rounded-lg border bg-card shadow-sheet">
@@ -77,21 +79,16 @@ export function ProgramArchive({
         <div className="p-4 sm:p-5">
           <StatusMessage tone="loading">Loading program history…</StatusMessage>
         </div>
-      ) : error && entries.length === 0 ? (
+      ) : hasError && entries.length === 0 ? (
         <div className="p-4 sm:p-5">
-          <StatusMessage tone="error" heading="Program history unavailable">
-            <div className="flex flex-wrap items-center gap-3">
-              <span>Your current session is unaffected.</span>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={onRetry}
-              >
-                Try again
-              </Button>
-            </div>
-          </StatusMessage>
+          <ErrorNotice
+            error={error}
+            heading="Program history unavailable"
+            message="Your current session is unaffected. Try loading History again."
+            onRetry={onRetry}
+            retrying={loadingMore}
+            retryLabel="Reload history"
+          />
         </div>
       ) : entries.length === 0 ? (
         <p className="p-4 text-sm text-graphite sm:p-5">
@@ -110,9 +107,9 @@ export function ProgramArchive({
         </ol>
       )}
 
-      {(hasMore || (error && entries.length > 0)) && (
+      {(hasMore || (hasError && entries.length > 0)) && (
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-4 py-3 sm:px-5">
-          {error ? (
+          {hasError ? (
             <span className="text-sm text-clay">
               Earlier versions could not be loaded.
             </span>
@@ -129,9 +126,9 @@ export function ProgramArchive({
             size="sm"
             variant="outline"
             disabled={loadingMore}
-            onClick={error ? onRetry : onLoadMore}
+            onClick={hasError ? onRetry : onLoadMore}
           >
-            {loadingMore ? "Loading…" : error ? "Try again" : "Load earlier"}
+            {loadingMore ? "Loading…" : hasError ? "Try again" : "Load earlier"}
           </Button>
         </div>
       )}

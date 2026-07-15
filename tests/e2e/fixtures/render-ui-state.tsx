@@ -4,6 +4,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { OnboardingSteps } from "@/app/onboarding/onboarding-steps";
 import { ProgramArchive } from "@/app/today/program-history";
 import { TodayBlockList, TodayHeader } from "@/app/today/today-session";
+import { UnexpectedError } from "@/components/unexpected-error";
+import { ErrorNotice } from "@/components/ui/error-notice";
 import type { ProgramHistoryEntry } from "@/lib/program-history";
 import type { OnboardingStatus } from "@/server/onboarding";
 import type { TodayItem, TodayProgram } from "@/server/program";
@@ -246,6 +248,64 @@ function setupMarkup() {
   );
 }
 
+function errorNoticesMarkup() {
+  return renderToStaticMarkup(
+    <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col gap-6 px-4 py-8 sm:px-6 sm:py-12">
+      <header className="mb-2">
+        <p className="eyebrow">Recovery states</p>
+        <h1 className="mt-2 font-serif text-4xl font-semibold text-ink">
+          Clear next moves when a line stops
+        </h1>
+      </header>
+
+      <ErrorNotice
+        error={{
+          message: "private database host and query text",
+          data: { code: "INTERNAL_SERVER_ERROR" },
+        }}
+        heading="Session unavailable"
+        message="The session could not be loaded."
+        onRetry={noOp}
+        retryLabel="Reload session"
+      />
+
+      <ErrorNotice
+        error={{
+          message:
+            "Your weekly focus changed. Reload Today before choosing again.",
+          data: { code: "CONFLICT" },
+        }}
+        heading="Focus not saved"
+        message="The focus could not be saved."
+        onRetry={noOp}
+        retryLabel="Reload latest focus"
+      />
+
+      <ErrorNotice
+        error={{ message: "Failed to fetch" }}
+        heading="Games unavailable"
+        message="The game list could not be loaded."
+        onRetry={noOp}
+        retrying
+        retryLabel="Reload games"
+      />
+    </main>,
+  );
+}
+
+function unexpectedErrorMarkup() {
+  return renderToStaticMarkup(
+    <main className="flex min-h-screen items-center px-5 py-12 sm:px-8">
+      <UnexpectedError
+        error={Object.assign(new Error("private exception text"), {
+          digest: "qa-safe-reference",
+        })}
+        reset={noOp}
+      />
+    </main>,
+  );
+}
+
 const state = process.argv[2];
 const markup =
   state === "today-progress"
@@ -258,7 +318,11 @@ const markup =
           ? setupMarkup()
           : state === "history-grouped"
             ? groupedHistoryMarkup()
-            : null;
+            : state === "error-notices"
+              ? errorNoticesMarkup()
+              : state === "unexpected-error"
+                ? unexpectedErrorMarkup()
+                : null;
 
 if (markup === null) {
   throw new Error(`Unknown UI state: ${state ?? "missing"}`);

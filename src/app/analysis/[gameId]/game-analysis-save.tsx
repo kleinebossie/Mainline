@@ -5,7 +5,7 @@ import type {
 import { MethodologyRationaleCard } from "@/components/methodology-rationale-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { StatusMessage } from "@/components/ui/status-message";
+import { ErrorNotice } from "@/components/ui/error-notice";
 import { cn } from "@/lib/utils";
 
 export function SaveReviewStep({
@@ -78,12 +78,14 @@ export function SaveReviewStep({
 
           <div className="mt-2 flex flex-wrap items-center justify-end gap-3">
             {saveError && (
-              <StatusMessage
-                tone="error"
+              <ErrorNotice
                 className="basis-full sm:mr-auto sm:basis-auto"
-              >
-                {saveError}
-              </StatusMessage>
+                heading="Review not saved"
+                message={saveError}
+                onRetry={onSave}
+                retrying={saving}
+                retryLabel="Try saving again"
+              />
             )}
             <Button disabled={saving} onClick={onSave}>
               {saving ? "Saving..." : "Save Session & Finish"}

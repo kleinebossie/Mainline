@@ -24,6 +24,7 @@ import { gameIdentity } from "@/server/game-identity";
 import { systemClock } from "@/lib/clock";
 import { protectedProcedure, router } from "@/server/trpc";
 import { captureOperationalEvent } from "@/server/observability";
+import { expectedError } from "@/server/errors";
 
 const PLATFORMS = ["lichess", "chesscom"] as const;
 
@@ -178,13 +179,21 @@ export const analysisRouter = router({
     .input(z.object({ gameId: z.string() }))
     .query(async ({ ctx, input }) => {
       const owns = await userOwnsGame(ctx.prisma, ctx.userId, input.gameId);
-      if (!owns) throw new Error("Unauthorized");
+      if (!owns) {
+        throw expectedError.notFound(
+          "That game is no longer in your library. Return to Analysis and choose another game.",
+        );
+      }
 
       const game = await ctx.prisma.importedGame.findUnique({
         where: { id: input.gameId },
         include: { analysis: true },
       });
-      if (!game) throw new Error("Game not found");
+      if (!game) {
+        throw expectedError.notFound(
+          "That game is no longer in your library. Return to Analysis and choose another game.",
+        );
+      }
 
       const cfg = loadMethodology();
       // Use playing strength for the analysis band, never puzzle rating.
@@ -270,13 +279,21 @@ export const analysisRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const owns = await userOwnsGame(ctx.prisma, ctx.userId, input.gameId);
-      if (!owns) throw new Error("Unauthorized");
+      if (!owns) {
+        throw expectedError.notFound(
+          "That game is no longer in your library. Return to Analysis and choose another game.",
+        );
+      }
 
       const game = await ctx.prisma.importedGame.findUnique({
         where: { id: input.gameId },
         include: { analysis: true },
       });
-      if (!game || !game.analysis) throw new Error("Game analysis not found");
+      if (!game || !game.analysis) {
+        throw expectedError.notFound(
+          "This game has no saved analysis. Return to Analysis and scan it again.",
+        );
+      }
 
       const rawFeatures = rawGameFeaturesSchema.parse(
         game.analysis.rawFeatures,
@@ -384,7 +401,11 @@ export const analysisRouter = router({
         where: { id: input.gameId, userId: ctx.userId },
         select: { id: true, pgn: true, color: true },
       });
-      if (!game) throw new Error("Game not found");
+      if (!game) {
+        throw expectedError.notFound(
+          "That game is no longer in your library. Return to Analysis and choose another game.",
+        );
+      }
       return game;
     }),
 });

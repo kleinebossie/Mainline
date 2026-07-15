@@ -12,6 +12,7 @@ import {
 } from "@/lib/decision-input";
 import { weeklyFocusSchema, type WeeklyFocus } from "@/lib/weekly-focus";
 import { findActiveWeeklyFocus, replaceWeeklyFocus } from "@/db/weekly-focus";
+import { expectedError } from "@/server/errors";
 
 type Db = Pick<PrismaClient, "weeklyFocus" | "$transaction">;
 const DAY_MS = 86_400_000;
@@ -147,9 +148,15 @@ export async function selectPersistedFocusChoice(
   focusAreas: string[],
 ) {
   const active = await getWeeklyFocus(db, userId);
-  if (!active) throw new Error("No active weekly focus");
+  if (!active) {
+    throw expectedError.notFound(
+      "Your weekly focus is no longer available. Reload Today for the latest plan.",
+    );
+  }
   if (active.id !== weeklyFocusId)
-    throw new Error("Weekly focus changed; refresh and try again");
+    throw expectedError.conflict(
+      "Your weekly focus changed. Reload Today before choosing again.",
+    );
   if (
     active.focusAreas.length === focusAreas.length &&
     active.focusAreas.every(
@@ -171,7 +178,9 @@ export async function selectPersistedFocusChoice(
       ? active.alternatives.find((item) => item.focusArea === focusAreas[0])
       : undefined;
   if (!isRecommendation && !alternative)
-    throw new Error("Focus alternative is not methodology-approved");
+    throw expectedError.badRequest(
+      "That focus option is no longer available. Reload Today and choose from the latest options.",
+    );
 
   const selectedFocusAreas = isRecommendation
     ? recommendation.focusAreas
