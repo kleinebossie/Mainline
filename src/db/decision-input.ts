@@ -153,6 +153,8 @@ export async function findActivityRecency(
     activeDays.add(new Date(at).toISOString().slice(0, 10));
     if (r.type === "skip") {
       skipsByType[t] = (skipsByType[t] ?? 0) + 1;
+    } else if (r.type === "skip_undone") {
+      skipsByType[t] = Math.max(0, (skipsByType[t] ?? 0) - 1);
     } else {
       completionsByType[t] = (completionsByType[t] ?? 0) + 1;
     }

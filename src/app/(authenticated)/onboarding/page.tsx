@@ -14,9 +14,9 @@ export default async function OnboardingPage() {
 
   return (
     <PageShell
-      eyebrow="Onboarding"
+      eyebrow="Setup"
       title="Set up your training"
-      lede="A few quick steps to personalise your training. Complete all steps to unlock your daily sessions. You can change anything later in Settings."
+      lede="Five steps to your first training session. You can change your choices later in Settings."
     >
       <OnboardingSteps status={status} />
     </PageShell>

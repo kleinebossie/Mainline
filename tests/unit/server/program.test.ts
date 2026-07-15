@@ -200,6 +200,7 @@ describe("generateAndSaveProgram + getTodayProgram (round-trip)", () => {
 
     const today = await getTodayProgram(db, "u1");
     expect(today).not.toBeNull();
+    expect(today!.scheduledDate).toEqual(new Date("2023-11-14T00:00:00Z"));
     expect(today!.methodologyVersion).toBe(ACTIVE_METHODOLOGY_VERSION);
     // Honest framing copy is surfaced (Seam 8).
     expect(today!.honesty.processGoal.length).toBeGreaterThan(0);

@@ -111,3 +111,31 @@ export const programRevisionSchema = z
     occurredAt: z.number().int(),
   })
   .strict();
+export type ProgramRevision = z.infer<typeof programRevisionSchema>;
+
+export const programRevisionCursorSchema = z
+  .object({
+    occurredAt: z.number().int(),
+    id: z.string().min(1),
+  })
+  .strict();
+
+export const programRevisionPageInputSchema = z
+  .object({
+    cursor: programRevisionCursorSchema.optional(),
+    limit: z.number().int().min(1).max(50).default(20),
+    direction: z.enum(["forward", "backward"]).optional(),
+  })
+  .strict();
+
+export const programRevisionPageSchema = z
+  .object({
+    revisions: z.array(programRevisionSchema),
+    nextCursor: programRevisionCursorSchema.nullable(),
+  })
+  .strict();
+
+export type ProgramRevisionPageInput = z.infer<
+  typeof programRevisionPageInputSchema
+>;
+export type ProgramRevisionPage = z.infer<typeof programRevisionPageSchema>;

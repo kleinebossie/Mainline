@@ -5,7 +5,7 @@
 > adaptive training program before adding more training modes. It is split into parts so a fresh AI
 > agent can implement and verify one part at a time.
 >
-> **Status.** P0, P1, P2, P3, and P4 are complete; later parts remain planned. A part is implemented only when its
+> **Status.** P0 through P7 are complete; later parts remain planned. A part is implemented only when its
 > own status and Definition of Done say so.
 >
 > **Central product decision.** Mainline needs a deeper loop, not a larger menu. Real adaptation,
@@ -68,8 +68,11 @@ implementation agent unless implementation uncovers a direct contradiction:
   bounded, goal-aligned alternative with an honest tradeoff explanation.
 - Weekly direction stays understandable and relatively stable. Difficulty, due work, activity
   allocation, and exact daily contents may tune each day.
-- Show immutable history, a committed Today, and a rolling seven-day forecast. Future days are
-  explicitly provisional.
+- Show immutable history and a committed Today. Keep the rolling seven-day forecast as an internal,
+  persisted scheduling artifact. Do not render future forecasts on Today in Phase 1 because the
+  same deterministic inputs produce the same work when each day arrives.
+- Do not add plan settings to Today in Phase 1. Weekly availability, focus alternatives, day
+  overrides, and the revision ledger may return in a later, deliberately redesigned feature.
 - Once the user starts Today, it does not silently regenerate. Completed work is preserved, and
   changing the remaining session requires an explicit Replan action.
 - Subjective input and behavioral diagnosis are separate lanes.
@@ -109,8 +112,8 @@ Implement P0-P11 in dependency order. Before inviting anyone:
 - The active methodology is a validated `research-*` release rather than a user-facing stub.
 - The builder completes a 14-day natural-use validation with at least eight real training sessions,
   at least ten naturally played/imported games, and at least one manual PGN or OTB game.
-- The full flow works without database repair: import, analysis, weekly focus, seven-day forecast,
-  Today, outcome logging, adaptation, history, feedback, export, and deletion.
+- The full flow works without database repair: import, analysis, weekly focus, internal seven-day
+  forecast generation, Today, outcome logging, adaptation, history, feedback, export, and deletion.
 - No unresolved critical incident exists.
 
 ### Stage B: pilot closed beta, 5-10 active users
@@ -199,7 +202,7 @@ Every part must end with:
 | P4   | Decision-state and skill-history foundation                     | Before closed beta                       | P1, P3                              | Complete |
 | P5   | Stable weekly focus and bounded user choice                     | Before closed beta                       | P4                                  | Complete |
 | P6   | Seven-day forecast, revision ledger, and availability model     | Before closed beta                       | P5                                  | Complete |
-| P7   | Program history and forecast experience                         | Before closed beta                       | P6                                  | Planned  |
+| P7   | Program history experience                                      | Before closed beta                       | P6                                  | Complete |
 | P8   | Training-fit and product-feedback loop                          | Before closed beta                       | P5, P7                              | Planned  |
 | P9   | Observational research capture and public methodology changelog | Before closed beta                       | P3, P8                              | Planned  |
 | P10  | Manual PGN and OTB import                                       | Before closed beta                       | P2, P3                              | Planned  |
@@ -785,7 +788,8 @@ and regenerates Today. P6 forecast/revision-ledger work and P7 history UI were n
 
 ### P6: Seven-day forecast, revision ledger, and availability model
 
-**Goal:** turn a daily calculator into a living program with past, present, and provisional future.
+**Goal:** support a living program with immutable history, a committed present, and deterministic
+internal projections.
 
 **Public interfaces:**
 
@@ -803,7 +807,8 @@ and regenerates Today. P6 forecast/revision-ledger work and P7 history UI were n
 - Choose exact puzzles and personal positions on the day they are trained. Future days contain
   activity blocks, not prematurely allocated puzzle ids.
 - Existing users with no preferred weekdays remain explicitly `flexible`; do not invent a schedule.
-  Prompt once for preferred days, while allowing flexible mode permanently.
+  Keep availability APIs and persisted state available to the Engine, but do not expose an editor on
+  Today in Phase 1.
 - Freeze Today after the first ActivityEvent. An explicit Replan preserves completed items and records
   the revision.
 - Recalculate missed work without catch-up debt. Due items return through scheduling; unfinished
@@ -826,9 +831,9 @@ Program generation now refuses to silently replace a started Today. Once any Act
 the active Program, ordinary Generate returns that same program. Availability, override, and focus
 changes preserve its materialized forecast and only replace future provisional days. Explicit Replan is a separate action:
 it appends replacement forecast rows and a graded revision entry while the superseded Program,
-completed ProgramItems, ActivityEvents, and original rationale snapshots remain unchanged. P7 remains
-the owner of a full history and revision-ledger experience; P6 exposes only a compact seven-day strip,
-the one-time availability prompt, date-unavailable controls, and explicit Replan on Today.
+completed ProgramItems, ActivityEvents, and original rationale snapshots remain unchanged. P7 owns
+the user-facing immutable history. Forecasts, availability controls, and the revision ledger remain
+backend capabilities rather than Today-page surfaces. Explicit time-budget replanning stays on Today.
 
 The four P6 models cascade on hard User deletion and are included in the credential-redacted v2 user
 export. Typed strict Zod boundaries cover availability, overrides, forecast blocks, forecasts, and
@@ -843,15 +848,12 @@ the real previous and new focus ids. Replan subtracts completed concrete due ref
 dropping an entire review activity, and UTC forecast dates render consistently across browser time
 zones.
 
-The P6 frontend follow-up turns these controls into an explicit program desk. Every mutation now
-keeps a visible success or failure result after its button returns to rest. Weekly direction renders
-human labels rather than config ids, keeps methodology-approved alternatives collapsed by default,
-puts the algorithm's recommendation and its input signals first, separates it from a current user
-choice, and removes repeated evidence copy from each option. A saved focus is reported as saved even
-if the subsequent forecast refresh fails, with that partial outcome shown explicitly. Availability setup can be deferred
-without changing state, one-date overrides can be restored, and the seven-day scoresheet distinguishes
-committed Today, provisional work, and rest days. `research-1.3.0` keeps the evidence grade and caveat
-for bounded alternatives while phrasing the optional choice around user control.
+**Product correction (2026-07-15).** The earlier P6 frontend controls were retired from Today. The
+future forecast repeated the program produced from the same deterministic inputs and did not add a
+useful decision. The collapsed plan-settings surface was too unreliable for Phase 1. Do not rebuild
+the forecast strip, weekly availability editor, day overrides, focus alternatives, or revision
+ledger on Today. Their persisted models and typed APIs remain intact for deterministic Engine work
+and a possible later feature designed outside the training flow.
 
 #### P6 handoff
 
@@ -860,40 +862,106 @@ for bounded alternatives while phrasing the optional choice around user control.
   The migration adds four user-owned tables, indexes, and cascade foreign keys without destructive
   changes.
 - Owner action: deploy through the normal CI path and smoke an authenticated first generation,
-  flexible-mode choice, preferred-weekday choice, one-date unavailable override, started-session
-  Generate freeze, and explicit Replan. No new environment variable or job is required.
+  started-session Generate freeze, internal forecast persistence, and explicit time-budget Replan.
+  No new environment variable or job is required.
 - Verification: Node 25.2.0; Prisma validation/generation; typecheck; lint; 75 Vitest files with 479
   tests; 4 guard files with 73 tests; production build; and 18 Playwright tests all pass.
-- Deliberate deviations: the P6 minimal UI offers permanent flexible mode or an explicit weekday
-  preset, plus per-date unavailable overrides. Arbitrary weekday editing and per-day minute editing
-  belong to P7's complete forecast experience. Revision rows are inspectable through a typed API,
-  persistence, and export; P7 owns the user-facing history view. The forecast uses the active materialized day's
-  methodology-approved activity mix as its candidate block set rather than generating concrete
-  future sessions, which is what prevents premature item allocation.
-- Remaining risks: the compact UI cannot undo an unavailable override until P7 adds full editing.
-  A forecast is refreshed by generation, availability changes, overrides, focus alternatives, and
-  explicit Replan; a scheduled background rolling refresh is not added because P2's existing daily
-  job scope does not yet materialize per-user programs. Authenticated deployment smoke and migration
-  application remain owner actions.
+- Deliberate deviations: forecast and availability models remain inspectable through typed APIs,
+  persistence, and export, but they have no Phase 1 Today-page controls. The forecast uses the active
+  materialized day's methodology-approved activity mix as its candidate block set rather than
+  generating concrete future sessions, which prevents premature item allocation.
+- Remaining risks: a forecast is refreshed by generation, persisted availability changes, focus
+  alternatives, and explicit Replan. A scheduled background rolling refresh is not added because
+  P2's existing daily job scope does not yet materialize per-user programs. Authenticated deployment
+  smoke and migration application remain owner actions.
 
 ---
 
-### P7: Program history and forecast experience
+### P7: Program history experience
 
-**Goal:** expose P5-P6 clearly without creating a frontend-only feature.
+**Goal:** expose committed work and immutable history without turning Today into a planning
+dashboard.
 
 **Agent work:**
 
-- Add one program surface with immutable history, committed Today, and six provisional future days.
-- Show weekly focus and a concise explanation of what changed since the previous revision.
-- Label future content as provisional and distinguish planned time from actual time.
-- Provide explicit Replan, availability override, and bounded-alternative actions backed by P5-P6
-  APIs.
+- Add one program surface with a committed Today and cursor-paginated immutable history.
+- Distinguish planned time from measured actual time in history.
+- Provide one clear time-budget plan-update action that preserves completed work.
+- Do not render a future forecast or plan settings on Today in Phase 1. In particular, do not add
+  availability overrides, focus alternatives, weekly scheduling, or revision-ledger controls here.
 - Keep evidence details available without turning the default view into an analysis dashboard.
 - Delegate visual polish freely, but do not add client-side decision logic.
 
-**Definition of Done:** a user can see where they have been, what is committed now, what is likely
-next, and why a plan changed. All displayed decisions originate from persisted backend artifacts.
+**Definition of Done:** a user can see what is committed now and where they have been, with planned
+and measured time kept distinct. All displayed decisions originate from persisted backend artifacts.
+
+**Status (2026-07-13, corrected 2026-07-15): COMPLETE.** P7 keeps `/today` as one focused training
+surface rather than adding a parallel planning route. The surface now joins a committed Today with
+cursor-paginated immutable program history. The future forecast and collapsed plan settings were
+removed after use showed that the forecast repeated the deterministic daily program and the settings
+surface was not reliable enough for Phase 1.
+
+The new read model preserves every Program version, including multiple replans on the same UTC date,
+instead of merging or discarding earlier completed work. History groups those versions under one
+session date, so a day appears once while each original plan and its outcomes remain inspectable. Each
+history item resolves friendly labels, dimension labels, and citation sources against the methodology
+version that created it. If a historic methodology package is unavailable, the persisted artifact
+remains readable and falls back to its
+stored identifiers without substituting the active release. Planned time comes from the persisted
+item snapshot. Actual time is derived on the server from immutable `durationMin` or `solveTimeMs`
+events and remains explicitly `Not measured` when no timed outcome exists. A measured zero remains
+zero rather than becoming unknown.
+
+Opening Today with an active Program from an earlier UTC date now builds the current day's session.
+The guarded save reuses an existing Program for that date, so rapid duplicate build requests cannot
+create repeated session rows. A started earlier day does not block rollover, while a started current
+day remains protected.
+
+Today exposes one `Update plan` action only after the time budget changes, so a no-op cannot produce a
+misleading failure. Completed work remains preserved by the existing P6 replan path. The P6 revision
+ledger, bounded focus alternatives, availability state, day overrides, and forecast remain persisted
+backend capabilities, but none is rendered as plan settings on Today.
+
+**UX follow-up (2026-07-14).** The training work now leads the page. Today shows one unambiguous
+session state for complete, complete with skips, or still in progress. Each skipped block remains
+visibly closed and can be restored through an append-only `skip_undone` event. The duplicate
+Regenerate and Replan controls are replaced by one `Update plan` action beside the time budget. It is
+disabled until the budget changes. The P6 scheduling choice that interrupted the top of Today is
+removed. The collapsed plan settings and the future forecast are also removed in the 2026-07-15
+product correction and must not be rebuilt as Phase 1 Today features.
+
+The backend can still rebuild a missing or stale rolling forecast from the active persisted Program.
+Today does not query or display that projection. History renders explicit empty, loading, and failure
+states. Setup consistently uses the name `Setup`, counts all five steps, and separately reports
+whether the three required steps are complete. Viewing the starting picture and creating the first
+Program now persist completion for steps 4 and 5.
+
+#### P7 handoff
+
+- Migrations: apply `20260713000000_p7_program_history_indexes` for bounded history reads, then
+  `20260714000000_setup_reveal_progress` for persisted setup step 4 completion.
+- Owner action: deploy through the normal CI path, then smoke authenticated Today with at least one
+  same-day time-budget plan update and a measured training outcome. Confirm the archive keeps both
+  same-day versions, planned versus actual time remains distinct, and no future forecast or plan
+  settings are present.
+- Verification: Node 25.2.0; Prisma formatting and generation; typecheck; full lint; 81 Vitest files
+  with 499 tests; 4 guard files with 73 tests; production build; and 21 Playwright tests all pass.
+  Focused setup and P5-P7 verification covered 60 tests before the full suite. Playwright covers the
+  public route gates plus database-free desktop and mobile renders of the real Today and Setup
+  components, including all three session outcomes, skip reversal, empty history, and page-overflow
+  checks. The full signed-in journey remains an owner production-like
+  smoke because CI has no OAuth and seeded authenticated browser fixture.
+- Product-correction verification (2026-07-15): Node 25.2.0; typecheck; focused ESLint; 4 focused
+  Vitest files with 19 tests; production build; and 2 focused Playwright UI tests pass.
+- Deliberate deviations: P7 extends `/today` instead of introducing a parallel `/program` route.
+  Program history is cursor-paginated at a bounded server page size. Same-day versions remain
+  immutable and are nested under one session date rather than repeated as top-level sessions or
+  merged into a lossy rollup. Forecast persistence is retained for Engine
+  determinism but intentionally has no Today UI. No methodology value, evidence grade,
+  recommendation, or research claim changed. BUILD.md and METHODOLOGY.md therefore remain unchanged.
+- Remaining risks: authenticated browser coverage still depends on a production-like signed-in
+  fixture. Forecast and revision history reads are bounded and cursor-paginated, while a rolling
+  refresh is repaired on the first current-week read rather than by a background midnight job.
 
 ---
 

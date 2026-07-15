@@ -2,10 +2,14 @@ import { describe, expect, it } from "vitest";
 import type { TodayItem, TodayProgram } from "@/server/program";
 import {
   formatForecastDate,
+  formatMeasurementCoverage,
+  formatMeasuredMinutes,
+  formatProgramVersionTime,
   focusSourceLabel,
   formatMinuteCap,
   humanizeFocusArea,
   itemSummary,
+  isSameUtcDay,
   primaryActionKind,
   rowStatusLabel,
   sessionMinuteCap,
@@ -47,6 +51,21 @@ describe("Today copy helpers", () => {
     );
   });
 
+  it("compares session dates at UTC day granularity", () => {
+    expect(
+      isSameUtcDay(
+        new Date("2026-07-15T00:00:00.000Z"),
+        new Date("2026-07-15T23:59:59.999Z"),
+      ),
+    ).toBe(true);
+    expect(
+      isSameUtcDay(
+        new Date("2026-07-14T23:59:59.999Z"),
+        new Date("2026-07-15T00:00:00.000Z"),
+      ),
+    ).toBe(false);
+  });
+
   it("turns recommendation signals into concise user-facing reasons", () => {
     expect(focusSourceLabel("measured weakness")).toBe("recent measured needs");
     expect(focusSourceLabel("process goal:rating")).toBe("your stated goal");
@@ -56,6 +75,25 @@ describe("Today copy helpers", () => {
     expect(formatMinuteCap(0.75)).toBe("Up to 1 min");
     expect(formatMinuteCap(15)).toBe("Up to 15 min");
     expect(formatMinuteCap(15.1)).toBe("Up to 16 min");
+  });
+
+  it("keeps planned and measured time labels distinct", () => {
+    expect(formatMeasuredMinutes(null)).toBe("Not measured");
+    expect(formatMeasuredMinutes(0)).toBe("0 min");
+    expect(formatMeasuredMinutes(0.5)).toBe("Less than 1 min");
+    expect(formatMeasuredMinutes(14.4)).toBe("14 min");
+    expect(formatMeasuredMinutes(14.4, true)).toBe("At least 14 min");
+    expect(formatMeasuredMinutes(null, true)).toBe("No measured time in view");
+    expect(formatMeasuredMinutes(0.5, true)).toBe(
+      "At least some measured time",
+    );
+    expect(formatMeasurementCoverage(2, 3, false)).toBe("2 of 3 logs timed");
+    expect(formatMeasurementCoverage(100, 140, true)).toBe(
+      "At least 100 of 140 logs timed",
+    );
+    expect(
+      formatProgramVersionTime(new Date("2026-07-13T09:30:00.000Z")),
+    ).toMatch(/9:30.*UTC|09:30.*UTC/);
   });
 
   it("sums the session cap without fractional minutes", () => {

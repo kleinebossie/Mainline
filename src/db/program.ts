@@ -6,7 +6,7 @@
 import { Prisma, type PrismaClient } from "@prisma/client";
 import { lockUserProgramMutation } from "@/db/user-mutation-lock";
 
-/** One row to insert — the generator's draft flattened to ProgramItem columns (§5.5). */
+/** One row to insert: the generator's draft flattened to ProgramItem columns (§5.5). */
 export interface PersistableProgramItem {
   orderIndex: number;
   activityId: string;
@@ -43,6 +43,7 @@ export async function saveProgram(
   input: SaveProgramInput,
   options: {
     preventStartedReplacement?: boolean;
+    reuseExistingDate?: boolean;
     afterSave?: (
       tx: Prisma.TransactionClient,
       programId: string,
@@ -52,12 +53,27 @@ export async function saveProgram(
   return db.$transaction(
     async (tx) => {
       await lockUserProgramMutation(tx, input.userId);
+      if (options.reuseExistingDate) {
+        const existing = await tx.program.findFirst({
+          where: {
+            userId: input.userId,
+            status: "active",
+            items: { some: { date: input.date } },
+          },
+          select: { id: true },
+        });
+        if (existing) {
+          return { programId: existing.id, reusedStartedProgram: true };
+        }
+      }
       if (options.preventStartedReplacement) {
         const started = await tx.program.findFirst({
           where: {
             userId: input.userId,
             status: "active",
-            items: { some: { activityEvents: { some: {} } } },
+            items: {
+              some: { date: input.date, activityEvents: { some: {} } },
+            },
           },
           select: { id: true },
         });

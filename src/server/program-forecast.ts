@@ -1,21 +1,30 @@
 import type { Prisma, PrismaClient } from "@prisma/client";
+import { z } from "zod";
 
 import { buildSevenDayForecast } from "@/engine/forecast";
 import {
   availabilityOverrideInputSchema,
   programDayForecastSchema,
+  programRevisionPageInputSchema,
   programRevisionSchema,
   weeklyAvailabilityInputSchema,
   type AvailabilityOverrideInput,
+  type ProgramRevision,
+  type ProgramRevisionPage,
+  type ProgramRevisionPageInput,
   type WeeklyAvailabilityInput,
 } from "@/lib/program-forecast";
-import { programGenerationInputSchema } from "@/lib/weekly-focus";
+import {
+  programGenerationInputSchema,
+  programWeeklyFocusSnapshotSchema,
+} from "@/lib/weekly-focus";
 import { systemClock, type Clock } from "@/lib/clock";
 import { lockUserProgramMutation } from "@/db/user-mutation-lock";
 
 type ForecastDb = Pick<
   PrismaClient,
   | "weeklyAvailability"
+  | "weeklyFocus"
   | "availabilityOverride"
   | "programDayForecast"
   | "programRevision"
@@ -39,6 +48,52 @@ export interface ForecastSource {
     confidence: string;
     soften: boolean;
   }>;
+}
+
+const legacyForecastInputSchema = z
+  .object({
+    constraints: z
+      .object({ minutesPerDay: z.number().int().positive() })
+      .passthrough(),
+    dueWork: z.array(z.unknown()).default([]),
+  })
+  .passthrough();
+
+async function forecastSnapshotFor(
+  db: Db,
+  userId: string,
+  generationInput: unknown,
+) {
+  try {
+    return programGenerationInputSchema.parse(generationInput);
+  } catch (currentSchemaError) {
+    const legacy = legacyForecastInputSchema.safeParse(generationInput);
+    if (!legacy.success) throw currentSchemaError;
+
+    const focus = await db.weeklyFocus.findFirst({
+      where: { userId, status: "active" },
+      orderBy: [{ weekStart: "desc" }, { createdAt: "desc" }],
+    });
+    if (!focus) throw currentSchemaError;
+
+    return {
+      constraints: legacy.data.constraints,
+      dueWork: legacy.data.dueWork,
+      weeklyFocus: programWeeklyFocusSnapshotSchema.parse({
+        id: focus.id,
+        weekStart: focus.weekStart.getTime(),
+        focusAreas: focus.focusAreas,
+        supportingSignals: focus.supportingSignals,
+        confidence: focus.confidence,
+        methodologyVersion: focus.methodologyVersion,
+        rationaleSnapshots: focus.rationaleSnapshots,
+        alternatives: focus.alternatives,
+        selectedAlternative: focus.selectedAlternative,
+        revisionTrigger: focus.revisionTrigger,
+        createdAt: focus.createdAt.getTime(),
+      }),
+    };
+  }
 }
 
 function startOfDay(epoch: number): Date {
@@ -160,33 +215,94 @@ function decodeForecast(row: {
   });
 }
 
-export async function getForecast(db: Db, userId: string) {
+export async function getForecast(
+  db: Db,
+  userId: string,
+  clock: Clock = systemClock,
+) {
   const rows = await db.programDayForecast.findMany({
     where: { userId, status: { in: ["provisional", "materialized"] } },
     orderBy: { date: "asc" },
   });
-  return rows.map(decodeForecast);
+  const from = startOfDay(clock.now()).getTime();
+  const through = from + 6 * 86_400_000;
+  const currentRows = rows.filter((row) => {
+    const date = row.date.getTime();
+    return date >= from && date <= through;
+  });
+  const expectedDates = new Set(
+    Array.from({ length: 7 }, (_, index) => from + index * 86_400_000),
+  );
+  const coversCurrentWindow =
+    currentRows.length === 7 &&
+    currentRows.every((row) => expectedDates.delete(row.date.getTime())) &&
+    expectedDates.size === 0;
+
+  if (coversCurrentWindow) return currentRows.map(decodeForecast);
+
+  // Existing and long-idle accounts may have no current forecast artifact. Repair the
+  // rolling read model from the active persisted Program so the future is never hidden.
+  return refreshForecast(db, userId, clock, "rolling_refresh", true);
 }
 
-export async function getProgramRevisions(db: Db, userId: string) {
-  const rows = await db.programRevision.findMany({
-    where: { userId },
-    orderBy: { occurredAt: "desc" },
+function decodeRevision(row: {
+  id: string;
+  previousFocusId: string | null;
+  newFocusId: string | null;
+  previousForecastId: string | null;
+  newForecastId: string | null;
+  trigger: string;
+  changedFields: unknown;
+  gradedDecisions: unknown;
+  methodologyVersion: string;
+  occurredAt: Date;
+}): ProgramRevision {
+  return programRevisionSchema.parse({
+    id: row.id,
+    previousFocusId: row.previousFocusId,
+    newFocusId: row.newFocusId,
+    previousForecastId: row.previousForecastId,
+    newForecastId: row.newForecastId,
+    trigger: row.trigger,
+    changedFields: row.changedFields,
+    gradedDecisions: row.gradedDecisions,
+    methodologyVersion: row.methodologyVersion,
+    occurredAt: row.occurredAt.getTime(),
   });
-  return rows.map((row) =>
-    programRevisionSchema.parse({
-      id: row.id,
-      previousFocusId: row.previousFocusId,
-      newFocusId: row.newFocusId,
-      previousForecastId: row.previousForecastId,
-      newForecastId: row.newForecastId,
-      trigger: row.trigger,
-      changedFields: row.changedFields,
-      gradedDecisions: row.gradedDecisions,
-      methodologyVersion: row.methodologyVersion,
-      occurredAt: row.occurredAt.getTime(),
-    }),
+}
+
+export async function getProgramRevisions(
+  db: Db,
+  userId: string,
+  rawInput: ProgramRevisionPageInput,
+): Promise<ProgramRevisionPage> {
+  const input = programRevisionPageInputSchema.parse(rawInput);
+  const cursorFilter = input.cursor
+    ? {
+        OR: [
+          { occurredAt: { lt: new Date(input.cursor.occurredAt) } },
+          {
+            occurredAt: new Date(input.cursor.occurredAt),
+            id: { lt: input.cursor.id },
+          },
+        ],
+      }
+    : {};
+  const rows = await db.programRevision.findMany({
+    where: { userId, ...cursorFilter },
+    orderBy: [{ occurredAt: "desc" }, { id: "desc" }],
+    take: input.limit + 1,
+  });
+  const hasNextPage = rows.length > input.limit;
+  const revisions = (hasNextPage ? rows.slice(0, input.limit) : rows).map(
+    decodeRevision,
   );
+  const last = revisions.at(-1);
+  return {
+    revisions,
+    nextCursor:
+      hasNextPage && last ? { occurredAt: last.occurredAt, id: last.id } : null,
+  };
 }
 
 function forecastChangedFields(
@@ -255,7 +371,11 @@ export async function refreshForecast(
       include: { items: { orderBy: { orderIndex: "asc" } } },
     }));
   if (!source) return [];
-  const snapshot = programGenerationInputSchema.parse(source.generationInput);
+  const snapshot = await forecastSnapshotFor(
+    db,
+    userId,
+    source.generationInput,
+  );
   const availability = await getWeeklyAvailability(db, userId);
   const from = startOfDay(clock.now());
   const through = new Date(from.getTime() + 6 * 86_400_000);

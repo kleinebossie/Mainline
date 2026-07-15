@@ -66,6 +66,7 @@ export async function exportUserData(db: PrismaClient, userId: string) {
       patronStatus: true,
       primaryPlatform: true,
       betaAccessGrantedAt: true,
+      setupRevealSeenAt: true,
       deletedAt: true,
       deletionRequestedAt: true,
       createdAt: true,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { trpc } from "@/lib/trpc/react";
 import {
   MAX_MINUTES_PER_DAY,
@@ -8,17 +8,13 @@ import {
 } from "@/lib/constraint-limits";
 import { Button } from "@/components/ui/button";
 import { StatusMessage } from "@/components/ui/status-message";
-import { formatForecastDate, humanizeFocusArea } from "@/app/today/today-copy";
 import {
   EmptyTodayCard,
   TodayBlockList,
   TodayHeader,
 } from "@/app/today/today-session";
-import {
-  AvailabilityPrompt,
-  WeekFile,
-  WeeklyDirection,
-} from "@/app/today/today-week";
+import { ProgramArchive } from "@/app/today/program-history";
+import { isSameUtcDay } from "@/app/today/today-copy";
 
 type ProgramNotice = {
   tone: "success" | "error" | "neutral";
@@ -28,137 +24,34 @@ type ProgramNotice = {
 
 export function Today() {
   const utils = trpc.useUtils();
+  const rolloverAttemptedFor = useRef<string | null>(null);
   const [programNotice, setProgramNotice] = useState<ProgramNotice | null>(
     null,
   );
-  const [availabilityDismissed, setAvailabilityDismissed] = useState(false);
-  const [focusOptionsOpen, setFocusOptionsOpen] = useState(false);
   const today = trpc.program.getToday.useQuery();
-  const weeklyFocus = trpc.program.weeklyFocus.useQuery();
-  const forecast = trpc.program.forecast.useQuery();
-  const availability = trpc.program.availability.useQuery();
-  const availabilityOverrides = trpc.program.availabilityOverrides.useQuery();
-  const saveAvailability = trpc.program.saveAvailability.useMutation({
-    onMutate: () => setProgramNotice(null),
-    onSuccess: async (_result, variables) => {
-      await Promise.all([
-        utils.program.availability.invalidate(),
-        utils.program.forecast.invalidate(),
-      ]);
-      setProgramNotice({
-        tone: "success",
-        heading: "Training rhythm saved",
-        message:
-          variables.mode === "flexible"
-            ? "Your week stays flexible. No preferred training days were added."
-            : "Weekdays are now your preferred training days. Individual dates can still change.",
-      });
-    },
-    onError: () =>
-      setProgramNotice({
-        tone: "error",
-        heading: "Training rhythm not saved",
-        message: "The update did not go through. Try again.",
-      }),
-  });
-  const saveOverride = trpc.program.saveAvailabilityOverride.useMutation({
-    onMutate: () => setProgramNotice(null),
-    onSuccess: async (_result, variables) => {
-      await Promise.all([
-        utils.program.forecast.invalidate(),
-        utils.program.availabilityOverrides.invalidate(),
-      ]);
-      setProgramNotice({
-        tone: "success",
-        heading: "Day updated",
-        message: `${formatForecastDate(variables.date)} is marked unavailable. The remaining forecast was recalculated without catch-up work.`,
-      });
-    },
-    onError: () =>
-      setProgramNotice({
-        tone: "error",
-        heading: "Day not updated",
-        message: "The availability change did not go through. Try again.",
-      }),
-  });
-  const removeOverride = trpc.program.removeAvailabilityOverride.useMutation({
-    onMutate: () => setProgramNotice(null),
-    onSuccess: async (_result, variables) => {
-      await Promise.all([
-        utils.program.forecast.invalidate(),
-        utils.program.availabilityOverrides.invalidate(),
-      ]);
-      setProgramNotice({
-        tone: "success",
-        heading: "Day restored",
-        message: `${formatForecastDate(variables.date)} now follows your usual weekly availability.`,
-      });
-    },
-    onError: () =>
-      setProgramNotice({
-        tone: "error",
-        heading: "Day not restored",
-        message: "The override could not be removed. Try again.",
-      }),
-  });
+  const history = trpc.program.history.useInfiniteQuery(
+    { limit: 8 },
+    { getNextPageParam: (page) => page.nextCursor ?? undefined },
+  );
   const replan = trpc.program.replan.useMutation({
     onMutate: () => setProgramNotice(null),
     onSuccess: async () => {
       await Promise.all([
         utils.program.getToday.invalidate(),
-        utils.program.forecast.invalidate(),
-        utils.program.weeklyFocus.invalidate(),
-        utils.program.revisions.invalidate(),
+        utils.program.history.invalidate(),
       ]);
       setProgramNotice({
         tone: "success",
-        heading: "Today replanned",
-        message:
-          "Completed work stayed in your history. The remaining session and forecast now use current inputs.",
+        heading: "Plan updated",
+        message: "Remaining work now fits the new time budget.",
       });
     },
     onError: () =>
       setProgramNotice({
         tone: "error",
-        heading: "Today not replanned",
-        message: "Your existing session is unchanged. Try again.",
+        heading: "Plan not updated",
+        message: "Your existing session is unchanged. Try the update again.",
       }),
-  });
-  const selectFocus = trpc.program.selectFocus.useMutation({
-    onMutate: () => setProgramNotice(null),
-    onSuccess: async (result, variables) => {
-      await Promise.all([
-        utils.program.weeklyFocus.invalidate(),
-        utils.program.getToday.invalidate(),
-        utils.program.forecast.invalidate(),
-        utils.program.revisions.invalidate(),
-      ]);
-      setFocusOptionsOpen(false);
-      const selectedLabel = variables.focusAreas
-        .map(
-          (focusArea) =>
-            weeklyFocus.data?.focusLabels[focusArea] ??
-            humanizeFocusArea(focusArea),
-        )
-        .join(" + ");
-      setProgramNotice({
-        tone: result.forecastUpdated ? "success" : "neutral",
-        heading: result.forecastUpdated
-          ? "Weekly focus changed"
-          : "Focus saved, preview not refreshed",
-        message: result.forecastUpdated
-          ? `${selectedLabel} will guide future provisional days. A started Today remains unchanged.`
-          : `${selectedLabel} is active, but the seven-day preview may stay stale until the next session rebuild.`,
-      });
-    },
-    onError: async (error) => {
-      await utils.program.weeklyFocus.invalidate();
-      setProgramNotice({
-        tone: "error",
-        heading: "Weekly focus not changed",
-        message: `The change was not confirmed. The latest weekly focus has been reloaded. ${error.message}`,
-      });
-    },
   });
   const dueReviews = trpc.tracker.dueReviews.useQuery();
   const generate = trpc.program.generate.useMutation({
@@ -166,27 +59,71 @@ export function Today() {
     onSuccess: async () => {
       await Promise.all([
         utils.program.getToday.invalidate(),
-        utils.program.forecast.invalidate(),
         utils.tracker.dueReviews.invalidate(),
+        utils.program.history.invalidate(),
       ]);
       setProgramNotice({
         tone: "success",
-        heading: "Session rebuilt",
-        message: "Today now fits the saved time budget.",
+        heading: "Session built",
+        message: "Today is ready.",
       });
     },
     onError: () =>
       setProgramNotice({
         tone: "error",
-        heading: "Session not rebuilt",
-        message: "Your previous session is still available. Try again.",
+        heading: "Session not built",
+        message: "Your time budget was saved. Try building the session again.",
       }),
   });
+  const program = today.data;
+  const staleProgram =
+    program != null && !isSameUtcDay(program.scheduledDate, new Date());
+
+  useEffect(() => {
+    if (
+      !staleProgram ||
+      generate.isPending ||
+      rolloverAttemptedFor.current === program.id
+    ) {
+      return;
+    }
+    rolloverAttemptedFor.current = program.id;
+    generate.mutate();
+  }, [generate, program, staleProgram]);
   const log = trpc.tracker.logOutcome.useMutation({
-    onSuccess: () => {
+    onSuccess: (_result, variables) => {
       void utils.program.getToday.invalidate();
       void utils.tracker.dueReviews.invalidate();
+      void utils.program.history.invalidate();
+      if (variables.type === "skip") {
+        setProgramNotice({
+          tone: "neutral",
+          heading: "Block skipped",
+          message:
+            "It is closed for today. Use Undo skip on the block to restore it.",
+        });
+      }
     },
+  });
+  const undoSkip = trpc.tracker.undoSkip.useMutation({
+    onMutate: () => setProgramNotice(null),
+    onSuccess: async () => {
+      await Promise.all([
+        utils.program.getToday.invalidate(),
+        utils.program.history.invalidate(),
+      ]);
+      setProgramNotice({
+        tone: "success",
+        heading: "Skip undone",
+        message: "The block is back in your remaining work.",
+      });
+    },
+    onError: () =>
+      setProgramNotice({
+        tone: "error",
+        heading: "Skip not undone",
+        message: "The block stayed skipped. Try the undo again.",
+      }),
   });
 
   const constraints = trpc.constraints.getCurrent.useQuery();
@@ -218,19 +155,21 @@ export function Today() {
     requestedMinutes >= MIN_MINUTES_PER_DAY &&
     requestedMinutes <= MAX_MINUTES_PER_DAY;
 
-  const handleRegenerateWithTime = () => {
+  const saveTimeThen = (next: () => void) => {
     if (!constraints.data || !timeValid) return;
     saveConstraints.mutate(
       { ...constraints.data, minutesPerDay: requestedMinutes },
       {
-        onSuccess: () => {
-          generate.mutate();
-        },
+        onSuccess: next,
       },
     );
   };
 
-  const timeBusy = saveConstraints.isPending || generate.isPending;
+  const handleBuildWithTime = () => saveTimeThen(() => generate.mutate());
+  const handleUpdateWithTime = () => saveTimeThen(() => replan.mutate());
+  const timeChanged = minutes != null && requestedMinutes !== minutes;
+  const timeBusy =
+    saveConstraints.isPending || generate.isPending || replan.isPending;
 
   if (today.isLoading) {
     return <StatusMessage tone="loading">Loading your session…</StatusMessage>;
@@ -255,36 +194,101 @@ export function Today() {
     );
   }
 
-  const program = today.data;
+  const historyEntries =
+    history.data?.pages.flatMap((page) => page.entries) ?? [];
   const pendingItemId = log.isPending
     ? log.variables?.programItemId
-    : undefined;
+    : undoSkip.isPending
+      ? undoSkip.variables?.programItemId
+      : undefined;
+
+  if (program && staleProgram) {
+    return (
+      <div className="flex min-w-0 flex-col gap-5">
+        {generate.error ? (
+          <StatusMessage tone="error" heading="Today could not be prepared">
+            <div className="flex flex-wrap items-center gap-3">
+              <span>Your earlier session is safe in History.</span>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  rolloverAttemptedFor.current = program.id;
+                  generate.mutate();
+                }}
+              >
+                Try again
+              </Button>
+            </div>
+          </StatusMessage>
+        ) : (
+          <StatusMessage tone="loading">
+            Preparing today&apos;s session…
+          </StatusMessage>
+        )}
+        <ProgramArchive
+          entries={historyEntries}
+          currentProgramId=""
+          loading={history.isLoading}
+          error={history.isError}
+          hasMore={history.hasNextPage === true}
+          loadingMore={history.isFetchingNextPage}
+          onRetry={() => void history.refetch()}
+          onLoadMore={() => void history.fetchNextPage()}
+        />
+      </div>
+    );
+  }
 
   if (!program) {
     return (
-      <EmptyTodayCard
-        timeInput={timeInput}
-        setTimeInput={setTimeInput}
-        timeBusy={timeBusy}
-        timeValid={timeValid}
-        onRegenerate={handleRegenerateWithTime}
-      />
+      <div className="flex min-w-0 flex-col gap-5">
+        <EmptyTodayCard
+          timeInput={timeInput}
+          setTimeInput={setTimeInput}
+          timeBusy={timeBusy}
+          timeValid={timeValid}
+          onRegenerate={handleBuildWithTime}
+        />
+        <ProgramArchive
+          entries={historyEntries}
+          currentProgramId=""
+          loading={history.isLoading}
+          error={history.isError}
+          hasMore={history.hasNextPage === true}
+          loadingMore={history.isFetchingNextPage}
+          onRetry={() => void history.refetch()}
+          onLoadMore={() => void history.fetchNextPage()}
+        />
+      </div>
     );
   }
 
   const due = dueReviews.data ?? 0;
-  const weeklyFocusData = weeklyFocus.data;
+  const currentHistory = historyEntries.find(
+    (entry) => entry.id === program.id,
+  );
 
   return (
     <div className="flex min-w-0 flex-col gap-5">
       <TodayHeader
         program={program}
         due={due}
+        actualMinutes={currentHistory?.actualMinutes ?? null}
+        actualMeasuredEvents={currentHistory?.measuredEventCount ?? 0}
+        actualEventCount={currentHistory?.eventCount ?? 0}
+        actualMeasurementTruncated={
+          currentHistory?.measurementTruncated ?? false
+        }
+        historyLoading={history.isLoading}
+        historyError={history.isError}
         timeInput={timeInput}
         setTimeInput={setTimeInput}
         timeBusy={timeBusy}
         timeValid={timeValid}
-        onRegenerate={handleRegenerateWithTime}
+        timeChanged={timeChanged}
+        onRegenerate={handleUpdateWithTime}
       />
 
       {programNotice && (
@@ -294,142 +298,22 @@ export function Today() {
         />
       )}
 
-      {(availability.error ||
-        availabilityOverrides.error ||
-        forecast.error ||
-        weeklyFocus.error) && (
-        <StatusMessage tone="error" heading="Program controls unavailable">
-          <div className="flex flex-wrap items-center gap-3">
-            <span>
-              Today is still usable, but the weekly controls could not be
-              loaded.
-            </span>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              disabled={
-                availability.isFetching ||
-                availabilityOverrides.isFetching ||
-                forecast.isFetching ||
-                weeklyFocus.isFetching
-              }
-              onClick={() => {
-                void availability.refetch();
-                void availabilityOverrides.refetch();
-                void forecast.refetch();
-                void weeklyFocus.refetch();
-              }}
-            >
-              {availability.isFetching ||
-              availabilityOverrides.isFetching ||
-              forecast.isFetching ||
-              weeklyFocus.isFetching
-                ? "Retrying..."
-                : "Try again"}
-            </Button>
-          </div>
-        </StatusMessage>
-      )}
-
-      {availability.data?.promptResolvedAt == null &&
-        !availabilityDismissed && (
-          <AvailabilityPrompt
-            pendingMode={
-              saveAvailability.isPending
-                ? saveAvailability.variables?.mode
-                : undefined
-            }
-            onFlexible={() =>
-              saveAvailability.mutate({
-                mode: "flexible",
-                preferredWeekdays: [],
-                defaultMinutesByDay: {},
-              })
-            }
-            onWeekdays={() =>
-              saveAvailability.mutate({
-                mode: "preferred",
-                preferredWeekdays: [1, 2, 3, 4, 5],
-                defaultMinutesByDay: {},
-              })
-            }
-            onLater={() => {
-              setAvailabilityDismissed(true);
-              setProgramNotice({
-                tone: "neutral",
-                heading: "No schedule chosen",
-                message:
-                  "Nothing changed. Mainline will ask again the next time you open Today.",
-              });
-            }}
-          />
-        )}
-
-      {forecast.data && forecast.data.length > 0 && (
-        <WeekFile
-          days={forecast.data}
-          unavailableDates={
-            new Set(
-              (availabilityOverrides.data ?? [])
-                .filter((override) => override.unavailable)
-                .map((override) => override.date),
-            )
-          }
-          pendingDate={
-            saveOverride.isPending
-              ? saveOverride.variables?.date
-              : removeOverride.isPending
-                ? removeOverride.variables?.date
-                : undefined
-          }
-          onMarkUnavailable={(date) =>
-            saveOverride.mutate({ date, minutes: null, unavailable: true })
-          }
-          onRestore={(date) => removeOverride.mutate({ date })}
-        />
-      )}
-
-      {weeklyFocusData && (
-        <WeeklyDirection
-          focus={weeklyFocusData}
-          focusLabels={weeklyFocusData.focusLabels}
-          optionsOpen={focusOptionsOpen}
-          pendingFocus={
-            selectFocus.isPending
-              ? selectFocus.variables?.focusAreas.join("|")
-              : undefined
-          }
-          onToggleOptions={() => setFocusOptionsOpen((open) => !open)}
-          onKeep={() => {
-            setFocusOptionsOpen(false);
-            setProgramNotice({
-              tone: "neutral",
-              heading: "Current focus kept",
-              message: "Nothing changed. You can compare other options later.",
-            });
+      <div id="today-work" className="scroll-mt-24">
+        <TodayBlockList
+          items={program.items}
+          ownedBooks={ownedBooks}
+          libraryLoading={library.isLoading}
+          pendingItemId={pendingItemId}
+          onLogOutcome={(input) => log.mutate(input)}
+          onUndoSkip={(programItemId) => undoSkip.mutate({ programItemId })}
+          onBookLogged={() => {
+            void utils.library.get.invalidate();
+            void utils.program.getToday.invalidate();
+            void utils.tracker.dueReviews.invalidate();
+            void utils.program.history.invalidate();
           }}
-          onSelect={(focusAreas) =>
-            selectFocus.mutate({
-              weeklyFocusId: weeklyFocusData.id,
-              focusAreas,
-            })
-          }
         />
-      )}
-
-      <TodayBlockList
-        items={program.items}
-        ownedBooks={ownedBooks}
-        libraryLoading={library.isLoading}
-        pendingItemId={pendingItemId}
-        onLogOutcome={(input) => log.mutate(input)}
-        onBookLogged={() => {
-          void utils.library.get.invalidate();
-          void utils.program.getToday.invalidate();
-          void utils.tracker.dueReviews.invalidate();
-        }}
-      />
+      </div>
 
       {log.data && log.data.scheduledReviews > 0 && (
         <p className="text-graphite border-l-2 border-evergreen/40 pl-3 font-mono text-xs leading-relaxed">
@@ -453,21 +337,23 @@ export function Today() {
         </p>
       ))}
 
-      <div className="mt-2 flex min-w-0 flex-wrap items-center gap-3 border-t border-line/80 pt-5">
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          disabled={replan.isPending}
-          onClick={() => replan.mutate()}
-        >
-          {replan.isPending ? "Replanning..." : "Replan remaining work"}
-        </Button>
-        <span className="text-graphite min-w-0 font-mono text-xs">
-          Built from your data on {program.createdAt.toLocaleDateString()} ·{" "}
-          {program.methodologyVersion}
-        </span>
+      <div id="program-history" className="scroll-mt-24">
+        <ProgramArchive
+          entries={historyEntries}
+          currentProgramId={program.id}
+          loading={history.isLoading}
+          error={history.isError}
+          hasMore={history.hasNextPage === true}
+          loadingMore={history.isFetchingNextPage}
+          onRetry={() => void history.refetch()}
+          onLoadMore={() => void history.fetchNextPage()}
+        />
       </div>
+
+      <p className="text-graphite font-mono text-xs">
+        Built {program.createdAt.toLocaleDateString()} ·{" "}
+        {program.methodologyVersion}
+      </p>
     </div>
   );
 }

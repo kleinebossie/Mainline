@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { PrismaClient } from "@prisma/client";
 
-import { logOutcome, runDailyAdaptation } from "@/server/tracker";
+import { logOutcome, runDailyAdaptation, undoSkip } from "@/server/tracker";
 import { DAY_MS, fixedClock } from "@/lib/clock";
 
 // M7 server orchestration: logOutcome (= applyEvent §7.3) over an in-memory fake Prisma.
@@ -348,6 +348,40 @@ describe("logOutcome (applyEvent)", () => {
     expect(rec.logs).toHaveLength(1);
     expect(rec.rewardCreates[0]!.type).toBe("streak_tick");
     expect(res.scheduledReviews).toBe(0);
+  });
+});
+
+describe("undoSkip", () => {
+  it("appends a reversal event and returns the active item to todo", async () => {
+    const events: Array<{ type: string; payload: unknown }> = [];
+    const updates: Array<{ status: string }> = [];
+    const db = {
+      programItem: {
+        findFirst: async () => ({ activityEvents: [{ id: "skip-1" }] }),
+        update: async ({ data }: { data: { status: string } }) => {
+          updates.push(data);
+          return {};
+        },
+      },
+      activityEvent: {
+        create: async ({
+          data,
+        }: {
+          data: { type: string; payload: unknown };
+        }) => {
+          events.push({ type: data.type, payload: data.payload });
+          return { id: "undo-1" };
+        },
+      },
+      $transaction: async (work: (tx: unknown) => unknown) => work(db),
+    } as unknown as PrismaClient;
+
+    await undoSkip(db, "u1", "p1", clock);
+
+    expect(events).toEqual([
+      { type: "skip_undone", payload: { reversesEventId: "skip-1" } },
+    ]);
+    expect(updates).toEqual([{ status: "todo" }]);
   });
 });
 

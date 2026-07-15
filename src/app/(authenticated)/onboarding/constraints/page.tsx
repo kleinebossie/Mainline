@@ -10,7 +10,7 @@ export default function ConstraintsPage() {
 
   return (
     <PageShell
-      eyebrow="Step 3 of onboarding"
+      eyebrow="Step 3 of setup"
       title="Your time & goals"
       lede="This shapes how much Mainline plans each day and what we prioritise. You can change these constraints at any time."
     >

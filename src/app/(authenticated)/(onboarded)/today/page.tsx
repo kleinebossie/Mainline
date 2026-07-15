@@ -6,11 +6,7 @@ import { Today } from "@/app/today/today";
 // for each (the honesty brand, VISION §2). The session adapts as outcomes are logged (M7).
 export default function TodayPage() {
   return (
-    <PageShell
-      eyebrow="Your daily session"
-      title="Today"
-      lede="Every line is here for a reason, and shows exactly how strong that reason is. Do the work, log the outcome, and tomorrow adapts."
-    >
+    <PageShell eyebrow="Your training" title="Today" width="wide">
       <Today />
     </PageShell>
   );

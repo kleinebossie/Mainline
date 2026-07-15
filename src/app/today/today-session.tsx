@@ -6,6 +6,8 @@ import {
   activityActionLabel,
   completionEventType,
   formatMinuteCap,
+  formatMeasurementCoverage,
+  formatMeasuredMinutes,
   isAutoLoggedInternal,
   isClosedItem,
   isPuzzleAttemptLoggable,
@@ -54,8 +56,7 @@ export function EmptyTodayCard({
             No session yet
           </h2>
           <p className="text-graphite mt-2 text-sm leading-relaxed">
-            Build your first training session from your calibration, your games,
-            and the time you have. You can regenerate it any time.
+            Choose today&apos;s time budget to build your first session.
           </p>
         </div>
         <TimeEdit
@@ -64,6 +65,7 @@ export function EmptyTodayCard({
           timeBusy={timeBusy}
           timeValid={timeValid}
           onRegenerate={onRegenerate}
+          empty
         />
       </div>
     </Card>
@@ -73,33 +75,138 @@ export function EmptyTodayCard({
 export function TodayHeader({
   program,
   due,
+  actualMinutes,
+  actualMeasuredEvents,
+  actualEventCount,
+  actualMeasurementTruncated,
+  historyLoading,
+  historyError,
   timeInput,
   setTimeInput,
   timeBusy,
   timeValid,
+  timeChanged,
   onRegenerate,
 }: {
   program: TodayProgram;
   due: number;
+  actualMinutes: number | null;
+  actualMeasuredEvents: number;
+  actualEventCount: number;
+  actualMeasurementTruncated: boolean;
+  historyLoading: boolean;
+  historyError: boolean;
   timeInput: string;
   setTimeInput: (value: string) => void;
   timeBusy: boolean;
   timeValid: boolean;
+  timeChanged: boolean;
   onRegenerate: () => void;
 }) {
   const [goalOpen, setGoalOpen] = useState(false);
+  const done = program.items.filter((item) => item.status === "done").length;
+  const skipped = program.items.filter(
+    (item) => item.status === "skipped",
+  ).length;
+  const remaining = program.items.length - done - skipped;
+  const allHandled = remaining === 0;
+  const notStarted =
+    !historyLoading && !historyError && actualEventCount === 0;
+  const statusTitle =
+    program.items.length === 0
+      ? "No training scheduled"
+      : allHandled
+        ? skipped === 0
+          ? "All training complete"
+          : "Session finished with skips"
+        : "Session in progress";
   return (
     <section className="bg-card focus-card rounded-lg border p-4 shadow-sheet settle sm:p-5">
+      <div className="mb-5 border-b border-line pb-4">
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <p className="eyebrow">{statusTitle}</p>
+            <p className="mt-1 font-serif text-lg font-semibold text-ink">
+              {program.items.length === 0
+                ? "Nothing is waiting for you today."
+                : `${done} done, ${skipped} skipped, ${remaining} remaining`}
+            </p>
+          </div>
+          {program.items.length > 0 && (
+            <span className="font-mono text-xs text-graphite">
+              {done + skipped} of {program.items.length} handled
+            </span>
+          )}
+        </div>
+        {program.items.length > 0 && (
+          <div
+            className="mt-3 grid gap-1"
+            style={{
+              gridTemplateColumns: `repeat(${program.items.length}, minmax(0, 1fr))`,
+            }}
+            aria-label={`${done} done, ${skipped} skipped, ${remaining} remaining`}
+          >
+            {program.items.map((item) => (
+              <span
+                key={item.id}
+                className={cn(
+                  "h-2 rounded-full border",
+                  item.status === "done" && "border-evergreen bg-evergreen",
+                  item.status === "skipped" &&
+                    "border-clay bg-[repeating-linear-gradient(135deg,hsl(var(--clay))_0_3px,transparent_3px_6px)]",
+                  item.status !== "done" &&
+                    item.status !== "skipped" &&
+                    "border-line bg-paper",
+                )}
+                title={rowStatusLabel(item)}
+              />
+            ))}
+          </div>
+        )}
+        {allHandled && skipped > 0 && (
+          <p className="mt-3 text-sm text-graphite">
+            Undo any skip below to return that block to the session.
+          </p>
+        )}
+      </div>
       <div className="flex min-w-0 flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div className="min-w-0 flex-1">
-          <p className="eyebrow">Today&apos;s prescription</p>
-          <div className="mt-2 flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
-            <h2 className="font-serif text-xl font-semibold leading-tight text-ink sm:text-2xl">
-              {sessionMinuteCap(program)}
-            </h2>
-            <span className="text-graphite font-mono text-xs">
-              ordered training blocks
-            </span>
+          <p className="eyebrow">Today</p>
+          <div className="mt-3 grid max-w-md grid-cols-2 gap-5">
+            <div>
+              <p className="font-mono text-[0.62rem] uppercase tracking-[0.12em] text-graphite">
+                Planned
+              </p>
+              <h2 className="mt-1 font-serif text-xl font-semibold leading-tight text-ink sm:text-2xl">
+                {sessionMinuteCap(program)}
+              </h2>
+            </div>
+            <div className="border-l border-line pl-5">
+              <p className="font-mono text-[0.62rem] uppercase tracking-[0.12em] text-graphite">
+                Actual, measured
+              </p>
+              <p className="mt-1 font-serif text-xl font-semibold leading-tight text-ink sm:text-2xl">
+                {historyLoading
+                  ? "Loading…"
+                  : historyError
+                    ? "Unavailable"
+                    : notStarted
+                      ? "Not started"
+                    : formatMeasuredMinutes(
+                        actualMinutes,
+                        actualMeasurementTruncated,
+                      )}
+              </p>
+              {!historyLoading && !historyError && !notStarted && (
+                <p className="mt-1 font-mono text-[0.6rem] leading-relaxed text-graphite">
+                  {formatMeasurementCoverage(
+                    actualMeasuredEvents,
+                    actualEventCount,
+                    actualMeasurementTruncated,
+                  )}
+                </p>
+              )}
+            </div>
           </div>
         </div>
         <TimeEdit
@@ -109,6 +216,7 @@ export function TodayHeader({
           timeValid={timeValid}
           onRegenerate={onRegenerate}
           compact
+          changed={timeChanged}
         />
       </div>
 
@@ -147,13 +255,12 @@ export function TodayHeader({
         confidence={program.honesty.expectationsEvidence.confidence}
         soften={program.honesty.expectationsEvidence.soften}
         flag={program.honesty.expectationsEvidence.flag}
-        hideToggle
-        className="mt-5"
+        className="mt-4"
       />
 
       {due > 0 && (
         <p className="text-evergreen mt-3 font-mono text-xs">
-          Review queue has work ready. Regenerate to pull it into this session.
+          New review work is ready for your next plan update.
         </p>
       )}
     </section>
@@ -167,6 +274,8 @@ function TimeEdit({
   timeValid,
   onRegenerate,
   compact = false,
+  empty = false,
+  changed = true,
 }: {
   timeInput: string;
   setTimeInput: (value: string) => void;
@@ -174,6 +283,8 @@ function TimeEdit({
   timeValid: boolean;
   onRegenerate: () => void;
   compact?: boolean;
+  empty?: boolean;
+  changed?: boolean;
 }) {
   return (
     <div
@@ -203,21 +314,22 @@ function TimeEdit({
           type="button"
           size="sm"
           variant={!timeValid && !timeBusy ? "outline" : "default"}
-          disabled={timeBusy || !timeValid}
+          disabled={timeBusy || !timeValid || (!empty && !changed)}
           onClick={onRegenerate}
           className={cn(
             !timeValid && !timeBusy && "border-evergreen/30 text-evergreen/50",
           )}
         >
-          {timeBusy ? "Regenerating..." : "Regenerate"}
+          {timeBusy ? "Updating..." : empty ? "Build session" : "Update plan"}
         </Button>
       </div>
       <p
         id="today-time-help"
         className="text-graphite font-mono text-[0.65rem]"
       >
-        {MIN_MINUTES_PER_DAY}-{MAX_MINUTES_PER_DAY} min (
-        {formatMinuteCap(MAX_MINUTES_PER_DAY)})
+        {!empty && !changed && timeValid
+          ? "Change the minutes to update remaining work."
+          : `${MIN_MINUTES_PER_DAY}-${MAX_MINUTES_PER_DAY} min (${formatMinuteCap(MAX_MINUTES_PER_DAY)})`}
       </p>
     </div>
   );
@@ -230,6 +342,7 @@ export function TodayBlockList({
   pendingItemId,
   onLogOutcome,
   onBookLogged,
+  onUndoSkip,
 }: {
   items: TodayItem[];
   ownedBooks: OwnedBook[];
@@ -237,6 +350,7 @@ export function TodayBlockList({
   pendingItemId?: string;
   onLogOutcome: (input: LogOutcomeInput) => void;
   onBookLogged: () => void;
+  onUndoSkip: (programItemId: string) => void;
 }) {
   return (
     <div
@@ -253,6 +367,7 @@ export function TodayBlockList({
           busy={pendingItemId === item.id}
           onLogOutcome={onLogOutcome}
           onBookLogged={onBookLogged}
+          onUndoSkip={onUndoSkip}
         />
       ))}
     </div>
@@ -267,6 +382,7 @@ function TodayBlockCard({
   busy,
   onLogOutcome,
   onBookLogged,
+  onUndoSkip,
 }: {
   item: TodayItem;
   index: number;
@@ -275,6 +391,7 @@ function TodayBlockCard({
   busy: boolean;
   onLogOutcome: (input: LogOutcomeInput) => void;
   onBookLogged: () => void;
+  onUndoSkip: (programItemId: string) => void;
 }) {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const detailsId = `today-block-details-${item.id}`;
@@ -288,7 +405,11 @@ function TodayBlockCard({
     <Card
       gutter={asEvidenceGrade(item.evidenceGrade)}
       provisional={item.soften}
-      className={cn("settle min-w-0", closed && "opacity-75")}
+      className={cn(
+        "settle min-w-0",
+        item.status === "done" && "border-evergreen/35 bg-evergreen/[0.025]",
+        item.status === "skipped" && "border-clay/40 bg-clay/[0.035]",
+      )}
       style={{ animationDelay: `${(index + 1) * 70}ms` }}
     >
       <article className="flex min-w-0 flex-col gap-3 p-4 sm:p-5">
@@ -317,7 +438,13 @@ function TodayBlockCard({
               busy={busy}
               onLogOutcome={onLogOutcome}
             />
-            {closed && <FinalStatusPill item={item} />}
+            {closed && (
+              <FinalStatusPill
+                item={item}
+                busy={busy}
+                onUndoSkip={() => onUndoSkip(item.id)}
+              />
+            )}
           </div>
         </div>
 
@@ -528,11 +655,39 @@ function TodayLogActions({
   return <>{actions}</>;
 }
 
-function FinalStatusPill({ item }: { item: TodayItem }) {
+function FinalStatusPill({
+  item,
+  busy,
+  onUndoSkip,
+}: {
+  item: TodayItem;
+  busy: boolean;
+  onUndoSkip: () => void;
+}) {
   return (
-    <span className="rounded-sm border border-line bg-paper/70 px-2.5 py-1.5 font-mono text-xs text-graphite">
-      {rowStatusLabel(item)}
-    </span>
+    <div className="flex items-center gap-2">
+      <span
+        className={cn(
+          "rounded-sm border px-2.5 py-1.5 font-mono text-xs font-semibold",
+          item.status === "done"
+            ? "border-evergreen/35 bg-evergreen/10 text-evergreen"
+            : "border-clay/40 bg-clay/10 text-clay",
+        )}
+      >
+        {rowStatusLabel(item)}
+      </span>
+      {item.status === "skipped" && (
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          disabled={busy}
+          onClick={onUndoSkip}
+        >
+          {busy ? "Restoring..." : "Undo skip"}
+        </Button>
+      )}
+    </div>
   );
 }
 

@@ -54,6 +54,18 @@ export const DEFAULT_METHODOLOGY_VERSION = "research-1.3.0";
 
 const cache = new Map<string, MethodologyConfig>();
 
+export class UnknownMethodologyVersionError extends Error {
+  constructor(
+    readonly version: string,
+    readonly knownVersions: readonly string[],
+  ) {
+    super(
+      `Unknown methodology version "${version}". Known: ${knownVersions.join(", ")}`,
+    );
+    this.name = "UnknownMethodologyVersionError";
+  }
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -120,8 +132,9 @@ export function loadMethodology(version?: string): MethodologyConfig {
 
   const base = RAW_CONFIGS[resolved];
   if (!base) {
-    throw new Error(
-      `Unknown methodology version "${resolved}". Known: ${Object.keys(RAW_CONFIGS).join(", ")}`,
+    throw new UnknownMethodologyVersionError(
+      resolved,
+      Object.keys(RAW_CONFIGS),
     );
   }
 

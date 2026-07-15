@@ -80,6 +80,7 @@ describe("P6 program router orchestration", () => {
       undefined,
       {
         preventStartedReplacement: true,
+        reuseExistingDate: true,
         forecast: { trigger: "generation", preserveCommittedToday: false },
       },
     );
@@ -157,8 +158,34 @@ describe("P6 program router orchestration", () => {
   });
 
   it("exposes the typed append-only revision read side", async () => {
-    forecast.getProgramRevisions.mockResolvedValue([{ id: "revision-1" }]);
-    await expect(caller().revisions()).resolves.toEqual([{ id: "revision-1" }]);
+    forecast.getProgramRevisions.mockResolvedValue({
+      revisions: [],
+      nextCursor: null,
+    });
+    await expect(caller().revisions({ limit: 12 })).resolves.toEqual({
+      revisions: [],
+      nextCursor: null,
+    });
+    expect(forecast.getProgramRevisions).toHaveBeenCalledWith(
+      expect.anything(),
+      "u1",
+      { limit: 12 },
+    );
+  });
+
+  it("accepts the forward direction added by tRPC infinite queries", async () => {
+    forecast.getProgramRevisions.mockResolvedValue({
+      revisions: [],
+      nextCursor: null,
+    });
+    await expect(
+      caller().revisions({ limit: 20, direction: "forward" }),
+    ).resolves.toEqual({ revisions: [], nextCursor: null });
+    expect(forecast.getProgramRevisions).toHaveBeenCalledWith(
+      expect.anything(),
+      "u1",
+      { limit: 20, direction: "forward" },
+    );
   });
 
   it("returns methodology-owned display labels for focus ids", async () => {

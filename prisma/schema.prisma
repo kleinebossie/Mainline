@@ -36,6 +36,7 @@ model User {
   // analysis surfaces. Nullable: when unset we infer it from the most recent imported game.
   primaryPlatform     String? // lichess | chesscom
   betaAccessGrantedAt DateTime?
+  setupRevealSeenAt   DateTime?
   deletedAt           DateTime? // soft-delete for GDPR export/erase
   deletionToken       String?   @unique // opaque purge correlation, never contains the user id
   deletionRequestedAt DateTime?
@@ -408,6 +409,7 @@ model Program {
   items ProgramItem[]
 
   @@index([userId, status])
+  @@index([userId, createdAt, id])
 }
 
 // One activity in a day. The transparency snapshot (rationaleText/evidenceGrade/
@@ -467,6 +469,7 @@ model ActivityEvent {
   programItem ProgramItem? @relation(fields: [programItemId], references: [id], onDelete: SetNull)
 
   @@index([userId, occurredAt])
+  @@index([programItemId, occurredAt])
 }
 
 // Per-dimension skill estimate (§5.5). The adaptation loop maintains a v0 competence
@@ -717,7 +720,7 @@ model ProgramRevision {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId, occurredAt])
+  @@index([userId, occurredAt, id])
 }
 
 // --- Engagement plumbing (BUILD.md §5.7, §9, M9) ---

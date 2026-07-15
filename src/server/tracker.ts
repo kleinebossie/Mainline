@@ -182,6 +182,48 @@ export interface LogOutcomeResult {
   rewardEvents: RewardEventView[];
 }
 
+export async function undoSkip(
+  db: Pick<PrismaClient, "activityEvent" | "programItem" | "$transaction">,
+  userId: string,
+  programItemId: string,
+  clock: Clock = systemClock,
+): Promise<void> {
+  await db.$transaction(async (tx) => {
+    await lockUserProgramMutation(tx, userId);
+    const item = await tx.programItem.findFirst({
+      where: {
+        id: programItemId,
+        status: "skipped",
+        program: { userId, status: "active" },
+      },
+      select: {
+        activityEvents: {
+          where: { type: "skip" },
+          orderBy: [{ occurredAt: "desc" }, { id: "desc" }],
+          take: 1,
+          select: { id: true },
+        },
+      },
+    });
+    const skippedEvent = item?.activityEvents[0];
+    if (!skippedEvent)
+      throw new Error("Skipped item not found or no longer active");
+
+    await appendActivityEvent(tx, {
+      userId,
+      programItemId,
+      type: "skip_undone",
+      occurredAt: new Date(clock.now()),
+      payload: { reversesEventId: skippedEvent.id },
+      source: "user",
+    });
+    await tx.programItem.update({
+      where: { id: programItemId },
+      data: { status: "todo" },
+    });
+  });
+}
+
 export async function logOutcome(
   db: Db,
   userId: string,

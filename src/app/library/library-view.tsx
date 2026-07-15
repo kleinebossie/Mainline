@@ -183,7 +183,7 @@ export function Library() {
   if (!data) {
     return (
       <StatusMessage tone="neutral" heading="Library not tailored yet">
-        Finish onboarding first; we tailor these to your level and how you play.
+        Finish setup first; we tailor these to your level and how you play.
       </StatusMessage>
     );
   }

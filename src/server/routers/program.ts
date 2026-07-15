@@ -42,8 +42,15 @@ import {
 } from "@/server/program-forecast";
 import {
   availabilityOverrideInputSchema,
+  programRevisionPageInputSchema,
+  programRevisionPageSchema,
   weeklyAvailabilityInputSchema,
 } from "@/lib/program-forecast";
+import {
+  programHistoryInputSchema,
+  programHistoryPageSchema,
+} from "@/lib/program-history";
+import { getProgramHistory } from "@/server/program-history";
 
 /** Normalized position for the board trainer. */
 interface Solvable {
@@ -244,6 +251,7 @@ export const programRouter = router({
   generate: protectedProcedure.mutation(async ({ ctx }) => {
     await generateAndSaveProgram(ctx.prisma, ctx.userId, undefined, {
       preventStartedReplacement: true,
+      reuseExistingDate: true,
       forecast: { trigger: "generation", preserveCommittedToday: false },
     });
     return getTodayProgram(ctx.prisma, ctx.userId);
@@ -264,9 +272,27 @@ export const programRouter = router({
     getForecast(ctx.prisma, ctx.userId),
   ),
 
-  revisions: protectedProcedure.query(({ ctx }) =>
-    getProgramRevisions(ctx.prisma, ctx.userId),
-  ),
+  revisions: protectedProcedure
+    .input(programRevisionPageInputSchema.optional())
+    .output(programRevisionPageSchema)
+    .query(({ ctx, input }) =>
+      getProgramRevisions(
+        ctx.prisma,
+        ctx.userId,
+        programRevisionPageInputSchema.parse(input ?? {}),
+      ),
+    ),
+
+  history: protectedProcedure
+    .input(programHistoryInputSchema.optional())
+    .output(programHistoryPageSchema)
+    .query(({ ctx, input }) =>
+      getProgramHistory(
+        ctx.prisma,
+        ctx.userId,
+        programHistoryInputSchema.parse(input ?? {}),
+      ),
+    ),
 
   availability: protectedProcedure.query(({ ctx }) =>
     getWeeklyAvailability(ctx.prisma, ctx.userId),

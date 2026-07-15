@@ -8,6 +8,6 @@ export async function lockUserProgramMutation(
 ): Promise<void> {
   if (typeof db.$queryRaw !== "function") return;
   await db.$queryRaw(
-    PrismaRuntime.sql`SELECT pg_advisory_xact_lock(hashtext(${userId}))`,
+    PrismaRuntime.sql`SELECT pg_advisory_xact_lock(hashtext(${userId}))::text AS lock`,
   );
 }

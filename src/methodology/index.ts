@@ -7,6 +7,7 @@ export {
   loadMethodology,
   ACTIVE_METHODOLOGY_VERSION,
   DEFAULT_METHODOLOGY_VERSION,
+  UnknownMethodologyVersionError,
 } from "@/methodology/loader";
 
 export {

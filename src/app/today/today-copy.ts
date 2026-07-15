@@ -27,6 +27,55 @@ export function formatForecastDate(epoch: number): string {
   }).format(new Date(epoch));
 }
 
+export function formatMeasuredMinutes(
+  minutes: number | null,
+  truncated = false,
+): string {
+  if (minutes == null) {
+    return truncated ? "No measured time in view" : "Not measured";
+  }
+  const measured =
+    minutes < 1 && minutes > 0
+      ? "Less than 1 min"
+      : `${Math.round(minutes)} min`;
+  if (truncated && minutes > 0 && minutes < 1) {
+    return "At least some measured time";
+  }
+  return truncated ? `At least ${measured.toLowerCase()}` : measured;
+}
+
+export function formatMeasurementCoverage(
+  measuredEvents: number,
+  eventCount: number,
+  truncated: boolean,
+): string | null {
+  if (eventCount === 0) return null;
+  if (measuredEvents === eventCount && !truncated) {
+    return `${eventCount} ${eventCount === 1 ? "log" : "logs"} timed`;
+  }
+  if (truncated) {
+    return `At least ${measuredEvents} of ${eventCount} logs timed`;
+  }
+  return `${measuredEvents} of ${eventCount} logs timed`;
+}
+
+export function formatProgramVersionTime(date: Date): string {
+  return new Intl.DateTimeFormat(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "UTC",
+    timeZoneName: "short",
+  }).format(date);
+}
+
+export function isSameUtcDay(left: Date, right: Date): boolean {
+  return (
+    left.getUTCFullYear() === right.getUTCFullYear() &&
+    left.getUTCMonth() === right.getUTCMonth() &&
+    left.getUTCDate() === right.getUTCDate()
+  );
+}
+
 export function formatMinuteCap(minutes: number | null | undefined): string {
   if (minutes == null) return "Up to available time";
   return `Up to ${Math.max(1, Math.ceil(minutes))} min`;

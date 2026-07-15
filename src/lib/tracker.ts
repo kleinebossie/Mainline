@@ -34,6 +34,7 @@ export const activityEventPayloadSchema = z
     resourceRefId: z.string().min(1).max(200).optional(),
     position: bookPositionSchema.optional(),
     selfReport: bookSelfReportSchema.optional(),
+    reversesEventId: z.string().min(1).max(100).optional(),
   })
   .strict();
 
@@ -43,6 +44,7 @@ const ACTIVITY_EVENT_TYPES = [
   "game_played",
   "book_session",
   "skip",
+  "skip_undone",
   "self_report",
 ] as const;
 

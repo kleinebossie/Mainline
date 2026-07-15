@@ -16,6 +16,8 @@ interface State {
   connectionStatus?: "active" | "error" | "revoked";
   assessmentCompleted?: boolean;
   formatPrefs?: unknown;
+  revealSeen?: boolean;
+  programCount?: number;
 }
 
 function dbFor(state: State): PrismaClient {
@@ -41,6 +43,20 @@ function dbFor(state: State): PrismaClient {
         where.userId === "user-1" && state.formatPrefs !== undefined
           ? { formatPrefs: state.formatPrefs }
           : null,
+      ),
+    },
+    user: {
+      findUnique: vi.fn(async ({ where }: { where: { id: string } }) =>
+        where.id === "user-1"
+          ? {
+              setupRevealSeenAt: state.revealSeen ? new Date(0) : null,
+            }
+          : null,
+      ),
+    },
+    program: {
+      count: vi.fn(async ({ where }: { where: { userId: string } }) =>
+        where.userId === "user-1" ? (state.programCount ?? 0) : 0,
       ),
     },
   } as unknown as PrismaClient;
@@ -102,7 +118,13 @@ describe("onboarding completion", () => {
       "user-1",
     );
 
-    expect(status.steps.map((step) => step.done)).toEqual([true, false, true]);
+    expect(status.steps.map((step) => step.done)).toEqual([
+      true,
+      false,
+      true,
+      false,
+      false,
+    ]);
     expect(status.nextStep?.href).toBe("/onboarding/calibration");
   });
 
@@ -119,11 +141,50 @@ describe("onboarding completion", () => {
 
     await expect(getOnboardingStatus(db, "user-1")).resolves.toMatchObject({
       complete: true,
-      nextStep: null,
+      nextStep: { href: "/onboarding/reveal" },
     });
     await expect(getOnboardingStatus(db, "user-2")).resolves.toMatchObject({
       complete: false,
     });
+  });
+
+  it("persists the reveal and first-session steps independently", async () => {
+    const base = {
+      connectionStatus: "active" as const,
+      assessmentCompleted: true,
+      formatPrefs: {
+        formats: ["rapid"],
+        preferredVariety: false,
+        targetFocus: "online",
+      },
+    };
+
+    const revealDone = await getOnboardingStatus(
+      dbFor({ ...base, revealSeen: true }),
+      "user-1",
+    );
+    expect(revealDone.steps.map((step) => step.done)).toEqual([
+      true,
+      true,
+      true,
+      true,
+      false,
+    ]);
+    expect(revealDone.allComplete).toBe(false);
+
+    const allDone = await getOnboardingStatus(
+      dbFor({ ...base, revealSeen: true, programCount: 1 }),
+      "user-1",
+    );
+    expect(allDone.steps.map((step) => step.done)).toEqual([
+      true,
+      true,
+      true,
+      true,
+      true,
+    ]);
+    expect(allDone.allComplete).toBe(true);
+    expect(allDone.nextStep).toBeNull();
   });
 
   it("redirects incomplete users and permits complete users", async () => {

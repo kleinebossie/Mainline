@@ -321,14 +321,14 @@ export async function prepareProgram(
     config: cfg,
   });
 
-  // Replanning keeps completed events on the prior program and regenerates pending work.
+  // Replanning keeps closed work on the prior program and regenerates only pending work.
   const completedRows = preserveCompletedToday
     ? await db.program.findFirst({
         where: { userId, status: "active" },
         orderBy: { createdAt: "desc" },
         select: {
           items: {
-            where: { status: "done" },
+            where: { status: { in: ["done", "skipped"] } },
             select: { activityId: true, activityType: true, params: true },
           },
         },
@@ -419,6 +419,7 @@ export async function generateAndSaveProgram(
   options: {
     preserveCompletedToday?: boolean;
     preventStartedReplacement?: boolean;
+    reuseExistingDate?: boolean;
     forecast?: {
       trigger: string;
       preserveCommittedToday: boolean;
@@ -433,6 +434,7 @@ export async function generateAndSaveProgram(
   );
   const saved = await saveProgram(db, prepared.saveInput, {
     preventStartedReplacement: options.preventStartedReplacement ?? false,
+    reuseExistingDate: options.reuseExistingDate ?? false,
     afterSave: options.forecast
       ? async (tx) => {
           await refreshForecast(
@@ -493,6 +495,7 @@ export interface HonestyEvidence {
 export interface TodayProgram {
   id: string;
   createdAt: Date;
+  scheduledDate: Date;
   methodologyVersion: string;
   honesty: {
     expectations: string;
@@ -737,6 +740,8 @@ export async function getTodayProgram(
   return {
     id: program.id,
     createdAt: program.createdAt,
+    scheduledDate:
+      program.items[0]?.date ?? startOfDayUTC(program.createdAt.getTime()),
     methodologyVersion: program.methodologyVersion,
     honesty: {
       expectations: expectationsRationale.value,

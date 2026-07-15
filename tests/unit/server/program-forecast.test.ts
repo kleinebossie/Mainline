@@ -4,12 +4,25 @@ vi.mock("@/lib/weekly-focus", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/weekly-focus")>();
   return {
     ...actual,
-    programGenerationInputSchema: { parse: (value: unknown) => value },
+    programGenerationInputSchema: {
+      parse: (value: unknown) => {
+        if (
+          value &&
+          typeof value === "object" &&
+          "legacyFixture" in value
+        ) {
+          throw new Error("Legacy snapshot");
+        }
+        return value;
+      },
+    },
   };
 });
 
 import {
   getAvailabilityOverrides,
+  getForecast,
+  getProgramRevisions,
   refreshForecast,
   removeAvailabilityOverride,
 } from "@/server/program-forecast";
@@ -42,6 +55,193 @@ function forecastRow(id: string, date: number, status: string) {
 }
 
 describe("P6 forecast persistence", () => {
+  it("repairs a legacy Program using its persisted active weekly focus", async () => {
+    const created: Array<Record<string, unknown>> = [];
+    const focus = {
+      id: "focus-legacy",
+      userId: "u1",
+      weekStart: new Date("2026-07-13T00:00:00.000Z"),
+      focusAreas: ["calculation"],
+      supportingSignals: [],
+      confidence: "medium",
+      methodologyVersion: "research-1.1.0",
+      inputSnapshot: {},
+      status: "active",
+      rationaleSnapshots: [rationale],
+      alternatives: [],
+      selectedAlternative: null,
+      revisionTrigger: null,
+      createdAt: new Date("2026-07-13T08:00:00.000Z"),
+    };
+    const db = {
+      weeklyFocus: { findFirst: vi.fn().mockResolvedValue(focus) },
+      weeklyAvailability: { findUnique: vi.fn().mockResolvedValue(null) },
+      availabilityOverride: { findMany: vi.fn().mockResolvedValue([]) },
+      program: {
+        findFirst: vi.fn().mockResolvedValue({
+          methodologyVersion: "research-1.1.0",
+          generationInput: {
+            legacyFixture: true,
+            constraints: { minutesPerDay: 20 },
+            dueWork: [],
+          },
+          items: [
+            {
+              activityId: "calculation",
+              activityType: "puzzle_theme",
+              params: { estMinutes: 10 },
+              dimensionsTargeted: ["calculation"],
+              rationaleKey: "weekly_focus_primary",
+              rationaleText: rationale.text,
+              evidenceGrade: rationale.grade,
+              evidenceTier: rationale.tier,
+              citationKey: rationale.citationKey,
+              confidence: "medium",
+              soften: rationale.soften,
+            },
+          ],
+        }),
+      },
+      programDayForecast: {
+        findMany: vi.fn().mockResolvedValue([]),
+        updateMany: vi.fn(),
+        create: vi.fn(async ({ data }) => {
+          const row = { id: `legacy-${created.length}`, ...data };
+          created.push(row);
+          return row;
+        }),
+      },
+      programRevision: { create: vi.fn() },
+    };
+
+    const result = await getForecast(db as never, "u1", { now: () => now });
+
+    expect(result).toHaveLength(7);
+    expect(result[0]).toMatchObject({
+      status: "materialized",
+      focusLinks: ["calculation"],
+    });
+    expect(db.weeklyFocus.findFirst).toHaveBeenCalledWith({
+      where: { userId: "u1", status: "active" },
+      orderBy: [{ weekStart: "desc" }, { createdAt: "desc" }],
+    });
+  });
+
+  it("repairs a missing current window from the active persisted Program", async () => {
+    const created: Array<Record<string, unknown>> = [];
+    const db = {
+      weeklyAvailability: { findUnique: vi.fn().mockResolvedValue(null) },
+      availabilityOverride: { findMany: vi.fn().mockResolvedValue([]) },
+      program: {
+        findFirst: vi.fn().mockResolvedValue({
+          methodologyVersion: "research-1.1.0",
+          generationInput: {
+            constraints: { minutesPerDay: 20 },
+            dueWork: [],
+            weeklyFocus: {
+              id: "focus-1",
+              focusAreas: ["calculation"],
+              rationaleSnapshots: [rationale],
+            },
+          },
+          items: [
+            {
+              activityId: "calculation",
+              activityType: "puzzle_theme",
+              params: { estMinutes: 10 },
+              dimensionsTargeted: ["calculation"],
+              rationaleKey: "weekly_focus_primary",
+              rationaleText: rationale.text,
+              evidenceGrade: rationale.grade,
+              evidenceTier: rationale.tier,
+              citationKey: rationale.citationKey,
+              confidence: "medium",
+              soften: rationale.soften,
+            },
+          ],
+        }),
+      },
+      programDayForecast: {
+        findMany: vi.fn().mockResolvedValue([]),
+        updateMany: vi.fn(),
+        create: vi.fn(async ({ data }) => {
+          const row = { id: `new-${created.length}`, ...data };
+          created.push(row);
+          return row;
+        }),
+      },
+      programRevision: { create: vi.fn() },
+    };
+
+    const result = await getForecast(db as never, "u1", { now: () => now });
+
+    expect(result).toHaveLength(7);
+    expect(result[0]).toMatchObject({
+      status: "materialized",
+      expectedMinutes: 10,
+    });
+    expect(result.slice(1).every((day) => day.status === "provisional")).toBe(
+      true,
+    );
+  });
+
+  it("pages revisions with a stable per-user cursor", async () => {
+    const occurredAt = new Date("2026-07-13T09:00:00.000Z");
+    const revision = (id: string, at: Date) => ({
+      id,
+      userId: "u1",
+      previousFocusId: null,
+      newFocusId: "focus-1",
+      previousForecastId: null,
+      newForecastId: "forecast-1",
+      trigger: "generation",
+      changedFields: ["forecast"],
+      gradedDecisions: [rationale],
+      methodologyVersion: "research-1.1.0",
+      occurredAt: at,
+      createdAt: at,
+    });
+    const findMany = vi
+      .fn()
+      .mockResolvedValue([
+        revision("revision-3", occurredAt),
+        revision("revision-2", occurredAt),
+        revision("revision-1", new Date(occurredAt.getTime() - 1)),
+      ]);
+
+    const result = await getProgramRevisions(
+      { programRevision: { findMany } } as never,
+      "u1",
+      {
+        limit: 2,
+        cursor: { occurredAt: occurredAt.getTime() + 1, id: "revision-4" },
+      },
+    );
+
+    expect(result.revisions.map((entry) => entry.id)).toEqual([
+      "revision-3",
+      "revision-2",
+    ]);
+    expect(result.nextCursor).toEqual({
+      occurredAt: occurredAt.getTime(),
+      id: "revision-2",
+    });
+    expect(findMany).toHaveBeenCalledWith({
+      where: {
+        userId: "u1",
+        OR: [
+          { occurredAt: { lt: new Date(occurredAt.getTime() + 1) } },
+          {
+            occurredAt: new Date(occurredAt.getTime() + 1),
+            id: { lt: "revision-4" },
+          },
+        ],
+      },
+      orderBy: [{ occurredAt: "desc" }, { id: "desc" }],
+      take: 3,
+    });
+  });
+
   it("lists and removes only the current user's normalized date override", async () => {
     const findMany = vi.fn().mockResolvedValue([
       {

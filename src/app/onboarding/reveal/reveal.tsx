@@ -7,7 +7,7 @@ import { useEffect } from "react";
 import { trpc } from "@/lib/trpc/react";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { asEvidenceGrade, GradeMark } from "@/components/evidence";
+import { GradeMark, type EvidenceGrade } from "@/components/evidence";
 import { TransparencyCard } from "@/components/transparency-card";
 import { StatusMessage } from "@/components/ui/status-message";
 import { CalibrationTrackGauges } from "@/app/onboarding/calibration-track-gauges";
@@ -74,7 +74,7 @@ export function Reveal() {
   return (
     <div className="flex flex-col gap-6">
       {/* 1 — the measured, multi-dimensional baseline */}
-      <Card gutter={asEvidenceGrade(estimate.evidenceGrade)} className="settle">
+      <Card gutter={estimate.evidenceGrade as EvidenceGrade} className="settle">
         <CardHeader className="pb-4">
           <CardTitle className="font-serif text-2xl font-semibold">
             Your starting baseline
