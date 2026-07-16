@@ -123,7 +123,8 @@ export interface UserImportSummary {
 /**
  * Import every active connection for a user. Each connection runs under its own
  * `JobRun` so a 429/403 on one platform is recorded and does not abort the other.
- * `jobKeyPrefix` lets the caller scope idempotency (cron → per-tick; manual → unique).
+ * `jobKeyPrefix` lets callers scope idempotency. Cron uses a daily queue key and
+ * manual imports reuse a key for the active API budget window.
  */
 export async function runImportForUser(
   db: Db,

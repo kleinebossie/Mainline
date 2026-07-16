@@ -3,6 +3,7 @@ import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 
 import { protectedProcedure, router } from "@/server/trpc";
 import { expectedError, INTERNAL_ERROR_MESSAGE } from "@/server/errors";
+import { TRPC_MAX_BATCH_SIZE } from "@/lib/trpc-limits";
 
 const testRouter = router({
   first: protectedProcedure.query(({ ctx }) => ctx.userId),
@@ -80,5 +81,26 @@ describe("protected procedure authorization", () => {
     expect(body).toContain(INTERNAL_ERROR_MESSAGE);
     expect(body).not.toContain("private database host");
     expect(body).not.toContain('"stack"');
+  });
+
+  it("rejects an HTTP batch above the server-side maximum", async () => {
+    const path = Array.from(
+      { length: TRPC_MAX_BATCH_SIZE + 1 },
+      () => "first",
+    ).join(",");
+    const response = await fetchRequestHandler({
+      endpoint: "/api/trpc",
+      req: new Request(`http://mainline.test/api/trpc/${path}?batch=1`),
+      router: testRouter,
+      createContext: async () => {
+        throw new Error("oversized batches must fail before context creation");
+      },
+      maxBatchSize: TRPC_MAX_BATCH_SIZE,
+    });
+
+    expect(response.status).toBe(400);
+    await expect(response.text()).resolves.toContain(
+      "Batch call exceeds maximum size",
+    );
   });
 });

@@ -4,16 +4,26 @@
 // chess/learning decision is made here (L1).
 
 import { runImportForUser } from "@/server/import";
+import {
+  API_BUDGET_WINDOW_MS,
+  apiBudgetWindowStart,
+} from "@/server/api-budget";
+import { systemClock } from "@/lib/clock";
 import { protectedProcedure, router } from "@/server/trpc";
 
+export function manualImportJobKey(userId: string, now: Date): string {
+  const windowStart = apiBudgetWindowStart(now, API_BUDGET_WINDOW_MS);
+  return `manual:${userId}:${windowStart.toISOString()}`;
+}
+
 export const importRouter = router({
-  // Manual "Sync now". Unique job key per click (timestamp) so a user can re-sync;
-  // cross-run game idempotency is still guaranteed by (userId, dedupeKey).
+  // Coalesce manual retries inside the external API budget window. Failed jobs reuse
+  // the same ledger row, while the next window permits a fresh sync.
   sync: protectedProcedure.mutation(async ({ ctx }) => {
     const summary = await runImportForUser(
       ctx.prisma,
       ctx.userId,
-      `manual:${ctx.userId}:${Date.now()}`,
+      manualImportJobKey(ctx.userId, new Date(systemClock.now())),
     );
     return summary;
   }),

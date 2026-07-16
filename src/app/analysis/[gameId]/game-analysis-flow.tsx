@@ -64,6 +64,7 @@ export function GameAnalysisFlow() {
   // One worker is reused; the promise chain prevents overlapping UCI searches.
   const engineRef = useRef<AnalysisEngine | null>(null);
   const engineQueueRef = useRef<Promise<unknown>>(Promise.resolve());
+  const saveRequestIdRef = useRef<string | null>(null);
 
   const session = sessionQuery.data?.session;
   const game = sessionQuery.data?.game;
@@ -300,8 +301,10 @@ export function GameAnalysisFlow() {
       bestUci: bestUcis[idx],
     }));
     try {
+      saveRequestIdRef.current ??= crypto.randomUUID();
       await saveSessionMutation.mutateAsync({
         gameId,
+        requestId: saveRequestIdRef.current,
         reflectionNote,
         outcomes: saveOutcomes,
       });

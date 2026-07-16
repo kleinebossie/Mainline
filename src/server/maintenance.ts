@@ -107,7 +107,7 @@ export async function pruneOperationalRows(
     }),
     db.jobRun.deleteMany({
       where: {
-        status: "success",
+        status: { in: ["success", "error"] },
         finishedAt: { lt: new Date(today - 30 * DAY_MS) },
       },
     }),

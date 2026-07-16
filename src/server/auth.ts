@@ -9,6 +9,7 @@ import { LichessProvider } from "@/server/auth-providers/lichess";
 import { upsertPlatformConnection } from "@/server/connections";
 import {
   admitBetaUser,
+  authoritativeGoogleEmail,
   BETA_INVITE_COOKIE,
   ownerEmailsFromEnv,
 } from "@/server/beta-access";
@@ -53,6 +54,24 @@ async function syncLichessConnection(
   });
 }
 
+async function betaAccessAllowed(
+  userId: string | null | undefined,
+  account: Account | null | undefined,
+  profile: unknown,
+): Promise<boolean> {
+  const cookieStore = await cookies();
+  const inviteCode = cookieStore.get(BETA_INVITE_COOKIE)?.value;
+  const authoritativeEmail =
+    account?.provider === "google" ? authoritativeGoogleEmail(profile) : null;
+  return admitBetaUser(prisma, {
+    userId,
+    authoritativeEmail,
+    inviteCode,
+    now: new Date(),
+    ownerEmails: ownerEmailsFromEnv(),
+  });
+}
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
   session: { strategy: "database" },
@@ -60,17 +79,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   pages: { signIn: "/signin" },
   providers,
   callbacks: {
-    async signIn({ user }) {
-      const cookieStore = await cookies();
-      const inviteCode = cookieStore.get(BETA_INVITE_COOKIE)?.value;
-      const admitted = await admitBetaUser(prisma, {
-        userId: user.id,
-        email: user.email,
-        inviteCode,
-        now: new Date(),
-        ownerEmails: ownerEmailsFromEnv(),
-      });
-      return admitted;
+    async signIn({ user, account, profile }) {
+      return betaAccessAllowed(user.id, account, profile);
     },
     session({ session, user }) {
       // Database strategy: `user` is the adapter row, always has an id.
@@ -79,33 +89,26 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
   },
   events: {
-    async createUser({ user }) {
-      const cookieStore = await cookies();
-      const inviteCode = cookieStore.get(BETA_INVITE_COOKIE)?.value;
-      const admitted = await admitBetaUser(prisma, {
-        userId: user.id,
-        email: user.email,
-        inviteCode,
-        now: new Date(),
-        ownerEmails: ownerEmailsFromEnv(),
-      });
+    // signIn retains the raw OAuth profile after the adapter user exists, so the
+    // actual allowlist claim uses the same authoritative identity as preflight.
+    async signIn({ user, account, profile, isNewUser }) {
+      const admitted = await betaAccessAllowed(user.id, account, profile);
       if (!admitted) {
-        await prisma.user.delete({ where: { id: user.id } });
+        if (isNewUser) {
+          await prisma.user.delete({ where: { id: user.id } });
+        }
         throw new Error("Closed beta access was not granted");
       }
-    },
-    // linkAccount's `profile` is the adapter user (name = Lichess username, set in
-    // the provider's profile() mapping).
-    async linkAccount({ user, account, profile }) {
-      await syncLichessConnection(user.id, account, profile.name ?? user.name);
-    },
-    // signIn's `profile` is the raw OAuth profile (has `username`).
-    async signIn({ user, account, profile }) {
       await syncLichessConnection(
         user.id,
         account,
         (profile as { username?: string } | undefined)?.username,
       );
+    },
+    // linkAccount's `profile` is the adapter user (name = Lichess username, set in
+    // the provider's profile() mapping).
+    async linkAccount({ user, account, profile }) {
+      await syncLichessConnection(user.id, account, profile.name ?? user.name);
     },
   },
 });

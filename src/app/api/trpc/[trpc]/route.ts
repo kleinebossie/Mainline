@@ -6,6 +6,7 @@ import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import { createTRPCContext } from "@/server/context";
 import { appRouter } from "@/server/routers/_app";
 import { captureOperationalEvent } from "@/server/observability";
+import { TRPC_MAX_BATCH_SIZE } from "@/lib/trpc-limits";
 
 const handler = (req: Request) =>
   fetchRequestHandler({
@@ -13,6 +14,7 @@ const handler = (req: Request) =>
     req,
     router: appRouter,
     createContext: () => createTRPCContext(),
+    maxBatchSize: TRPC_MAX_BATCH_SIZE,
     onError({ error }) {
       if (error.code === "INTERNAL_SERVER_ERROR") {
         captureOperationalEvent({

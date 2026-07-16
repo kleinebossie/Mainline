@@ -1,4 +1,5 @@
 import type { PrismaClient } from "@prisma/client";
+import { z } from "zod";
 
 type BetaAccessDb = Pick<
   PrismaClient,
@@ -10,6 +11,31 @@ export const BETA_INVITE_COOKIE = "mainline_beta_invite";
 function normalizedEmail(email: string | null | undefined): string | null {
   const value = email?.trim().toLowerCase();
   return value ? value : null;
+}
+
+const googleProfileSchema = z
+  .object({
+    email: z.string().email(),
+    email_verified: z.literal(true),
+    hd: z.string().min(1).optional(),
+  })
+  .passthrough();
+
+/**
+ * Google is authoritative for Gmail and for the Workspace domain in its `hd`
+ * claim. External addresses can remain on a Google Account after mailbox ownership
+ * changes, so they cannot prove an email invitation belongs to the current holder.
+ */
+export function authoritativeGoogleEmail(profile: unknown): string | null {
+  const parsed = googleProfileSchema.safeParse(profile);
+  if (!parsed.success) return null;
+  const email = normalizedEmail(parsed.data.email);
+  if (!email) return null;
+  const domain = email.slice(email.lastIndexOf("@") + 1);
+  const hostedDomain = parsed.data.hd?.trim().toLowerCase();
+  return domain === "gmail.com" || (hostedDomain && domain === hostedDomain)
+    ? email
+    : null;
 }
 
 export function ownerEmailsFromEnv(
@@ -25,7 +51,7 @@ export function ownerEmailsFromEnv(
 
 export interface BetaAccessRequest {
   userId?: string | null;
-  email?: string | null;
+  authoritativeEmail?: string | null;
   inviteCode?: string | null;
   now: Date;
   ownerEmails?: ReadonlySet<string>;
@@ -40,7 +66,7 @@ export async function admitBetaUser(
   db: BetaAccessDb,
   request: BetaAccessRequest,
 ): Promise<boolean> {
-  const email = normalizedEmail(request.email);
+  const email = normalizedEmail(request.authoritativeEmail);
   const userId = request.userId ?? null;
   const ownerEmails = request.ownerEmails ?? ownerEmailsFromEnv();
 
@@ -96,8 +122,8 @@ export async function admitBetaUser(
     select: { id: true, email: true, usedByUserId: true },
   });
   if (!entry) return false;
-  // A first OAuth callback carries the provider profile id before Auth.js creates
-  // the database user. Validate now, then claim from the createUser event.
+  // A first OAuth callback runs before Auth.js creates the database user. Validate
+  // now, then claim from the signIn event where the raw profile is still available.
   if (!existingUser || !userId) return true;
   if (entry.usedByUserId === userId) {
     await db.user.update({

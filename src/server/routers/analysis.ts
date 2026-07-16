@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 
 import {
   analysisCounts,
@@ -27,6 +27,62 @@ import { captureOperationalEvent } from "@/server/observability";
 import { expectedError } from "@/server/errors";
 
 const PLATFORMS = ["lichess", "chesscom"] as const;
+export const MAX_SESSION_OUTCOMES = 80;
+const MAX_REFLECTION_NOTE_LENGTH = 4_000;
+
+const analysisOutcomeSchema = z
+  .object({
+    ply: z.number().int(),
+    correct: z.boolean(),
+    bestUci: z.string().min(1).max(16).optional(),
+  })
+  .strict();
+
+const analysisOutcomesSchema = z
+  .array(analysisOutcomeSchema)
+  .max(MAX_SESSION_OUTCOMES)
+  .superRefine((outcomes, ctx) => {
+    const seen = new Set<number>();
+    for (const [index, outcome] of outcomes.entries()) {
+      if (seen.has(outcome.ply)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Each reviewed ply may appear only once.",
+          path: [index, "ply"],
+        });
+      }
+      seen.add(outcome.ply);
+    }
+  });
+
+export const analysisSessionInputSchema = z
+  .object({
+    gameId: z.string().min(1).max(191),
+    requestId: z.string().uuid(),
+    reflectionNote: z.string().max(MAX_REFLECTION_NOTE_LENGTH),
+    outcomes: analysisOutcomesSchema,
+  })
+  .strict();
+
+const savedAnalysisSessionPayloadSchema = z
+  .object({
+    gameId: z.string(),
+    scheduledCount: z.number().int().nonnegative(),
+  })
+  .passthrough();
+
+function repeatedSessionResult(payload: Prisma.JsonValue, gameId: string) {
+  const saved = savedAnalysisSessionPayloadSchema.safeParse(payload);
+  if (!saved.success || saved.data.gameId !== gameId) {
+    throw expectedError.conflict(
+      "This save request was already used. Reload the review and try again.",
+    );
+  }
+  return {
+    success: true as const,
+    scheduledCount: saved.data.scheduledCount,
+  };
+}
 
 export const analysisRouter = router({
   // The default queue uses the methodology cap; callers may request a bounded window.
@@ -264,20 +320,21 @@ export const analysisRouter = router({
     }),
 
   saveSession: protectedProcedure
-    .input(
-      z.object({
-        gameId: z.string(),
-        reflectionNote: z.string(),
-        outcomes: z.array(
-          z.object({
-            ply: z.number().int(),
-            correct: z.boolean(),
-            bestUci: z.string().optional(),
-          }),
-        ),
-      }),
-    )
+    .input(analysisSessionInputSchema)
     .mutation(async ({ ctx, input }) => {
+      const existingEvent = await ctx.prisma.activityEvent.findUnique({
+        where: {
+          userId_requestId: {
+            userId: ctx.userId,
+            requestId: input.requestId,
+          },
+        },
+        select: { payload: true },
+      });
+      if (existingEvent) {
+        return repeatedSessionResult(existingEvent.payload, input.gameId);
+      }
+
       const owns = await userOwnsGame(ctx.prisma, ctx.userId, input.gameId);
       if (!owns) {
         throw expectedError.notFound(
@@ -298,99 +355,132 @@ export const analysisRouter = router({
       const rawFeatures = rawGameFeaturesSchema.parse(
         game.analysis.rawFeatures,
       );
+      const analysedPlies = new Set(
+        rawFeatures.moveEvals.map((move) => move.ply),
+      );
+      if (input.outcomes.some((outcome) => !analysedPlies.has(outcome.ply))) {
+        throw expectedError.badRequest(
+          "The review contains a position that is not in the saved analysis.",
+        );
+      }
+
+      const blundersByPly = new Map(
+        rawFeatures.blunders.map((blunder) => [blunder.ply, blunder]),
+      );
+      const schedulableOutcomes = input.outcomes.flatMap((outcome) => {
+        const blunder = blundersByPly.get(outcome.ply);
+        return blunder && outcome.bestUci ? [{ outcome, blunder }] : [];
+      });
       const cfg = loadMethodology();
       const now = systemClock.now();
 
-      await ctx.prisma.activityEvent.create({
-        data: {
-          userId: ctx.userId,
-          type: "game_analysed",
-          occurredAt: new Date(now),
-          payload: {
-            gameId: input.gameId,
-            reflectionNote: input.reflectionNote,
-            outcomes: input.outcomes,
-          } as unknown as Prisma.InputJsonValue,
-          source: "user",
-        },
-      });
-
-      let scheduledCount = 0;
-
-      for (const outcome of input.outcomes) {
-        const blunder = rawFeatures.blunders.find((b) => b.ply === outcome.ply);
-        const fen = blunder?.fen;
-        if (!fen || !outcome.bestUci) continue;
-
-        const sourceRef = `blunder:${input.gameId}:${outcome.ply}`;
-        const item = await ctx.prisma.practiceItem.upsert({
-          where: {
-            userId_sourceRef: {
+      try {
+        return await ctx.prisma.$transaction(async (tx) => {
+          await tx.activityEvent.create({
+            data: {
               userId: ctx.userId,
-              sourceRef,
+              requestId: input.requestId,
+              type: "game_analysed",
+              occurredAt: new Date(now),
+              payload: {
+                gameId: input.gameId,
+                reflectionNote: input.reflectionNote,
+                outcomes: input.outcomes,
+                scheduledCount: schedulableOutcomes.length,
+              } as unknown as Prisma.InputJsonValue,
+              source: "user",
             },
-          },
-          create: {
-            userId: ctx.userId,
-            kind: "blunder_drill",
-            fen,
-            solutionLine: [outcome.bestUci],
-            sourceRef,
-          },
-          update: {
-            fen,
-            solutionLine: [outcome.bestUci],
-          },
+          });
+
+          for (const { outcome, blunder } of schedulableOutcomes) {
+            const sourceRef = `blunder:${input.gameId}:${outcome.ply}`;
+            const item = await tx.practiceItem.upsert({
+              where: {
+                userId_sourceRef: {
+                  userId: ctx.userId,
+                  sourceRef,
+                },
+              },
+              create: {
+                userId: ctx.userId,
+                kind: "blunder_drill",
+                fen: blunder.fen,
+                solutionLine: [outcome.bestUci!],
+                sourceRef,
+              },
+              update: {
+                fen: blunder.fen,
+                solutionLine: [outcome.bestUci!],
+              },
+            });
+
+            const itemType = "blunder_drill";
+            const itemRef = item.id;
+            const existing = await tx.scheduleState.findUnique({
+              where: {
+                userId_itemType_itemRef: {
+                  userId: ctx.userId,
+                  itemType,
+                  itemRef,
+                },
+              },
+            });
+            const fsrsState = existing
+              ? fsrsStateSchema.parse(existing.fsrsState)
+              : null;
+            const grade = gradeFromOutcome({ correct: outcome.correct }, cfg);
+            const { newState } = scheduleReview({ grade, fsrsState, now }, cfg);
+
+            await tx.scheduleState.upsert({
+              where: {
+                userId_itemType_itemRef: {
+                  userId: ctx.userId,
+                  itemType,
+                  itemRef,
+                },
+              },
+              create: {
+                userId: ctx.userId,
+                itemType,
+                itemRef,
+                fsrsState: newState as unknown as Prisma.InputJsonValue,
+                due: new Date(newState.due),
+                lastGrade: grade,
+                source: "drill",
+              },
+              update: {
+                fsrsState: newState as unknown as Prisma.InputJsonValue,
+                due: new Date(newState.due),
+                lastGrade: grade,
+              },
+            });
+          }
+
+          return {
+            success: true as const,
+            scheduledCount: schedulableOutcomes.length,
+          };
         });
-
-        const itemType = "blunder_drill";
-        const itemRef = item.id;
-
-        const existing = await ctx.prisma.scheduleState.findUnique({
-          where: {
-            userId_itemType_itemRef: {
-              userId: ctx.userId,
-              itemType,
-              itemRef,
+      } catch (error) {
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === "P2002"
+        ) {
+          const repeated = await ctx.prisma.activityEvent.findUnique({
+            where: {
+              userId_requestId: {
+                userId: ctx.userId,
+                requestId: input.requestId,
+              },
             },
-          },
-        });
-
-        const fsrsState = existing
-          ? fsrsStateSchema.parse(existing.fsrsState)
-          : null;
-        const grade = gradeFromOutcome({ correct: outcome.correct }, cfg);
-
-        const { newState } = scheduleReview({ grade, fsrsState, now }, cfg);
-
-        await ctx.prisma.scheduleState.upsert({
-          where: {
-            userId_itemType_itemRef: {
-              userId: ctx.userId,
-              itemType,
-              itemRef,
-            },
-          },
-          create: {
-            userId: ctx.userId,
-            itemType,
-            itemRef,
-            fsrsState: newState as unknown as Prisma.InputJsonValue,
-            due: new Date(newState.due),
-            lastGrade: grade,
-            source: "drill",
-          },
-          update: {
-            fsrsState: newState as unknown as Prisma.InputJsonValue,
-            due: new Date(newState.due),
-            lastGrade: grade,
-          },
-        });
-
-        scheduledCount++;
+            select: { payload: true },
+          });
+          if (repeated) {
+            return repeatedSessionResult(repeated.payload, input.gameId);
+          }
+        }
+        throw error;
       }
-
-      return { success: true, scheduledCount };
     }),
 
   // Ownership-scoped source for client-side analysis.

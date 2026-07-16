@@ -12,6 +12,7 @@ import superjson from "superjson";
 
 import type { AppRouter } from "@/server/routers/_app";
 import { shouldRetryRequest } from "@/lib/error-presentation";
+import { TRPC_MAX_BATCH_SIZE } from "@/lib/trpc-limits";
 
 export const trpc = createTRPCReact<AppRouter>();
 
@@ -43,6 +44,7 @@ export function TRPCReactProvider({ children }: { children: ReactNode }) {
         httpBatchLink({
           url: `${baseUrl()}/api/trpc`,
           transformer: superjson,
+          maxItems: TRPC_MAX_BATCH_SIZE,
         }),
       ],
     }),

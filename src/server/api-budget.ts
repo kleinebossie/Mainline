@@ -4,7 +4,7 @@ import type { Platform } from "@/integrations/adapter";
 
 type ApiBudgetDb = Pick<PrismaClient, "apiCallBudget">;
 
-const HOUR_MS = 60 * 60 * 1000;
+export const API_BUDGET_WINDOW_MS = 60 * 60 * 1000;
 const DEFAULT_REQUESTS_PER_HOUR = 120;
 
 export interface ApiBudgetPolicy {
@@ -31,7 +31,7 @@ function apiBudgetPolicy(platform: Platform): ApiBudgetPolicy {
       : process.env.CHESSCOM_API_REQUESTS_PER_HOUR;
   return {
     limit: positiveInteger(specific, DEFAULT_REQUESTS_PER_HOUR),
-    windowMs: HOUR_MS,
+    windowMs: API_BUDGET_WINDOW_MS,
   };
 }
 

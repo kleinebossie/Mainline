@@ -6,6 +6,10 @@
 
 import { z } from "zod";
 
+export const MAX_ANALYSIS_PLIES = 600;
+export const MAX_ANALYSIS_BLUNDERS = 80;
+export const MAX_FEN_LENGTH = 128;
+
 const finite = z.number().finite();
 const intPly = z.number().int();
 
@@ -27,9 +31,9 @@ const moveEvalSchema = z
 const blunderSchema = z
   .object({
     ply: intPly,
-    fen: z.string(),
+    fen: z.string().min(1).max(MAX_FEN_LENGTH),
     cpLoss: finite,
-    motifTags: z.array(z.string()).optional(),
+    motifTags: z.array(z.string().min(1).max(64)).max(32).optional(),
   })
   .strict();
 
@@ -75,10 +79,10 @@ export const rawGameFeaturesSchema = z
     phaseBoundaries: z
       .object({ openingEndsPly: intPly, endgameStartsPly: intPly })
       .strict(),
-    moveEvals: z.array(moveEvalSchema),
-    blunders: z.array(blunderSchema),
+    moveEvals: z.array(moveEvalSchema).max(MAX_ANALYSIS_PLIES),
+    blunders: z.array(blunderSchema).max(MAX_ANALYSIS_BLUNDERS),
     errorCounts: errorCountsSchema,
-    clock: z.array(clockEntrySchema).optional(),
+    clock: z.array(clockEntrySchema).max(MAX_ANALYSIS_PLIES).optional(),
     conversion: conversionSchema.optional(),
     openingDeviation: openingDeviationSchema.optional(),
   })

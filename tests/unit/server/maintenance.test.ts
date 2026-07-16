@@ -2,9 +2,36 @@ import { Prisma } from "@prisma/client";
 import { describe, expect, it, vi } from "vitest";
 
 import { fixedClock } from "@/lib/clock";
-import { enqueueDailyWork, retryFailedJob } from "@/server/maintenance";
+import {
+  enqueueDailyWork,
+  pruneOperationalRows,
+  retryFailedJob,
+} from "@/server/maintenance";
 
 describe("daily job queue", () => {
+  it("prunes old successful and failed job rows", async () => {
+    const deleteJobs = vi.fn().mockResolvedValue({ count: 4 });
+    const db = {
+      apiCallBudget: {
+        deleteMany: vi.fn().mockResolvedValue({ count: 2 }),
+      },
+      jobRun: { deleteMany: deleteJobs },
+    };
+
+    await expect(
+      pruneOperationalRows(
+        db as never,
+        fixedClock(Date.parse("2026-07-16T12:00:00.000Z")),
+      ),
+    ).resolves.toEqual({ prunedBudgetBuckets: 2, prunedJobRuns: 4 });
+    expect(deleteJobs).toHaveBeenCalledWith({
+      where: {
+        status: { in: ["success", "error"] },
+        finishedAt: { lt: new Date("2026-06-16T00:00:00.000Z") },
+      },
+    });
+  });
+
   it("persists every user's local jobs and every connection import in one batch", async () => {
     const createMany = vi.fn().mockResolvedValue({ count: 5 });
     const db = {

@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { admitBetaUser, ownerEmailsFromEnv } from "@/server/beta-access";
+import {
+  admitBetaUser,
+  authoritativeGoogleEmail,
+  ownerEmailsFromEnv,
+} from "@/server/beta-access";
 
 const NOW = new Date("2026-07-11T12:00:00.000Z");
 
@@ -47,7 +51,7 @@ describe("closed-beta admission", () => {
     await expect(
       admitBetaUser(db as never, {
         userId: "user-1",
-        email: "not-invited@example.com",
+        authoritativeEmail: "not-invited@example.com",
         now: NOW,
         ownerEmails: new Set(),
       }),
@@ -58,7 +62,7 @@ describe("closed-beta admission", () => {
     const ownerDb = fakeDb({});
     await expect(
       admitBetaUser(ownerDb as never, {
-        email: "Owner@Example.com",
+        authoritativeEmail: "Owner@Example.com",
         now: NOW,
         ownerEmails: ownerEmailsFromEnv("owner@example.com"),
       }),
@@ -93,7 +97,7 @@ describe("closed-beta admission", () => {
     await expect(
       admitBetaUser(db as never, {
         userId: "deleted-user",
-        email: "owner@example.com",
+        authoritativeEmail: "owner@example.com",
         now: NOW,
         ownerEmails: new Set(["owner@example.com"]),
       }),
@@ -177,5 +181,40 @@ describe("closed-beta admission", () => {
       }),
     ).resolves.toBe(true);
     expect(db.allowlistEntry.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("accepts only verified provider-authoritative Google profiles", () => {
+    expect(
+      authoritativeGoogleEmail({
+        email: "Invited.User@GMAIL.com",
+        email_verified: true,
+      }),
+    ).toBe("invited.user@gmail.com");
+    expect(
+      authoritativeGoogleEmail({
+        email: "person@example.com",
+        email_verified: true,
+        hd: "example.com",
+      }),
+    ).toBe("person@example.com");
+    expect(
+      authoritativeGoogleEmail({
+        email: "person@example.com",
+        email_verified: true,
+      }),
+    ).toBeNull();
+    expect(
+      authoritativeGoogleEmail({
+        email: "person@example.com",
+        email_verified: true,
+        hd: "other.example",
+      }),
+    ).toBeNull();
+    expect(
+      authoritativeGoogleEmail({
+        email: "person@gmail.com",
+        email_verified: false,
+      }),
+    ).toBeNull();
   });
 });
