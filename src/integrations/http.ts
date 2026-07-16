@@ -108,6 +108,8 @@ export async function politeFetch(
     ? AbortSignal.any([init.signal, timeoutSignal])
     : timeoutSignal;
 
+  let backingOffAfterRateLimit = false;
+
   try {
     for (let attempt = 0; ; attempt++) {
       if (beforeAttempt) await withAbort(beforeAttempt(), signal);
@@ -121,17 +123,21 @@ export async function politeFetch(
           `${platform} rate limit hit (gave up after ${policy.maxRetries} retries)`,
         );
       }
+      backingOffAfterRateLimit = true;
       await abortableSleep(
         backoffDelayMs(attempt + 1, policy, parseRetryAfter(res)),
         signal,
       );
+      backingOffAfterRateLimit = false;
     }
   } catch (error) {
     if (timeoutSignal.aborted && !init.signal?.aborted) {
       throw new PlatformError(
-        "network",
+        backingOffAfterRateLimit ? "rate_limited" : "network",
         platform,
-        `${platform} request timed out`,
+        backingOffAfterRateLimit
+          ? `${platform} rate limit hit (timed out during back-off)`
+          : `${platform} request timed out`,
       );
     }
     throw error;

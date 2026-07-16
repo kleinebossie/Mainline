@@ -113,6 +113,47 @@ describe("politeFetch", () => {
     ).rejects.toMatchObject({ code: "network" });
   });
 
+  it("classifies a timeout during a 429 back-off as rate_limited, not network", async () => {
+    // The platform IS responding (with 429s); the overall timeout fires while
+    // backing off. The error must stay "rate_limited" so callers (connections.ts,
+    // import.ts) surface "limiting requests" rather than "did not respond".
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValue(
+          new Response("", { status: 429, headers: { "retry-after": "60" } }),
+        ),
+    );
+
+    await expect(
+      politeFetch(
+        "lichess",
+        "https://x/throttled",
+        {},
+        { maxRetries: 5, baseMs: 10_000, capMs: 30_000, totalTimeoutMs: 10 },
+      ),
+    ).rejects.toMatchObject({ code: "rate_limited" });
+  });
+
+  it("classifies a stalled retry after a completed 429 back-off as network", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response("", { status: 429 }))
+      .mockImplementationOnce(pendingUntilAbort);
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      politeFetch(
+        "lichess",
+        "https://x/stalled-retry",
+        {},
+        { maxRetries: 1, baseMs: 0, capMs: 0, totalTimeoutMs: 10 },
+      ),
+    ).rejects.toMatchObject({ code: "network" });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
   it("also bounds a stalled per-user budget check", async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);

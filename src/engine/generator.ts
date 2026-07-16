@@ -13,6 +13,7 @@ import {
   type Band,
   type Confidence,
   type DueItem,
+  type FocusRationaleSnapshot,
   type Grade,
   type GradedFlag,
   type MethodologyConfig,
@@ -132,6 +133,22 @@ function gameMinutesFor(
     .filter((v): v is number => v != null);
   if (played.length > 0) return Math.max(...played);
   return map.rapid?.value ?? Object.values(map)[0]?.value ?? null;
+}
+
+/** Map a methodology focus rationale onto the persisted params shape, renaming the
+ *  graded-evidence fields. Used for every activity branch so the shape stays in sync. */
+function packFitExplanation(
+  snapshot: FocusRationaleSnapshot,
+): NonNullable<ProgramItemParams["fitExplanation"]> {
+  const { text, grade, tier, citationKey, flag, soften } = snapshot;
+  return {
+    text,
+    evidenceGrade: grade,
+    evidenceTier: tier,
+    citationKey,
+    ...(flag ? { flag } : {}),
+    soften,
+  };
 }
 
 /** Generate a deterministic, ordered session that fits the time budget. */
@@ -276,18 +293,7 @@ export function generateProgram(
         dueItemRefs: due.slice(0, count).map((d) => d.itemRef),
         count,
         ...(candidate.fitExplanation
-          ? {
-              fitExplanation: {
-                text: candidate.fitExplanation.text,
-                evidenceGrade: candidate.fitExplanation.grade,
-                evidenceTier: candidate.fitExplanation.tier,
-                citationKey: candidate.fitExplanation.citationKey,
-                ...(candidate.fitExplanation.flag
-                  ? { flag: candidate.fitExplanation.flag }
-                  : {}),
-                soften: candidate.fitExplanation.soften,
-              },
-            }
+          ? { fitExplanation: packFitExplanation(candidate.fitExplanation) }
           : {}),
       };
     } else if (candidate.track) {
@@ -311,18 +317,7 @@ export function generateProgram(
         structure: practiceStructure({ band }, cfg),
         workedExample: useWorkedExample({ band }, cfg),
         ...(candidate.fitExplanation
-          ? {
-              fitExplanation: {
-                text: candidate.fitExplanation.text,
-                evidenceGrade: candidate.fitExplanation.grade,
-                evidenceTier: candidate.fitExplanation.tier,
-                citationKey: candidate.fitExplanation.citationKey,
-                ...(candidate.fitExplanation.flag
-                  ? { flag: candidate.fitExplanation.flag }
-                  : {}),
-                soften: candidate.fitExplanation.soften,
-              },
-            }
+          ? { fitExplanation: packFitExplanation(candidate.fitExplanation) }
           : {}),
       };
     } else {
@@ -345,18 +340,7 @@ export function generateProgram(
             }
           : {}),
         ...(candidate.fitExplanation
-          ? {
-              fitExplanation: {
-                text: candidate.fitExplanation.text,
-                evidenceGrade: candidate.fitExplanation.grade,
-                evidenceTier: candidate.fitExplanation.tier,
-                citationKey: candidate.fitExplanation.citationKey,
-                ...(candidate.fitExplanation.flag
-                  ? { flag: candidate.fitExplanation.flag }
-                  : {}),
-                soften: candidate.fitExplanation.soften,
-              },
-            }
+          ? { fitExplanation: packFitExplanation(candidate.fitExplanation) }
           : {}),
       };
     }

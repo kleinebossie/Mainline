@@ -6,6 +6,8 @@
 
 import type { Prisma, PrismaClient } from "@prisma/client";
 
+import { NON_COMPLETION_ACTIVITY_EVENT_TYPES } from "@/lib/tracker";
+
 // --- Append-only RewardEvent log (§5.7 — never updated except `seen`) ----------
 
 export interface RewardEventInput {
@@ -71,8 +73,8 @@ export async function markRewardEventsSeen(
 
 // --- Activity rollups the engagement bus reads (streak / milestones) ----------
 
-/** Timestamps (epoch ms) of every non-skip activity since `sinceEpoch` — bucketed into
- *  active days by the caller (engine/math/consistency). "Completed" excludes skips. */
+/** Timestamps (epoch ms) of every completed activity since `sinceEpoch`, bucketed into
+ *  active days by the caller (engine/math/consistency). Excludes skips and skip undones. */
 export async function findActiveDayEpochs(
   db: Pick<PrismaClient, "activityEvent">,
   userId: string,
@@ -81,7 +83,7 @@ export async function findActiveDayEpochs(
   const rows = await db.activityEvent.findMany({
     where: {
       userId,
-      type: { not: "skip" },
+      type: { notIn: [...NON_COMPLETION_ACTIVITY_EVENT_TYPES] },
       occurredAt: { gte: new Date(sinceEpoch) },
     },
     select: { occurredAt: true },
@@ -89,13 +91,17 @@ export async function findActiveDayEpochs(
   return rows.map((r) => r.occurredAt.getTime());
 }
 
-/** Cumulative count of completed (non-skip) activities — the competence-milestone counter. */
+/** Cumulative count of completed activities, used by the competence-milestone counter.
+ *  Excludes skips and skip undones. */
 export async function countCompletedActivities(
   db: Pick<PrismaClient, "activityEvent">,
   userId: string,
 ): Promise<number> {
   return db.activityEvent.count({
-    where: { userId, type: { not: "skip" } },
+    where: {
+      userId,
+      type: { notIn: [...NON_COMPLETION_ACTIVITY_EVENT_TYPES] },
+    },
   });
 }
 

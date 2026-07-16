@@ -48,6 +48,14 @@ const ACTIVITY_EVENT_TYPES = [
   "self_report",
 ] as const;
 
+type LoggableActivityEventType = (typeof ACTIVITY_EVENT_TYPES)[number];
+
+/** Structural tracker events that change item state without completing activity. */
+export const NON_COMPLETION_ACTIVITY_EVENT_TYPES = [
+  "skip",
+  "skip_undone",
+] as const satisfies readonly LoggableActivityEventType[];
+
 export const logOutcomeInputSchema = z.object({
   requestId: z.string().uuid(),
   programItemId: z.string().min(1).optional(),
