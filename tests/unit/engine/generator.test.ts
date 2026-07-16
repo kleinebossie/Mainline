@@ -255,6 +255,22 @@ describe("generateProgram (golden)", () => {
     expect(review).toBeDefined();
     expect(review!.params.dueItemRefs).toEqual(["fork"]);
     expect(review!.params.count).toBe(1);
+    expect(review!.exposure.servedRecommendation).toMatchObject({
+      activityId: review!.activityId,
+      activityType: "spaced_review",
+      dueEligible: true,
+      evidenceGrade: review!.evidenceGrade,
+      evidenceTier: review!.evidenceTier,
+      allocatedMinutes: review!.estMinutes,
+    });
+    expect(review!.exposure.eligibleAlternatives.complete).toBe(true);
+    expect(
+      review!.exposure.eligibleAlternatives.totalEligibleCount,
+    ).toBeGreaterThan(
+      review!.exposure.eligibleAlternatives.alternatives.length,
+    );
+    expect(JSON.stringify(review!.exposure)).not.toContain("fork");
+    expect(JSON.stringify(review!.exposure)).not.toContain("dueItemRefs");
   });
 
   it("keeps fit inside the persisted focus and due-status boundary", () => {

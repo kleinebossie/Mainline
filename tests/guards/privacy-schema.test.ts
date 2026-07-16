@@ -27,6 +27,11 @@ const P8_MIGRATION = readFileSync(
   "utf8",
 );
 const P8_SERVICE = readFileSync("src/server/feedback.ts", "utf8");
+const P9_MIGRATION = readFileSync(
+  "prisma/migrations/20260716010000_p9_recommendation_exposure/migration.sql",
+  "utf8",
+);
+const P9_RESEARCH_SERVICE = readFileSync("src/server/research.ts", "utf8");
 
 describe("privacy schema guards", () => {
   it("deletes claimed invitations with an erased account", () => {
@@ -71,6 +76,7 @@ describe("privacy schema guards", () => {
       "AvailabilityOverride",
       "ProgramDayForecast",
       "ProgramRevision",
+      "RecommendationExposure",
     ];
     for (const model of relationBlocks) {
       const block = SCHEMA.match(
@@ -101,6 +107,9 @@ describe("privacy schema guards", () => {
         new RegExp(`${model}_userId_fkey[\\s\\S]*ON DELETE CASCADE`),
       );
     }
+    expect(P9_MIGRATION).toMatch(
+      /RecommendationExposure_userId_fkey[\s\S]*ON DELETE CASCADE/,
+    );
     for (const model of [
       "TrainingFeedback",
       "ProductFeedback",
@@ -174,5 +183,25 @@ describe("privacy schema guards", () => {
     expect(product).not.toMatch(/programItem\s+ProgramItem/);
     expect(prompt).toMatch(/@@unique\(\[userId, promptKey\]\)/);
     expect(P8_SERVICE).not.toMatch(/\.skillState\b|\.skillStateSnapshot\b/);
+  });
+
+  it("P9: keeps exposure immutable and research unable to activate methodology", () => {
+    const exposure = SCHEMA.match(
+      /model RecommendationExposure \{[\s\S]*?\n\}/,
+    )?.[0];
+    expect(exposure).toMatch(/programItemId\s+String\s+@unique/);
+    expect(exposure).not.toMatch(/updatedAt/);
+    expect(P9_MIGRATION).toMatch(/RecommendationExposure_programItemId_key/);
+    expect(exposure).toMatch(/exposedAt\s+DateTime/);
+    expect(P9_MIGRATION).toMatch(/RecommendationExposure_userId_exposedAt_idx/);
+    expect(P9_MIGRATION).toMatch(
+      /RecommendationExposure_methodologyVersion_exposedAt_idx/,
+    );
+    expect(P9_RESEARCH_SERVICE).not.toMatch(
+      /@\/methodology|recommendationExposure\.(create|createMany|update|updateMany|upsert|delete)\(/,
+    );
+    expect(P9_RESEARCH_SERVICE).not.toMatch(
+      /METHODOLOGY_VERSION|ACTIVE_METHODOLOGY|loadMethodology/,
+    );
   });
 });

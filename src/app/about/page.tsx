@@ -2,6 +2,7 @@ import { PageShell } from "@/components/app-shell";
 import { cn } from "@/lib/utils";
 import {
   ACTIVE_METHODOLOGY_VERSION,
+  METHODOLOGY_RELEASES,
   methodologyReleaseFor,
 } from "@/methodology";
 
@@ -332,7 +333,7 @@ export default function AboutPage() {
             <p className="eyebrow">Active methodology · {release.version}</p>
             <p className="text-ink mt-3 font-serif text-base leading-relaxed">
               {isResearchRelease
-                ? "This is the first active research release. It encodes the approved methodology values and copy, while retaining every documented best guess and deliberate stub as evidence-labeled data."
+                ? "This active research release encodes the approved methodology values and copy, while retaining every documented best guess and deliberate stub as evidence-labeled data."
                 : "The active methodology is still the pre-release placeholder configuration. It keeps the full loop runnable while research release work is pending."}
             </p>
             <p className="text-graphite mt-3 font-serif text-sm leading-relaxed">
@@ -351,6 +352,61 @@ export default function AboutPage() {
                 </ul>
               </div>
             )}
+            <div className="mt-4 border-t border-line/80 pt-4">
+              <p className="eyebrow">Aggregate basis</p>
+              <p className="text-graphite mt-2 font-serif text-sm leading-relaxed">
+                {release.aggregateBasis}
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section className="flex flex-col gap-5">
+          <div className="flex flex-col gap-2 border-b border-line/80 pb-3">
+            <p className="eyebrow">Methodology release history</p>
+            <h2 className="font-serif text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">
+              Every change keeps its limits and rollback path.
+            </h2>
+          </div>
+          <div className="grid gap-3">
+            {Object.values(METHODOLOGY_RELEASES)
+              .slice()
+              .reverse()
+              .map((entry) => (
+                <article
+                  className="bg-card rounded-md border p-4"
+                  key={entry.version}
+                >
+                  <p className="eyebrow">
+                    {entry.version} · {entry.releasedOn}
+                  </p>
+                  <p className="text-ink mt-2 font-serif text-sm">
+                    {entry.summary}
+                  </p>
+                  <p className="text-graphite mt-2 font-mono text-xs leading-relaxed">
+                    Aggregate basis: {entry.aggregateBasis}
+                  </p>
+                  <div className="text-graphite mt-2 font-mono text-xs leading-relaxed">
+                    <p>Evidence changes:</p>
+                    <ul className="mt-1 flex flex-col gap-1">
+                      {entry.evidenceChanges.map((change) => (
+                        <li key={change}>· {change}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="text-graphite mt-2 font-mono text-xs leading-relaxed">
+                    <p>Limitations:</p>
+                    <ul className="mt-1 flex flex-col gap-1">
+                      {entry.limitations.map((limitation) => (
+                        <li key={limitation}>· {limitation}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <p className="text-graphite mt-1 font-mono text-xs leading-relaxed">
+                    Rollback: {entry.rollbackNotes}
+                  </p>
+                </article>
+              ))}
           </div>
         </section>
       </div>

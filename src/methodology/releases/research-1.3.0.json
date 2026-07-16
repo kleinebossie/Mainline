@@ -10,5 +10,13 @@
   "deliberateStubs": [
     "The effectiveness of bounded weekly-focus choice for chess adherence remains unvalidated, and no training activity is claimed to cause rating gain."
   ],
+  "evidenceChanges": [
+    "Clarified user-facing rationale without changing its Grade C, Tier 2 evidence."
+  ],
+  "aggregateBasis": "None. No Mainline observational aggregate informed this release.",
+  "limitations": [
+    "Alternative-choice framing has not been validated for chess training adherence."
+  ],
+  "rollbackNotes": "Restore research-1.2.0 if the revised optional-choice copy is misleading.",
   "rollbackVersion": "research-1.2.0"
 }

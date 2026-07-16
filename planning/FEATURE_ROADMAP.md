@@ -5,7 +5,7 @@
 > adaptive training program before adding more training modes. It is split into parts so a fresh AI
 > agent can implement and verify one part at a time.
 >
-> **Status.** P0 through P8 are complete; later parts remain planned. A part is implemented only when its
+> **Status.** P0 through P9 are complete; later parts remain planned. A part is implemented only when its
 > own status and Definition of Done say so.
 >
 > **Central product decision.** Mainline needs a deeper loop, not a larger menu. Real adaptation,
@@ -207,7 +207,7 @@ Every part must end with:
 | P6   | Seven-day forecast, revision ledger, and availability model     | Before closed beta                       | P5                                  | Complete |
 | P7   | Program history experience                                      | Before closed beta                       | P6                                  | Complete |
 | P8   | Training-fit and product-feedback loop                          | Before closed beta                       | P5, P7                              | Complete |
-| P9   | Observational research capture and public methodology changelog | Before closed beta                       | P3, P8                              | Planned  |
+| P9   | Observational research capture and public methodology changelog | Before closed beta                       | P3, P8                              | Complete |
 | P10  | Manual PGN and OTB import                                       | Before closed beta                       | P2, P3                              | Planned  |
 | P11  | User-zero acceptance and closed-beta release audit              | Before closed beta                       | P1-P10                              | Planned  |
 | B1   | Recurring motif and board-vision diagnosis                      | Pilot beta                               | P11                                 | Planned  |
@@ -1094,6 +1094,61 @@ the data can prove.
 **Definition of Done:** every recommendation can be tied to its methodology version and eligible
 context, non-consented users are excluded from secondary research exports, and no telemetry path can
 mutate live methodology.
+
+**Status (2026-07-16): COMPLETE.** P3 and P8 were confirmed complete in code and on the configured
+database before implementation. P9 adds one immutable `RecommendationExposure` per generated
+`ProgramItem`, persisted in the same serializable transaction as the Program. The exposure pins the
+methodology version and injected logical generation time, references the Program's canonical
+decision input, and snapshots the served recommendation plus the complete ranked candidate set after
+weekly-focus filtering, due gating, methodology scoring, and positive-fit tie-breaking, before
+generic time packing. Strict schemas and a fail-closed capacity bound keep the snapshot complete and
+exclude due references, puzzle or practice ids, external refs, user free text, and database ids.
+Reused existing or started programs create no duplicate exposure.
+
+The admin-only controlled export derives bounded rows from exposures, canonical `ActivityEvent`
+outcomes, safe projected constraints, and the first safe later rating snapshot. It checks current,
+unwithdrawn `aggregate_observational_training` consent under the new
+`research-data-use/2026-07-16` notice, excludes every stale, withdrawn, missing-scope, deleted, or
+non-consented user, removes direct identifiers and unsafe payloads, and creates deterministic
+HMAC-SHA256 participant pseudonyms from a dedicated secret. Missingness and nested search limits are
+reported explicitly. Raw operational events remain canonical. Personal export is now
+`mainline-user-export/v4` and includes the user's exposure history; User deletion cascades through
+the new model.
+
+The public About surface now shows every methodology release with evidence changes, aggregate basis,
+limitations, and rollback notes. `planning/METHODOLOGY_CHANGELOG.md` records that no Mainline
+aggregate informed any release through `research-1.4.0`. The active methodology and pointer are
+unchanged. A privacy guard proves the P9 research service has no Methodology import, write, or
+activation path. Any future aggregate-driven recommendation change still requires human review,
+evidence regrading, a new immutable config version, golden tests, changelog notes, and a rollback
+plan.
+
+#### P9 handoff
+
+- Migration and owner action: apply `20260716010000_p9_recommendation_exposure` with
+  `npm run prisma:deploy` before generating new Programs. Review the new consent and privacy copy,
+  then configure a separate high-entropy `RESEARCH_EXPORT_SECRET` of at least 32 characters. Do not
+  reuse `AUTH_SECRET` or `CRON_SECRET`. The controlled export fails closed while the secret is absent.
+- Owner smoke: in a production-like environment, re-consent one account under the new notice, leave
+  one account non-consented, generate Programs for both, and confirm an invited admin export contains
+  only the consented pseudonymized rows. Confirm withdrawal excludes that account from the next
+  export and personal export/deletion include and erase RecommendationExposure rows.
+- Verification: Node 25.2.0 and npm 11.6.2; Prisma Client generation; typecheck; full lint; 92 unit
+  files with 487 tests; 4 guard files with 84 tests; production build; and 25 Playwright tests all
+  pass. All P9-changed Prettier-supported files pass formatting, Prisma format passes, and
+  `git diff --check` is clean. The repository-wide optional Prettier check still reports pre-existing
+  formatting issues in `.agents/skills/security-audit/` and
+  `tests/unit/server/program-forecast.test.ts`; P9 did not modify them.
+- Deliberate deviations: no aggregate was computed or published, because none has passed privacy or
+  evidence review. No methodology config or evidence grade changed. The minimal admin UI requests at
+  most 500 rows while the server hard cap is 1,000. Recommendation exposure is operational decision
+  history for every user; only its optional secondary export is consent-gated.
+- Remaining risks: CI has no signed-in OAuth browser fixture, so the admin download and consent
+  regrant/withdrawal journey require the owner smoke above. Production migration and secret behavior
+  remain unverified until deployment. The first later rating is searched within a bounded safe
+  snapshot set and reports when that bound truncates; later B6 analysis must account for that
+  missingness. The new consent wording still warrants appropriate privacy/legal review before export
+  activation.
 
 ---
 

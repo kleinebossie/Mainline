@@ -13,6 +13,7 @@ import { libraryRouter } from "@/server/routers/library";
 import { operationsRouter } from "@/server/routers/operations";
 import { programRouter } from "@/server/routers/program";
 import { progressRouter } from "@/server/routers/progress";
+import { researchRouter } from "@/server/routers/research";
 import { trackerRouter } from "@/server/routers/tracker";
 import { router } from "@/server/trpc";
 
@@ -30,6 +31,7 @@ export const appRouter = router({
   library: libraryRouter,
   progress: progressRouter,
   operations: operationsRouter,
+  research: researchRouter,
 });
 
 export type AppRouter = typeof appRouter;

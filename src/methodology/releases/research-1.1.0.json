@@ -10,5 +10,13 @@
   "deliberateStubs": [
     "Training-fit feedback is empty until P8 and cannot alter measured skill state."
   ],
+  "evidenceChanges": [
+    "Added Grade C weekly-focus policy values without upgrading the underlying evidence."
+  ],
+  "aggregateBasis": "None. No Mainline observational aggregate informed this release.",
+  "limitations": [
+    "Focus stability and bounded alternatives are product best guesses, not demonstrated causes of adherence or rating gain."
+  ],
+  "rollbackNotes": "Restore research-1.0.0 if weekly-focus selection is operationally unsafe; historic programs retain 1.1.0.",
   "rollbackVersion": "research-1.0.0"
 }

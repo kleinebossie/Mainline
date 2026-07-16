@@ -12,6 +12,7 @@ import {
 } from "@/methodology";
 import { generateProgram, type ProgramItemParams } from "@/engine/generator";
 import { systemClock, type Clock } from "@/lib/clock";
+import type { RecommendationExposureDraft } from "@/lib/recommendation-exposure";
 import {
   rawGameFeaturesSchema,
   type RawGameFeatures,
@@ -146,6 +147,20 @@ export function preserveUnfinishedActivities<
     completedCounts.set(key, remaining - 1);
     return [];
   });
+}
+
+/** Keep the served exposure dose aligned with the final item after replan preservation. */
+export function exposureForPersistedItem(item: {
+  estMinutes: number;
+  exposure: RecommendationExposureDraft;
+}): RecommendationExposureDraft {
+  return {
+    servedRecommendation: {
+      ...item.exposure.servedRecommendation,
+      allocatedMinutes: item.estMinutes,
+    },
+    eligibleAlternatives: item.exposure.eligibleAlternatives,
+  };
 }
 
 function startOfDayUTC(epoch: number): Date {
@@ -367,6 +382,7 @@ export async function prepareProgram(
     methodologyVersion: cfg.version,
     generationInput,
     date: startOfDayUTC(result.generatedAt),
+    exposedAt: new Date(result.generatedAt),
     items: itemsToPersist.map((it) => ({
       orderIndex: it.orderIndex,
       activityId: it.activityId,
@@ -388,6 +404,7 @@ export async function prepareProgram(
       citationKey: it.citationKey,
       confidence: it.confidence,
       soften: it.soften,
+      exposure: exposureForPersistedItem(it),
     })),
   };
   return {

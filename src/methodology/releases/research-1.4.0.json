@@ -10,5 +10,13 @@
   "deliberateStubs": [
     "Training-fit feedback is not evidence of chess skill and no adherence or rating effect is claimed."
   ],
+  "evidenceChanges": [
+    "Added Grade C training-fit policy values and retained the Grade A boundary separating self-report from behavior."
+  ],
+  "aggregateBasis": "None. P9 enables controlled observational export, but no Mainline aggregate has informed this release.",
+  "limitations": [
+    "Prompt timing and positive tie-break effects are unvalidated product best guesses and do not establish adherence or rating effects."
+  ],
+  "rollbackNotes": "Restore research-1.3.0 if prompts or fit ordering cause operational harm; preserve 1.4.0 artifacts for replay.",
   "rollbackVersion": "research-1.3.0"
 }

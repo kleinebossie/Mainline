@@ -59,6 +59,7 @@ interface CreatedItem {
 }
 
 const savedGenerationInputs = new WeakMap<object, unknown>();
+const savedRecommendationExposures = new WeakMap<object, unknown[]>();
 
 function fakeDb(opts: FakeOpts) {
   const state: {
@@ -170,9 +171,21 @@ function fakeDb(opts: FakeOpts) {
             resourceRef: null,
           })),
         };
-        return { id: "prog1" };
+        return {
+          id: "prog1",
+          items: state.created.items.map(({ id, orderIndex }) => ({
+            id,
+            orderIndex,
+          })),
+        };
       },
       findFirst: async () => state.created,
+    },
+    recommendationExposure: {
+      createMany: async ({ data }: { data: unknown[] }) => {
+        savedRecommendationExposures.set(db, data);
+        return { count: data.length };
+      },
     },
     $transaction: async (cb: (tx: unknown) => unknown) => cb(db),
   } as unknown as PrismaClient;
@@ -197,6 +210,7 @@ describe("generateAndSaveProgram + getTodayProgram (round-trip)", () => {
     expect(parsed).toEqual(persisted);
     expect(parsed.weeklyFocus.id).toBe("focus1");
     expect(parsed.weeklyFocus.focusAreas.length).toBeGreaterThan(0);
+    expect(savedRecommendationExposures.get(db)).toHaveLength(3);
 
     const today = await getTodayProgram(db, "u1");
     expect(today).not.toBeNull();

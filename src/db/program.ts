@@ -5,6 +5,10 @@
 
 import { Prisma, type PrismaClient } from "@prisma/client";
 import { lockUserProgramMutation } from "@/db/user-mutation-lock";
+import {
+  recommendationExposureDraftSchema,
+  type RecommendationExposureDraft,
+} from "@/lib/recommendation-exposure";
 
 /** One row to insert: the generator's draft flattened to ProgramItem columns (§5.5). */
 export interface PersistableProgramItem {
@@ -21,6 +25,7 @@ export interface PersistableProgramItem {
   citationKey: string;
   confidence: string;
   soften: boolean;
+  exposure: RecommendationExposureDraft;
 }
 
 export interface SaveProgramInput {
@@ -29,6 +34,8 @@ export interface SaveProgramInput {
   generationInput: Prisma.InputJsonValue;
   /** The day these items belong to (start-of-day, derived from the injected Clock). */
   date: Date;
+  /** Logical recommendation exposure time from the injected generation Clock. */
+  exposedAt: Date;
   items: readonly PersistableProgramItem[];
 }
 
@@ -110,8 +117,40 @@ export async function saveProgram(
             })),
           },
         },
-        select: { id: true },
+        select: {
+          id: true,
+          items: { select: { id: true, orderIndex: true } },
+        },
       });
+      const itemIdByOrder = new Map(
+        (program.items ?? []).map((item) => [item.orderIndex, item.id]),
+      );
+      if (input.items.length > 0) {
+        await tx.recommendationExposure.createMany({
+          data: input.items.map((item) => {
+            const programItemId = itemIdByOrder.get(item.orderIndex);
+            if (!programItemId) {
+              throw new Error(
+                `Program item ${item.orderIndex} was not returned for exposure persistence`,
+              );
+            }
+            const exposure = recommendationExposureDraftSchema.parse(
+              item.exposure,
+            );
+            return {
+              userId: input.userId,
+              programId: program.id,
+              programItemId,
+              methodologyVersion: input.methodologyVersion,
+              servedRecommendation:
+                exposure.servedRecommendation as Prisma.InputJsonValue,
+              eligibleAlternatives:
+                exposure.eligibleAlternatives as Prisma.InputJsonValue,
+              exposedAt: input.exposedAt,
+            };
+          }),
+        });
+      }
       await options.afterSave?.(tx, program.id);
       return { programId: program.id, reusedStartedProgram: false };
     },

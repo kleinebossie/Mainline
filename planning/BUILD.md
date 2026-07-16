@@ -554,6 +554,14 @@ P6 adds the durable scheduling layer around the daily Program:
   `confidence`, `soften`), `dimensionsTargeted` (string[]), `status` (`pending|done|skipped`). The transparency
   fields are **denormalised at generation time** (L3) so history is immune to later config bumps. 1—\*
   `ActivityEvent`.
+- **RecommendationExposure**: one immutable row per generated `ProgramItem`. It references the
+  owning `Program` as the canonical decision-input snapshot, pins the methodology version and
+  injected logical exposure time, and stores strict privacy-bounded JSON for the served
+  recommendation plus the complete ranked eligible set after methodology scoring and due gating,
+  before generic time packing. It never stores puzzle/practice ids, external refs, user free text,
+  or a duplicate decision input. Operational events remain canonical. The admin-only P9 research
+  export derives consent-filtered, HMAC-pseudonymized rows from exposures, events, safe constraints,
+  and later rating snapshots; telemetry has no methodology write or activation path.
 - **ActivityEvent** — **append-only** tracker log (never updated/deleted). `userId`, `programItemId?`,
   `type` (`puzzle_attempt|game_played|drill_done|book_session|skip|self_report|…`), `occurredAt`,
   `payload` JSON (`{ correct?, solveTimeMs?, durationMin?, selfReport?, externalRef?, position? }`),
@@ -620,6 +628,7 @@ User 1─* PlatformConnection 1─* ChessProfileSnapshot
                             └─* ImportedGame 1─0..1 AnalysisResult
 User 1─1 Assessment (current)        User 1─* ConstraintSet (one isCurrent)
 User 1─* Program 1─* ProgramItem 1─* ActivityEvent
+User 1─* RecommendationExposure *─1 Program · 1─1 ProgramItem
 User 1─* TrainingFeedback · ProductFeedback · TrainingFeedbackPrompt
 Program · ProgramItem 1─* TrainingFeedback · TrainingFeedbackPrompt
 User 1─* SkillState     User 1─* ScheduleState     User 1─* AdaptationLog

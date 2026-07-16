@@ -1,7 +1,7 @@
 # Mainline closed-beta operations
 
-This runbook covers the P2 runtime controls and P3 account privacy operations. Secondary research
-capture remains disabled until P9 and owner privacy-copy review.
+This runbook covers runtime controls, account privacy operations, and the P9 controlled
+observational export.
 
 ## Deploy
 
@@ -14,10 +14,14 @@ capture remains disabled until P9 and owner privacy-copy review.
 4. Deploy through the normal CI path. Confirm `/api/cron/daily` is the single 06:00 UTC Vercel
    schedule and returns HTTP 200.
 5. Confirm migration `20260711030000_p3_privacy_consent_purge` is applied with
-   `npx prisma migrate status`. Do not enable secondary research capture.
+   `npx prisma migrate status`. Also confirm
+   `20260716010000_p9_recommendation_exposure` is applied before generating new programs.
 6. The owner must review and approve the Settings privacy and consent copy with appropriate legal
    advice. Any notice or scope copy change requires a new `CURRENT_DATA_USE_NOTICE.id`, not an edit
    under the existing id.
+7. Before enabling controlled research export, the owner must review the P9 privacy boundary and
+   configure a separate, randomly generated `RESEARCH_EXPORT_SECRET` of at least 32 characters.
+   Never reuse `AUTH_SECRET` or `CRON_SECRET`. Leave it unset to fail closed.
 
 The daily route fails closed when `CRON_SECRET` is absent or wrong. It first records the complete
 daily workload in `JobRun`, then drains within the function deadline. It returns HTTP 503 when any
@@ -89,6 +93,25 @@ the opaque purge ledger to attach an email, platform username, user id, or suppo
 Mainline uses OAuth sign-in and does not create attributable VerificationToken rows. That Auth.js
 table has no User foreign key. The purge therefore does not guess destructive identifier matching;
 revisit this policy if an email or magic-link provider is introduced.
+
+## Controlled observational research export
+
+Only administrators can request the export from Settings. Every request requires a bounded UTC
+date window and an explicit record limit. The service checks current, unwithdrawn consent under
+`research-data-use/2026-07-16` and the `aggregate_observational_training` scope. Old, withdrawn,
+missing-scope, deleted, and non-consented accounts are excluded.
+
+The export pseudonymizes participants with HMAC-SHA256 and includes safe recommendation rank and
+score context, projected numeric constraints, canonical outcome measurements, and safe later
+rating snapshots. It excludes identity, raw ids, PGNs, provider blobs, exact decision input,
+free text, external references, and puzzle or practice identifiers. Metadata reports truncation
+and missing outcomes, decision inputs, and later ratings.
+
+Treat every result as controlled data. Store it in an owner-approved private location, do not
+publish individual rows, and do not join pseudonyms to operational identifiers. Analysis supports
+association language only. Findings cannot write to live methodology. Any recommendation change
+still requires human review, evidence grading, a new immutable config version, golden tests,
+changelog notes, and a documented rollback.
 
 ## Error monitoring and operational analytics
 

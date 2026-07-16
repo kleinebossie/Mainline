@@ -71,6 +71,7 @@ model User {
   allowlistEntries        AllowlistEntry[]
   apiCallBudgets          ApiCallBudget[]
   researchConsents        ResearchConsent[]
+  recommendationExposures RecommendationExposure[]
 }
 
 // Optional secondary-use consent is separate from account creation and operational
@@ -412,6 +413,7 @@ model Program {
   items                   ProgramItem[]
   trainingFeedback        TrainingFeedback[]
   trainingFeedbackPrompts TrainingFeedbackPrompt[]
+  recommendationExposures RecommendationExposure[]
 
   @@index([userId, status])
   @@index([userId, createdAt, id])
@@ -449,8 +451,31 @@ model ProgramItem {
   activityEvents          ActivityEvent[]
   trainingFeedback        TrainingFeedback[]
   trainingFeedbackPrompts TrainingFeedbackPrompt[]
+  recommendationExposure  RecommendationExposure?
 
   @@index([programId, date, orderIndex])
+}
+
+// Immutable, privacy-bounded context for one served recommendation. Program remains
+// the canonical decision-input reference. Snapshot JSON is strictly validated at the
+// Engine and controlled-export boundaries.
+model RecommendationExposure {
+  id                   String   @id @default(cuid())
+  userId               String
+  programId            String
+  programItemId        String   @unique
+  methodologyVersion   String
+  servedRecommendation Json
+  eligibleAlternatives Json
+  exposedAt            DateTime
+  createdAt            DateTime @default(now())
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  program     Program     @relation(fields: [programId], references: [id], onDelete: Cascade)
+  programItem ProgramItem @relation(fields: [programItemId], references: [id], onDelete: Cascade)
+
+  @@index([userId, exposedAt])
+  @@index([methodologyVersion, exposedAt])
 }
 
 // --- Tracker + adaptation: the loop closes (BUILD.md §5.5, §5.6, M7) ---

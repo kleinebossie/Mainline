@@ -18,5 +18,13 @@
     "Chess-specific causal effects of activities, spacing, book choices, and engagement mechanics",
     "Local solve-time norms and the effectiveness of tilt cooldowns"
   ],
+  "evidenceChanges": [
+    "Published the reviewed research synthesis with its existing grades and citations; no evidence was upgraded."
+  ],
+  "aggregateBasis": "None. No Mainline observational aggregate informed this release.",
+  "limitations": [
+    "Chess-specific activity effects remain observational or extrapolated and cannot establish rating causation."
+  ],
+  "rollbackNotes": "Restore stub-0.1.0 only as an owner-reviewed operational rollback while preserving historic program versions.",
   "rollbackVersion": "stub-0.1.0"
 }

@@ -10,5 +10,13 @@
   "deliberateStubs": [
     "The exact calibration length remains an open question and must not be presented as an evidence-established optimum."
   ],
+  "evidenceChanges": [
+    "No evidence grade changed; the shorter calibration is explicitly Grade C."
+  ],
+  "aggregateBasis": "None. No Mainline observational aggregate informed this release.",
+  "limitations": [
+    "Three calibration items may trade completion against measurement quality and require observational review."
+  ],
+  "rollbackNotes": "Restore research-1.1.0 for new assessments; never rescore historic assessments silently.",
   "rollbackVersion": "research-1.1.0"
 }

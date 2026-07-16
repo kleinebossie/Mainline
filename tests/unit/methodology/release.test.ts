@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   ACTIVE_METHODOLOGY_VERSION,
+  METHODOLOGY_RELEASES,
   methodologyReleaseFor,
 } from "@/methodology";
 
@@ -14,6 +15,10 @@ describe("methodology release metadata", () => {
     expect(release.sourceDocument).toBe("planning/METHODOLOGY.md");
     expect(release.retainedBestGuesses.length).toBeGreaterThan(0);
     expect(release.deliberateStubs.length).toBeGreaterThan(0);
+    expect(release.evidenceChanges.length).toBeGreaterThan(0);
+    expect(release.aggregateBasis).toMatch(/None/);
+    expect(release.limitations.length).toBeGreaterThan(0);
+    expect(release.rollbackNotes).toMatch(/research-1\.3\.0/);
     expect(release.rollbackVersion).toBe("research-1.3.0");
   });
 
@@ -21,6 +26,17 @@ describe("methodology release metadata", () => {
     expect(methodologyReleaseFor(ACTIVE_METHODOLOGY_VERSION).version).toBe(
       ACTIVE_METHODOLOGY_VERSION,
     );
+  });
+
+  it("publishes evidence, aggregate, limitation, and rollback notes for every version", () => {
+    for (const release of Object.values(METHODOLOGY_RELEASES)) {
+      expect(release.evidenceChanges.length, release.version).toBeGreaterThan(
+        0,
+      );
+      expect(release.aggregateBasis, release.version).toMatch(/None/);
+      expect(release.limitations.length, release.version).toBeGreaterThan(0);
+      expect(release.rollbackNotes.length, release.version).toBeGreaterThan(0);
+    }
   });
 
   it("keeps the stub release addressable for historic artifacts", () => {

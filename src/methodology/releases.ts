@@ -14,6 +14,10 @@ export interface MethodologyReleaseMetadata {
   readonly summary: string;
   readonly retainedBestGuesses: readonly string[];
   readonly deliberateStubs: readonly string[];
+  readonly evidenceChanges: readonly string[];
+  readonly aggregateBasis: string;
+  readonly limitations: readonly string[];
+  readonly rollbackNotes: string;
   readonly rollbackVersion: string | null;
 }
 
@@ -24,6 +28,8 @@ function freezeMetadata(
     ...metadata,
     retainedBestGuesses: Object.freeze([...metadata.retainedBestGuesses]),
     deliberateStubs: Object.freeze([...metadata.deliberateStubs]),
+    evidenceChanges: Object.freeze([...metadata.evidenceChanges]),
+    limitations: Object.freeze([...metadata.limitations]),
   });
 }
 
@@ -38,6 +44,11 @@ const STUB_RELEASE = freezeMetadata({
   deliberateStubs: [
     "The complete methodology was not yet released as the active configuration.",
   ],
+  evidenceChanges: ["None. This was a pre-release placeholder."],
+  aggregateBasis:
+    "None. No Mainline observational aggregate informed this release.",
+  limitations: ["Not an evidence-complete methodology release."],
+  rollbackNotes: "Historic only. Do not activate without owner review.",
   rollbackVersion: null,
 });
 

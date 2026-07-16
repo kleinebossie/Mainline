@@ -24,6 +24,10 @@ import {
   type WeaknessSignal,
 } from "@/methodology";
 import { packToBudget, type Divisible } from "@/engine/math/packing";
+import type {
+  RecommendationCandidateSnapshot,
+  RecommendationExposureDraft,
+} from "@/lib/recommendation-exposure";
 
 export type ProgramBookResource = CandidateBookResource;
 
@@ -67,6 +71,7 @@ export interface ProgramItemDraft {
   citationKey: string;
   confidence: Confidence;
   soften: boolean;
+  exposure: RecommendationExposureDraft;
 }
 
 export interface GenerateProgramInput {
@@ -175,6 +180,33 @@ export function generateProgram(
       },
     },
     cfg,
+  );
+
+  const MAX_EXPOSURE_CANDIDATES = 100;
+  if (ordered.length > MAX_EXPOSURE_CANDIDATES) {
+    throw new Error(
+      `Recommendation exposure has ${ordered.length} eligible candidates; maximum complete snapshot is ${MAX_EXPOSURE_CANDIDATES}`,
+    );
+  }
+  const eligibility = ordered.map(
+    (candidate, rank): RecommendationCandidateSnapshot => {
+      const rationale = rationaleFor(candidate.rationaleKey, cfg);
+      return {
+        activityId: candidate.activityId,
+        activityType: candidate.activityType,
+        dimensionsTargeted: [...candidate.dimensionsTargeted],
+        rank,
+        score: candidate.score,
+        dueEligible:
+          dueItemsForActivity(candidate.activityType, input.dueItems).length >
+          0,
+        confidence: candidate.drivingSignal?.confidence ?? "low",
+        evidenceGrade: rationale.grade,
+        evidenceTier: rationale.tier,
+        citationKey: rationale.citationKey,
+        softened: rationale.soften,
+      };
+    },
   );
 
   // Methodology owns unit costs and caps; the packer only performs fit arithmetic.
@@ -331,6 +363,14 @@ export function generateProgram(
 
     // Confidence comes from the driving signal; a band prior remains explicitly low.
     const r = rationaleFor(candidate.rationaleKey, cfg);
+    const served = eligibility.find(
+      (eligible) => eligible.activityId === candidate.activityId,
+    );
+    if (!served) {
+      throw new Error(
+        `Packed activity ${candidate.activityId} was not eligible`,
+      );
+    }
     return {
       orderIndex: index,
       activityId: candidate.activityId,
@@ -347,6 +387,19 @@ export function generateProgram(
       citationKey: r.citationKey,
       confidence: candidate.drivingSignal?.confidence ?? "low",
       soften: r.soften,
+      exposure: {
+        servedRecommendation: {
+          ...served,
+          allocatedMinutes: estMinutes,
+        },
+        eligibleAlternatives: {
+          complete: true,
+          totalEligibleCount: eligibility.length,
+          alternatives: eligibility.filter(
+            (eligible) => eligible.activityId !== candidate.activityId,
+          ),
+        },
+      },
     };
   });
 

@@ -1,9 +1,94 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { saveProgram } from "@/db/program";
-import { preserveUnfinishedActivities } from "@/server/program";
+import {
+  exposureForPersistedItem,
+  preserveUnfinishedActivities,
+} from "@/server/program";
 
 describe("explicit Replan completed-work preservation", () => {
+  it("persists exactly one exposure per new item in the program transaction", async () => {
+    const createMany = vi.fn().mockResolvedValue({ count: 1 });
+    const tx = {
+      $queryRaw: vi.fn(),
+      program: {
+        updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+        create: vi.fn().mockResolvedValue({
+          id: "program-1",
+          items: [{ id: "item-1", orderIndex: 0 }],
+        }),
+      },
+      recommendationExposure: { createMany },
+    };
+    const db = {
+      $transaction: async (work: (value: typeof tx) => unknown) => work(tx),
+      program: tx.program,
+    };
+    const exposure = {
+      servedRecommendation: {
+        activityId: "tactics",
+        activityType: "puzzle",
+        dimensionsTargeted: ["calculation"],
+        rank: 0,
+        score: 3,
+        dueEligible: false,
+        confidence: "low" as const,
+        evidenceGrade: "B" as const,
+        evidenceTier: 2 as const,
+        citationKey: "source",
+        softened: true,
+        allocatedMinutes: 10,
+      },
+      eligibleAlternatives: {
+        complete: true as const,
+        totalEligibleCount: 1,
+        alternatives: [],
+      },
+    };
+
+    const result = await saveProgram(db as never, {
+      userId: "u1",
+      methodologyVersion: "research-1.4.0",
+      generationInput: {},
+      date: new Date("2026-07-16T00:00:00Z"),
+      exposedAt: new Date("2026-07-16T08:30:00Z"),
+      items: [
+        {
+          orderIndex: 0,
+          activityId: "tactics",
+          activityType: "puzzle",
+          resourceRefId: null,
+          params: {},
+          dimensionsTargeted: ["calculation"],
+          rationaleKey: "puzzle",
+          rationaleText: "Association-safe rationale.",
+          evidenceGrade: "B",
+          evidenceTier: 2,
+          citationKey: "source",
+          confidence: "low",
+          soften: true,
+          exposure,
+        },
+      ],
+    });
+
+    expect(result).toEqual({
+      programId: "program-1",
+      reusedStartedProgram: false,
+    });
+    expect(createMany).toHaveBeenCalledOnce();
+    expect(createMany.mock.calls[0]?.[0].data).toHaveLength(1);
+    expect(createMany.mock.calls[0]?.[0].data[0]).toMatchObject({
+      userId: "u1",
+      programId: "program-1",
+      programItemId: "item-1",
+      methodologyVersion: "research-1.4.0",
+      servedRecommendation: exposure.servedRecommendation,
+      eligibleAlternatives: exposure.eligibleAlternatives,
+      exposedAt: new Date("2026-07-16T08:30:00Z"),
+    });
+  });
+
   it("removes only matching completed occurrences from replacement Today", () => {
     const generated = [
       {
@@ -40,6 +125,61 @@ describe("explicit Replan completed-work preservation", () => {
     expect(generated[0]?.params.dueItemRefs).toEqual(["p1", "p2"]);
   });
 
+  it("synchronizes the exposure dose after a partial due block is preserved", () => {
+    const exposure = {
+      servedRecommendation: {
+        activityId: "review",
+        activityType: "spaced_review",
+        dimensionsTargeted: ["tactics"],
+        rank: 0,
+        score: 5,
+        dueEligible: true,
+        confidence: "medium" as const,
+        evidenceGrade: "A" as const,
+        evidenceTier: 2 as const,
+        citationKey: "spacing",
+        softened: false,
+        allocatedMinutes: 10,
+      },
+      eligibleAlternatives: {
+        complete: true as const,
+        totalEligibleCount: 1,
+        alternatives: [],
+      },
+    };
+    const [remaining] = preserveUnfinishedActivities(
+      [
+        {
+          activityId: "review",
+          activityType: "spaced_review",
+          params: {
+            theme: null,
+            track: null,
+            dueItemRefs: ["p1", "p2"],
+            count: 2,
+          },
+          estMinutes: 10,
+          exposure,
+        },
+      ],
+      [
+        {
+          activityId: "review",
+          activityType: "spaced_review",
+          params: { dueItemRefs: ["p1"] },
+        },
+      ],
+    );
+
+    expect(remaining).toBeDefined();
+    expect(remaining!.estMinutes).toBe(5);
+    expect(
+      exposureForPersistedItem(remaining!).servedRecommendation
+        .allocatedMinutes,
+    ).toBe(5);
+    expect(exposure.servedRecommendation.allocatedMinutes).toBe(10);
+  });
+
   it("rechecks started Today under the program mutation lock", async () => {
     const updateMany = vi.fn();
     const create = vi.fn();
@@ -64,6 +204,7 @@ describe("explicit Replan completed-work preservation", () => {
         methodologyVersion: "research-1.1.0",
         generationInput: {},
         date: new Date("2026-07-13T00:00:00Z"),
+        exposedAt: new Date("2026-07-13T08:30:00Z"),
         items: [],
       },
       { preventStartedReplacement: true, afterSave },
@@ -116,6 +257,7 @@ describe("explicit Replan completed-work preservation", () => {
         methodologyVersion: "research-1.3.0",
         generationInput: {},
         date,
+        exposedAt: new Date("2026-07-15T08:30:00Z"),
         items: [],
       },
       { reuseExistingDate: true },
@@ -161,6 +303,7 @@ describe("explicit Replan completed-work preservation", () => {
         methodologyVersion: "research-1.3.0",
         generationInput: {},
         date,
+        exposedAt: new Date("2026-07-15T08:30:00Z"),
         items: [],
       },
       { preventStartedReplacement: true },

@@ -99,7 +99,8 @@ export function AccountActions() {
           session can be re-derived exactly, and your optional training-fit
           preferences travel with it. Programs and explanations snapshot the
           methodology version used, so later methodology changes do not rewrite
-          your history.
+          your history. Each served recommendation also keeps a bounded snapshot
+          of the eligible context that produced it.
         </p>
         <p className="text-graphite text-sm leading-relaxed font-serif">
           Personal training works without research consent. Operational records
@@ -245,8 +246,8 @@ export function AccountActions() {
         </div>
         <p className="text-graphite text-xs">
           This product copy is a roadmap implementation, not legal advice. The
-          owner must complete legal and privacy-copy review before any secondary
-          research capture is enabled.
+          owner must complete legal and privacy-copy review before configuring
+          the controlled research export.
         </p>
       </div>
       {notice && <StatusMessage tone="success">{notice}</StatusMessage>}

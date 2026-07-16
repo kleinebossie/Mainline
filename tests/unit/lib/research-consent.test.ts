@@ -17,10 +17,10 @@ const base = {
 describe("research consent eligibility", () => {
   it("locks notice copy to its stable version identifier", () => {
     expect(CURRENT_DATA_USE_NOTICE).toEqual({
-      id: "research-data-use/2026-07-11",
+      id: "research-data-use/2026-07-16",
       title: "Optional aggregate observational research",
       summary:
-        "A future feature may use consented training and game records in de-identified aggregate analyses to study associations. It will not prove that an activity causes rating gain. Secondary research capture is currently disabled.",
+        "With your separate consent, Mainline may include de-identified recommendation, training-outcome, constraint, and rating records in controlled observational analyses of associations. This cannot prove that an activity causes rating gain, and individual histories are never published.",
       withdrawal:
         "Withdrawal stops future optional secondary inclusion. It does not remove operational storage needed for personal training. Use account deletion to erase your account data.",
     });

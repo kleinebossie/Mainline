@@ -109,6 +109,17 @@ The user-facing boundary copy is Grade A, Tier 1 and cites `heck2025`: self-repo
 kept separate. Product feedback is also separate from training evidence. No effectiveness or rating
 gain claim is introduced. Rollback is `research-1.3.0`.
 
+P9 adds controlled observational capture without changing `research-1.4.0` or the active pointer.
+Every served ProgramItem now has an immutable, safe exposure snapshot containing its methodology
+version, ranked eligible context, score and due context, evidence grade, and allocated time.
+Currently consented records may be exported through an admin-only, bounded, HMAC-pseudonymized
+path for association analysis. Raw operational events remain canonical.
+
+Aggregate basis for every release through `research-1.4.0`: none. No Mainline observational
+aggregate has informed a methodology value or evidence grade. The new capture path does not claim
+findings, publish individual histories, or activate methodology. Rollback remains
+`research-1.3.0`; exposure records remain attached to historic programs for reproducibility.
+
 ## stub-0.1.0
 
 Status: retained for reproducibility and rollback. This was the pre-release

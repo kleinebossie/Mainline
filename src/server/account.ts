@@ -184,6 +184,21 @@ export async function exportUserData(db: PrismaClient, userId: string) {
       items: { select: programItemExportSelect },
     },
   });
+  const recommendationExposures = await db.recommendationExposure.findMany({
+    where: { userId },
+    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+    select: {
+      id: true,
+      userId: true,
+      programId: true,
+      programItemId: true,
+      methodologyVersion: true,
+      servedRecommendation: true,
+      eligibleAlternatives: true,
+      exposedAt: true,
+      createdAt: true,
+    },
+  });
   const activityEvents = await db.activityEvent.findMany({
     where: { userId },
     select: {
@@ -426,7 +441,7 @@ export async function exportUserData(db: PrismaClient, userId: string) {
   });
 
   return {
-    exportFormat: "mainline-user-export/v3",
+    exportFormat: "mainline-user-export/v4",
     generatedForUserId: userId,
     user,
     accounts,
@@ -437,6 +452,7 @@ export async function exportUserData(db: PrismaClient, userId: string) {
     assessment,
     constraintSets,
     programs,
+    recommendationExposures,
     activityEvents,
     trainingFeedback,
     productFeedback,
