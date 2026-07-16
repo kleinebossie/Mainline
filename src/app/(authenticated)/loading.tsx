@@ -5,7 +5,7 @@ export default function AuthenticatedLoading() {
       role="status"
       aria-label="Loading page"
     >
-      <span className="block h-full w-1/2 animate-pulse bg-evergreen" />
+      <span className="loading-slide block h-full w-1/3 bg-evergreen" />
     </div>
   );
 }

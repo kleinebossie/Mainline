@@ -13,18 +13,9 @@ import {
 import { generateProgram, type ProgramItemParams } from "@/engine/generator";
 import { systemClock, type Clock } from "@/lib/clock";
 import type { RecommendationExposureDraft } from "@/lib/recommendation-exposure";
-import {
-  rawGameFeaturesSchema,
-  type RawGameFeatures,
-} from "@/lib/raw-features";
 import { lichessThemeUrl, platformPlayUrl } from "@/integrations/catalog";
 import { humanizeTheme } from "@/integrations/puzzles/themes";
 import { platformLabel } from "@/lib/format-game";
-import {
-  ratingFromSnapshot,
-  playingRatingFromSnapshot,
-  highestLiveRatingFromSnapshot,
-} from "@/server/assessment";
 import {
   getActiveProgram,
   saveProgram,
@@ -32,9 +23,9 @@ import {
   type ActiveProgram,
 } from "@/db/program";
 import { captureOperationalEvent } from "@/server/observability";
-import { findRecentPuzzleAttempts } from "@/db/tracker";
 import { ensureEndgameDrills } from "@/server/practice";
 import { assembleProgramDecisionInput } from "@/server/decision-input";
+import { resolveTacticalRating, gatherFeatures } from "@/server/profile";
 import { ensureWeeklyFocus } from "@/server/weekly-focus";
 import { programWeeklyFocusSnapshotSchema } from "@/lib/weekly-focus";
 import {
@@ -168,115 +159,6 @@ function startOfDayUTC(epoch: number): Date {
   return new Date(
     Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()),
   );
-}
-
-/** Prefer behavioral calibration when choosing puzzle difficulty. */
-export async function resolveTacticalRating(
-  db: Db,
-  userId: string,
-  cfg: MethodologyConfig,
-): Promise<number> {
-  const a = await db.assessment.findUnique({
-    where: { userId },
-    select: { tacticalRatingEstimate: true },
-  });
-  if (a?.tacticalRatingEstimate != null) return a.tacticalRatingEstimate;
-  const snap = await db.chessProfileSnapshot.findFirst({
-    where: { userId },
-    orderBy: { capturedAt: "desc" },
-    select: { ratings: true },
-  });
-  return (
-    ratingFromSnapshot(snap?.ratings) ??
-    cfg.assessment.calibration.startRating.value
-  );
-}
-
-/** Use playing strength for analysis bands, never puzzle rating. */
-export async function resolvePlayingRating(
-  db: Db,
-  userId: string,
-  cfg: MethodologyConfig,
-  gameRating?: number | null,
-): Promise<number> {
-  if (gameRating != null && Number.isFinite(gameRating)) return gameRating;
-  const snap = await db.chessProfileSnapshot.findFirst({
-    where: { userId },
-    orderBy: { capturedAt: "desc" },
-    select: { ratings: true },
-  });
-  return (
-    playingRatingFromSnapshot(snap?.ratings) ??
-    (await resolveTacticalRating(db, userId, cfg))
-  );
-}
-
-/** Use the highest live-game rating on the primary platform for library bands. */
-export async function resolveLibraryRating(
-  db: Db,
-  userId: string,
-  cfg: MethodologyConfig,
-): Promise<number> {
-  const user = await db.user.findUnique({
-    where: { id: userId },
-    select: { primaryPlatform: true },
-  });
-  const snap = await db.chessProfileSnapshot.findFirst({
-    where: user?.primaryPlatform
-      ? { userId, platform: user.primaryPlatform }
-      : { userId },
-    orderBy: { capturedAt: "desc" },
-    select: { ratings: true },
-  });
-  return (
-    highestLiveRatingFromSnapshot(snap?.ratings) ??
-    (await resolveTacticalRating(db, userId, cfg))
-  );
-}
-
-export async function gatherFeatures(
-  db: Db,
-  userId: string,
-): Promise<RawGameFeatures[]> {
-  const rows = await db.analysisResult.findMany({
-    where: { game: { userId } },
-    select: { rawFeatures: true },
-    orderBy: { analyzedAt: "desc" },
-  });
-  const features: RawGameFeatures[] = [];
-  for (const row of rows) {
-    const parsed = rawGameFeaturesSchema.safeParse(row.rawFeatures);
-    if (parsed.success) features.push(parsed.data);
-  }
-  return features;
-}
-
-/** Raw recent success rates by puzzle track. */
-export async function gatherRecentSuccessByTrack(
-  db: Db,
-  userId: string,
-): Promise<{ pattern?: number; calculation?: number }> {
-  const rows = await findRecentPuzzleAttempts(db, userId, 50);
-  const agg: Record<"pattern" | "calculation", { s: number; n: number }> = {
-    pattern: { s: 0, n: 0 },
-    calculation: { s: 0, n: 0 },
-  };
-  for (const row of rows) {
-    const params = (row.programItem?.params ?? null) as {
-      track?: unknown;
-    } | null;
-    const track = params?.track;
-    if (track !== "pattern" && track !== "calculation") continue;
-    const correct = (row.payload as { correct?: unknown } | null)?.correct;
-    if (typeof correct !== "boolean") continue;
-    agg[track].n += 1;
-    if (correct) agg[track].s += 1;
-  }
-  const out: { pattern?: number; calculation?: number } = {};
-  if (agg.pattern.n > 0) out.pattern = agg.pattern.s / agg.pattern.n;
-  if (agg.calculation.n > 0)
-    out.calculation = agg.calculation.s / agg.calculation.n;
-  return out;
 }
 
 const themeRefId = (theme: string): string => `lichess_theme_${theme}`;

@@ -8,9 +8,9 @@ import {
   getGameSignals,
   getTodayProgram,
   prepareProgram,
-  resolveTacticalRating,
   toTodayItem,
 } from "@/server/program";
+import { resolveTacticalRating } from "@/server/profile";
 import { protectedProcedure, router } from "@/server/trpc";
 import {
   loadMethodology,

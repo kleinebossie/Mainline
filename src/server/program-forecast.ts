@@ -18,7 +18,7 @@ import {
   programGenerationInputSchema,
   programWeeklyFocusSnapshotSchema,
 } from "@/lib/weekly-focus";
-import { systemClock, type Clock } from "@/lib/clock";
+import { DAY_MS, systemClock, type Clock } from "@/lib/clock";
 import { lockUserProgramMutation } from "@/db/user-mutation-lock";
 
 type ForecastDb = Pick<
@@ -169,7 +169,7 @@ export async function getAvailabilityOverrides(
   clock: Clock = systemClock,
 ) {
   const from = startOfDay(clock.now());
-  const through = new Date(from.getTime() + 6 * 86_400_000);
+  const through = new Date(from.getTime() + 6 * DAY_MS);
   const rows = await db.availabilityOverride.findMany({
     where: { userId, date: { gte: from, lte: through } },
     orderBy: { date: "asc" },
@@ -225,13 +225,13 @@ export async function getForecast(
     orderBy: { date: "asc" },
   });
   const from = startOfDay(clock.now()).getTime();
-  const through = from + 6 * 86_400_000;
+  const through = from + 6 * DAY_MS;
   const currentRows = rows.filter((row) => {
     const date = row.date.getTime();
     return date >= from && date <= through;
   });
   const expectedDates = new Set(
-    Array.from({ length: 7 }, (_, index) => from + index * 86_400_000),
+    Array.from({ length: 7 }, (_, index) => from + index * DAY_MS),
   );
   const coversCurrentWindow =
     currentRows.length === 7 &&
@@ -378,7 +378,7 @@ export async function refreshForecast(
   );
   const availability = await getWeeklyAvailability(db, userId);
   const from = startOfDay(clock.now());
-  const through = new Date(from.getTime() + 6 * 86_400_000);
+  const through = new Date(from.getTime() + 6 * DAY_MS);
   const overrideRows = await db.availabilityOverride.findMany({
     where: { userId, date: { gte: from, lte: through } },
     orderBy: { date: "asc" },

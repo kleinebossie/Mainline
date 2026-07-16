@@ -39,11 +39,22 @@ export function backoffDelayMs(
   return Math.min(Math.max(exp, retryAfter), policy.capMs);
 }
 
-function parseRetryAfter(res: Response): number | undefined {
+export function parseRetryAfter(
+  res: Response,
+  nowMs: number,
+): number | undefined {
   const raw = res.headers.get("retry-after");
   if (!raw) return undefined;
+  // Numeric form: seconds to wait (RFC 7231 §7.1.3 delta-seconds).
   const sec = Number(raw);
-  return Number.isFinite(sec) ? sec : undefined;
+  if (Number.isFinite(sec)) return sec;
+  // HTTP-date form: an absolute timestamp. Convert to seconds-from-now so the
+  // back-off schedule (which caps the wait) can honour the platform's request instead
+  // of falling back to the aggressive exponential default. An unparseable date
+  // yields no guidance. A past date becomes zero, so the schedule is used as before.
+  const date = new Date(raw);
+  const ms = date.getTime();
+  return Number.isNaN(ms) ? undefined : Math.max(0, (ms - nowMs) / 1000);
 }
 
 function abortableSleep(ms: number, signal: AbortSignal): Promise<void> {
@@ -125,7 +136,7 @@ export async function politeFetch(
       }
       backingOffAfterRateLimit = true;
       await abortableSleep(
-        backoffDelayMs(attempt + 1, policy, parseRetryAfter(res)),
+        backoffDelayMs(attempt + 1, policy, parseRetryAfter(res, Date.now())),
         signal,
       );
       backingOffAfterRateLimit = false;

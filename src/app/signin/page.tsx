@@ -5,7 +5,7 @@ import { PendingSubmitButton } from "@/components/pending-submit-button";
 import { buttonVariants } from "@/components/ui/button";
 import { ErrorNotice } from "@/components/ui/error-notice";
 import { Wordmark } from "@/components/app-shell";
-import { beginBetaSignIn } from "@/app/signin/actions";
+import { beginSelectedBetaSignIn } from "@/app/signin/actions";
 
 // Custom sign-in page (Auth.js `pages.signIn`). Lichess needs no secret, so it is
 // always offered; Google appears only when configured.
@@ -78,70 +78,56 @@ export default async function SignInPage({
         )}
 
         <div className="bg-card rounded-lg border p-6 shadow-sheet">
-          <form
-            action={async (formData: FormData) => {
-              "use server";
-              await beginBetaSignIn("lichess", formData);
-            }}
-          >
+          <form action={beginSelectedBetaSignIn}>
             <label
-              className="text-graphite mb-3 block text-xs"
-              htmlFor="lichess-invite"
+              htmlFor="signin-invite"
+              className="text-graphite mb-2 block text-xs"
             >
               Invite code (optional for allowlisted email)
             </label>
             <input
-              id="lichess-invite"
+              id="signin-invite"
               name="inviteCode"
               autoComplete="one-time-code"
               maxLength={128}
-              className="border-line bg-background mb-3 w-full rounded-md border px-3 py-2 text-sm"
+              aria-describedby="signin-invite-help"
+              className="border-input bg-paper-raised mb-3 w-full rounded-md border px-3 py-2 font-mono text-sm outline-none transition-shadow focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-paper"
             />
-            <PendingSubmitButton
-              pendingLabel="Opening Lichess…"
-              className={buttonVariants({ size: "lg", className: "w-full" })}
+            <p
+              id="signin-invite-help"
+              className="text-graphite mb-4 font-mono text-[0.65rem] leading-relaxed"
             >
-              Continue with Lichess
-            </PendingSubmitButton>
+              Mainline never receives your provider password.
+            </p>
+            <div className="grid gap-3">
+              <PendingSubmitButton
+                name="provider"
+                value="lichess"
+                pendingLabel="Opening Lichess…"
+                className={buttonVariants({ size: "lg", className: "w-full" })}
+              >
+                Continue with Lichess
+              </PendingSubmitButton>
+              {googleEnabled && (
+                <PendingSubmitButton
+                  name="provider"
+                  value="google"
+                  pendingLabel="Opening Google…"
+                  className={buttonVariants({
+                    variant: "outline",
+                    size: "lg",
+                    className: "w-full",
+                  })}
+                >
+                  Continue with Google
+                </PendingSubmitButton>
+              )}
+            </div>
           </form>
 
-          {googleEnabled && (
-            <form
-              className="mt-3"
-              action={async (formData: FormData) => {
-                "use server";
-                await beginBetaSignIn("google", formData);
-              }}
-            >
-              <label
-                className="text-graphite mb-3 block text-xs"
-                htmlFor="google-invite"
-              >
-                Invite code (optional for allowlisted email)
-              </label>
-              <input
-                id="google-invite"
-                name="inviteCode"
-                autoComplete="one-time-code"
-                maxLength={128}
-                className="border-line bg-background mb-3 w-full rounded-md border px-3 py-2 text-sm"
-              />
-              <PendingSubmitButton
-                pendingLabel="Opening Google…"
-                className={buttonVariants({
-                  variant: "outline",
-                  size: "lg",
-                  className: "w-full",
-                })}
-              >
-                Continue with Google
-              </PendingSubmitButton>
-            </form>
-          )}
-
           <p className="text-graphite mt-5 border-t border-line/80 pt-4 text-center font-mono text-[0.7rem] leading-relaxed">
-            Read-only access. Your games and outcomes are yours: exportable and
-            deletable at any time.
+            Connected game access is read-only. Your training data is exportable
+            and deletable at any time.
           </p>
         </div>
       </div>

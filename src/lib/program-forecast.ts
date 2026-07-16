@@ -1,5 +1,9 @@
 import { z } from "zod";
 
+import {
+  MAX_MINUTES_PER_DAY,
+  MIN_MINUTES_PER_DAY,
+} from "@/lib/constraint-limits";
 import { focusRationaleSnapshotSchema } from "@/lib/weekly-focus";
 
 const weekdaySchema = z.number().int().min(0).max(6);
@@ -9,7 +13,7 @@ export const weeklyAvailabilityInputSchema = z
     preferredWeekdays: z.array(weekdaySchema).max(7),
     defaultMinutesByDay: z.record(
       z.string(),
-      z.number().int().min(5).max(1440),
+      z.number().int().min(MIN_MINUTES_PER_DAY).max(MAX_MINUTES_PER_DAY),
     ),
   })
   .strict()
@@ -46,7 +50,12 @@ export type WeeklyAvailabilityInput = z.infer<
 export const availabilityOverrideInputSchema = z
   .object({
     date: z.number().int(),
-    minutes: z.number().int().min(5).max(1440).nullable(),
+    minutes: z
+      .number()
+      .int()
+      .min(MIN_MINUTES_PER_DAY)
+      .max(MAX_MINUTES_PER_DAY)
+      .nullable(),
     unavailable: z.boolean(),
   })
   .strict()

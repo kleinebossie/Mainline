@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 import { BETA_INVITE_COOKIE } from "@/server/beta-access";
 import { signIn } from "@/server/auth";
 
-export async function beginBetaSignIn(
+async function beginBetaSignIn(
   provider: "lichess" | "google",
   formData: FormData,
 ): Promise<void> {

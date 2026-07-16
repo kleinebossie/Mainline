@@ -112,8 +112,16 @@ export function PageShell({
 }) {
   return (
     <div className="min-h-screen">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-md focus:border focus:border-line focus:bg-paper-raised focus:px-3 focus:py-2 focus:font-mono focus:text-xs focus:text-ink focus:shadow-sheet"
+      >
+        Skip to content
+      </a>
       <TopBar />
       <main
+        id="main-content"
+        tabIndex={-1}
         className={cn(
           "mx-auto px-4 py-8 sm:px-6 sm:py-12",
           width === "wide" ? "max-w-5xl" : "max-w-2xl",

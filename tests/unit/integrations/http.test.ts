@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   DEFAULT_BACKOFF,
   backoffDelayMs,
+  parseRetryAfter,
   politeFetch,
 } from "@/integrations/http";
 
@@ -38,6 +39,49 @@ describe("backoffDelayMs", () => {
   it("honours a larger Retry-After (seconds), still capped", () => {
     expect(backoffDelayMs(1, policy, 5)).toBe(5000);
     expect(backoffDelayMs(1, policy, 999)).toBe(30_000);
+  });
+});
+
+describe("parseRetryAfter", () => {
+  const now = 1_700_000_000_000;
+
+  it("returns the numeric seconds value when the header is delta-seconds", () => {
+    expect(
+      parseRetryAfter(
+        new Response("", { headers: { "retry-after": "60" } }),
+        now,
+      ),
+    ).toBe(60);
+  });
+
+  it("returns undefined when the header is absent", () => {
+    expect(parseRetryAfter(new Response(""), now)).toBeUndefined();
+  });
+
+  it("converts an HTTP-date header to seconds-from-now (RFC 7231 §7.1.3)", () => {
+    const res = new Response("", {
+      headers: { "retry-after": "Wed, 21 Oct 2026 07:28:00 GMT" },
+    });
+    // 90 seconds ahead of `now`.
+    const dateMs = Date.parse("Wed, 21 Oct 2026 07:28:00 GMT");
+    expect(parseRetryAfter(res, dateMs - 90_000)).toBeCloseTo(90, 5);
+  });
+
+  it("clamps a past HTTP-date to 0 so the exponential schedule is used, not a negative wait", () => {
+    const res = new Response("", {
+      headers: { "retry-after": "Wed, 21 Oct 2026 07:28:00 GMT" },
+    });
+    const dateMs = Date.parse("Wed, 21 Oct 2026 07:28:00 GMT");
+    expect(parseRetryAfter(res, dateMs + 60_000)).toBe(0);
+  });
+
+  it("returns undefined for an unparseable header so the schedule falls back cleanly", () => {
+    expect(
+      parseRetryAfter(
+        new Response("", { headers: { "retry-after": "nope" } }),
+        now,
+      ),
+    ).toBeUndefined();
   });
 });
 

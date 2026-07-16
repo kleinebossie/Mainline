@@ -20,7 +20,7 @@ import {
   recordEngagementForCompletion,
   type RewardEventView,
 } from "@/server/engagement";
-import { systemClock, type Clock } from "@/lib/clock";
+import { DAY_MS, systemClock, type Clock } from "@/lib/clock";
 import {
   fsrsStateSchema,
   logOutcomeInputSchema,
@@ -410,7 +410,7 @@ export async function runDailyAdaptation(
   const now = clock.now();
   const dayStart = new Date(now);
   dayStart.setUTCHours(0, 0, 0, 0);
-  const dayEnd = new Date(dayStart.getTime() + 86_400_000);
+  const dayEnd = new Date(dayStart.getTime() + DAY_MS);
 
   const alreadyRun = await db.adaptationLog.findFirst({
     where: {

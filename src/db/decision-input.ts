@@ -9,9 +9,9 @@ import {
   type SkillStateSnapshotValue,
   type TrainingPreferenceStateSnapshot,
 } from "@/lib/decision-input";
+import { DAY_MS } from "@/lib/clock";
 
 const DEFAULT_RECENCY_WINDOW_DAYS = 28;
-const DAY_MS = 86_400_000;
 const DEFAULT_SNAPSHOT_HISTORY_LIMIT = 500;
 
 export interface SkillStateSnapshotInput {

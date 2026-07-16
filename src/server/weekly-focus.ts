@@ -13,9 +13,9 @@ import {
 import { weeklyFocusSchema, type WeeklyFocus } from "@/lib/weekly-focus";
 import { findActiveWeeklyFocus, replaceWeeklyFocus } from "@/db/weekly-focus";
 import { expectedError } from "@/server/errors";
+import { DAY_MS } from "@/lib/clock";
 
 type Db = Pick<PrismaClient, "weeklyFocus" | "$transaction">;
-const DAY_MS = 86_400_000;
 
 function weekStart(epoch: number): Date {
   const date = new Date(epoch);

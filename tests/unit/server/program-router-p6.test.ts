@@ -5,8 +5,10 @@ const program = vi.hoisted(() => ({
   getGameSignals: vi.fn(),
   getTodayProgram: vi.fn(),
   prepareProgram: vi.fn(),
-  resolveTacticalRating: vi.fn(),
   toTodayItem: vi.fn(),
+}));
+const profile = vi.hoisted(() => ({
+  resolveTacticalRating: vi.fn(),
 }));
 const focus = vi.hoisted(() => ({
   getWeeklyFocus: vi.fn(),
@@ -26,6 +28,7 @@ const forecast = vi.hoisted(() => ({
 }));
 
 vi.mock("@/server/program", () => program);
+vi.mock("@/server/profile", () => profile);
 vi.mock("@/server/weekly-focus", () => focus);
 vi.mock("@/server/program-forecast", () => forecast);
 

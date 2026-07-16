@@ -233,8 +233,25 @@
     animation: settle-in 0.5s cubic-bezier(0.2, 0.6, 0.2, 1) both;
   }
 
+  /* Indeterminate top progress bar: one segment sliding across the track. */
+  @keyframes loading-slide {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(300%);
+    }
+  }
+  .loading-slide {
+    animation: loading-slide 1s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .settle {
+      animation: none;
+    }
+    .loading-slide,
+    .animate-spin {
       animation: none;
     }
     .eval-gutter {

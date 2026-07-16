@@ -19,7 +19,7 @@ import {
   gradeFromOutcome,
   scheduleReview,
 } from "@/methodology";
-import { resolvePlayingRating } from "@/server/program";
+import { resolvePlayingRating } from "@/server/profile";
 import { gameIdentity } from "@/server/game-identity";
 import { systemClock } from "@/lib/clock";
 import { protectedProcedure, router } from "@/server/trpc";

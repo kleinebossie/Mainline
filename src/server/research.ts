@@ -14,6 +14,7 @@ import {
   CURRENT_DATA_USE_NOTICE,
   type ResearchConsentScope,
 } from "@/lib/research-consent";
+import { DAY_MS } from "@/lib/clock";
 
 const RESEARCH_SCOPE: ResearchConsentScope = "aggregate_observational_training";
 export const MAX_RESEARCH_EXPORT_RECORDS = 1_000;
@@ -128,7 +129,7 @@ export async function exportControlledObservationalResearch(
   if (
     !Number.isFinite(windowMs) ||
     windowMs <= 0 ||
-    windowMs > MAX_RESEARCH_WINDOW_DAYS * 86_400_000
+    windowMs > MAX_RESEARCH_WINDOW_DAYS * DAY_MS
   ) {
     throw new RangeError(
       `Research export window must be between 1 millisecond and ${MAX_RESEARCH_WINDOW_DAYS} days`,

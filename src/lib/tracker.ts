@@ -2,6 +2,8 @@
 
 import { z } from "zod";
 
+import { DAY_MS } from "@/lib/clock";
+
 /** Self-reported position in an external resource, never a skill estimate. */
 export const bookPositionSchema = z
   .object({
@@ -25,7 +27,7 @@ export const bookSelfReportSchema = z
 export const activityEventPayloadSchema = z
   .object({
     correct: z.boolean().optional(),
-    solveTimeMs: z.number().int().nonnegative().max(86_400_000).optional(),
+    solveTimeMs: z.number().int().nonnegative().max(DAY_MS).optional(),
     durationMin: z.number().nonnegative().max(600).optional(),
     externalRef: z.string().min(1).max(200).optional(),
     puzzleId: z.string().min(1).max(100).optional(),
@@ -61,7 +63,7 @@ export const logOutcomeInputSchema = z.object({
   programItemId: z.string().min(1).optional(),
   type: z.enum(ACTIVITY_EVENT_TYPES),
   correct: z.boolean().optional(),
-  solveTimeMs: z.number().int().nonnegative().max(86_400_000).optional(),
+  solveTimeMs: z.number().int().nonnegative().max(DAY_MS).optional(),
   durationMin: z.number().nonnegative().max(600).optional(),
   externalRef: z.string().min(1).max(200).optional(),
   puzzleId: z.string().min(1).max(100).optional(),

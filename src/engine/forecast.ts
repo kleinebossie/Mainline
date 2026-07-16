@@ -1,10 +1,9 @@
+import { DAY_MS } from "@/lib/clock";
 import type {
   AvailabilityOverrideInput,
   ForecastBlock,
   WeeklyAvailabilityInput,
 } from "@/lib/program-forecast";
-
-const DAY_MS = 86_400_000;
 
 export interface ForecastDraft {
   date: number;

@@ -8,7 +8,7 @@ import { z } from "zod";
 
 import { getLibrary } from "@/server/library";
 import { logOutcome } from "@/server/tracker";
-import { resolveLibraryRating } from "@/server/program";
+import { resolveLibraryRating } from "@/server/profile";
 import { getCurrentConstraints, getTargetFocus } from "@/server/constraints";
 import {
   bookDifficultyFeedback,

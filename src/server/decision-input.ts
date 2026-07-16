@@ -29,7 +29,7 @@ import {
   gatherRecentSuccessByTrack,
   resolveLibraryRating,
   resolveTacticalRating,
-} from "@/server/program";
+} from "@/server/profile";
 
 type Db = Pick<
   PrismaClient,
