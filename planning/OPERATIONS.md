@@ -9,13 +9,14 @@ observational export.
 2. Set `BETA_OWNER_EMAILS`, `CRON_SECRET`, `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_ORG`,
    `SENTRY_PROJECT`, and a project-scoped `SENTRY_AUTH_TOKEN` in Vercel.
 3. Set `CHESS_API_USER_AGENT` to a descriptive address. Optionally tune
-   `LICHESS_API_REQUESTS_PER_HOUR` and `CHESSCOM_API_REQUESTS_PER_HOUR` after reviewing expected
-   beta load.
+   `LICHESS_API_REQUESTS_PER_HOUR`, `CHESSCOM_API_REQUESTS_PER_HOUR`, and
+   `MANUAL_IMPORT_REQUESTS_PER_HOUR` after reviewing expected beta load.
 4. Deploy through the normal CI path. Confirm `/api/cron/daily` is the single 06:00 UTC Vercel
    schedule and returns HTTP 200.
 5. Confirm migration `20260711030000_p3_privacy_consent_purge` is applied with
    `npx prisma migrate status`. Also confirm
-   `20260716010000_p9_recommendation_exposure` is applied before generating new programs.
+   `20260716010000_p9_recommendation_exposure` is applied before generating new programs and
+   `20260716020000_p10_manual_pgn_import` is applied before accepting manual games.
 6. The owner must review and approve the Settings privacy and consent copy with appropriate legal
    advice. Any notice or scope copy change requires a new `CURRENT_DATA_USE_NOTICE.id`, not an edit
    under the existing id.
@@ -112,6 +113,37 @@ publish individual rows, and do not join pseudonyms to operational identifiers. 
 association language only. Findings cannot write to live methodology. Any recommendation change
 still requires human review, evidence grading, a new immutable config version, golden tests,
 changelog notes, and a documented rollback.
+
+## Manual PGN and OTB import
+
+The Analysis page accepts one pasted game, one PGN file, or a multi-game PGN file. The infrastructure
+limits are 512 KiB per batch, 25 games per batch, 128 KiB per game, and 600 plies per game. These
+limits protect the tRPC request and browser Stockfish queue on the deployed free tier. They are not
+methodology values or training recommendations.
+
+Manual checks and creates share a fixed-window budget that defaults to 60 requests per user per hour.
+Manual libraries are capped at 500 games. The cap check and inserts run in a serializable transaction,
+so concurrent batches cannot reserve the same remaining capacity. Tune the request limit with
+`MANUAL_IMPORT_REQUESTS_PER_HOUR`; changing the library cap requires a reviewed code change.
+
+Only standard chess PGN is accepted. Valid games are imported independently, so a malformed or
+unsupported sibling stays out without discarding the rest. The user must identify their color for
+each valid game. Date, time control, result, ratings, and event remain optional. An absent date is
+stored as unknown, an absent rating creates no rating observation, and missing clock comments create
+no time-use measurement. Manual import creates neither a PlatformConnection nor a
+ChessProfileSnapshot.
+
+After import, use the existing Analysis page controls to run the client-side Stockfish scan and open
+structured review. Saving eligible critical moments uses the existing personal PracticeItem and FSRS
+paths. Re-importing normalized equivalent content is a no-op through the manual SHA-256 dedupe key.
+Chess.js preserves mainline comments such as `%clk` during canonicalization, but does not preserve
+arbitrary variation and NAG structure. Keep the original source file if those annotations matter.
+
+For the production-like smoke check, import a file containing one valid standard game, one malformed
+game, and one unsupported variant. Confirm only the valid game appears under Manual PGN, a second
+import reports it as already present, the browser scan saves raw features, structured review can
+schedule a personal drill, account export contains the manual game and analysis, and hard deletion
+removes the game and its derived rows.
 
 ## Error monitoring and operational analytics
 

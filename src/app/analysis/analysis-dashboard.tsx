@@ -17,6 +17,7 @@ import {
   formatGameDate,
 } from "@/lib/format-game";
 import { errorMessage } from "@/lib/error-presentation";
+import { ManualGameImport } from "@/app/analysis/manual-game-import";
 
 function resultChipClass(result: string | null | undefined): string {
   if (result === "win") return "bg-grade-a/10 text-grade-a";
@@ -126,24 +127,22 @@ export function AnalysisDashboard() {
     }
   }
 
-  // Runs Stockfish (browser WASM) over the unanalysed games in a window scoped to the
-  // selected primary platform. `limit` omitted = every unanalysed game currently in view;
-  // otherwise the `limit` most recent games on that platform ("Analyse last N games").
-  async function runBatchAnalysis(limit?: number) {
+  // Runs Stockfish (browser WASM) over a bounded recent window scoped to the selected
+  // platform. The caller passes either the visible game count or the explicit recent count.
+  async function runBatchAnalysis(limit: number) {
     const platform =
-      selectedPlatform === "lichess" || selectedPlatform === "chesscom"
+      selectedPlatform === "lichess" ||
+      selectedPlatform === "chesscom" ||
+      selectedPlatform === "manual"
         ? selectedPlatform
         : undefined;
     setBatchStatus("running");
     setBatchError(null);
     try {
-      const pendingGames = await utils.analysis.pending.fetch(
-        limit != null
-          ? { limit, platform }
-          : platform
-            ? { platform }
-            : undefined,
-      );
+      const pendingGames = await utils.analysis.pending.fetch({
+        limit,
+        ...(platform ? { platform } : {}),
+      });
       if (pendingGames.length === 0) {
         setBatchStatus("idle");
         return;
@@ -214,6 +213,7 @@ export function AnalysisDashboard() {
         {ownGamesRationale && (
           <MethodologyRationaleCard rationale={ownGamesRationale} />
         )}
+        <ManualGameImport onImported={() => setPlatformOverride("manual")} />
         {/* Pick a game — the library, most recent first, filtered by primary platform. */}
         <section className="flex flex-col gap-4">
           <div className="flex flex-wrap items-end justify-between gap-3">
@@ -248,23 +248,27 @@ export function AnalysisDashboard() {
                   ))}
                 </div>
               )}
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={sync.isPending}
-                onClick={() => sync.mutate()}
-              >
-                {sync.isPending ? "Syncing…" : "Sync now"}
-              </Button>
+              {selectedPlatform !== "manual" && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={sync.isPending}
+                  onClick={() => sync.mutate()}
+                >
+                  {sync.isPending ? "Syncing…" : "Sync now"}
+                </Button>
+              )}
             </div>
           </div>
 
-          {library?.primaryPlatform == null && platforms.length > 1 && (
-            <p className="text-graphite font-serif text-xs italic">
-              Pick a platform tab to set it as your primary. We&apos;ll default
-              here next time.
-            </p>
-          )}
+          {library?.primaryPlatform == null &&
+            platforms.filter((platform) => platform !== "manual").length >
+              1 && (
+              <p className="text-graphite font-serif text-xs italic">
+                Pick Lichess or Chess.com to set a primary rating platform.
+                Manual PGN remains a library filter only.
+              </p>
+            )}
 
           {sync.error && (
             <ErrorNotice
@@ -291,7 +295,7 @@ export function AnalysisDashboard() {
                 size="sm"
                 variant="outline"
                 disabled={batchStatus === "running" || analyzingGameId !== null}
-                onClick={() => void runBatchAnalysis()}
+                onClick={() => void runBatchAnalysis(games.length)}
               >
                 Scan all games
               </Button>
@@ -320,7 +324,7 @@ export function AnalysisDashboard() {
                         : "Game scan stopped"
                     }
                     message={batchError}
-                    onRetry={() => void runBatchAnalysis()}
+                    onRetry={() => void runBatchAnalysis(games.length)}
                     retryLabel="Scan remaining games"
                   />
                 )}
@@ -342,30 +346,34 @@ export function AnalysisDashboard() {
             <Card>
               <CardContent className="flex flex-col items-center gap-3 py-6 text-center">
                 <p className="text-graphite font-serif text-sm">
-                  {platforms.length === 0
-                    ? "No games imported yet. Connect a chess account, then sync to pull your most recent games."
-                    : `No ${platformLabel(selectedPlatform)} games imported yet. Try syncing, or switch platform.`}
+                  {selectedPlatform === "manual"
+                    ? "No manual games imported yet. Paste one game or choose a PGN file above."
+                    : platforms.length === 0
+                      ? "No games imported yet. Connect a chess account, then sync to pull your most recent games."
+                      : `No ${platformLabel(selectedPlatform)} games imported yet. Try syncing, or switch platform.`}
                 </p>
-                <div className="flex flex-wrap justify-center gap-3">
-                  <Button
-                    size="sm"
-                    disabled={sync.isPending}
-                    onClick={() => sync.mutate()}
-                  >
-                    {sync.isPending ? "Syncing…" : "Sync games now"}
-                  </Button>
-                  <Link
-                    href="/connections"
-                    className={buttonVariants({
-                      variant: "outline",
-                      size: "sm",
-                    })}
-                  >
-                    {platforms.length === 0
-                      ? "Connect an account"
-                      : "Manage connections"}
-                  </Link>
-                </div>
+                {selectedPlatform !== "manual" && (
+                  <div className="flex flex-wrap justify-center gap-3">
+                    <Button
+                      size="sm"
+                      disabled={sync.isPending}
+                      onClick={() => sync.mutate()}
+                    >
+                      {sync.isPending ? "Syncing…" : "Sync games now"}
+                    </Button>
+                    <Link
+                      href="/connections"
+                      className={buttonVariants({
+                        variant: "outline",
+                        size: "sm",
+                      })}
+                    >
+                      {platforms.length === 0
+                        ? "Connect an account"
+                        : "Manage connections"}
+                    </Link>
+                  </div>
+                )}
               </CardContent>
             </Card>
           ) : (
@@ -409,7 +417,7 @@ export function AnalysisDashboard() {
                         </>
                       )}
                       <span aria-hidden>·</span>
-                      <span>{formatGameDate(g.playedAt)}</span>
+                      <span>{formatGameDate(g.playedAt, g.platform)}</span>
                       {g.opening && (
                         <>
                           <span aria-hidden>·</span>

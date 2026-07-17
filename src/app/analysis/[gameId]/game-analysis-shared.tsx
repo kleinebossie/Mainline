@@ -60,12 +60,15 @@ export function GameIdentity({ game }: { game: GameAnalysisGame }) {
           </>
         )}
         <span aria-hidden>·</span>
-        <span>{formatGameDate(game.playedAt)}</span>
+        <span>{formatGameDate(game.playedAt, game.platform)}</span>
       </div>
-      {game.opening && (
+      {(game.event || game.opening) && (
         <p className="basis-full border-t border-line/60 pt-2 font-serif text-xs text-graphite">
-          {game.eco ? `${game.eco} · ` : ""}
-          {game.opening}
+          {game.event ? game.event : null}
+          {game.event && game.opening ? " · " : null}
+          {game.opening
+            ? `${game.eco ? `${game.eco} · ` : ""}${game.opening}`
+            : null}
         </p>
       )}
     </div>

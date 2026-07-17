@@ -45,7 +45,7 @@ function fakeDb() {
   };
 }
 
-describe("per-user external API budgets", () => {
+describe("per-user request budgets", () => {
   it("blocks calls beyond the configured fixed-window limit", async () => {
     const db = fakeDb();
     const policy = { limit: 2, windowMs: 60_000 };
@@ -86,6 +86,22 @@ describe("per-user external API budgets", () => {
     ).resolves.toMatchObject({ allowed: true });
     await expect(
       consumeApiCallBudget(db as never, "user-1", "chesscom", next, policy),
+    ).resolves.toMatchObject({ allowed: true, count: 1 });
+  });
+
+  it("uses an isolated bucket for manual PGN work", async () => {
+    const db = fakeDb();
+    const policy = { limit: 1, windowMs: 60_000 };
+    const now = new Date("2026-07-11T12:00:30.000Z");
+
+    await expect(
+      consumeApiCallBudget(db as never, "user-1", "manual", now, policy),
+    ).resolves.toMatchObject({ allowed: true, count: 1 });
+    await expect(
+      consumeApiCallBudget(db as never, "user-1", "manual", now, policy),
+    ).resolves.toMatchObject({ allowed: false, count: 1 });
+    await expect(
+      consumeApiCallBudget(db as never, "user-1", "lichess", now, policy),
     ).resolves.toMatchObject({ allowed: true, count: 1 });
   });
 

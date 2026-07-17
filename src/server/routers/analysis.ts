@@ -27,8 +27,23 @@ import { captureOperationalEvent } from "@/server/observability";
 import { expectedError } from "@/server/errors";
 
 const PLATFORMS = ["lichess", "chesscom"] as const;
+const ANALYSIS_SOURCES = ["lichess", "chesscom", "manual"] as const;
 export const MAX_SESSION_OUTCOMES = 80;
 const MAX_REFLECTION_NOTE_LENGTH = 4_000;
+
+const libraryGameSelect = {
+  id: true,
+  platform: true,
+  playedAt: true,
+  color: true,
+  result: true,
+  timeControl: true,
+  opening: true,
+  opponentRating: true,
+  userRatingAtGame: true,
+  pgn: true,
+  analysis: { select: { id: true } },
+} as const;
 
 const analysisOutcomeSchema = z
   .object({
@@ -91,7 +106,7 @@ export const analysisRouter = router({
       z
         .object({
           limit: z.number().int().min(1).max(200).optional(),
-          platform: z.enum(PLATFORMS).optional(),
+          platform: z.enum(ANALYSIS_SOURCES).optional(),
         })
         .optional(),
     )
@@ -164,38 +179,39 @@ export const analysisRouter = router({
   }),
 
   library: protectedProcedure.query(async ({ ctx }) => {
-    const [user, games] = await Promise.all([
+    const [user, platformGames, manualGames] = await Promise.all([
       ctx.prisma.user.findUnique({
         where: { id: ctx.userId },
         select: { primaryPlatform: true },
       }),
       ctx.prisma.importedGame.findMany({
-        where: { userId: ctx.userId },
-        orderBy: { playedAt: "desc" },
+        where: { userId: ctx.userId, source: { not: "manual" } },
+        orderBy: [
+          { playedAt: { sort: "desc", nulls: "last" } },
+          { importedAt: "desc" },
+        ],
         take: 60,
-        select: {
-          id: true,
-          platform: true,
-          playedAt: true,
-          color: true,
-          result: true,
-          timeControl: true,
-          opening: true,
-          opponentRating: true,
-          userRatingAtGame: true,
-          pgn: true,
-          analysis: { select: { id: true } },
-        },
+        select: libraryGameSelect,
+      }),
+      ctx.prisma.importedGame.findMany({
+        where: { userId: ctx.userId, source: "manual" },
+        orderBy: { importedAt: "desc" },
+        take: 60,
+        select: libraryGameSelect,
       }),
     ]);
 
+    const games = [...manualGames, ...platformGames];
     const platforms = [...new Set(games.map((g) => g.platform))];
     const primaryPlatform = user?.primaryPlatform ?? null;
     // Ignore a stale preference when it no longer has imported games.
     const effectivePlatform =
       primaryPlatform && platforms.includes(primaryPlatform)
         ? primaryPlatform
-        : (games[0]?.platform ?? primaryPlatform ?? null);
+        : (platformGames[0]?.platform ??
+          manualGames[0]?.platform ??
+          primaryPlatform ??
+          null);
 
     return {
       primaryPlatform,
@@ -212,6 +228,7 @@ export const analysisRouter = router({
           timeControl: g.timeControl,
           opening: g.opening,
           opponent: id.opponent ?? id.black ?? id.white ?? null,
+          event: id.event ?? null,
           opponentRating: g.opponentRating,
           you: id.you ?? null,
           userRating: g.userRatingAtGame,
@@ -262,15 +279,18 @@ export const analysisRouter = router({
       const band = bandForRating(playingRating, cfg);
 
       const recentAllGames = await ctx.prisma.importedGame.findMany({
-        where: { userId: ctx.userId },
-        orderBy: { playedAt: "desc" },
+        where: {
+          userId: ctx.userId,
+          source: { not: "manual" },
+          playedAt: { not: null },
+        },
+        orderBy: { playedAt: { sort: "desc", nulls: "last" } },
         take: 20,
       });
 
-      const recentResults = recentAllGames.map((g) => ({
-        playedAt: g.playedAt,
-        result: g.result,
-      }));
+      const recentResults = recentAllGames.flatMap((g) =>
+        g.playedAt ? [{ playedAt: g.playedAt, result: g.result }] : [],
+      );
 
       const storedFeatures = game.analysis
         ? rawGameFeaturesSchema.safeParse(game.analysis.rawFeatures)

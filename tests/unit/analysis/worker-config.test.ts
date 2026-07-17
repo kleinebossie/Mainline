@@ -1,7 +1,19 @@
 import { describe, it, expect } from "vitest";
-import { resolveThreadPlan, MAX_THREADS } from "@/analysis/worker-config";
+import {
+  resolveThreadPlan,
+  MAX_THREADS,
+  SINGLE_THREAD_PLAN,
+} from "@/analysis/worker-config";
 
 describe("resolveThreadPlan", () => {
+  it("exposes a stable single-thread plan for interactive searches", () => {
+    expect(SINGLE_THREAD_PLAN).toEqual({
+      engineFile: "stockfish-18-lite-single.js",
+      singleThreaded: true,
+      threads: 1,
+    });
+  });
+
   it("uses multi-threaded lite engine when isolated, SAB present, and cores >= 2", () => {
     const plan = resolveThreadPlan({
       crossOriginIsolated: true,

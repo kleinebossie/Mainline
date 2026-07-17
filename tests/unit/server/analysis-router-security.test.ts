@@ -20,6 +20,26 @@ function authorizedContext(prisma: Record<string, unknown>) {
 }
 
 describe("analysis session security boundaries", () => {
+  it("scopes the browser analysis queue to manual PGN imports", async () => {
+    const findMany = vi.fn().mockResolvedValue([]);
+    const context = authorizedContext({
+      importedGame: { findMany },
+    });
+
+    await expect(
+      analysisRouter.createCaller(context).pending({ platform: "manual" }),
+    ).resolves.toEqual([]);
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          userId: "user-1",
+          platform: "manual",
+          analysis: { is: null },
+        }),
+      }),
+    );
+  });
+
   it("returns the stored result without replaying a repeated request", async () => {
     const importedGame = {
       findFirst: vi.fn(),

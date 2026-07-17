@@ -24,6 +24,17 @@ export interface ThreadPlan {
   singleThreaded: boolean;
 }
 
+/**
+ * Stable plan for short, interactive searches. Chrome crash diagnostics implicated the
+ * pthread worker path, so interactive play avoids that path. Depth-limited opponent moves do
+ * not benefit enough from extra threads to accept the renderer-crash risk.
+ */
+export const SINGLE_THREAD_PLAN = {
+  engineFile: "stockfish-18-lite-single.js",
+  threads: 1,
+  singleThreaded: true,
+} as const satisfies ThreadPlan;
+
 /** Cap on engine threads — leave headroom for the UI; an infrastructure knob, not science. */
 export const MAX_THREADS = 4;
 
@@ -42,11 +53,7 @@ export function resolveThreadPlan(
     env.hardwareConcurrency >= 2;
 
   if (!canMultiThread) {
-    return {
-      engineFile: "stockfish-18-lite-single.js",
-      threads: 1,
-      singleThreaded: true,
-    };
+    return SINGLE_THREAD_PLAN;
   }
 
   const threads = Math.max(

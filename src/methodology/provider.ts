@@ -2065,7 +2065,7 @@ function gameSelectionScoring(cfg: MethodologyConfig) {
 export interface GameInput {
   id: string;
   pgn: string;
-  playedAt: Date | string | number;
+  playedAt: Date | string | number | null;
   result: "win" | "loss" | "draw" | string | null;
   color: "w" | "b" | string | null;
   userRatingAtGame?: number | null;

@@ -444,11 +444,14 @@ where GDPR export/erase applies.
   `platform`, `capturedAt`, `ratings` JSON (`{ format: { rating, rd, games } }` for
   bullet/blitz/rapid/classical/puzzle), `totalGames`, `raw` JSON. Index `(userId, platform,
 capturedAt)`.
-- **ImportedGame** — one imported game. `userId`, `platform`, `externalGameId`, **`dedupeKey`**
-  (unique per user — e.g. `platform:externalGameId` — idempotent import), `pgn`, `playedAt`,
+- **ImportedGame**: one imported game. `userId`, `platform` (`lichess|chesscom|manual`), `externalGameId`, **`dedupeKey`**
+  (unique per user, e.g. `platform:externalGameId`, for idempotent import), `pgn`, `playedAt`,
   `timeControl`, `color` (`w|b`), `result` (`win|loss|draw`), `userRatingAtGame?`, `opponentRating?`,
-  `eco?`, `opening?`, `source`, `importedAt`. Indexes `(userId, playedAt)`, unique `(userId,
-dedupeKey)`. Relation: 1—0..1 `AnalysisResult`.
+  `eco?`, `opening?`, `source`, `importedAt`. `playedAt` is nullable for a manual PGN whose date is
+  unknown. Manual imports use a stable normalized-content SHA-256 key, create no
+  `PlatformConnection` or `ChessProfileSnapshot`, and keep absent ratings as absent observations.
+  Indexes `(userId, playedAt)`, unique `(userId, dedupeKey)`. Relation: one-to-zero-or-one
+  `AnalysisResult`.
 - **AnalysisResult** — **raw features only** (L1). `gameId` (unique), `engineVersion`, `depth`,
   `analyzedAt`, **`rawFeatures`** JSON. No interpreted/graded fields. Shape:
 
@@ -617,8 +620,8 @@ lastReview }`), `lastGrade?`, `source`. Index `(userId, due)` for "what's due to
 - **JobRun**: idempotent background-job ledger and durable daily queue (import sync, ingest,
   adaptation cron). `kind`, `key` (unique idempotency key), `status`
   (`queued|running|success|error`), `startedAt`, `finishedAt?`, `error?`.
-- **ApiCallBudget** — per-user external-API rate-limit buckets (§12). `userId`, `platform`,
-  `windowStart`, `count`. Enforced by tRPC middleware before any outbound platform call.
+- **ApiCallBudget**: per-user fixed-window request buckets (§12). `userId`, `platform`,
+  `windowStart`, `count`. Enforced before outbound platform calls and bounded manual PGN work.
 
 ### 5.8 Relationship summary
 
@@ -747,6 +750,21 @@ interface AnalysisEngineAdapter {
   `User-Agent`, fetch serially with back-off on 429 (the shared `politeFetch`, §6.2/§6.3). Engine
   sparring uses the **client-side Stockfish** adapter (no extra server compute); the tablebase is only
   the correctness oracle where it applies, with a graceful engine-only fallback otherwise.
+
+### 6.7 Manual PGN and OTB import (P10)
+
+- A protected Analysis-page flow accepts one pasted game or a bounded single/multi-game PGN file.
+  Each game validates independently as standard chess, and ambiguous user color requires an explicit
+  choice. Missing date, time control, result, ratings, event, or clocks remain unknown rather than
+  being guessed.
+- Manual games persist as `ImportedGame` rows with `platform = source = manual`. They use no adapter,
+  external API budget, platform connection, or profile snapshot. Stable normalized-content hashing
+  makes repeated imports idempotent.
+- Manual preview and create calls share a per-user fixed-window request bucket. A serializable
+  transaction enforces a 500-game manual-library cap so concurrent imports cannot exceed it.
+- After persistence, manual games use the existing client-side Stockfish analysis, structured review,
+  personal `PracticeItem`, FSRS, and graded program-decision paths. There is no parallel manual-game
+  analysis engine and no server-side chess analysis.
 
 ---
 

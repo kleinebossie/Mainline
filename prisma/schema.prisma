@@ -119,12 +119,12 @@ model AllowlistEntry {
   @@index([usedByUserId])
 }
 
-// Per-user, per-platform external request bucket (BUILD.md §5.7, §12, M15).
+// Per-user request bucket for external platforms and bounded manual PGN work.
 // Window arithmetic and limits are infrastructure policy in src/server/api-budget.ts.
 model ApiCallBudget {
   id          String   @id @default(cuid())
   userId      String
-  platform    String // lichess | chesscom
+  platform    String // lichess | chesscom | manual
   windowStart DateTime
   count       Int      @default(0)
   createdAt   DateTime @default(now())
@@ -227,13 +227,13 @@ model ChessProfileSnapshot {
 // re-importing the same game is a no-op (createMany skipDuplicates). Only raw,
 // uninterpreted facts are stored (L1). AnalysisResult (M5) attaches 1—0..1 later.
 model ImportedGame {
-  id               String   @id @default(cuid())
+  id               String    @id @default(cuid())
   userId           String
-  platform         String // lichess | chesscom
+  platform         String // lichess | chesscom | manual
   externalGameId   String
   dedupeKey        String // e.g. `${platform}:${externalGameId}`
   pgn              String
-  playedAt         DateTime
+  playedAt         DateTime?
   timeControl      String?
   color            String? // w | b
   result           String? // win | loss | draw
@@ -241,8 +241,8 @@ model ImportedGame {
   opponentRating   Int?
   eco              String?
   opening          String?
-  source           String // lichess | chesscom
-  importedAt       DateTime @default(now())
+  source           String // lichess | chesscom | manual
+  importedAt       DateTime  @default(now())
 
   user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   analysis AnalysisResult?

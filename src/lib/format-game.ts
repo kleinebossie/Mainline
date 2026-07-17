@@ -17,15 +17,21 @@ export function colorWord(color: string | null | undefined): string {
 export function platformLabel(platform: string | null | undefined): string {
   if (platform === "lichess") return "Lichess";
   if (platform === "chesscom") return "Chess.com";
+  if (platform === "manual") return "Manual PGN";
   return platform ?? "—";
 }
 
-export function formatGameDate(value: Date | string | number): string {
+export function formatGameDate(
+  value: Date | string | number | null | undefined,
+  platform?: string | null,
+): string {
+  if (value == null) return "Date unknown";
   const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
+  if (Number.isNaN(date.getTime())) return "Date unknown";
   return date.toLocaleDateString("en-GB", {
     day: "numeric",
     month: "short",
     year: "numeric",
+    ...(platform === "manual" ? { timeZone: "UTC" } : {}),
   });
 }

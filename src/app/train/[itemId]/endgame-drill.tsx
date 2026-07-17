@@ -86,9 +86,15 @@ export function EndgameDrillSession({
   const queueRef = useRef<Promise<unknown>>(Promise.resolve());
   const getEngine = useCallback(async (): Promise<AnalysisEngine> => {
     if (engineRef.current) return engineRef.current;
-    const { StockfishAnalysisEngine } = await import("@/analysis");
-    const engine = new StockfishAnalysisEngine();
-    await engine.init();
+    const { SINGLE_THREAD_PLAN, StockfishAnalysisEngine } =
+      await import("@/analysis");
+    const engine = new StockfishAnalysisEngine(SINGLE_THREAD_PLAN);
+    try {
+      await engine.init();
+    } catch (error) {
+      engine.dispose();
+      throw error;
+    }
     engineRef.current = engine;
     return engine;
   }, []);
@@ -171,7 +177,9 @@ export function EndgameDrillSession({
             return finish(afterEngine, "unresolved");
           setStatus("playing");
         } catch {
-          // Engine failed — let the player keep moving (or give up).
+          // Discard a failed worker so the next move gets a clean retry.
+          engineRef.current?.dispose();
+          engineRef.current = null;
           setEngineError(
             "The local chess engine could not reply. You can continue the position or finish the drill.",
           );

@@ -22,6 +22,12 @@ import {
   type BoardOrientation,
 } from "@/engine/interactive/puzzle";
 import { systemClock } from "@/lib/clock";
+import {
+  allottedTrainingMs,
+  formatTrainingCountdown,
+  trainingDeadlineMs,
+  trainingTimeRemainingMs,
+} from "@/lib/training-timer";
 import { cn } from "@/lib/utils";
 import { humanizeTheme } from "@/integrations/puzzles/themes";
 
@@ -71,6 +77,9 @@ export function TrainItem({ programItemId }: TrainItemProps) {
   const [phase, setPhase] = useState<
     "training" | "delay" | "retest" | "complete"
   >("training");
+  const [finishReason, setFinishReason] = useState<
+    "completed" | "manual" | "time_up"
+  >("completed");
 
   // Hint State (Phase 1)
   const [hintActive, setHintActive] = useState<boolean>(false);
@@ -80,6 +89,28 @@ export function TrainItem({ programItemId }: TrainItemProps) {
   const retestDelaySec = data?.redoFlow.retestDelaySec ?? 0;
   const [delayRemaining, setDelayRemaining] = useState<number>(retestDelaySec);
   const delayTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [sessionRemainingMs, setSessionRemainingMs] = useState<number | null>(
+    null,
+  );
+  const sessionDeadlineRef = useRef<number | null>(null);
+  const sessionTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const finishSession = useCallback(
+    (reason: "completed" | "manual" | "time_up") => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
+      if (delayTimerRef.current) clearInterval(delayTimerRef.current);
+      if (sessionTimerRef.current) clearInterval(sessionTimerRef.current);
+      timerRef.current = null;
+      feedbackTimerRef.current = null;
+      delayTimerRef.current = null;
+      sessionTimerRef.current = null;
+      setFinishReason(reason);
+      setPhase("complete");
+    },
+    [],
+  );
+
   const initSolvable = useCallback((s: Solvable) => {
     if (timerRef.current) clearInterval(timerRef.current);
     if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
@@ -113,9 +144,15 @@ export function TrainItem({ programItemId }: TrainItemProps) {
       setSolvables(data.solvables);
       setCurrentIdx(0);
       setRetestQueue([]);
+      setFinishReason("completed");
       setPhase(data.solvables.length > 0 ? "training" : "complete");
     }
   }, [data]);
+
+  useEffect(() => {
+    sessionDeadlineRef.current = null;
+    setSessionRemainingMs(null);
+  }, [programItemId]);
 
   useEffect(() => {
     if ((phase === "training" || phase === "retest") && activeSolvable) {
@@ -123,12 +160,58 @@ export function TrainItem({ programItemId }: TrainItemProps) {
     }
   }, [activeSolvable, initSolvable, phase]);
 
+  const scheduledDurationMs = allottedTrainingMs(data?.item.estMinutes);
+  useEffect(() => {
+    if (
+      scheduledDurationMs === null ||
+      data?.solvables.length === 0 ||
+      data?.item.activityType === "endgame_drill" ||
+      phase === "complete"
+    ) {
+      return;
+    }
+
+    sessionDeadlineRef.current ??= trainingDeadlineMs(
+      systemClock.now(),
+      data?.item.estMinutes,
+    );
+    const deadlineMs = sessionDeadlineRef.current;
+    if (deadlineMs === null) return;
+
+    const updateRemaining = () => {
+      const remainingMs = trainingTimeRemainingMs(
+        deadlineMs,
+        systemClock.now(),
+      );
+      setSessionRemainingMs(remainingMs);
+      if (remainingMs === 0) finishSession("time_up");
+      return remainingMs;
+    };
+
+    if (updateRemaining() === 0) return;
+    const timer = setInterval(updateRemaining, 250);
+    sessionTimerRef.current = timer;
+
+    return () => {
+      clearInterval(timer);
+      if (sessionTimerRef.current === timer) sessionTimerRef.current = null;
+    };
+  }, [
+    data?.item.activityType,
+    data?.item.estMinutes,
+    data?.solvables.length,
+    finishSession,
+    phase,
+    scheduledDurationMs,
+  ]);
+
   // Clean up timers on unmount
   useEffect(() => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
       if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
       if (delayTimerRef.current) clearInterval(delayTimerRef.current);
+      if (sessionTimerRef.current) clearInterval(sessionTimerRef.current);
     };
   }, []);
 
@@ -227,10 +310,10 @@ export function TrainItem({ programItemId }: TrainItemProps) {
           setDelayRemaining(retestDelaySec);
           startDelayTimer();
         } else {
-          setPhase("complete");
+          finishSession("completed");
         }
       } else if (phase === "retest") {
-        setPhase("complete");
+        finishSession("completed");
       }
     }
   };
@@ -297,12 +380,17 @@ export function TrainItem({ programItemId }: TrainItemProps) {
     );
   }
 
-  // M13: an endgame drill is PLAYED OUT vs the engine, not matched to a fixed line — it has
+  // M13: an endgame drill is PLAYED OUT vs the engine, not matched to a fixed line. It has
   // its own session surface. Branch after the data load (all hooks above already ran, so hook
   // order is stable).
   if (data.item.activityType === "endgame_drill") {
     return <EndgameDrillSession programItemId={programItemId} data={data} />;
   }
+
+  const formattedSessionTime =
+    sessionRemainingMs === null
+      ? null
+      : formatTrainingCountdown(sessionRemainingMs);
 
   const activeList = phase === "retest" ? retestQueue : solvables;
   const current = activeList[currentIdx];
@@ -310,18 +398,30 @@ export function TrainItem({ programItemId }: TrainItemProps) {
 
   // Render complete state
   if (phase === "complete") {
+    const completionHeading =
+      finishReason === "time_up"
+        ? "Scheduled time is up"
+        : finishReason === "manual"
+          ? "Session finished"
+          : "Session complete";
+    const completionMessage =
+      finishReason === "time_up"
+        ? "This block stopped at its planned limit. Completed puzzle results are saved."
+        : finishReason === "manual"
+          ? "Completed puzzle results are saved. Unattempted puzzles were left untouched."
+          : "Your outcomes have been recorded and any follow-up review work is scheduled in Today.";
+
     return (
       <div className="flex flex-col gap-6 py-6 settle">
         <Card gutter="A">
           <CardHeader>
             <CardTitle className="font-serif text-2xl font-bold">
-              Session complete
+              {completionHeading}
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <p className="text-graphite font-serif text-sm leading-relaxed">
-              Your outcomes have been recorded and any follow-up review work is
-              scheduled in Today.
+              {completionMessage}
             </p>
             <Button
               onClick={() => router.push("/today")}
@@ -335,7 +435,7 @@ export function TrainItem({ programItemId }: TrainItemProps) {
     );
   }
 
-  // Render delay screen (Phase 2) — wait length + rationale come from config (Seam 6).
+  // Render delay screen (Phase 2). Wait length and rationale come from config (Seam 6).
   if (phase === "delay") {
     const mins = Math.floor(delayRemaining / 60);
     const secs = Math.floor(delayRemaining % 60);
@@ -351,6 +451,15 @@ export function TrainItem({ programItemId }: TrainItemProps) {
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-5 text-center">
+            {formattedSessionTime && (
+              <p
+                role="timer"
+                aria-label={`${formattedSessionTime} remaining in this training block`}
+                className="text-graphite font-mono text-sm"
+              >
+                Scheduled block left: {formattedSessionTime}
+              </p>
+            )}
             <div className="bg-paper/40 border rounded-md p-6 my-2">
               <p className="eyebrow !text-xs mb-2">Retest countdown</p>
               <p className="text-5xl font-mono font-bold text-ink tracking-tight tabular-nums">
@@ -370,12 +479,13 @@ export function TrainItem({ programItemId }: TrainItemProps) {
               <Button variant="outline" size="sm" onClick={skipDelay}>
                 I&apos;ve waited {delayMinutes} min. Retest now
               </Button>
-              <Link
-                href="/today"
-                className={buttonVariants({ variant: "ghost", size: "sm" })}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => finishSession("manual")}
               >
-                Return to Dashboard
-              </Link>
+                Finish session
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -459,10 +569,30 @@ export function TrainItem({ programItemId }: TrainItemProps) {
             allowHover={data.affordances.allowHover}
             className={BOARD_SIZE_CLASS}
           />
-          <div className={`${BOARD_SIZE_CLASS} flex justify-start px-1`}>
-            <span className="text-graphite font-mono text-xs">
-              Elapsed: {(elapsedMs / 1000).toFixed(1)}s
+          <div
+            className={`${BOARD_SIZE_CLASS} flex flex-wrap items-center justify-between gap-2 px-1`}
+          >
+            {formattedSessionTime && (
+              <span
+                role="timer"
+                aria-label={`${formattedSessionTime} remaining in this training block`}
+                className="text-ink font-mono text-xs font-semibold tabular-nums"
+              >
+                Scheduled time left: {formattedSessionTime}
+              </span>
+            )}
+            <span className="text-graphite ml-auto font-mono text-xs tabular-nums">
+              Puzzle elapsed: {(elapsedMs / 1000).toFixed(1)}s
             </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-auto px-2 py-1"
+              onClick={() => finishSession("manual")}
+              disabled={logMutation.isPending}
+            >
+              Finish session
+            </Button>
           </div>
         </div>
 

@@ -21,6 +21,7 @@ export {
   resolveThreadPlan,
   readThreadEnv,
   MAX_THREADS,
+  SINGLE_THREAD_PLAN,
   type ThreadEnv,
   type ThreadPlan,
 } from "@/analysis/worker-config";

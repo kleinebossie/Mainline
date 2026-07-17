@@ -19,7 +19,10 @@ import {
   endgamePlayerColor,
   type EndgameScore,
 } from "@/engine/interactive/endgame";
-import { StockfishAnalysisEngine } from "@/analysis/stockfish-adapter";
+import {
+  SINGLE_THREAD_PLAN,
+  StockfishAnalysisEngine,
+} from "@/analysis";
 import { systemClock } from "@/lib/clock";
 import { cn } from "@/lib/utils";
 import {
@@ -142,7 +145,7 @@ export function TrainDemo() {
     setEngineError(null);
     setEngineLoading(true);
     try {
-      const engine = new StockfishAnalysisEngine();
+      const engine = new StockfishAnalysisEngine(SINGLE_THREAD_PLAN);
       await engine.init();
       engineRef.current = engine;
       setEngineReady(true);

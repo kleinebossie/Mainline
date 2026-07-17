@@ -5,7 +5,7 @@
 > adaptive training program before adding more training modes. It is split into parts so a fresh AI
 > agent can implement and verify one part at a time.
 >
-> **Status.** P0 through P9 are complete; later parts remain planned. A part is implemented only when its
+> **Status.** P0 through P10 are complete; later parts remain planned. A part is implemented only when its
 > own status and Definition of Done say so.
 >
 > **Central product decision.** Mainline needs a deeper loop, not a larger menu. Real adaptation,
@@ -208,7 +208,7 @@ Every part must end with:
 | P7   | Program history experience                                      | Before closed beta                       | P6                                  | Complete |
 | P8   | Training-fit and product-feedback loop                          | Before closed beta                       | P5, P7                              | Complete |
 | P9   | Observational research capture and public methodology changelog | Before closed beta                       | P3, P8                              | Complete |
-| P10  | Manual PGN and OTB import                                       | Before closed beta                       | P2, P3                              | Planned  |
+| P10  | Manual PGN and OTB import                                       | Before closed beta                       | P2, P3                              | Complete |
 | P11  | User-zero acceptance and closed-beta release audit              | Before closed beta                       | P1-P10                              | Planned  |
 | B1   | Recurring motif and board-vision diagnosis                      | Pilot beta                               | P11                                 | Planned  |
 | B2   | Phase and conversion diagnosis                                  | Closed beta                              | B1                                  | Planned  |
@@ -1175,6 +1175,64 @@ plan.
 
 **Definition of Done:** valid manual games deduplicate, analyze client-side, appear in review, create
 eligible personal drills, affect the plan through existing graded seams, and export/delete correctly.
+
+**Status (2026-07-16): COMPLETE.** P2 and P3 were confirmed complete in code before implementation.
+The Analysis page now accepts one pasted game, one PGN file, or a bounded multi-game PGN file. It
+validates each game independently with chess.js, accepts standard chess only, reports malformed and
+unsupported siblings without discarding valid games, and requires the user to identify their color
+before import. Date, time control, result, user/opponent ratings, and event can be completed or
+corrected but remain optional. Missing clocks stay absent from raw analysis, missing ratings create no
+rating snapshot, and an unknown date remains `null` rather than becoming an invented observation.
+
+Manual games persist in the existing `ImportedGame` model with `platform = source = manual`, no
+`PlatformConnection`, and no `ChessProfileSnapshot`. A stable SHA-256 key over normalized moves,
+starting position, result, and identity headers makes equivalent imports idempotent. The only schema
+change makes `ImportedGame.playedAt` nullable. Manual date-only values are stored at UTC noon to keep
+the calendar date stable across display time zones, and manual games are excluded from short-window
+tilt checks because the import has no trustworthy time of day.
+
+There is no parallel analysis path. The manual library filter feeds the existing browser Stockfish
+queue, raw `AnalysisResult`, structured review, personal blunder `PracticeItem`, FSRS schedule, and
+program decision-state assembler. Once scanned, manual game features enter the same graded
+methodology interpretation as platform games. Saving eligible review moments creates the same spaced
+personal drills. Existing explicit account export includes the manual `ImportedGame` and nested raw
+analysis, and the existing User and ImportedGame cascades erase the game and derived rows.
+
+#### P10 handoff
+
+- Migration and owner action: apply `20260716020000_p10_manual_pgn_import` with
+  `npm run prisma:deploy`, then deploy through the normal CI path. The internal manual-import
+  request budget defaults to 60 checks/imports per user per hour; optionally tune it with
+  `MANUAL_IMPORT_REQUESTS_PER_HOUR`. No background job or seed is required.
+- Owner smoke: import a file containing one valid standard game, one malformed game, and one
+  unsupported variant. Confirm only the valid game appears under Manual PGN, a repeated import is
+  reported as already present, browser Stockfish scanning saves raw features, structured review can
+  schedule a personal drill, the next generated plan can consume its signal and due work, account
+  export contains the game and analysis, and hard deletion removes all derived rows.
+- Verification: Prisma formatting and client generation; 4 focused Vitest files with 33 tests;
+  typecheck; full lint; 100 Vitest files with 611 tests; 4 guard files with 84 tests; production
+  build; and 25 Playwright tests all pass. The first Playwright launch started before the just-built
+  `.next/prerender-manifest.json` was visible and stopped before running tests; the immediate rerun
+  against the completed artifact passed all 25 tests.
+- Review follow-up verification (2026-07-16): 7 focused files with 53 tests, typecheck, full lint,
+  4 guard files with 84 tests, and the production build pass after tightening persistence-error
+  handling, zero-ply rejection, bounded scan-all behavior, and date-only display. The full unit suite
+  and Playwright were not rerun for this focused follow-up.
+- Security follow-up verification (2026-07-17): 3 focused files with 19 tests, typecheck, full lint,
+  and 4 guard files with 84 tests pass after adding the shared manual request budget and
+  concurrency-safe storage cap. The full unit suite, build, and Playwright were not rerun for this
+  focused fix.
+- Deliberate deviations: event metadata remains in canonical PGN rather than adding a duplicate
+  column. Color is always requested instead of inferred from names. Local manual import does not use
+  `JobRun` or an external-platform budget because it performs no outbound call. It uses a separate
+  per-user request bucket, a 500-game storage cap, and strict byte, batch, game, and ply limits. No
+  methodology value, evidence grade, recommendation, rating observation, or server-side chess
+  analysis was added.
+- Remaining risks: CI has no signed-in OAuth browser fixture, so the complete import, Stockfish,
+  review, drill, export, and deletion journey remains the owner smoke above. Chess.js preserves
+  mainline comments such as `%clk` but does not preserve arbitrary variations or NAG structure during
+  canonicalization; users should retain the source file when those annotations matter. Production
+  migration and signed-in behavior remain unverified until deployment.
 
 ---
 

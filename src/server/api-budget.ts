@@ -3,9 +3,11 @@ import { Prisma, type PrismaClient } from "@prisma/client";
 import type { Platform } from "@/integrations/adapter";
 
 type ApiBudgetDb = Pick<PrismaClient, "apiCallBudget">;
+export type ApiBudgetSubject = Platform | "manual";
 
 export const API_BUDGET_WINDOW_MS = 60 * 60 * 1000;
 const DEFAULT_REQUESTS_PER_HOUR = 120;
+const DEFAULT_MANUAL_REQUESTS_PER_HOUR = 60;
 
 export interface ApiBudgetPolicy {
   limit: number;
@@ -24,13 +26,20 @@ function positiveInteger(value: string | undefined, fallback: number): number {
   return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : fallback;
 }
 
-function apiBudgetPolicy(platform: Platform): ApiBudgetPolicy {
+function apiBudgetPolicy(subject: ApiBudgetSubject): ApiBudgetPolicy {
   const specific =
-    platform === "lichess"
+    subject === "lichess"
       ? process.env.LICHESS_API_REQUESTS_PER_HOUR
-      : process.env.CHESSCOM_API_REQUESTS_PER_HOUR;
+      : subject === "chesscom"
+        ? process.env.CHESSCOM_API_REQUESTS_PER_HOUR
+        : process.env.MANUAL_IMPORT_REQUESTS_PER_HOUR;
   return {
-    limit: positiveInteger(specific, DEFAULT_REQUESTS_PER_HOUR),
+    limit: positiveInteger(
+      specific,
+      subject === "manual"
+        ? DEFAULT_MANUAL_REQUESTS_PER_HOUR
+        : DEFAULT_REQUESTS_PER_HOUR,
+    ),
     windowMs: API_BUDGET_WINDOW_MS,
   };
 }
@@ -48,7 +57,7 @@ export function apiBudgetWindowStart(now: Date, windowMs: number): Date {
 export async function consumeApiCallBudget(
   db: ApiBudgetDb,
   userId: string,
-  platform: Platform,
+  platform: ApiBudgetSubject,
   now: Date,
   policy: ApiBudgetPolicy = apiBudgetPolicy(platform),
 ): Promise<ApiBudgetDecision> {
@@ -110,7 +119,7 @@ export async function consumeApiCallBudget(
 
 export class ApiCallBudgetExceededError extends Error {
   constructor(
-    readonly platform: Platform,
+    readonly platform: ApiBudgetSubject,
     readonly retryAt: Date,
   ) {
     super(
@@ -123,7 +132,7 @@ export class ApiCallBudgetExceededError extends Error {
 export async function assertApiCallBudget(
   db: ApiBudgetDb,
   userId: string,
-  platform: Platform,
+  platform: ApiBudgetSubject,
   now = new Date(),
 ): Promise<void> {
   const policy = apiBudgetPolicy(platform);

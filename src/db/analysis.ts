@@ -21,7 +21,10 @@ export async function gamesNeedingAnalysis(
       analysis: { is: null },
       ...(platform ? { platform } : {}),
     },
-    orderBy: { playedAt: "desc" },
+    orderBy: [
+      { playedAt: { sort: "desc", nulls: "last" } },
+      { importedAt: "desc" },
+    ],
     take: Math.max(0, limit),
   });
 }
@@ -37,7 +40,10 @@ export async function gamesNeedingAnalysisInWindow(
 ): Promise<ImportedGame[]> {
   const recent = await db.importedGame.findMany({
     where: { userId, ...(platform ? { platform } : {}) },
-    orderBy: { playedAt: "desc" },
+    orderBy: [
+      { playedAt: { sort: "desc", nulls: "last" } },
+      { importedAt: "desc" },
+    ],
     take: Math.max(0, windowSize),
     include: { analysis: { select: { id: true } } },
   });

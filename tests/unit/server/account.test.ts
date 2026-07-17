@@ -168,6 +168,12 @@ describe("account privacy service", () => {
     expect(
       db.importedGame.findMany.mock.calls[0]?.[0].select.analysis.select,
     ).toHaveProperty("rawFeatures", true);
+    expect(db.importedGame.findMany.mock.calls[0]?.[0].select).toMatchObject({
+      platform: true,
+      source: true,
+      playedAt: true,
+      pgn: true,
+    });
     expect(db.practiceItem.findMany.mock.calls[0]?.[0]).toEqual(
       expect.objectContaining({
         where: { userId: "u1" },
