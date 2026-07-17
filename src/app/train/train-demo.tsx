@@ -19,10 +19,7 @@ import {
   endgamePlayerColor,
   type EndgameScore,
 } from "@/engine/interactive/endgame";
-import {
-  SINGLE_THREAD_PLAN,
-  StockfishAnalysisEngine,
-} from "@/analysis";
+import { SINGLE_THREAD_PLAN, StockfishAnalysisEngine } from "@/analysis";
 import { systemClock } from "@/lib/clock";
 import { cn } from "@/lib/utils";
 import {
@@ -389,17 +386,21 @@ export function TrainDemo() {
                     </div>
                   </div>
 
-                  {engineError && (
-                    <ErrorNotice
-                      heading="Local engine unavailable"
-                      message={engineError}
-                      onRetry={
-                        engineReady ? undefined : () => void initEngine()
-                      }
-                      retrying={engineLoading}
-                      retryLabel="Try starting engine again"
-                    />
-                  )}
+                  {engineError &&
+                    (engineReady ? (
+                      <ErrorNotice
+                        heading="Local engine unavailable"
+                        message={engineError}
+                      />
+                    ) : (
+                      <ErrorNotice
+                        heading="Local engine unavailable"
+                        message={engineError}
+                        onRetry={() => void initEngine()}
+                        retrying={engineLoading}
+                        retryLabel="Try starting engine again"
+                      />
+                    ))}
 
                   <Button
                     onClick={resetSpar}

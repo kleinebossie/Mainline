@@ -60,6 +60,14 @@ export function TrainItem({ programItemId }: TrainItemProps) {
       void utils.tracker.dueReviews.invalidate();
     },
   });
+  const completionMutation = trpc.tracker.completeProgramItem.useMutation({
+    onSuccess: () => {
+      void utils.program.getToday.invalidate();
+      void utils.program.history.invalidate();
+    },
+  });
+  const completionRequestIdRef = useRef<string | null>(null);
+  const completeProgramItem = completionMutation.mutate;
 
   // Solving states
   const [solvables, setSolvables] = useState<Solvable[]>([]);
@@ -111,10 +119,17 @@ export function TrainItem({ programItemId }: TrainItemProps) {
       feedbackTimerRef.current = null;
       delayTimerRef.current = null;
       sessionTimerRef.current = null;
+      if (!completionRequestIdRef.current) {
+        completionRequestIdRef.current = crypto.randomUUID();
+        completeProgramItem({
+          requestId: completionRequestIdRef.current,
+          programItemId,
+        });
+      }
       setFinishReason(reason);
       setPhase("complete");
     },
-    [],
+    [completeProgramItem, programItemId],
   );
 
   const initSolvable = useCallback((s: Solvable) => {
@@ -227,6 +242,7 @@ export function TrainItem({ programItemId }: TrainItemProps) {
       return logMutation.mutateAsync({
         requestId: crypto.randomUUID(),
         programItemId,
+        completeProgramItem: false,
         type: "drill_done",
         correct,
         solveTimeMs,
@@ -236,6 +252,7 @@ export function TrainItem({ programItemId }: TrainItemProps) {
       return logMutation.mutateAsync({
         requestId: crypto.randomUUID(),
         programItemId,
+        completeProgramItem: false,
         type: "puzzle_attempt",
         correct,
         solveTimeMs,
@@ -245,12 +262,20 @@ export function TrainItem({ programItemId }: TrainItemProps) {
   };
 
   const persistenceState = resultPersistenceState(
-    logMutation.isPending,
-    logMutation.error,
+    logMutation.isPending || completionMutation.isPending,
+    logMutation.error ?? completionMutation.error,
   );
   const resultBlocked = resultAdvanceBlocked(persistenceState);
 
   async function retryOutcome() {
+    if (completionMutation.error && completionMutation.variables) {
+      try {
+        await completionMutation.mutateAsync(completionMutation.variables);
+      } catch {
+        // The mutation state retains the safe, user-facing retry notice.
+      }
+      return;
+    }
     if (!logMutation.variables) return;
     try {
       await logMutation.mutateAsync(logMutation.variables);
@@ -459,14 +484,14 @@ export function TrainItem({ programItemId }: TrainItemProps) {
 
     return (
       <div className="flex flex-col gap-6 py-6 settle">
-        {logMutation.error && (
+        {(logMutation.error || completionMutation.error) && (
           <ErrorNotice
-            error={logMutation.error}
-            heading="Result not saved"
-            message="This session is finished, but the final result did not reach your training history. Try saving it again."
+            error={logMutation.error ?? completionMutation.error}
+            heading="Session not saved"
+            message="The position results are safe, but this block is not marked complete yet. Try finishing it again."
             onRetry={() => void retryOutcome()}
-            retrying={logMutation.isPending}
-            retryLabel="Try saving result"
+            retrying={logMutation.isPending || completionMutation.isPending}
+            retryLabel="Try finishing session"
           />
         )}
         {persistenceState === "saving" && (

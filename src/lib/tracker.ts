@@ -61,6 +61,7 @@ export const NON_COMPLETION_ACTIVITY_EVENT_TYPES = [
 export const logOutcomeInputSchema = z.object({
   requestId: z.string().uuid(),
   programItemId: z.string().min(1).optional(),
+  completeProgramItem: z.boolean().optional(),
   type: z.enum(ACTIVITY_EVENT_TYPES),
   correct: z.boolean().optional(),
   solveTimeMs: z.number().int().nonnegative().max(DAY_MS).optional(),
@@ -73,6 +74,16 @@ export const logOutcomeInputSchema = z.object({
   selfReport: bookSelfReportSchema.optional(),
 });
 export type LogOutcomeInput = z.infer<typeof logOutcomeInputSchema>;
+
+export const completeProgramItemInputSchema = z
+  .object({
+    requestId: z.string().uuid(),
+    programItemId: z.string().min(1),
+  })
+  .strict();
+export type CompleteProgramItemInput = z.infer<
+  typeof completeProgramItemInputSchema
+>;
 
 /** Persisted FSRS state, defined here to keep DB validation out of Engine internals. */
 export const fsrsStateSchema = z

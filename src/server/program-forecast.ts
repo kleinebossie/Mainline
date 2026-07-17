@@ -20,6 +20,7 @@ import {
 } from "@/lib/weekly-focus";
 import { DAY_MS, systemClock, type Clock } from "@/lib/clock";
 import { lockUserProgramMutation } from "@/db/user-mutation-lock";
+import { minutesPerDaySchema } from "@/lib/constraints";
 
 type ForecastDb = Pick<
   PrismaClient,
@@ -52,9 +53,7 @@ export interface ForecastSource {
 
 const legacyForecastInputSchema = z
   .object({
-    constraints: z
-      .object({ minutesPerDay: z.number().int().positive() })
-      .passthrough(),
+    constraints: z.object({ minutesPerDay: minutesPerDaySchema }).passthrough(),
     dueWork: z.array(z.unknown()).default([]),
   })
   .passthrough();

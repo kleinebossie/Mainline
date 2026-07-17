@@ -61,14 +61,22 @@ export function EndgameDrillSession({
       void utils.tracker.dueReviews.invalidate();
     },
   });
-  const persistenceState = resultPersistenceState(
-    logMutation.isPending,
-    logMutation.error,
-  );
-  const resultBlocked = resultAdvanceBlocked(persistenceState);
 
   const [idx, setIdx] = useState(0);
   const current = positions[idx];
+  const completionRequestIdRef = useRef<string | null>(null);
+  const completionMutation = trpc.tracker.completeProgramItem.useMutation({
+    onSuccess: () => {
+      void utils.program.getToday.invalidate();
+      void utils.program.history.invalidate();
+      setIdx(positions.length);
+    },
+  });
+  const persistenceState = resultPersistenceState(
+    logMutation.isPending || completionMutation.isPending,
+    logMutation.error ?? completionMutation.error,
+  );
+  const resultBlocked = resultAdvanceBlocked(persistenceState);
 
   const [fen, setFen] = useState<string>(current?.fen ?? "");
   const [status, setStatus] = useState<"playing" | "thinking" | "done">(
@@ -141,6 +149,7 @@ export function EndgameDrillSession({
       logMutation.mutate({
         requestId: outcomeRequestIdRef.current,
         programItemId,
+        completeProgramItem: false,
         type: "drill_done",
         correct: score.correct,
         solveTimeMs: Math.max(0, systemClock.now() - startRef.current),
@@ -200,8 +209,15 @@ export function EndgameDrillSession({
   );
 
   const goNext = () => {
-    if (idx + 1 < positions.length) setIdx(idx + 1);
-    else setIdx(positions.length); // → completed
+    if (idx + 1 < positions.length) {
+      setIdx(idx + 1);
+      return;
+    }
+    completionRequestIdRef.current ??= crypto.randomUUID();
+    completionMutation.mutate({
+      requestId: completionRequestIdRef.current,
+      programItemId,
+    });
   };
 
   // Completed all positions.
@@ -322,6 +338,21 @@ export function EndgameDrillSession({
                   }}
                   retrying={logMutation.isPending}
                   retryLabel="Try saving result"
+                />
+              )}
+
+              {completionMutation.error && (
+                <ErrorNotice
+                  error={completionMutation.error}
+                  heading="Session not saved"
+                  message="Each endgame result is safe, but this block is not marked complete yet. Try finishing it again."
+                  onRetry={() => {
+                    if (completionMutation.variables) {
+                      completionMutation.mutate(completionMutation.variables);
+                    }
+                  }}
+                  retrying={completionMutation.isPending}
+                  retryLabel="Try finishing session"
                 />
               )}
 

@@ -57,6 +57,13 @@ export const CHESS_FORMATS = ["bullet", "blitz", "rapid", "classical"] as const;
 export const TARGET_FOCUSES = ["online", "otb", "hybrid"] as const;
 export type TargetFocus = (typeof TARGET_FOCUSES)[number];
 
+export const minutesPerDaySchema = z
+  .number()
+  .int()
+  .min(MIN_MINUTES_PER_DAY)
+  .max(MAX_MINUTES_PER_DAY);
+export const daysPerWeekSchema = z.number().int().min(1).max(7);
+
 export const formatPrefsSchema = z.object({
   formats: z.array(z.enum(CHESS_FORMATS)).max(CHESS_FORMATS.length),
   preferredVariety: z.boolean(),
@@ -65,12 +72,8 @@ export const formatPrefsSchema = z.object({
 });
 
 export const constraintsInputSchema = z.object({
-  minutesPerDay: z
-    .number()
-    .int()
-    .min(MIN_MINUTES_PER_DAY)
-    .max(MAX_MINUTES_PER_DAY),
-  daysPerWeek: z.number().int().min(1).max(7),
+  minutesPerDay: minutesPerDaySchema,
+  daysPerWeek: daysPerWeekSchema,
   goals: z.array(goalSchema).max(10),
   ownedResources: z.array(ownedResourceSchema).max(100),
   formatPrefs: formatPrefsSchema,

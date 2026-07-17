@@ -5,6 +5,10 @@ import {
   forecastBlockSchema,
   weeklyAvailabilityInputSchema,
 } from "@/lib/program-forecast";
+import {
+  MAX_MINUTES_PER_DAY,
+  MIN_MINUTES_PER_DAY,
+} from "@/lib/constraint-limits";
 
 describe("program forecast contracts", () => {
   it("accepts an explicit flexible schedule without inventing weekdays", () => {
@@ -43,6 +47,25 @@ describe("program forecast contracts", () => {
         unavailable: false,
       }),
     ).toThrow();
+  });
+
+  it("uses the same daily time bounds as the main constraints", () => {
+    for (const minutes of [MIN_MINUTES_PER_DAY - 1, MAX_MINUTES_PER_DAY + 1]) {
+      expect(() =>
+        weeklyAvailabilityInputSchema.parse({
+          mode: "flexible",
+          preferredWeekdays: [],
+          defaultMinutesByDay: { "1": minutes },
+        }),
+      ).toThrow();
+      expect(() =>
+        availabilityOverrideInputSchema.parse({
+          date: 1,
+          minutes,
+          unavailable: false,
+        }),
+      ).toThrow();
+    }
   });
 
   it("keeps future blocks activity-level only", () => {

@@ -9,6 +9,7 @@ import { ErrorNotice } from "@/components/ui/error-notice";
 import { Select } from "@/components/ui/select";
 import { StatusMessage } from "@/components/ui/status-message";
 import { Textarea } from "@/components/ui/textarea";
+import { resolveFeedbackTarget } from "@/lib/feedback";
 import { trpc } from "@/lib/trpc/react";
 
 type Notice = { tone: "success" | "error"; text: string } | null;
@@ -44,18 +45,15 @@ export function FeedbackPanel() {
   useEffect(() => {
     if (!settings.data || targetId) return;
     const search = new URLSearchParams(window.location.search);
-    const contextualItem = search.get("programItemId");
     const contextualSource = search.get("source");
-    if (
-      contextualItem &&
-      settings.data.recentItems.some((item) => item.id === contextualItem)
-    ) {
-      setTargetId(contextualItem);
-    } else if (settings.data.recentItems[0]) {
-      setTargetId(settings.data.recentItems[0].id);
-    } else if (settings.data.activeProgramId) {
-      setTargetId(`program:${settings.data.activeProgramId}`);
-    }
+    setTargetId(
+      resolveFeedbackTarget({
+        requestedProgramItemId: search.get("programItemId"),
+        requestedProgramId: search.get("programId"),
+        activeProgramId: settings.data.activeProgramId,
+        recentItems: settings.data.recentItems,
+      }),
+    );
     if (contextualSource === "contextual") setSource("contextual");
     if (contextualSource === "weekly_check_in") {
       setSource("weekly_check_in");

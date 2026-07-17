@@ -5,7 +5,11 @@ import {
   pseudonymizeResearchParticipant,
 } from "@/server/research";
 import { CURRENT_DATA_USE_NOTICE } from "@/lib/research-consent";
-import { servedRecommendationSnapshotSchema } from "@/lib/recommendation-exposure";
+import {
+  researchConstraintProjectionSchema,
+  servedRecommendationSnapshotSchema,
+} from "@/lib/recommendation-exposure";
+import { MAX_MINUTES_PER_DAY } from "@/lib/constraint-limits";
 
 const served = {
   activityId: "calculation_drill",
@@ -127,6 +131,19 @@ describe("controlled observational research export", () => {
       servedRecommendationSnapshotSchema.safeParse({
         ...served,
         puzzleId: "private",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("keeps exported constraint projections inside the input boundaries", () => {
+    expect(
+      researchConstraintProjectionSchema.safeParse({
+        band: null,
+        minutesPerDay: MAX_MINUTES_PER_DAY + 1,
+        daysPerWeek: 5,
+        formatCount: 0,
+        weaknessSignalCount: 0,
+        dueWorkCount: 0,
       }).success,
     ).toBe(false);
   });

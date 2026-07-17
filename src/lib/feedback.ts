@@ -72,6 +72,32 @@ export const productFeedbackInputSchema = z
   .strict();
 export type ProductFeedbackInput = z.infer<typeof productFeedbackInputSchema>;
 
+type FeedbackTargetItem = {
+  id: string;
+  programId: string;
+};
+
+/** Resolve a contextual Settings link only to a target present in the loaded user data. */
+export function resolveFeedbackTarget(input: {
+  requestedProgramItemId: string | null;
+  requestedProgramId: string | null;
+  activeProgramId: string | null;
+  recentItems: FeedbackTargetItem[];
+}): string {
+  const requestedItem = input.recentItems.find(
+    (item) => item.id === input.requestedProgramItemId,
+  );
+  if (requestedItem) return requestedItem.id;
+  if (
+    input.requestedProgramId &&
+    input.requestedProgramId === input.activeProgramId
+  ) {
+    return `program:${input.requestedProgramId}`;
+  }
+  if (input.recentItems[0]) return input.recentItems[0].id;
+  return input.activeProgramId ? `program:${input.activeProgramId}` : "";
+}
+
 export const preferenceOverrideInputSchema = z
   .object({ activityType: z.string().min(1).max(120).nullable() })
   .strict();

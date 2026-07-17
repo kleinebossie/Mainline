@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { CHESS_FORMATS } from "@/lib/constraints";
+import {
+  CHESS_FORMATS,
+  daysPerWeekSchema,
+  minutesPerDaySchema,
+} from "@/lib/constraints";
 
 const evidenceGradeSchema = z.enum(["A", "B", "C", "D"]);
 const evidenceTierSchema = z.union([z.literal(1), z.literal(2)]);
@@ -94,8 +98,8 @@ export const researchOutcomeSchema = z
 export const researchConstraintProjectionSchema = z
   .object({
     band: z.string().min(1).max(40).nullable(),
-    minutesPerDay: z.number().int().positive().nullable(),
-    daysPerWeek: z.number().int().min(1).max(7).nullable(),
+    minutesPerDay: minutesPerDaySchema.nullable(),
+    daysPerWeek: daysPerWeekSchema.nullable(),
     formatCount: z.number().int().nonnegative(),
     weaknessSignalCount: z.number().int().nonnegative(),
     dueWorkCount: z.number().int().nonnegative(),

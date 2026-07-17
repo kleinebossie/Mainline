@@ -6,16 +6,27 @@ import { StatusMessage } from "@/components/ui/status-message";
 import { errorCode, presentError } from "@/lib/error-presentation";
 import { cn } from "@/lib/utils";
 
-type ErrorNoticeProps = {
+type ErrorNoticeBaseProps = {
   error?: unknown;
   heading: string;
   message: string;
-  onRetry?: () => void;
-  retryLabel?: string;
-  retrying?: boolean;
   secondaryAction?: ReactNode;
   className?: string;
 };
+
+type ErrorNoticeProps = ErrorNoticeBaseProps &
+  (
+    | {
+        onRetry: () => void;
+        retryLabel?: string;
+        retrying?: boolean;
+      }
+    | {
+        onRetry?: never;
+        retryLabel?: never;
+        retrying?: never;
+      }
+  );
 
 /** A consistent recovery point for query, mutation, and browser failures. */
 export function ErrorNotice({

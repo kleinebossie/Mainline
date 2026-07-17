@@ -3,19 +3,28 @@
 // are due now (for a UI nudge). All graded logic is in the pure adaptation core + provider;
 // this router only orchestrates (L1).
 
-import { logOutcome, undoSkip } from "@/server/tracker";
+import { completeProgramItem, logOutcome, undoSkip } from "@/server/tracker";
 import {
   countDueScheduleStates,
   findDueScheduleStates,
   findSkillStates,
 } from "@/db/tracker";
 import { protectedProcedure, router } from "@/server/trpc";
-import { logOutcomeInputSchema } from "@/lib/tracker";
+import {
+  completeProgramItemInputSchema,
+  logOutcomeInputSchema,
+} from "@/lib/tracker";
 
 export const trackerRouter = router({
   logOutcome: protectedProcedure
     .input(logOutcomeInputSchema)
     .mutation(({ ctx, input }) => logOutcome(ctx.prisma, ctx.userId, input)),
+
+  completeProgramItem: protectedProcedure
+    .input(completeProgramItemInputSchema)
+    .mutation(({ ctx, input }) =>
+      completeProgramItem(ctx.prisma, ctx.userId, input),
+    ),
 
   undoSkip: protectedProcedure
     .input(logOutcomeInputSchema.pick({ programItemId: true }).required())

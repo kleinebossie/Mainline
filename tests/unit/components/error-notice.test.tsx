@@ -59,4 +59,20 @@ describe("ErrorNotice", () => {
     expect(html).toContain("Sign in again");
     expect(html).not.toContain("Reload library");
   });
+
+  it("marks an in-progress retry unavailable and updates its label", () => {
+    const html = renderToStaticMarkup(
+      <ErrorNotice
+        heading="Games not imported"
+        message="Try the import again."
+        onRetry={vi.fn()}
+        retrying
+        retryLabel="Try import again"
+      />,
+    );
+
+    expect(html).toMatch(/<button[^>]*disabled=""/);
+    expect(html).toContain("Trying again...");
+    expect(html).not.toContain("Try import again");
+  });
 });

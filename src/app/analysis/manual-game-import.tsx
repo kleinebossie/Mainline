@@ -490,6 +490,10 @@ export function ManualGameImport({ onImported }: { onImported: () => void }) {
             create.error,
             "The import did not finish. Check the game details and try again.",
           )}
+          onRetry={() => {
+            if (create.variables) create.mutate(create.variables);
+          }}
+          retrying={create.isPending}
           retryLabel="Try import again"
         />
       )}

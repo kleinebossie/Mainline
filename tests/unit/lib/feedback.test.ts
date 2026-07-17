@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { safeRouteContext, trainingFeedbackInputSchema } from "@/lib/feedback";
+import {
+  resolveFeedbackTarget,
+  safeRouteContext,
+  trainingFeedbackInputSchema,
+} from "@/lib/feedback";
 
 describe("feedback input boundaries", () => {
   it("normalizes route context without retaining ids, queries, or fragments", () => {
@@ -32,5 +36,36 @@ describe("feedback input boundaries", () => {
         programId: "program-1",
       }),
     ).toMatchObject({ success: true });
+  });
+
+  it("keeps a weekly contextual link targeted at its active program", () => {
+    expect(
+      resolveFeedbackTarget({
+        requestedProgramItemId: null,
+        requestedProgramId: "program-1",
+        activeProgramId: "program-1",
+        recentItems: [{ id: "item-1", programId: "program-1" }],
+      }),
+    ).toBe("program:program-1");
+  });
+
+  it("prefers an owned contextual item and rejects unknown URL targets", () => {
+    const recentItems = [{ id: "item-1", programId: "program-1" }];
+    expect(
+      resolveFeedbackTarget({
+        requestedProgramItemId: "item-1",
+        requestedProgramId: "program-1",
+        activeProgramId: "program-1",
+        recentItems,
+      }),
+    ).toBe("item-1");
+    expect(
+      resolveFeedbackTarget({
+        requestedProgramItemId: "unknown-item",
+        requestedProgramId: "unknown-program",
+        activeProgramId: "program-1",
+        recentItems,
+      }),
+    ).toBe("item-1");
   });
 });

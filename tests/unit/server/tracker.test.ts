@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { PrismaClient } from "@prisma/client";
 
-import { logOutcome, runDailyAdaptation, undoSkip } from "@/server/tracker";
+import {
+  completeProgramItem,
+  logOutcome,
+  runDailyAdaptation,
+  undoSkip,
+} from "@/server/tracker";
 import { DAY_MS, fixedClock } from "@/lib/clock";
 
 // M7 server orchestration: logOutcome (= applyEvent §7.3) over an in-memory fake Prisma.
@@ -348,6 +353,49 @@ describe("logOutcome (applyEvent)", () => {
     expect(rec.scheduleUpserts).toEqual([]);
     expect(rec.skillUpserts[0]!.estimate).toBe(1);
     expect(res.scheduledReviews).toBe(0);
+  });
+
+  it("keeps a multi-position block open until its session is completed", async () => {
+    const { db, rec } = fakeDb(puzzleItem);
+    await logOutcome(
+      db,
+      "u1",
+      {
+        requestId: REQUEST_ID,
+        programItemId: "p1",
+        completeProgramItem: false,
+        type: "puzzle_attempt",
+        correct: true,
+      },
+      clock,
+    );
+
+    expect(rec.itemUpdates).toEqual([]);
+
+    await completeProgramItem(
+      db,
+      "u1",
+      { requestId: SECOND_REQUEST_ID, programItemId: "p1" },
+      clock,
+    );
+
+    expect(rec.events.at(-1)).toMatchObject({
+      requestId: SECOND_REQUEST_ID,
+      type: "session_completed",
+      programItemId: "p1",
+    });
+    expect(rec.itemUpdates).toEqual([{ id: "p1", status: "done" }]);
+
+    await completeProgramItem(
+      db,
+      "u1",
+      { requestId: SECOND_REQUEST_ID, programItemId: "p1" },
+      clock,
+    );
+    expect(
+      rec.events.filter((event) => event.type === "session_completed"),
+    ).toHaveLength(1);
+    expect(rec.itemUpdates).toEqual([{ id: "p1", status: "done" }]);
   });
 
   it("M13: an endgame drill_done spaces on its own 'endgame' FSRS queue", async () => {

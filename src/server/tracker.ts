@@ -22,8 +22,10 @@ import {
 } from "@/server/engagement";
 import { DAY_MS, systemClock, type Clock } from "@/lib/clock";
 import {
+  completeProgramItemInputSchema,
   fsrsStateSchema,
   logOutcomeInputSchema,
+  type CompleteProgramItemInput,
   type LogOutcomeInput,
 } from "@/lib/tracker";
 import {
@@ -307,7 +309,10 @@ export async function logOutcome(
       payload: payloadObj as Prisma.InputJsonValue,
       source: "user",
     });
-    if (input.programItemId) {
+    if (
+      input.programItemId &&
+      (input.type === "skip" || input.completeProgramItem !== false)
+    ) {
       await tx.programItem.update({
         where: { id: input.programItemId },
         data: { status: input.type === "skip" ? "skipped" : "done" },
@@ -383,6 +388,54 @@ export async function logOutcome(
     count: transactionResult.result.decisions,
   });
   return transactionResult.result;
+}
+
+/** Close an internal multi-outcome block without inventing another skill observation. */
+export async function completeProgramItem(
+  db: Pick<PrismaClient, "activityEvent" | "programItem" | "$transaction">,
+  userId: string,
+  rawInput: CompleteProgramItemInput,
+  clock: Clock = systemClock,
+): Promise<void> {
+  const input = completeProgramItemInputSchema.parse(rawInput);
+  await db.$transaction(async (tx) => {
+    await lockUserProgramMutation(tx, userId);
+    const existing = await tx.activityEvent.findUnique({
+      where: {
+        userId_requestId: { userId, requestId: input.requestId },
+      },
+      select: { id: true },
+    });
+    if (existing) return;
+
+    const item = await tx.programItem.findFirst({
+      where: {
+        id: input.programItemId,
+        status: { notIn: ["done", "skipped"] },
+        program: { userId, status: "active" },
+      },
+      select: { id: true },
+    });
+    if (!item) {
+      throw expectedError.conflict(
+        "That block changed since this page loaded. Reload Today before finishing it.",
+      );
+    }
+
+    await appendActivityEvent(tx, {
+      userId,
+      requestId: input.requestId,
+      programItemId: input.programItemId,
+      type: "session_completed",
+      occurredAt: new Date(clock.now()),
+      payload: {},
+      source: "user",
+    });
+    await tx.programItem.update({
+      where: { id: input.programItemId },
+      data: { status: "done" },
+    });
+  });
 }
 
 export async function runDailyAdaptation(
