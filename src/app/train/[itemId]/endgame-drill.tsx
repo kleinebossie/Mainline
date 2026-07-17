@@ -1,13 +1,12 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Chess } from "chess.js";
 import { trpc } from "@/lib/trpc/react";
 import type { inferRouterOutputs } from "@trpc/server";
 import type { AppRouter } from "@/server/routers/_app";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusMessage } from "@/components/ui/status-message";
 import { ErrorNotice } from "@/components/ui/error-notice";
@@ -25,6 +24,11 @@ import {
 } from "@/engine/interactive/endgame";
 import { tablebaseVerdict } from "@/lib/tablebase";
 import { systemClock } from "@/lib/clock";
+import {
+  resultAdvanceBlocked,
+  resultAdvanceLabel,
+  resultPersistenceState,
+} from "@/lib/result-persistence";
 import { cn } from "@/lib/utils";
 
 // M13 — play a curated endgame OUT against the client-side chess engine, then judge the
@@ -57,6 +61,11 @@ export function EndgameDrillSession({
       void utils.tracker.dueReviews.invalidate();
     },
   });
+  const persistenceState = resultPersistenceState(
+    logMutation.isPending,
+    logMutation.error,
+  );
+  const resultBlocked = resultAdvanceBlocked(persistenceState);
 
   const [idx, setIdx] = useState(0);
   const current = positions[idx];
@@ -305,7 +314,14 @@ export function EndgameDrillSession({
                 <ErrorNotice
                   error={logMutation.error}
                   heading="Result not saved"
-                  message="This drill is still open and its review schedule is unchanged. Finish it again to retry."
+                  message="This drill is still open and its review schedule is unchanged. Try saving the same result again."
+                  onRetry={() => {
+                    if (logMutation.variables) {
+                      logMutation.mutate(logMutation.variables);
+                    }
+                  }}
+                  retrying={logMutation.isPending}
+                  retryLabel="Try saving result"
                 />
               )}
 
@@ -357,29 +373,31 @@ export function EndgameDrillSession({
                   <Button
                     onClick={goNext}
                     className="w-full"
-                    disabled={logMutation.isPending}
+                    disabled={resultBlocked}
                   >
-                    {logMutation.isPending
-                      ? "Saving result…"
-                      : idx + 1 < positions.length
-                        ? "Next endgame"
-                        : "Finish"}
+                    {resultAdvanceLabel(
+                      persistenceState,
+                      idx + 1 < positions.length ? "Next endgame" : "Finish",
+                    )}
                   </Button>
                 ) : (
                   <Button
                     variant="outline"
                     onClick={() => finish(fen, "unresolved")}
-                    disabled={status === "thinking" || logMutation.isPending}
+                    disabled={status === "thinking" || resultBlocked}
                   >
                     I can&apos;t convert this
                   </Button>
                 )}
-                <Link
-                  href="/today"
-                  className={buttonVariants({ variant: "ghost", size: "sm" })}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  disabled={resultBlocked}
+                  onClick={() => router.push("/today")}
                 >
-                  Back to Today
-                </Link>
+                  {resultAdvanceLabel(persistenceState, "Back to Today")}
+                </Button>
               </div>
             </CardContent>
           </Card>

@@ -28,6 +28,11 @@ import {
   trainingDeadlineMs,
   trainingTimeRemainingMs,
 } from "@/lib/training-timer";
+import {
+  resultAdvanceBlocked,
+  resultAdvanceLabel,
+  resultPersistenceState,
+} from "@/lib/result-persistence";
 import { cn } from "@/lib/utils";
 import { humanizeTheme } from "@/integrations/puzzles/themes";
 
@@ -80,6 +85,7 @@ export function TrainItem({ programItemId }: TrainItemProps) {
   const [finishReason, setFinishReason] = useState<
     "completed" | "manual" | "time_up"
   >("completed");
+  const [advanceAfterSave, setAdvanceAfterSave] = useState(false);
 
   // Hint State (Phase 1)
   const [hintActive, setHintActive] = useState<boolean>(false);
@@ -218,7 +224,7 @@ export function TrainItem({ programItemId }: TrainItemProps) {
   // Log one outcome, routing to the right event type by kind (puzzle_attempt vs drill_done).
   const logOutcome = (s: Solvable, correct: boolean, solveTimeMs: number) => {
     if (s.kind === "blunder_drill") {
-      logMutation.mutate({
+      return logMutation.mutateAsync({
         requestId: crypto.randomUUID(),
         programItemId,
         type: "drill_done",
@@ -227,7 +233,7 @@ export function TrainItem({ programItemId }: TrainItemProps) {
         practiceItemId: s.id,
       });
     } else {
-      logMutation.mutate({
+      return logMutation.mutateAsync({
         requestId: crypto.randomUUID(),
         programItemId,
         type: "puzzle_attempt",
@@ -238,8 +244,27 @@ export function TrainItem({ programItemId }: TrainItemProps) {
     }
   };
 
+  const persistenceState = resultPersistenceState(
+    logMutation.isPending,
+    logMutation.error,
+  );
+  const resultBlocked = resultAdvanceBlocked(persistenceState);
+
+  async function retryOutcome() {
+    if (!logMutation.variables) return;
+    try {
+      await logMutation.mutateAsync(logMutation.variables);
+      if (advanceAfterSave) {
+        setAdvanceAfterSave(false);
+        handleNext({ persisted: true });
+      }
+    } catch {
+      // The mutation state retains the safe, user-facing retry notice.
+    }
+  }
+
   const handleMove = (move: { san: string }) => {
-    if (!solveState) return;
+    if (!solveState || resultBlocked) return;
     const activeList = phase === "retest" ? retestQueue : solvables;
     const current = activeList[currentIdx];
     if (!current) return;
@@ -258,7 +283,7 @@ export function TrainItem({ programItemId }: TrainItemProps) {
 
       // Training mode, solved on the first attempt → log success.
       if (phase === "training" && firstTryPassed && isFirstAttempt) {
-        logOutcome(current, true, result.solveMs);
+        void logOutcome(current, true, result.solveMs).catch(() => undefined);
       }
     } else if (result.step === "wrong") {
       setSolveStatus("wrong");
@@ -267,7 +292,7 @@ export function TrainItem({ programItemId }: TrainItemProps) {
       // First mistake triggers fail logging and registers the item for retest.
       if (phase === "training" && isFirstAttempt && firstTryPassed) {
         setFirstTryPassed(false);
-        logOutcome(current, false, result.solveMs);
+        void logOutcome(current, false, result.solveMs).catch(() => undefined);
         setRetestQueue((prev) => [...prev, current]);
 
         // Render the configured scaffold mechanically. The Methodology owns which
@@ -296,16 +321,21 @@ export function TrainItem({ programItemId }: TrainItemProps) {
     }
   };
 
-  const handleNext = () => {
+  function handleNext(options?: {
+    persisted?: boolean;
+    retestQueueOverride?: Solvable[];
+  }) {
+    if (resultBlocked && !options?.persisted) return;
     const nextIdx = currentIdx + 1;
     const activeList = phase === "retest" ? retestQueue : solvables;
+    const effectiveRetestQueue = options?.retestQueueOverride ?? retestQueue;
 
     if (nextIdx < activeList.length) {
       setCurrentIdx(nextIdx);
     } else {
       // Finished the current batch.
       if (phase === "training") {
-        if (retestQueue.length > 0) {
+        if (effectiveRetestQueue.length > 0) {
           setPhase("delay");
           setDelayRemaining(retestDelaySec);
           startDelayTimer();
@@ -316,9 +346,9 @@ export function TrainItem({ programItemId }: TrainItemProps) {
         finishSession("completed");
       }
     }
-  };
+  }
 
-  const startDelayTimer = () => {
+  function startDelayTimer() {
     if (delayTimerRef.current) clearInterval(delayTimerRef.current);
     const timer = setInterval(() => {
       setDelayRemaining((prev) => {
@@ -332,7 +362,7 @@ export function TrainItem({ programItemId }: TrainItemProps) {
       });
     }, 1000);
     delayTimerRef.current = timer;
-  };
+  }
 
   const skipDelay = () => {
     if (delayTimerRef.current) clearInterval(delayTimerRef.current);
@@ -340,14 +370,26 @@ export function TrainItem({ programItemId }: TrainItemProps) {
     setCurrentIdx(0);
   };
 
-  const handleSkip = () => {
+  const handleSkip = async () => {
+    if (resultBlocked) return;
     if (timerRef.current) clearInterval(timerRef.current);
 
     if (phase === "training") {
       const current = solvables[currentIdx];
       if (!current) return;
-      logOutcome(current, false, 0);
-      setRetestQueue((prev) => [...prev, current]);
+      const nextRetestQueue = retestQueue.some((item) => item.id === current.id)
+        ? retestQueue
+        : [...retestQueue, current];
+      setRetestQueue(nextRetestQueue);
+      setAdvanceAfterSave(true);
+      try {
+        await logOutcome(current, false, 0);
+      } catch {
+        return;
+      }
+      setAdvanceAfterSave(false);
+      handleNext({ persisted: true, retestQueueOverride: nextRetestQueue });
+      return;
     }
 
     handleNext();
@@ -405,14 +447,31 @@ export function TrainItem({ programItemId }: TrainItemProps) {
           ? "Session finished"
           : "Session complete";
     const completionMessage =
-      finishReason === "time_up"
-        ? "This block stopped at its planned limit. Completed puzzle results are saved."
-        : finishReason === "manual"
-          ? "Completed puzzle results are saved. Unattempted puzzles were left untouched."
-          : "Your outcomes have been recorded and any follow-up review work is scheduled in Today.";
+      persistenceState === "saving"
+        ? "The final result is still being saved. Keep this page open until it finishes."
+        : persistenceState === "failed"
+          ? "The session is finished, but one result still needs to be saved before you return to Today."
+          : finishReason === "time_up"
+            ? "This block stopped at its planned limit. Completed puzzle results are saved."
+            : finishReason === "manual"
+              ? "Completed puzzle results are saved. Unattempted puzzles were left untouched."
+              : "Your outcomes have been recorded and any follow-up review work is scheduled in Today.";
 
     return (
       <div className="flex flex-col gap-6 py-6 settle">
+        {logMutation.error && (
+          <ErrorNotice
+            error={logMutation.error}
+            heading="Result not saved"
+            message="This session is finished, but the final result did not reach your training history. Try saving it again."
+            onRetry={() => void retryOutcome()}
+            retrying={logMutation.isPending}
+            retryLabel="Try saving result"
+          />
+        )}
+        {persistenceState === "saving" && (
+          <StatusMessage tone="loading">Saving final result...</StatusMessage>
+        )}
         <Card gutter="A">
           <CardHeader>
             <CardTitle className="font-serif text-2xl font-bold">
@@ -426,8 +485,9 @@ export function TrainItem({ programItemId }: TrainItemProps) {
             <Button
               onClick={() => router.push("/today")}
               className="self-start"
+              disabled={resultBlocked}
             >
-              Back to Today
+              {resultAdvanceLabel(persistenceState, "Back to Today")}
             </Button>
           </CardContent>
         </Card>
@@ -516,9 +576,7 @@ export function TrainItem({ programItemId }: TrainItemProps) {
           heading="Result not saved"
           message="The practice board can continue, but this result did not reach your training history. Try saving it again."
           onRetry={() => {
-            if (logMutation.variables) {
-              logMutation.mutate(logMutation.variables);
-            }
+            void retryOutcome();
           }}
           retrying={logMutation.isPending}
           retryLabel="Try saving result"
@@ -561,7 +619,11 @@ export function TrainItem({ programItemId }: TrainItemProps) {
             fen={boardPosition}
             onMove={handleMove}
             orientation={orientation}
-            disabled={solveStatus === "solved" || solveStatus === "wrong"}
+            disabled={
+              resultBlocked ||
+              solveStatus === "solved" ||
+              solveStatus === "wrong"
+            }
             highlightedSquares={highlightedSquares}
             showEvalBar={data.affordances.showEvalBar}
             showLegalMoveDots={data.affordances.showLegalMoveDots}
@@ -589,7 +651,7 @@ export function TrainItem({ programItemId }: TrainItemProps) {
               size="sm"
               className="h-auto px-2 py-1"
               onClick={() => finishSession("manual")}
-              disabled={logMutation.isPending}
+              disabled={resultBlocked}
             >
               Finish session
             </Button>
@@ -666,14 +728,21 @@ export function TrainItem({ programItemId }: TrainItemProps) {
               {/* Action Buttons */}
               <div className="flex flex-col gap-2 border-t border-line/80 pt-4">
                 {solveStatus === "solved" ? (
-                  <Button onClick={handleNext} className="w-full">
-                    {currentIdx + 1 < activeList.length ? "Next" : "Continue"}
+                  <Button
+                    onClick={() => handleNext()}
+                    className="w-full"
+                    disabled={resultBlocked}
+                  >
+                    {resultAdvanceLabel(
+                      persistenceState,
+                      currentIdx + 1 < activeList.length ? "Next" : "Continue",
+                    )}
                   </Button>
                 ) : (
                   <Button
                     variant="outline"
-                    onClick={handleSkip}
-                    disabled={logMutation.isPending}
+                    onClick={() => void handleSkip()}
+                    disabled={resultBlocked}
                   >
                     Skip / Give Up
                   </Button>

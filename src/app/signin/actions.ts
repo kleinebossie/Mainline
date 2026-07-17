@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 
 import { BETA_INVITE_COOKIE } from "@/server/beta-access";
 import { signIn } from "@/server/auth";
+import { POST_AUTH_ENTRY_PATH } from "@/server/onboarding";
 
 async function beginBetaSignIn(
   provider: "lichess" | "google",
@@ -22,7 +23,9 @@ async function beginBetaSignIn(
   } else {
     cookieStore.delete(BETA_INVITE_COOKIE);
   }
-  await signIn(provider, { redirectTo: "/connections" });
+  // The root resolves the signed-in user's canonical destination from persisted
+  // onboarding state, so OAuth completion cannot drift from normal app entry.
+  await signIn(provider, { redirectTo: POST_AUTH_ENTRY_PATH });
 }
 
 export async function beginSelectedBetaSignIn(

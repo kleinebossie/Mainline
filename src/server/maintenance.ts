@@ -188,7 +188,7 @@ export async function retryFailedJob(
       kind: job.kind,
       key: job.key,
       clock,
-      run: () => importConnection(db, connection),
+      run: () => importConnection(db, connection, clock),
     });
     return {
       state: result.state === "completed" ? "completed" : "skipped",

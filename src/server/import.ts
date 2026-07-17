@@ -55,7 +55,12 @@ interface ConnectionRow {
 export async function importConnection(
   db: Db,
   conn: ConnectionRow,
+  clock: Clock = systemClock,
 ): Promise<ConnectionImportResult> {
+  // Advance the incremental cursor only to the point before any remote reads.
+  // A game that becomes visible while this import is running must remain eligible
+  // for the next import. Downstream dedupe makes the intentional overlap safe.
+  const syncStartedAt = new Date(clock.now());
   const platform = conn.platform as Platform;
   const adapter = getAdapter(platform);
   const ref: PlatformConnectionRef = {
@@ -63,7 +68,7 @@ export async function importConnection(
     externalUsername: conn.externalUsername,
     accessToken: conn.accessToken,
     beforeRequest: () =>
-      assertApiCallBudget(db, conn.userId, platform, new Date()),
+      assertApiCallBudget(db, conn.userId, platform, new Date(clock.now())),
   };
 
   // 1) Point-in-time ratings (Measurement seam time series).
@@ -104,7 +109,7 @@ export async function importConnection(
 
   await db.platformConnection.update({
     where: { id: conn.id },
-    data: { lastSyncedAt: new Date(), status: "active" },
+    data: { lastSyncedAt: syncStartedAt, status: "active" },
   });
 
   return {
@@ -130,6 +135,7 @@ export async function runImportForUser(
   db: Db,
   userId: string,
   jobKeyPrefix: string,
+  clock: Clock = systemClock,
 ): Promise<UserImportSummary> {
   const connections = await db.platformConnection.findMany({
     where: { userId, status: { not: "revoked" } },
@@ -141,8 +147,12 @@ export async function runImportForUser(
   for (const conn of connections) {
     const key = `${jobKeyPrefix}:${conn.id}`;
     try {
-      const r = await withJobRun(db, "import_sync", key, () =>
-        importConnection(db, conn),
+      const r = await withJobRun(
+        db,
+        "import_sync",
+        key,
+        () => importConnection(db, conn, clock),
+        clock,
       );
       if (r) results.push(r);
       if (r) {

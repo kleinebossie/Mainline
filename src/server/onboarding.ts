@@ -17,6 +17,10 @@ type Db = Pick<
   "platformConnection" | "assessment" | "constraintSet" | "user" | "program"
 >;
 
+export const POST_AUTH_ENTRY_PATH = "/";
+export const ONBOARDING_HOME_PATH = "/onboarding";
+export const TRAINING_HOME_PATH = "/today";
+
 export interface OnboardingStep {
   readonly href: string;
   readonly label: string;
@@ -31,6 +35,13 @@ export interface OnboardingStatus {
   readonly nextStep: OnboardingStep | null;
   readonly steps: readonly OnboardingStep[];
   readonly allComplete: boolean;
+}
+
+/** The single landing rule used after authentication and from the public root. */
+export function postAuthDestination(
+  status: Pick<OnboardingStatus, "complete">,
+): typeof ONBOARDING_HOME_PATH | typeof TRAINING_HOME_PATH {
+  return status.complete ? TRAINING_HOME_PATH : ONBOARDING_HOME_PATH;
 }
 
 /**
@@ -110,6 +121,13 @@ export async function getOnboardingStatus(
   };
 }
 
+export async function getPostAuthDestination(
+  db: Db,
+  userId: string,
+): Promise<typeof ONBOARDING_HOME_PATH | typeof TRAINING_HOME_PATH> {
+  return postAuthDestination(await getOnboardingStatus(db, userId));
+}
+
 /**
  * Redirect to /onboarding if the user has not completed all required steps.
  * Call this in protected page server components (after the auth check).
@@ -119,5 +137,5 @@ export async function requireOnboardingComplete(
   userId: string,
 ): Promise<void> {
   const status = await getOnboardingStatus(db, userId);
-  if (!status.complete) redirect("/onboarding");
+  if (!status.complete) redirect(ONBOARDING_HOME_PATH);
 }

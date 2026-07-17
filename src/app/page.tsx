@@ -6,7 +6,7 @@ import { PendingSubmitButton } from "@/components/pending-submit-button";
 import { buttonVariants } from "@/components/ui/button";
 import { prisma } from "@/db/client";
 import { auth } from "@/server/auth";
-import { getOnboardingStatus } from "@/server/onboarding";
+import { getPostAuthDestination } from "@/server/onboarding";
 
 const SETUP_STEPS = [
   {
@@ -84,8 +84,7 @@ export default async function Home() {
   const session = await auth();
 
   if (session?.user) {
-    const status = await getOnboardingStatus(prisma, session.user.id);
-    redirect(status.complete ? "/today" : "/onboarding");
+    redirect(await getPostAuthDestination(prisma, session.user.id));
   }
 
   const googleEnabled = Boolean(

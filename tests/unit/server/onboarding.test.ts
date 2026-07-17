@@ -8,7 +8,9 @@ const { redirect } = vi.hoisted(() => ({
 vi.mock("next/navigation", () => ({ redirect }));
 
 import {
+  getPostAuthDestination,
   getOnboardingStatus,
+  postAuthDestination,
   requireOnboardingComplete,
 } from "@/server/onboarding";
 
@@ -185,6 +187,29 @@ describe("onboarding completion", () => {
     ]);
     expect(allDone.allComplete).toBe(true);
     expect(allDone.nextStep).toBeNull();
+  });
+
+  it("uses one post-auth landing rule for incomplete and complete users", async () => {
+    expect(postAuthDestination({ complete: false })).toBe("/onboarding");
+    expect(postAuthDestination({ complete: true })).toBe("/today");
+
+    await expect(getPostAuthDestination(dbFor({}), "user-1")).resolves.toBe(
+      "/onboarding",
+    );
+    await expect(
+      getPostAuthDestination(
+        dbFor({
+          connectionStatus: "active",
+          assessmentCompleted: true,
+          formatPrefs: {
+            formats: ["rapid"],
+            preferredVariety: false,
+            targetFocus: "online",
+          },
+        }),
+        "user-1",
+      ),
+    ).resolves.toBe("/today");
   });
 
   it("redirects incomplete users and permits complete users", async () => {

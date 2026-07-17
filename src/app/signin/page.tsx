@@ -6,6 +6,8 @@ import { buttonVariants } from "@/components/ui/button";
 import { ErrorNotice } from "@/components/ui/error-notice";
 import { Wordmark } from "@/components/app-shell";
 import { beginSelectedBetaSignIn } from "@/app/signin/actions";
+import { prisma } from "@/db/client";
+import { getPostAuthDestination } from "@/server/onboarding";
 
 // Custom sign-in page (Auth.js `pages.signIn`). Lichess needs no secret, so it is
 // always offered; Google appears only when configured.
@@ -47,7 +49,9 @@ export default async function SignInPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const session = await auth();
-  if (session?.user) redirect("/connections");
+  if (session?.user) {
+    redirect(await getPostAuthDestination(prisma, session.user.id));
+  }
   const params = await searchParams;
   const signInError = signInErrorCopy(params.error);
 
