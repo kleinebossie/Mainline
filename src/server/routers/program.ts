@@ -197,7 +197,6 @@ export const programRouter = router({
         const puzzles = await selectPuzzles(ctx.prisma, {
           theme: theme || "mix",
           ratingTarget: targetRating,
-          ratingWindow: 150,
           count,
           excludePuzzleIds,
         });

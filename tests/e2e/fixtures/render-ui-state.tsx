@@ -2,6 +2,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { OnboardingSteps } from "@/app/onboarding/onboarding-steps";
+import { FirstSessionAction } from "@/app/onboarding/reveal/reveal";
 import { ProgramArchive } from "@/app/today/program-history";
 import { TodayBlockList, TodayHeader } from "@/app/today/today-session";
 import { UnexpectedError } from "@/components/unexpected-error";
@@ -263,6 +264,33 @@ function setupMarkup() {
   );
 }
 
+function firstSessionActionMarkup(state: "ready" | "pending" | "error") {
+  return renderToStaticMarkup(
+    <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col gap-6 px-4 py-8 sm:px-6 sm:py-12">
+      <header>
+        <p className="eyebrow">Step 4 of setup</p>
+        <h1 className="mt-2 font-serif text-4xl font-semibold text-ink">
+          Where you stand
+        </h1>
+        <p className="mt-3 max-w-2xl font-serif text-sm leading-relaxed text-graphite">
+          Your calibration and constraints are saved. Build the first session
+          when you are ready.
+        </p>
+      </header>
+      <section className="rounded-lg border border-line bg-paper-raised p-5 sm:p-6">
+        <h2 className="font-serif text-2xl font-semibold text-ink">
+          Start training
+        </h2>
+        <FirstSessionAction
+          error={state === "error" ? new Error("generation failed") : null}
+          pending={state === "pending"}
+          onBuild={noOp}
+        />
+      </section>
+    </main>,
+  );
+}
+
 function errorNoticesMarkup() {
   return renderToStaticMarkup(
     <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col gap-6 px-4 py-8 sm:px-6 sm:py-12">
@@ -331,13 +359,19 @@ const markup =
         ? todayMarkup(["done", "skipped", "done"])
         : state === "setup"
           ? setupMarkup()
-          : state === "history-grouped"
-            ? groupedHistoryMarkup()
-            : state === "error-notices"
-              ? errorNoticesMarkup()
-              : state === "unexpected-error"
-                ? unexpectedErrorMarkup()
-                : null;
+          : state === "first-session-ready"
+            ? firstSessionActionMarkup("ready")
+            : state === "first-session-pending"
+              ? firstSessionActionMarkup("pending")
+              : state === "first-session-error"
+                ? firstSessionActionMarkup("error")
+                : state === "history-grouped"
+                  ? groupedHistoryMarkup()
+                  : state === "error-notices"
+                    ? errorNoticesMarkup()
+                    : state === "unexpected-error"
+                      ? unexpectedErrorMarkup()
+                      : null;
 
 if (markup === null) {
   throw new Error(`Unknown UI state: ${state ?? "missing"}`);

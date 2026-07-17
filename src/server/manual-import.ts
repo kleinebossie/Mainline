@@ -18,6 +18,7 @@ const MANUAL_IMPORT_TRANSACTION_ATTEMPTS = 3;
 
 interface ManualImportOptions {
   precheckDuplicates?: boolean;
+  maxImports?: number;
 }
 
 export class ManualGameQuotaExceededError extends Error {
@@ -156,6 +157,7 @@ export async function importManualPgnBatch(
 
   const inputs = new Map(gameInputs.map((input) => [input.index, input]));
   const entries: ManualPgnImportItemResult[] = [];
+  let imported = 0;
 
   for (const entry of parsed.entries) {
     if (entry.status !== "valid") {
@@ -210,6 +212,9 @@ export async function importManualPgnBatch(
           continue;
         }
       }
+      if (options.maxImports !== undefined && imported >= options.maxImports) {
+        throw new ManualGameQuotaExceededError();
+      }
       const ratings = orientedRatings(finalized.metadata, input.color);
       const created = await db.importedGame.create({
         data: {
@@ -237,6 +242,7 @@ export async function importManualPgnBatch(
         index: entry.index,
         gameId: created.id,
       });
+      imported += 1;
     } catch (error) {
       if (isUniqueConflict(error)) {
         entries.push({ status: "duplicate", index: entry.index });
@@ -257,7 +263,7 @@ export async function importManualPgnBatch(
   return {
     ok: true as const,
     totalBytes: parsed.totalBytes,
-    imported: entries.filter((entry) => entry.status === "imported").length,
+    imported,
     duplicates: entries.filter((entry) => entry.status === "duplicate").length,
     entries,
   };
@@ -289,17 +295,12 @@ export async function importManualPgnBatchWithinQuota(
           const storedGames = await tx.importedGame.count({
             where: { userId, source: "manual" },
           });
-          const requestedGames = gameInputs.filter(
-            (input) => input.color !== undefined,
-          ).length;
-          if (
-            requestedGames >
-            Math.max(0, MANUAL_PGN_MAX_GAMES_PER_USER - storedGames)
-          ) {
-            throw new ManualGameQuotaExceededError();
-          }
           return importManualPgnBatch(tx, userId, pgnText, gameInputs, {
             precheckDuplicates: true,
+            maxImports: Math.max(
+              0,
+              MANUAL_PGN_MAX_GAMES_PER_USER - storedGames,
+            ),
           });
         },
         { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },

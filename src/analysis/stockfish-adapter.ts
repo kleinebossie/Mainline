@@ -28,6 +28,7 @@ import type {
 import { extractFeatures, type PositionEval } from "@/analysis/features";
 import type { RawGameFeatures } from "@/lib/raw-features";
 import {
+  DEFAULT_ANALYSIS_DEPTH,
   readThreadEnv,
   resolveThreadPlan,
   type ThreadPlan,
@@ -35,7 +36,6 @@ import {
 
 // Infrastructure bounds (§6.5: bound depth/movetime; keep the UI responsive). Not science.
 const ENGINE_BASE = "/stockfish";
-const DEFAULT_DEPTH = 12;
 const DEFAULT_HASH_MB = 16;
 const UCI_TIMEOUT_MS = 30_000;
 
@@ -102,7 +102,7 @@ export class StockfishAnalysisEngine implements AnalysisEngineAdapter {
     let depth = 0;
     const go = limit.movetimeMs
       ? `go movetime ${limit.movetimeMs}`
-      : `go depth ${limit.depth ?? DEFAULT_DEPTH}`;
+      : `go depth ${limit.depth ?? DEFAULT_ANALYSIS_DEPTH}`;
 
     return this.run(go, (line, resolve) => {
       if (line.startsWith("info") && line.includes(" score ")) {
@@ -140,7 +140,7 @@ export class StockfishAnalysisEngine implements AnalysisEngineAdapter {
     this.post(`position fen ${fen}`);
     const go = limit.movetimeMs
       ? `go movetime ${limit.movetimeMs}`
-      : `go depth ${limit.depth ?? DEFAULT_DEPTH}`;
+      : `go depth ${limit.depth ?? DEFAULT_ANALYSIS_DEPTH}`;
 
     // Keep the deepest info line seen for each MultiPV rank; resolve on `bestmove`.
     const byRank = new Map<number, EvalLine>();

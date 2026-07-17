@@ -34,7 +34,6 @@ describe("buildPuzzleQuery", () => {
     const q = buildPuzzleQuery({
       theme: "fork",
       ratingTarget: 1500,
-      ratingWindow: 150,
       count: 5,
     });
     expect(q.where).toEqual({
@@ -100,7 +99,6 @@ describe("selectPuzzles", () => {
     const out = await selectPuzzles(fakeDb, {
       theme: "fork",
       ratingTarget: 1500,
-      ratingWindow: 150,
       count: 2,
     });
     expect(out.map((r) => r.puzzleId)).toEqual(["a", "b"]);

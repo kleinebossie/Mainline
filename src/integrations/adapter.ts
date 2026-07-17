@@ -6,6 +6,9 @@ import type { EpochMs } from "@/lib/clock";
 
 export type Platform = "lichess" | "chesscom";
 
+/** Shared cap for one platform import page. */
+export const DEFAULT_GAME_IMPORT_LIMIT = 100;
+
 /**
  * Minimal structural view of a PlatformConnection that an adapter needs. Kept
  * decoupled from the Prisma row so adapters stay pure and unit-testable.

@@ -3,6 +3,7 @@
 // enables private account endpoints such as puzzle activity. Emits RAW data only.
 
 import {
+  DEFAULT_GAME_IMPORT_LIMIT,
   PlatformError,
   type ImportedGameInput,
   type PlatformAdapter,
@@ -18,10 +19,6 @@ const USER_URL = "https://lichess.org/api/user";
 const TOKEN_URL = "https://lichess.org/api/token";
 const GAMES_URL = "https://lichess.org/api/games/user";
 const PUZZLE_ACTIVITY_URL = "https://lichess.org/api/puzzle/activity";
-
-// Cap a single import page (infra bound, not a methodology number). Backfill beyond
-// this is queued incrementally in later milestones (§6.5).
-const DEFAULT_MAX_GAMES = 100;
 
 interface LichessPerf {
   rating?: number;
@@ -97,7 +94,7 @@ export const lichessAdapter: PlatformAdapter = {
   async fetchGames(
     conn: PlatformConnectionRef,
     since?: number,
-    max: number = DEFAULT_MAX_GAMES,
+    max: number = DEFAULT_GAME_IMPORT_LIMIT,
   ): Promise<ImportedGameInput[]> {
     const params = new URLSearchParams({
       max: String(max),

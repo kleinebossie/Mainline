@@ -21,6 +21,8 @@ import {
 } from "@/methodology";
 import { selectPuzzles } from "@/db/puzzles";
 import { getTargetFocus } from "@/server/constraints";
+import { expectedError } from "@/server/errors";
+import { calibrationRatingFromSnapshot } from "@/lib/rating-snapshot";
 
 type Db = Pick<
   PrismaClient,
@@ -53,50 +55,6 @@ function responsesForTrack(
     .map((r) => ({ ratingShown: r.ratingShown, correct: r.correct }));
 }
 
-/** Prefer puzzle rating when seeding calibration difficulty. */
-export function ratingFromSnapshot(ratings: unknown): number | null {
-  return ratingForFormats(ratings, ["puzzle", "rapid"]);
-}
-
-/** Prefer actual game ratings for analysis instead of inflated puzzle ratings. */
-export function playingRatingFromSnapshot(ratings: unknown): number | null {
-  return ratingForFormats(ratings, ["rapid", "blitz", "classical", "bullet"]);
-}
-
-/** Use the highest live-game rating when selecting the library band. */
-export function highestLiveRatingFromSnapshot(ratings: unknown): number | null {
-  if (!ratings || typeof ratings !== "object") return null;
-  const r = ratings as Record<string, unknown>;
-  const values = (["bullet", "blitz", "rapid"] as const)
-    .map((fmt) => {
-      const f = r[fmt];
-      if (f && typeof f === "object") {
-        const rating = (f as Record<string, unknown>).rating;
-        return typeof rating === "number" && Number.isFinite(rating)
-          ? rating
-          : null;
-      }
-      return null;
-    })
-    .filter((v): v is number => v != null);
-  return values.length > 0 ? Math.round(Math.max(...values)) : null;
-}
-
-function ratingForFormats(ratings: unknown, formats: string[]): number | null {
-  if (!ratings || typeof ratings !== "object") return null;
-  const r = ratings as Record<string, unknown>;
-  for (const fmt of formats) {
-    const f = r[fmt];
-    if (f && typeof f === "object") {
-      const rating = (f as Record<string, unknown>).rating;
-      if (typeof rating === "number" && Number.isFinite(rating)) {
-        return Math.round(rating);
-      }
-    }
-  }
-  return null;
-}
-
 async function resolveStartRating(
   db: Db,
   userId: string,
@@ -108,7 +66,7 @@ async function resolveStartRating(
     select: { ratings: true },
   });
   return (
-    ratingFromSnapshot(snap?.ratings) ??
+    calibrationRatingFromSnapshot(snap?.ratings) ??
     cfg.assessment.calibration.startRating.value
   );
 }
@@ -188,7 +146,6 @@ export async function getCalibrationState(
     const puzzles = await selectPuzzles(db, {
       theme: activeTrack.theme,
       ratingTarget: activeTrack.next.ratingTarget,
-      ratingWindow: 150,
       count: 10,
       excludePuzzleIds,
     });
@@ -249,6 +206,12 @@ export async function applyCalibrationResponse(
   const states = buildTrackStates(cfg, prev, startRating);
   const active = states.find((t) => !t.completed) ?? null;
 
+  if (active && response.ratingShown !== active.next.ratingTarget) {
+    throw expectedError.conflict(
+      "That calibration puzzle changed. Reload the calibration before submitting it.",
+    );
+  }
+
   const all =
     active == null
       ? prev
@@ -256,7 +219,7 @@ export async function applyCalibrationResponse(
           ...prev,
           {
             track: active.id,
-            ratingShown: response.ratingShown,
+            ratingShown: active.next.ratingTarget,
             correct: response.correct,
             puzzleId: response.puzzleId,
           } satisfies StoredResponse,

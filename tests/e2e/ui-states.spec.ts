@@ -8,6 +8,9 @@ type UiState =
   | "today-done"
   | "today-mixed"
   | "setup"
+  | "first-session-ready"
+  | "first-session-pending"
+  | "first-session-error"
   | "history-grouped"
   | "error-notices"
   | "unexpected-error";
@@ -117,6 +120,46 @@ test("Setup separates overall and required progress", async ({
   ).toBeVisible();
   await expectNoPageOverflow(page);
   await capture(page, testInfo, "setup-mobile");
+});
+
+test("First-session activation matches its promised action", async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 1365, height: 900 });
+  await mountWithAppStyles(page, renderState("first-session-ready"));
+
+  await expect(
+    page.getByRole("button", { name: "Build my first session" }),
+  ).toBeEnabled();
+  await expect(
+    page.getByRole("link", { name: "Build my first session" }),
+  ).toHaveCount(0);
+  await expectNoPageOverflow(page);
+  await capture(page, testInfo, "first-session-ready-desktop");
+
+  await mountWithAppStyles(page, renderState("first-session-pending"));
+  const pending = page.getByRole("button", {
+    name: "Building your session...",
+  });
+  await expect(pending).toBeDisabled();
+  await expect(pending).toHaveAttribute("aria-busy", "true");
+
+  await mountWithAppStyles(page, renderState("first-session-error"));
+  await expect(
+    page.getByText("First session not built", { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText("Your setup is saved.")).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Try building again" }),
+  ).toBeEnabled();
+  await expectNoPageOverflow(page);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expectNoPageOverflow(page);
+  await expect(
+    page.getByRole("button", { name: "Try building again" }),
+  ).toBeVisible();
+  await capture(page, testInfo, "first-session-error-mobile");
 });
 
 test("History groups same-day plan versions under one session", async ({

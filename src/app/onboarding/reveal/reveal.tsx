@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import { useEffect } from "react";
 
 import { trpc } from "@/lib/trpc/react";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GradeMark, type EvidenceGrade } from "@/components/evidence";
 import { TransparencyCardGroup } from "@/components/transparency-card";
@@ -13,17 +14,60 @@ import { StatusMessage } from "@/components/ui/status-message";
 import { ErrorNotice } from "@/components/ui/error-notice";
 import { CalibrationTrackGauges } from "@/app/onboarding/calibration-track-gauges";
 
+export function FirstSessionAction({
+  error,
+  pending,
+  onBuild,
+}: {
+  error: unknown | null;
+  pending: boolean;
+  onBuild: () => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-3 border-t border-line/80 pt-5">
+      {error != null && (
+        <ErrorNotice
+          error={error}
+          heading="First session not built"
+          message="Your setup is saved. Try building the session again."
+          className="w-full"
+        />
+      )}
+      <Button
+        type="button"
+        disabled={pending}
+        aria-busy={pending}
+        onClick={onBuild}
+      >
+        {pending
+          ? "Building your session..."
+          : error
+            ? "Try building again"
+            : "Build my first session →"}
+      </Button>
+    </div>
+  );
+}
+
 // The reveal: the honest "what your games say vs. what you assumed" moment (VISION §2;
 // the Dunning–Kruger guard, Seam 2). It contrasts the BEHAVIOURAL baseline (calibration +
 // game-derived weakness signals) against the user's STATED goals — and where the data is
 // thin it says so plainly rather than inventing a verdict (L3).
 export function Reveal() {
+  const router = useRouter();
+  const utils = trpc.useUtils();
   const state = trpc.assessment.state.useQuery();
   const signals = trpc.program.gameSignals.useQuery();
   const constraints = trpc.constraints.getCurrent.useQuery();
   // The reveal IS the interactive review (M12): step through your most-recent analysed game.
   const library = trpc.analysis.library.useQuery();
   const reviewGameId = library.data?.games.find((g) => g.analyzed)?.id ?? null;
+  const generate = trpc.program.generate.useMutation({
+    onSuccess: async () => {
+      await utils.program.getToday.invalidate();
+      router.push("/today");
+    },
+  });
 
   useEffect(() => {
     if (state.data?.completed && typeof window !== "undefined") {
@@ -257,11 +301,11 @@ export function Reveal() {
             <span className="text-ink font-medium">goals</span> for what to
             emphasise, and we always show the evidence.
           </p>
-          <div className="flex flex-wrap items-center gap-3 border-t border-line/80 pt-5">
-            <Link href="/today" className={buttonVariants()}>
-              Build my first session →
-            </Link>
-          </div>
+          <FirstSessionAction
+            error={generate.error}
+            pending={generate.isPending}
+            onBuild={() => generate.mutate()}
+          />
         </CardContent>
       </Card>
     </div>

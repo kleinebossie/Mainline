@@ -21,6 +21,7 @@ import { DAY_MS, systemClock, type Clock } from "@/lib/clock";
 import { activityEventPayloadSchema } from "@/lib/tracker";
 import { CHESS_FORMATS, formatPrefsSchema } from "@/lib/constraints";
 import { platformLabel } from "@/lib/format-game";
+import { ratingEntriesFromSnapshot } from "@/lib/rating-snapshot";
 
 type Db = Pick<
   PrismaClient,
@@ -89,31 +90,19 @@ function ratingSeriesFromSnapshot(snapshot: {
   capturedAt: Date;
   ratings: unknown;
 }): RatingSeriesPoint[] {
-  if (!snapshot.ratings || typeof snapshot.ratings !== "object") return [];
-  const out: RatingSeriesPoint[] = [];
-  for (const [format, raw] of Object.entries(
-    snapshot.ratings as Record<string, unknown>,
-  )) {
-    if (!raw || typeof raw !== "object") continue;
-    const rec = raw as Record<string, unknown>;
-    const rating = rec.rating;
-    const rd = rec.rd;
-    if (
-      typeof rating === "number" &&
-      Number.isFinite(rating) &&
-      typeof rd === "number" &&
-      Number.isFinite(rd)
-    ) {
-      out.push({
-        at: snapshot.capturedAt.getTime(),
-        platform: snapshot.platform,
-        format,
-        rating: Math.round(rating),
-        rd: Math.round(rd),
-      });
-    }
-  }
-  return out;
+  return ratingEntriesFromSnapshot(snapshot.ratings).flatMap((entry) =>
+    entry.rd === null
+      ? []
+      : [
+          {
+            at: snapshot.capturedAt.getTime(),
+            platform: snapshot.platform,
+            format: entry.format,
+            rating: entry.rating,
+            rd: entry.rd,
+          },
+        ],
+  );
 }
 
 function minutesFromPayload(payload: unknown): number {

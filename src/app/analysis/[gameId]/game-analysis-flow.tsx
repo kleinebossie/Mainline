@@ -26,6 +26,7 @@ import {
 import { SaveReviewStep } from "@/app/analysis/[gameId]/game-analysis-save";
 import { GameIdentity } from "@/app/analysis/[gameId]/game-analysis-shared";
 import { errorMessage } from "@/lib/error-presentation";
+import { DEFAULT_ANALYSIS_DEPTH } from "@/analysis/worker-config";
 
 // Loaded lazily so Stockfish stays client-side.
 type AnalysisEngine = import("@/analysis").StockfishAnalysisEngine;
@@ -150,7 +151,7 @@ export function GameAnalysisFlow() {
     let aborted = false;
     void withEngine(async (engine) => {
       const rootLines = await engine.analyzeLines(baseFen, {
-        depth: 12,
+        depth: DEFAULT_ANALYSIS_DEPTH,
         multiPv: 3,
       });
       if (aborted) return;
@@ -164,7 +165,7 @@ export function GameAnalysisFlow() {
       let gameWinProbDrop = 0;
       if (gameMoveResultFen) {
         const gameLines = await engine.analyzeLines(gameMoveResultFen, {
-          depth: 12,
+          depth: DEFAULT_ANALYSIS_DEPTH,
           multiPv: 1,
         });
         if (aborted) return;
@@ -230,7 +231,7 @@ export function GameAnalysisFlow() {
       setGrading(true);
       void withEngine(async (engine) => {
         const lines = await engine.analyzeLines(resultFen, {
-          depth: 12,
+          depth: DEFAULT_ANALYSIS_DEPTH,
           multiPv: 1,
         });
         const moveEval = playerEvalAfter(lines[0]);

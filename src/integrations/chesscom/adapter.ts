@@ -5,6 +5,7 @@
 // lands in M2.
 
 import {
+  DEFAULT_GAME_IMPORT_LIMIT,
   PlatformError,
   type ImportedGameInput,
   type PlatformAdapter,
@@ -23,7 +24,6 @@ const PUB_BASE = "https://api.chess.com/pub/player";
 
 // Infra bounds (not methodology): cap a single import so a deep history does not
 // blow the free-tier budget; the rest backfills incrementally later (§6.5).
-const DEFAULT_MAX_GAMES = 100;
 const MAX_ARCHIVES_PER_IMPORT = 3; // newest months first
 
 // Subset of the Chess.com /stats response we read (raw, no interpretation).
@@ -153,7 +153,7 @@ export const chessComAdapter: PlatformAdapter = {
   async fetchGames(
     conn: PlatformConnectionRef,
     since?: number,
-    max: number = DEFAULT_MAX_GAMES,
+    max: number = DEFAULT_GAME_IMPORT_LIMIT,
   ): Promise<ImportedGameInput[]> {
     const username = conn.externalUsername.trim().toLowerCase();
     const headers = {

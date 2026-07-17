@@ -43,6 +43,7 @@ import {
 import { captureOperationalEvent } from "@/server/observability";
 import { lockUserProgramMutation } from "@/db/user-mutation-lock";
 import { expectedError } from "@/server/errors";
+import { playingRatingWithDeviationFromSnapshot } from "@/lib/rating-snapshot";
 
 type TrackerDb = Pick<
   PrismaClient,
@@ -63,25 +64,8 @@ function ratingPointFromSnapshot(
   ratings: unknown,
   at: number,
 ): RatingPoint | null {
-  if (!ratings || typeof ratings !== "object") return null;
-  const r = ratings as Record<string, unknown>;
-  for (const fmt of ["puzzle", "rapid", "blitz", "classical"]) {
-    const f = r[fmt];
-    if (f && typeof f === "object") {
-      const rec = f as Record<string, unknown>;
-      const rating = rec.rating;
-      const rd = rec.rd;
-      if (
-        typeof rating === "number" &&
-        Number.isFinite(rating) &&
-        typeof rd === "number" &&
-        Number.isFinite(rd)
-      ) {
-        return { at, rating: Math.round(rating), rd: Math.round(rd) };
-      }
-    }
-  }
-  return null;
+  const entry = playingRatingWithDeviationFromSnapshot(ratings);
+  return entry ? { at, rating: entry.rating, rd: entry.rd } : null;
 }
 
 /** Rating history returned oldest to newest. */

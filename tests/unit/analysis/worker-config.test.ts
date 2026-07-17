@@ -1,11 +1,16 @@
 import { describe, it, expect } from "vitest";
 import {
+  DEFAULT_ANALYSIS_DEPTH,
   resolveThreadPlan,
   MAX_THREADS,
   SINGLE_THREAD_PLAN,
 } from "@/analysis/worker-config";
 
 describe("resolveThreadPlan", () => {
+  it("shares one bounded depth across analysis callers", () => {
+    expect(DEFAULT_ANALYSIS_DEPTH).toBe(12);
+  });
+
   it("exposes a stable single-thread plan for interactive searches", () => {
     expect(SINGLE_THREAD_PLAN).toEqual({
       engineFile: "stockfish-18-lite-single.js",

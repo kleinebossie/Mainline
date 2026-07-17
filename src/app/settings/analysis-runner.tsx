@@ -12,9 +12,7 @@ import { Button } from "@/components/ui/button";
 import { ErrorNotice } from "@/components/ui/error-notice";
 import { StatusMessage } from "@/components/ui/status-message";
 import { errorMessage } from "@/lib/error-presentation";
-
-// Bounded analysis depth (infrastructure: responsive UI / sane battery, §6.5 — not science).
-const ANALYSIS_DEPTH = 12;
+import { DEFAULT_ANALYSIS_DEPTH } from "@/analysis/worker-config";
 
 type Status = "idle" | "running" | "done" | "error";
 
@@ -53,13 +51,13 @@ export function AnalysisRunner() {
         for (const game of games) {
           const features = await engine.analyzeGame(
             game.pgn,
-            { depth: ANALYSIS_DEPTH },
+            { depth: DEFAULT_ANALYSIS_DEPTH },
             { userColor: game.color === "b" ? "b" : "w" },
           );
           await save.mutateAsync({
             gameId: game.id,
             engineVersion: engine.engineVersion,
-            depth: ANALYSIS_DEPTH,
+            depth: DEFAULT_ANALYSIS_DEPTH,
             rawFeatures: features,
           });
           done += 1;

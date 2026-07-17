@@ -7,10 +7,10 @@ import type { PrismaClient } from "@prisma/client";
 
 import { type MethodologyConfig } from "@/methodology";
 import {
-  ratingFromSnapshot,
+  calibrationRatingFromSnapshot,
   playingRatingFromSnapshot,
   highestLiveRatingFromSnapshot,
-} from "@/server/assessment";
+} from "@/lib/rating-snapshot";
 import {
   rawGameFeaturesSchema,
   type RawGameFeatures,
@@ -43,7 +43,7 @@ export async function resolveTacticalRating(
     select: { ratings: true },
   });
   return (
-    ratingFromSnapshot(snap?.ratings) ??
+    calibrationRatingFromSnapshot(snap?.ratings) ??
     cfg.assessment.calibration.startRating.value
   );
 }

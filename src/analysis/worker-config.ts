@@ -37,6 +37,8 @@ export const SINGLE_THREAD_PLAN = {
 
 /** Cap on engine threads — leave headroom for the UI; an infrastructure knob, not science. */
 export const MAX_THREADS = 4;
+/** Shared depth for bounded interactive and batch analysis. */
+export const DEFAULT_ANALYSIS_DEPTH = 12;
 
 /**
  * Choose the engine build + thread count for the current environment. Multi-threaded

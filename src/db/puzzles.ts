@@ -1,17 +1,20 @@
 // Deterministic puzzle-catalog queries. Methodology supplies the rating target;
-// `ratingWindow` is only a retrieval radius.
+// The rating window is only a retrieval radius.
 
 import type { LichessPuzzle, Prisma, PrismaClient } from "@prisma/client";
 
 export interface PuzzleSelectionCriteria {
   theme: string;
   ratingTarget: number;
-  ratingWindow: number;
+  ratingWindow?: number;
   count: number;
   excludePuzzleIds?: string[];
   minPopularity?: number;
   poolMultiplier?: number;
 }
+
+/** Shared retrieval radius. Puzzle difficulty itself comes from Methodology. */
+export const DEFAULT_PUZZLE_RATING_WINDOW = 150;
 
 export interface PuzzleQuery {
   where: Prisma.LichessPuzzleWhereInput;
@@ -21,10 +24,11 @@ export interface PuzzleQuery {
 
 /** Over-fetch an indexed candidate pool before proximity ranking in memory. */
 export function buildPuzzleQuery(c: PuzzleSelectionCriteria): PuzzleQuery {
+  const ratingWindow = c.ratingWindow ?? DEFAULT_PUZZLE_RATING_WINDOW;
   const where: Prisma.LichessPuzzleWhereInput = {
     rating: {
-      gte: c.ratingTarget - c.ratingWindow,
-      lte: c.ratingTarget + c.ratingWindow,
+      gte: c.ratingTarget - ratingWindow,
+      lte: c.ratingTarget + ratingWindow,
     },
   };
   if (c.theme !== "mix") {

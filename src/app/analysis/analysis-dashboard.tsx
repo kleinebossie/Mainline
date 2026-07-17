@@ -18,16 +18,13 @@ import {
 } from "@/lib/format-game";
 import { errorMessage } from "@/lib/error-presentation";
 import { ManualGameImport } from "@/app/analysis/manual-game-import";
+import { DEFAULT_ANALYSIS_DEPTH } from "@/analysis/worker-config";
 
 function resultChipClass(result: string | null | undefined): string {
   if (result === "win") return "bg-grade-a/10 text-grade-a";
   if (result === "loss") return "bg-grade-d/10 text-grade-d";
   return "bg-grade-c/10 text-grade-c";
 }
-
-// Bounded analysis depth (infrastructure: responsive UI / sane battery — not science, mirrors
-// the same constant in settings/analysis-runner.tsx).
-const ANALYSIS_DEPTH = 12;
 
 type BatchStatus = "idle" | "running" | "error" | "partial";
 
@@ -85,13 +82,13 @@ export function AnalysisDashboard() {
   ) {
     const features = await engine.analyzeGame(
       game.pgn,
-      { depth: ANALYSIS_DEPTH },
+      { depth: DEFAULT_ANALYSIS_DEPTH },
       { userColor: game.color === "b" ? "b" : "w" },
     );
     await saveAnalysis.mutateAsync({
       gameId: game.id,
       engineVersion: engine.engineVersion,
-      depth: ANALYSIS_DEPTH,
+      depth: DEFAULT_ANALYSIS_DEPTH,
       rawFeatures: features,
     });
   }

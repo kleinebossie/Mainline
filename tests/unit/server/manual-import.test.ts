@@ -229,6 +229,7 @@ describe("manual PGN import service", () => {
           $queryRaw: vi.fn().mockResolvedValue([{ id: "user-1" }]),
           importedGame: {
             count: vi.fn().mockResolvedValue(MANUAL_PGN_MAX_GAMES_PER_USER),
+            findUnique: vi.fn().mockResolvedValue(null),
             create,
           },
         });
@@ -253,7 +254,7 @@ describe("manual PGN import service", () => {
       run({
         $queryRaw: vi.fn().mockResolvedValue([{ id: "user-1" }]),
         importedGame: {
-          count: vi.fn().mockResolvedValue(MANUAL_PGN_MAX_GAMES_PER_USER - 1),
+          count: vi.fn().mockResolvedValue(MANUAL_PGN_MAX_GAMES_PER_USER),
           findUnique,
           create,
         },
@@ -270,6 +271,51 @@ describe("manual PGN import service", () => {
     ).resolves.toMatchObject({ imported: 0, duplicates: 1 });
     expect(findUnique).toHaveBeenCalledOnce();
     expect(create).not.toHaveBeenCalled();
+  });
+
+  it("counts only valid net-new games against the manual library cap", async () => {
+    const create = vi.fn().mockResolvedValue({ id: "manual-new" });
+    const findUnique = vi
+      .fn()
+      .mockResolvedValueOnce({ id: "existing" })
+      .mockResolvedValueOnce(null);
+    const transaction = vi.fn(async (run: (tx: unknown) => Promise<unknown>) =>
+      run({
+        $queryRaw: vi.fn().mockResolvedValue([{ id: "user-1" }]),
+        importedGame: {
+          count: vi.fn().mockResolvedValue(MANUAL_PGN_MAX_GAMES_PER_USER - 1),
+          findUnique,
+          create,
+        },
+      }),
+    );
+    const pgn = [
+      '[Event "Existing"]\n\n1. e4 e5 *',
+      '[Event "New"]\n\n1. d4 d5 *',
+      '[Event "Invalid"]\n\n1. c4 Nope *',
+    ].join("\n\n");
+
+    await expect(
+      importManualPgnBatchWithinQuota(
+        { $transaction: transaction } as never,
+        "user-1",
+        pgn,
+        [
+          { index: 0, color: "w" },
+          { index: 1, color: "b" },
+          { index: 2, color: "w" },
+        ],
+      ),
+    ).resolves.toMatchObject({
+      imported: 1,
+      duplicates: 1,
+      entries: [
+        { status: "duplicate", index: 0 },
+        { status: "imported", index: 1, gameId: "manual-new" },
+        { status: "rejected", index: 2 },
+      ],
+    });
+    expect(create).toHaveBeenCalledOnce();
   });
 
   it("retries a serialization conflict before reserving quota", async () => {

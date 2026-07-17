@@ -20,6 +20,7 @@ export {
 export {
   resolveThreadPlan,
   readThreadEnv,
+  DEFAULT_ANALYSIS_DEPTH,
   MAX_THREADS,
   SINGLE_THREAD_PLAN,
   type ThreadEnv,

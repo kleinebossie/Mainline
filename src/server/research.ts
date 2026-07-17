@@ -15,6 +15,7 @@ import {
   type ResearchConsentScope,
 } from "@/lib/research-consent";
 import { DAY_MS } from "@/lib/clock";
+import { ratingEntriesFromSnapshot } from "@/lib/rating-snapshot";
 
 const RESEARCH_SCOPE: ResearchConsentScope = "aggregate_observational_training";
 export const MAX_RESEARCH_EXPORT_RECORDS = 1_000;
@@ -71,19 +72,10 @@ export function pseudonymizeResearchParticipant(
 function standardPlayingRatings(
   ratings: unknown,
 ): { format: (typeof CHESS_FORMATS)[number]; rating: number }[] {
-  if (!ratings || typeof ratings !== "object" || Array.isArray(ratings)) {
-    return [];
-  }
-  const record = ratings as Record<string, unknown>;
-  return CHESS_FORMATS.flatMap((format) => {
-    const value = record[format];
-    if (!value || typeof value !== "object" || Array.isArray(value)) return [];
-    const rating = (value as { rating?: unknown }).rating;
-    if (typeof rating === "number" && Number.isInteger(rating) && rating > 0) {
-      return [{ format, rating }];
-    }
-    return [];
-  });
+  return ratingEntriesFromSnapshot(ratings).map(({ format, rating }) => ({
+    format: format as (typeof CHESS_FORMATS)[number],
+    rating,
+  }));
 }
 
 function safeConstraints(generationInput: unknown) {
