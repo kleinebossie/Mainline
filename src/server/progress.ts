@@ -18,7 +18,10 @@ import {
 import { glickoConfidenceInterval } from "@/engine/math/glicko";
 import { getEngagementSummary } from "@/server/engagement";
 import { DAY_MS, systemClock, type Clock } from "@/lib/clock";
-import { activityEventPayloadSchema } from "@/lib/tracker";
+import {
+  activityEventPayloadSchema,
+  NON_OUTCOME_ACTIVITY_EVENT_TYPES,
+} from "@/lib/tracker";
 import { CHESS_FORMATS, formatPrefsSchema } from "@/lib/constraints";
 import { platformLabel } from "@/lib/format-game";
 import { ratingEntriesFromSnapshot } from "@/lib/rating-snapshot";
@@ -158,7 +161,7 @@ export async function getProgressSummary(
       where: {
         userId,
         occurredAt: { gte: workWindowStart },
-        NOT: { type: "skip" },
+        type: { notIn: [...NON_OUTCOME_ACTIVITY_EVENT_TYPES] },
       },
       select: { payload: true },
     }),

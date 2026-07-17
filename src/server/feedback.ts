@@ -15,6 +15,7 @@ import {
   type TrainingFeedbackInput,
 } from "@/lib/feedback";
 import { DAY_MS, systemClock, type Clock } from "@/lib/clock";
+import { PROGRAM_ITEM_TERMINAL_STATUSES } from "@/lib/tracker";
 import {
   loadMethodology,
   rollUpTrainingPreferences,
@@ -405,7 +406,10 @@ export async function getFeedbackSettings(db: Db, userId: string) {
       select: { id: true },
     }),
     db.programItem.findMany({
-      where: { program: { userId }, status: { in: ["done", "skipped"] } },
+      where: {
+        program: { userId },
+        status: { in: [...PROGRAM_ITEM_TERMINAL_STATUSES] },
+      },
       orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
       take: 12,
       select: {

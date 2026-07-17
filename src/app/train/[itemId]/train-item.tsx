@@ -15,6 +15,7 @@ import {
   InteractiveBoard,
 } from "@/components/interactive-board";
 import { EndgameDrillSession } from "@/app/train/[itemId]/endgame-drill";
+import { UnavailableTrainingBlock } from "@/app/train/[itemId]/unavailable-training-block";
 import { stepSolve, type SolveState } from "@/engine/interactive/session";
 import {
   puzzleToSolveState,
@@ -68,6 +69,16 @@ export function TrainItem({ programItemId }: TrainItemProps) {
   });
   const completionRequestIdRef = useRef<string | null>(null);
   const completeProgramItem = completionMutation.mutate;
+  const emptyCloseRequestIdRef = useRef<string | null>(null);
+  const emptyCloseMutation = trpc.tracker.logOutcome.useMutation({
+    onSuccess: async () => {
+      await Promise.all([
+        utils.program.getToday.invalidate(),
+        utils.program.history.invalidate(),
+      ]);
+      router.push("/today");
+    },
+  });
 
   // Solving states
   const [solvables, setSolvables] = useState<Solvable[]>([]);
@@ -172,6 +183,8 @@ export function TrainItem({ programItemId }: TrainItemProps) {
 
   useEffect(() => {
     sessionDeadlineRef.current = null;
+    completionRequestIdRef.current = null;
+    emptyCloseRequestIdRef.current = null;
     setSessionRemainingMs(null);
   }, [programItemId]);
 
@@ -443,6 +456,29 @@ export function TrainItem({ programItemId }: TrainItemProps) {
             Back to Today
           </Link>
         }
+      />
+    );
+  }
+
+  if (data.solvables.length === 0) {
+    const closeEmptyBlock = () => {
+      emptyCloseRequestIdRef.current ??= crypto.randomUUID();
+      emptyCloseMutation.mutate({
+        requestId: emptyCloseRequestIdRef.current,
+        programItemId,
+        type: "skip",
+      });
+    };
+    return (
+      <UnavailableTrainingBlock
+        error={emptyCloseMutation.error}
+        pending={emptyCloseMutation.isPending}
+        onClose={closeEmptyBlock}
+        onRetry={() => {
+          if (emptyCloseMutation.variables) {
+            emptyCloseMutation.mutate(emptyCloseMutation.variables);
+          }
+        }}
       />
     );
   }

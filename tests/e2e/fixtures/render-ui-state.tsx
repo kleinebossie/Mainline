@@ -5,6 +5,7 @@ import { OnboardingSteps } from "@/app/onboarding/onboarding-steps";
 import { FirstSessionAction } from "@/app/onboarding/reveal/reveal";
 import { ProgramArchive } from "@/app/today/program-history";
 import { TodayBlockList, TodayHeader } from "@/app/today/today-session";
+import { UnavailableTrainingBlock } from "@/app/train/[itemId]/unavailable-training-block";
 import { UnexpectedError } from "@/components/unexpected-error";
 import { ErrorNotice } from "@/components/ui/error-notice";
 import type { ProgramHistoryEntry } from "@/lib/program-history";
@@ -349,6 +350,19 @@ function unexpectedErrorMarkup() {
   );
 }
 
+function unavailableTrainingBlockMarkup() {
+  return renderToStaticMarkup(
+    <main className="mx-auto min-h-screen w-full max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
+      <UnavailableTrainingBlock
+        error={null}
+        pending={false}
+        onClose={noOp}
+        onRetry={noOp}
+      />
+    </main>,
+  );
+}
+
 const state = process.argv[2];
 const markup =
   state === "today-progress"
@@ -371,7 +385,9 @@ const markup =
                     ? errorNoticesMarkup()
                     : state === "unexpected-error"
                       ? unexpectedErrorMarkup()
-                      : null;
+                      : state === "unavailable-training-block"
+                        ? unavailableTrainingBlockMarkup()
+                        : null;
 
 if (markup === null) {
   throw new Error(`Unknown UI state: ${state ?? "missing"}`);

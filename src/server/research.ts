@@ -16,6 +16,7 @@ import {
 } from "@/lib/research-consent";
 import { DAY_MS } from "@/lib/clock";
 import { ratingEntriesFromSnapshot } from "@/lib/rating-snapshot";
+import { NON_OUTCOME_ACTIVITY_EVENT_TYPES } from "@/lib/tracker";
 
 const RESEARCH_SCOPE: ResearchConsentScope = "aggregate_observational_training";
 export const MAX_RESEARCH_EXPORT_RECORDS = 1_000;
@@ -156,6 +157,9 @@ export async function exportControlledObservationalResearch(
         programItem: {
           select: {
             activityEvents: {
+              where: {
+                type: { notIn: [...NON_OUTCOME_ACTIVITY_EVENT_TYPES] },
+              },
               orderBy: [{ occurredAt: "asc" }, { id: "asc" }],
               take: 501,
               select: { type: true, occurredAt: true, payload: true },

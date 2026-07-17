@@ -13,6 +13,7 @@ import {
 import { generateProgram, type ProgramItemParams } from "@/engine/generator";
 import { systemClock, type Clock } from "@/lib/clock";
 import type { RecommendationExposureDraft } from "@/lib/recommendation-exposure";
+import { PROGRAM_ITEM_TERMINAL_STATUSES } from "@/lib/tracker";
 import { lichessThemeUrl, platformPlayUrl } from "@/integrations/catalog";
 import { humanizeTheme } from "@/integrations/puzzles/themes";
 import { platformLabel } from "@/lib/format-game";
@@ -225,7 +226,7 @@ export async function prepareProgram(
         orderBy: { createdAt: "desc" },
         select: {
           items: {
-            where: { status: { in: ["done", "skipped"] } },
+            where: { status: { in: [...PROGRAM_ITEM_TERMINAL_STATUSES] } },
             select: { activityId: true, activityType: true, params: true },
           },
         },

@@ -40,29 +40,78 @@ export const activityEventPayloadSchema = z
   })
   .strict();
 
-const ACTIVITY_EVENT_TYPES = [
+export const LOGGABLE_ACTIVITY_EVENT_TYPES = [
   "puzzle_attempt",
   "drill_done",
   "game_played",
   "book_session",
   "skip",
-  "skip_undone",
   "self_report",
 ] as const;
 
-type LoggableActivityEventType = (typeof ACTIVITY_EVENT_TYPES)[number];
+export type LoggableActivityEventType =
+  (typeof LOGGABLE_ACTIVITY_EVENT_TYPES)[number];
+
+export const SKIP_UNDONE_ACTIVITY_EVENT_TYPE = "skip_undone" as const;
+export const PROGRAM_ITEM_COMPLETION_EVENT_TYPE = "session_completed" as const;
+export const GAME_ANALYSED_ACTIVITY_EVENT_TYPE = "game_analysed" as const;
+
+export const STRUCTURAL_ACTIVITY_EVENT_TYPES = [
+  SKIP_UNDONE_ACTIVITY_EVENT_TYPE,
+  PROGRAM_ITEM_COMPLETION_EVENT_TYPE,
+] as const;
+
+export const SPECIALIZED_ACTIVITY_EVENT_TYPES = [
+  GAME_ANALYSED_ACTIVITY_EVENT_TYPE,
+] as const;
+
+export const ACTIVITY_EVENT_TYPES = [
+  ...LOGGABLE_ACTIVITY_EVENT_TYPES,
+  ...STRUCTURAL_ACTIVITY_EVENT_TYPES,
+  ...SPECIALIZED_ACTIVITY_EVENT_TYPES,
+] as const;
+export type ActivityEventType = (typeof ACTIVITY_EVENT_TYPES)[number];
+
+export const PROGRAM_ITEM_TERMINAL_STATUSES = ["done", "skipped"] as const;
+export type ProgramItemTerminalStatus =
+  (typeof PROGRAM_ITEM_TERMINAL_STATUSES)[number];
 
 /** Structural tracker events that change item state without completing activity. */
 export const NON_COMPLETION_ACTIVITY_EVENT_TYPES = [
   "skip",
-  "skip_undone",
-] as const satisfies readonly LoggableActivityEventType[];
+  SKIP_UNDONE_ACTIVITY_EVENT_TYPE,
+] as const satisfies readonly ActivityEventType[];
+
+export const NON_OUTCOME_ACTIVITY_EVENT_TYPES = [
+  ...NON_COMPLETION_ACTIVITY_EVENT_TYPES,
+  PROGRAM_ITEM_COMPLETION_EVENT_TYPE,
+] as const satisfies readonly ActivityEventType[];
+
+export function programItemStatusAfterOutcome(input: {
+  readonly programItemId?: string;
+  readonly completeProgramItem?: boolean;
+  readonly type: LoggableActivityEventType;
+}): ProgramItemTerminalStatus | null {
+  if (!input.programItemId) return null;
+  if (input.type === "skip") return "skipped";
+  return input.completeProgramItem === false ? null : "done";
+}
+
+export function outcomeCompletesActivity(input: {
+  readonly programItemId?: string;
+  readonly completeProgramItem?: boolean;
+  readonly type: LoggableActivityEventType;
+}): boolean {
+  const itemStatus = programItemStatusAfterOutcome(input);
+  if (input.programItemId) return itemStatus === "done";
+  return input.type !== "skip";
+}
 
 export const logOutcomeInputSchema = z.object({
   requestId: z.string().uuid(),
   programItemId: z.string().min(1).optional(),
   completeProgramItem: z.boolean().optional(),
-  type: z.enum(ACTIVITY_EVENT_TYPES),
+  type: z.enum(LOGGABLE_ACTIVITY_EVENT_TYPES),
   correct: z.boolean().optional(),
   solveTimeMs: z.number().int().nonnegative().max(DAY_MS).optional(),
   durationMin: z.number().nonnegative().max(600).optional(),

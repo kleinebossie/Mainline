@@ -25,6 +25,11 @@ import {
   completeProgramItemInputSchema,
   fsrsStateSchema,
   logOutcomeInputSchema,
+  outcomeCompletesActivity,
+  PROGRAM_ITEM_COMPLETION_EVENT_TYPE,
+  PROGRAM_ITEM_TERMINAL_STATUSES,
+  programItemStatusAfterOutcome,
+  SKIP_UNDONE_ACTIVITY_EVENT_TYPE,
   type CompleteProgramItemInput,
   type LogOutcomeInput,
 } from "@/lib/tracker";
@@ -200,7 +205,7 @@ export async function undoSkip(
     await appendActivityEvent(tx, {
       userId,
       programItemId,
-      type: "skip_undone",
+      type: SKIP_UNDONE_ACTIVITY_EVENT_TYPE,
       occurredAt: new Date(clock.now()),
       payload: { reversesEventId: skippedEvent.id },
       source: "user",
@@ -309,13 +314,11 @@ export async function logOutcome(
       payload: payloadObj as Prisma.InputJsonValue,
       source: "user",
     });
-    if (
-      input.programItemId &&
-      (input.type === "skip" || input.completeProgramItem !== false)
-    ) {
+    const nextItemStatus = programItemStatusAfterOutcome(input);
+    if (input.programItemId && nextItemStatus) {
       await tx.programItem.update({
         where: { id: input.programItemId },
-        data: { status: input.type === "skip" ? "skipped" : "done" },
+        data: { status: nextItemStatus },
       });
     }
 
@@ -365,11 +368,9 @@ export async function logOutcome(
       cfg.version,
     );
 
-    // A skip is not a completion and must not produce recognition events.
-    const rewardEvents =
-      input.type === "skip"
-        ? []
-        : (await recordEngagementForCompletion(tx, userId, now)).rewardEvents;
+    const rewardEvents = outcomeCompletesActivity(input)
+      ? (await recordEngagementForCompletion(tx, userId, now)).rewardEvents
+      : [];
 
     return {
       duplicate: false,
@@ -392,12 +393,20 @@ export async function logOutcome(
 
 /** Close an internal multi-outcome block without inventing another skill observation. */
 export async function completeProgramItem(
-  db: Pick<PrismaClient, "activityEvent" | "programItem" | "$transaction">,
+  db: Pick<
+    PrismaClient,
+    | "activityEvent"
+    | "notificationPref"
+    | "programItem"
+    | "rewardEvent"
+    | "$transaction"
+  >,
   userId: string,
   rawInput: CompleteProgramItemInput,
   clock: Clock = systemClock,
 ): Promise<void> {
   const input = completeProgramItemInputSchema.parse(rawInput);
+  const now = clock.now();
   await db.$transaction(async (tx) => {
     await lockUserProgramMutation(tx, userId);
     const existing = await tx.activityEvent.findUnique({
@@ -411,7 +420,7 @@ export async function completeProgramItem(
     const item = await tx.programItem.findFirst({
       where: {
         id: input.programItemId,
-        status: { notIn: ["done", "skipped"] },
+        status: { notIn: [...PROGRAM_ITEM_TERMINAL_STATUSES] },
         program: { userId, status: "active" },
       },
       select: { id: true },
@@ -426,8 +435,8 @@ export async function completeProgramItem(
       userId,
       requestId: input.requestId,
       programItemId: input.programItemId,
-      type: "session_completed",
-      occurredAt: new Date(clock.now()),
+      type: PROGRAM_ITEM_COMPLETION_EVENT_TYPE,
+      occurredAt: new Date(now),
       payload: {},
       source: "user",
     });
@@ -435,6 +444,7 @@ export async function completeProgramItem(
       where: { id: input.programItemId },
       data: { status: "done" },
     });
+    await recordEngagementForCompletion(tx, userId, now);
   });
 }
 

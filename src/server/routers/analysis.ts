@@ -25,6 +25,7 @@ import { systemClock } from "@/lib/clock";
 import { protectedProcedure, router } from "@/server/trpc";
 import { captureOperationalEvent } from "@/server/observability";
 import { expectedError } from "@/server/errors";
+import { GAME_ANALYSED_ACTIVITY_EVENT_TYPE } from "@/lib/tracker";
 
 const PLATFORMS = ["lichess", "chesscom"] as const;
 const ANALYSIS_SOURCES = ["lichess", "chesscom", "manual"] as const;
@@ -400,7 +401,7 @@ export const analysisRouter = router({
             data: {
               userId: ctx.userId,
               requestId: input.requestId,
-              type: "game_analysed",
+              type: GAME_ANALYSED_ACTIVITY_EVENT_TYPE,
               occurredAt: new Date(now),
               payload: {
                 gameId: input.gameId,

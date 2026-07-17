@@ -13,7 +13,8 @@ type UiState =
   | "first-session-error"
   | "history-grouped"
   | "error-notices"
-  | "unexpected-error";
+  | "unexpected-error"
+  | "unavailable-training-block";
 
 function renderState(state: UiState): string {
   return execFileSync(
@@ -249,4 +250,35 @@ test("Unexpected error page offers retry and a safe way back", async ({
     page.getByRole("button", { name: "Try this page again" }),
   ).toBeVisible();
   await capture(page, testInfo, "unexpected-error-mobile");
+});
+
+test("Unavailable training blocks have an honest recovery path", async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 1365, height: 900 });
+  await mountWithAppStyles(page, renderState("unavailable-training-block"));
+
+  await expect(
+    page.getByRole("heading", {
+      name: "This block has no positions left to train.",
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Skip unavailable block" }),
+  ).toBeEnabled();
+  await expect(
+    page.getByRole("link", { name: "Back without changing" }),
+  ).toHaveAttribute("href", "/today");
+  await expect(
+    page.getByText(/without counting as completed training/),
+  ).toBeVisible();
+  await expectNoPageOverflow(page);
+  await capture(page, testInfo, "unavailable-training-block-desktop");
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expectNoPageOverflow(page);
+  await expect(
+    page.getByRole("button", { name: "Skip unavailable block" }),
+  ).toBeVisible();
+  await capture(page, testInfo, "unavailable-training-block-mobile");
 });

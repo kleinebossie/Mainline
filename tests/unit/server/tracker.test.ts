@@ -59,6 +59,8 @@ function fakeDb(
   const db = {
     programItem: {
       findFirst: async () => item,
+      count: async () =>
+        rec.itemUpdates.filter((update) => update.status === "done").length,
       update: async ({
         where,
         data,
@@ -101,7 +103,8 @@ function fakeDb(
       },
       // Engagement rollup reads (M9): the appended events are "today" at the fixed clock.
       findMany: async () => rec.events.map(() => ({ occurredAt: new Date(T) })),
-      count: async () => rec.events.length,
+      count: async () =>
+        rec.events.filter((event) => event.programItemId === null).length,
     },
     rewardEvent: {
       createMany: async ({
@@ -357,7 +360,7 @@ describe("logOutcome (applyEvent)", () => {
 
   it("keeps a multi-position block open until its session is completed", async () => {
     const { db, rec } = fakeDb(puzzleItem);
-    await logOutcome(
+    const outcome = await logOutcome(
       db,
       "u1",
       {
@@ -371,6 +374,8 @@ describe("logOutcome (applyEvent)", () => {
     );
 
     expect(rec.itemUpdates).toEqual([]);
+    expect(outcome.rewardEvents).toEqual([]);
+    expect(rec.rewardCreates).toEqual([]);
 
     await completeProgramItem(
       db,
@@ -385,6 +390,9 @@ describe("logOutcome (applyEvent)", () => {
       programItemId: "p1",
     });
     expect(rec.itemUpdates).toEqual([{ id: "p1", status: "done" }]);
+    expect(rec.rewardCreates.map((event) => event.type)).toEqual([
+      "streak_tick",
+    ]);
 
     await completeProgramItem(
       db,

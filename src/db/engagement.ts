@@ -85,24 +85,49 @@ export async function findActiveDayEpochs(
       userId,
       type: { notIn: [...NON_COMPLETION_ACTIVITY_EVENT_TYPES] },
       occurredAt: { gte: new Date(sinceEpoch) },
+      OR: [
+        { programItemId: null },
+        { programItem: { is: { status: "done" } } },
+      ],
     },
-    select: { occurredAt: true },
+    select: { occurredAt: true, programItemId: true },
   });
-  return rows.map((r) => r.occurredAt.getTime());
+
+  const standaloneEpochs: number[] = [];
+  const completedItemEpochs = new Map<string, number>();
+  for (const row of rows) {
+    const epoch = row.occurredAt.getTime();
+    if (!row.programItemId) {
+      standaloneEpochs.push(epoch);
+      continue;
+    }
+    completedItemEpochs.set(
+      row.programItemId,
+      Math.max(completedItemEpochs.get(row.programItemId) ?? 0, epoch),
+    );
+  }
+  return [...standaloneEpochs, ...completedItemEpochs.values()];
 }
 
 /** Cumulative count of completed activities, used by the competence-milestone counter.
- *  Excludes skips and skip undones. */
+ *  Program items count once regardless of their number of outcome observations. */
 export async function countCompletedActivities(
-  db: Pick<PrismaClient, "activityEvent">,
+  db: Pick<PrismaClient, "activityEvent" | "programItem">,
   userId: string,
 ): Promise<number> {
-  return db.activityEvent.count({
-    where: {
-      userId,
-      type: { notIn: [...NON_COMPLETION_ACTIVITY_EVENT_TYPES] },
-    },
-  });
+  const [completedProgramItems, standaloneCompletions] = await Promise.all([
+    db.programItem.count({
+      where: { program: { userId }, status: "done" },
+    }),
+    db.activityEvent.count({
+      where: {
+        userId,
+        programItemId: null,
+        type: { notIn: [...NON_COMPLETION_ACTIVITY_EVENT_TYPES] },
+      },
+    }),
+  ]);
+  return completedProgramItems + standaloneCompletions;
 }
 
 // --- NotificationPref (one per user) ------------------------------------------
