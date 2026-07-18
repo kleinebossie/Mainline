@@ -76,11 +76,21 @@ authenticated P11 journey works.
 | Job                                    | Status  | Evidence                                                                                                                                     |
 | -------------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1. Baseline and acceptance ledger      | Pass    | Baseline commands above ran on 2026-07-18; this ledger records all known P11 and Stage A gaps without treating unexecuted checks as passing. |
-| 2. Authenticated Playwright foundation | Missing | Not present in the baseline.                                                                                                                 |
+| 2. Authenticated Playwright foundation | Pass    | See the executed Job 2 evidence below.                                                                                                       |
 | 3. Normal core-loop acceptance         | Missing | Component service evidence exists, but no authenticated connected journey exists.                                                            |
 | 4. P11 edge journeys                   | Missing | Focused evidence exists, but the required acceptance set is incomplete.                                                                      |
 | 5. Privacy and lifecycle acceptance    | Missing | Mocked service and schema-guard evidence exists, but isolated database lifecycle evidence is incomplete.                                     |
 | 6. Failed-job recovery acceptance      | Missing | Focused unit evidence exists, but no complete deterministic recovery drill exists.                                                           |
+
+Job 2 evidence, executed locally on 2026-07-18:
+
+- `prisma migrate deploy` applied all 25 migrations to the disposable `mainline_e2e`
+  PostgreSQL database.
+- Typecheck, lint, and the production build passed.
+- `npm run test:e2e` passed all 29 tests, including the database-session smoke and
+  cross-user browser isolation test.
+- The database-name safety rejection was exercised. CI now provisions PostgreSQL and migrates the
+  dedicated `PLAYWRIGHT_DATABASE_URL`. Auth.js storage states stay under ignored `test-results/`.
 
 ## Remaining owner evidence
 

@@ -1,13 +1,32 @@
 import { defineConfig } from "@playwright/test";
 
+import {
+  requireDisposablePlaywrightDatabaseUrl,
+  SEEDED_USERS,
+} from "./tests/e2e/setup/database";
+
 const port = Number(process.env.PLAYWRIGHT_PORT ?? "3000");
 const baseURL = `http://localhost:${port}`;
+const playwrightDatabaseUrl = requireDisposablePlaywrightDatabaseUrl();
 
 export default defineConfig({
   testDir: "./tests/e2e",
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
+  globalSetup: "./tests/e2e/setup/global.ts",
+  projects: [
+    {
+      name: "unauthenticated",
+      testIgnore: "**/authenticated/**/*.spec.ts",
+      use: { storageState: { cookies: [], origins: [] } },
+    },
+    {
+      name: "authenticated",
+      testMatch: "**/authenticated/**/*.spec.ts",
+      use: { storageState: SEEDED_USERS.primary.storageStatePath },
+    },
+  ],
   use: {
     baseURL,
     trace: "on-first-retry",
@@ -20,9 +39,8 @@ export default defineConfig({
     timeout: 120_000,
     env: {
       AUTH_SECRET: process.env.AUTH_SECRET ?? "e2e-placeholder-secret",
-      DATABASE_URL:
-        process.env.DATABASE_URL ??
-        "postgresql://user:pass@localhost:5432/db?schema=public",
+      AUTH_URL: baseURL,
+      DATABASE_URL: playwrightDatabaseUrl,
     },
   },
 });
