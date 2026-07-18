@@ -54,10 +54,21 @@ describe("importConnection clock", () => {
     const createSnapshot = vi.fn().mockResolvedValue({});
     const createGames = vi.fn().mockResolvedValue({ count: 0 });
     const updateConnection = vi.fn().mockResolvedValue({});
-    const db = {
+    const tx = {
       chessProfileSnapshot: { create: createSnapshot },
       importedGame: { createMany: createGames },
-      platformConnection: { update: updateConnection },
+      platformConnection: {
+        findUnique: vi.fn().mockResolvedValue({
+          userId: "user-1",
+          lastSyncedAt: null,
+          updatedAt: new Date(START - 1),
+        }),
+        update: updateConnection,
+      },
+    };
+    const db = {
+      ...tx,
+      $transaction: (work: (client: typeof tx) => unknown) => work(tx),
     } as unknown as PrismaClient;
 
     await importConnection(
@@ -92,6 +103,7 @@ describe("importConnection clock", () => {
       data: {
         lastSyncedAt: new Date(START),
         status: "active",
+        updatedAt: new Date(START + 5_000),
       },
     });
   });
@@ -140,20 +152,37 @@ describe("importConnection clock", () => {
     getAdapterMock.mockReturnValue(adapter);
 
     let savedWatermark: Date | null = null;
+    let savedUpdatedAt = new Date(START - 1);
     const createGames = vi.fn(
       async ({ data }: { data: Array<{ externalGameId: string }> }) => ({
         count: data.length,
       }),
     );
-    const db = {
+    const tx = {
       chessProfileSnapshot: { create: vi.fn().mockResolvedValue({}) },
       importedGame: { createMany: createGames },
       platformConnection: {
-        update: vi.fn(async ({ data }: { data: { lastSyncedAt: Date } }) => {
-          savedWatermark = data.lastSyncedAt;
-          return {};
-        }),
+        findUnique: vi.fn(async () => ({
+          userId: "user-1",
+          lastSyncedAt: savedWatermark,
+          updatedAt: savedUpdatedAt,
+        })),
+        update: vi.fn(
+          async ({
+            data,
+          }: {
+            data: { lastSyncedAt: Date; updatedAt: Date };
+          }) => {
+            savedWatermark = data.lastSyncedAt;
+            savedUpdatedAt = data.updatedAt;
+            return {};
+          },
+        ),
       },
+    };
+    const db = {
+      ...tx,
+      $transaction: (work: (client: typeof tx) => unknown) => work(tx),
     } as unknown as PrismaClient;
     const connection = {
       id: "connection-1",
@@ -182,5 +211,68 @@ describe("importConnection clock", () => {
         data: [expect.objectContaining({ externalGameId: "mid-import-game" })],
       }),
     );
+  });
+
+  it("drops local effects when another import advanced the connection cursor", async () => {
+    const adapter: PlatformAdapter = {
+      platform: "lichess",
+      isLoginProvider: true,
+      async fetchProfile() {
+        return {
+          platform: "lichess",
+          externalUsername: "player",
+          capturedAt: START,
+          ratings: {},
+          totalGames: 0,
+          raw: {},
+        };
+      },
+      async fetchGames() {
+        return [];
+      },
+    };
+    getAdapterMock.mockReturnValue(adapter);
+    const createSnapshot = vi.fn();
+    const createGames = vi.fn();
+    const updateConnection = vi.fn();
+    const tx = {
+      chessProfileSnapshot: { create: createSnapshot },
+      importedGame: { createMany: createGames },
+      platformConnection: {
+        findUnique: vi.fn().mockResolvedValue({
+          userId: "user-1",
+          lastSyncedAt: new Date(START - 1),
+          updatedAt: new Date(START - 1),
+        }),
+        update: updateConnection,
+      },
+    };
+    const db = {
+      ...tx,
+      $transaction: (work: (client: typeof tx) => unknown) => work(tx),
+    } as unknown as PrismaClient;
+
+    await expect(
+      importConnection(
+        db,
+        {
+          id: "connection-1",
+          userId: "user-1",
+          platform: "lichess",
+          externalUsername: "player",
+          accessToken: null,
+          lastSyncedAt: null,
+        },
+        { now: () => START },
+      ),
+    ).resolves.toEqual({
+      platform: "lichess",
+      snapshotCaptured: false,
+      fetched: 0,
+      imported: 0,
+    });
+    expect(createSnapshot).not.toHaveBeenCalled();
+    expect(createGames).not.toHaveBeenCalled();
+    expect(updateConnection).not.toHaveBeenCalled();
   });
 });

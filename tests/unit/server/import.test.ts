@@ -241,4 +241,46 @@ describe("withJobRun", () => {
     });
     expect(current()).toMatchObject({ status: "success", attempt: 2 });
   });
+
+  it("does not surface an expired worker error after a newer attempt succeeds", async () => {
+    let now = NOW;
+    const { db, current } = fakeDb(undefined, () => now);
+    let failFirst: ((error: Error) => void) | undefined;
+    const firstBody = new Promise<string>((_resolve, reject) => {
+      failFirst = reject;
+    });
+    const first = runJob(db, {
+      kind: "import_sync",
+      key: "k1",
+      run: () => firstBody,
+      clock: { now: () => now },
+      leaseMs: 3_000,
+    });
+    await vi.waitFor(() =>
+      expect(current()).toMatchObject({ status: "running", attempt: 1 }),
+    );
+
+    now += 3_001;
+    await expect(
+      runJob(db, {
+        kind: "import_sync",
+        key: "k1",
+        run: () => Promise.resolve("second"),
+        clock: { now: () => now },
+        leaseMs: 3_000,
+      }),
+    ).resolves.toMatchObject({ state: "completed", attempt: 2 });
+
+    failFirst?.(new Error("old worker secret detail"));
+    await expect(first).resolves.toEqual({
+      state: "skipped",
+      reason: "superseded",
+    });
+    expect(current()).toMatchObject({
+      status: "success",
+      attempt: 2,
+      error: null,
+      errorCode: null,
+    });
+  });
 });

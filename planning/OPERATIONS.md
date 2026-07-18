@@ -24,11 +24,12 @@ observational export.
    configure a separate, randomly generated `RESEARCH_EXPORT_SECRET` of at least 32 characters.
    Never reuse `AUTH_SECRET` or `CRON_SECRET`. Leave it unset to fail closed.
 
-The daily route fails closed when `CRON_SECRET` is absent or wrong. It first records the complete
-daily workload in `JobRun`, then drains within the function deadline. It returns HTTP 503 when any
-job fails or remains queued, so invoking the same route again safely continues the durable backlog.
-Hourly budget buckets older than seven days and successful job rows older than 30 days are removed
-by the same run. Errored jobs remain available for recovery.
+The daily route fails closed when `CRON_SECRET` is absent or wrong. It prunes expired operational
+rows, records the complete daily workload in `JobRun`, then drains within the function deadline. It
+returns HTTP 503 when any job fails or remains queued, so invoking the same route again safely
+continues the durable backlog. Hourly budget buckets older than seven days and finished successful
+or errored job rows older than 30 days are removed by the same run. Incomplete purge ledgers are
+re-enqueued after pruning. Current errored jobs remain available during the retention window.
 
 ## Invite beta users
 
@@ -50,19 +51,22 @@ the narrow `BETA_OWNER_EMAILS` break-glass list keep access.
 
 ## Monitor and recover jobs
 
-An admin sees the latest 50 job states in Settings. The panel exposes only kind, status, attempt,
-timestamps, and a sanitized error code. It never shows job payloads, user data, provider responses,
-or credentials.
+An admin sees up to 50 job states in Settings. Retryable queued, errored, and stale-running jobs are
+listed before recent non-actionable states, so successful volume cannot hide recovery work. The
+panel exposes only kind, status, attempt, timestamps, lease state, and a sanitized error code. It
+never shows job payloads, user data, provider responses, or credentials.
 
-Use Retry on a queued or errored import, daily adaptation, or missed-day job. The runner reclaims
-failed and stale leases, increments the attempt, and preserves successful keys as immutable. Imported game
-rows, daily adaptation logs, and missed-day recovery events each have a second effect-level
-idempotency guard so a retry cannot corrupt the core loop.
+Use Retry on a queued, errored, or stale-running import, daily adaptation, missed-day, or account
+purge job. The runner reclaims failed and stale leases, increments the attempt, and preserves
+successful keys as immutable while their owner exists. Imported game rows, daily adaptation logs,
+and missed-day recovery events each have a second effect-level idempotency guard so a retry cannot
+corrupt the core loop.
 
+Privacy lifecycle erasure is the exception to the generic immutable-success-key rule. Disconnect
+removes connection-keyed import jobs, and owner disappearance removes its correlatable job key.
 P3 reuses the generic runner for hard deletion and adds `account_purge` to daily and admin recovery.
-Account purge is the privacy exception to the generic immutable-success-key rule. After a purge
-completes, its correlatable JobRun key is deleted. The completed AccountPurgeLedger token is the
-remaining opaque proof and contains no account identifier.
+After a purge completes, its correlatable JobRun key is deleted. The completed AccountPurgeLedger
+token is the remaining opaque proof and contains no account identifier.
 
 ### Account-erasure recovery
 
@@ -81,7 +85,7 @@ the opaque purge ledger to attach an email, platform username, user id, or suppo
 1. Create a disposable invited account and populate every user-owned relation, including a personal
    PracticeItem and both granted and withdrawn ResearchConsent audit rows. Record counts for global
    LichessPuzzle, ResourceRef, TablebaseCache, and curated PracticeItem rows.
-2. Export the account. Confirm the v2 sections are present and no OAuth token, session token,
+2. Export the account. Confirm the v4 sections are present and no OAuth token, session token,
    connection token, or invite code appears.
 3. Request deletion. Simulate one failed or stale purge attempt, then retry through the admin control
    or daily cron.

@@ -3,6 +3,10 @@ import { chmod, mkdir, writeFile } from "node:fs/promises";
 import { PrismaClient, type Prisma } from "@prisma/client";
 
 import {
+  applyCalibrationResponse,
+  getCalibrationState,
+} from "../../../src/server/assessment";
+import {
   AUTHJS_SESSION_COOKIE,
   AUTH_STATE_DIRECTORY,
   requireDisposablePlaywrightDatabaseUrl,
@@ -72,6 +76,12 @@ async function seedUser(
       createdAt: FIXED_AT,
     },
   });
+}
+
+async function seedOnboardedState(
+  db: Prisma.TransactionClient,
+  user: typeof SEEDED_USERS.primary | typeof SEEDED_USERS.secondary,
+): Promise<void> {
   await db.assessment.create({
     data: {
       id: user.assessmentId,
@@ -105,6 +115,47 @@ async function seedUser(
   });
 }
 
+async function seedCalibrationThroughService(
+  db: Prisma.TransactionClient,
+  userId: string,
+): Promise<void> {
+  for (let responseCount = 0; responseCount < 100; responseCount += 1) {
+    const state = await getCalibrationState(db, userId);
+    if (state.completed) return;
+    if (!state.activeTrack) {
+      throw new Error("Core-loop calibration has no active track.");
+    }
+    await applyCalibrationResponse(
+      db,
+      userId,
+      {
+        ratingShown: state.activeTrack.next.ratingTarget,
+        correct: false,
+      },
+      FIXED_AT,
+    );
+  }
+  throw new Error("Core-loop calibration did not finish within 100 responses.");
+}
+
+/** Restore the dedicated core-loop user before each attempt, including Playwright retries. */
+export async function resetCoreLoopFixture(db: PrismaClient): Promise<void> {
+  await db.$transaction(
+    async (tx) => {
+      await tx.allowlistEntry.deleteMany({
+        where: { id: SEEDED_USERS.coreLoop.allowlistId },
+      });
+      await tx.user.deleteMany({ where: { id: SEEDED_USERS.coreLoop.id } });
+      await tx.lichessPuzzle.deleteMany({
+        where: { puzzleId: SEEDED_USERS.coreLoop.puzzleId },
+      });
+      await seedUser(tx, SEEDED_USERS.coreLoop);
+      await seedCalibrationThroughService(tx, SEEDED_USERS.coreLoop.id);
+    },
+    { timeout: 30_000 },
+  );
+}
+
 async function writeStorageState(user: SeededUser): Promise<void> {
   await writeFile(
     user.storageStatePath,
@@ -117,55 +168,68 @@ async function writeStorageState(user: SeededUser): Promise<void> {
 export default async function globalSetup(): Promise<void> {
   const databaseUrl = requireDisposablePlaywrightDatabaseUrl();
   const db = new PrismaClient({ datasourceUrl: databaseUrl });
-  const users = [SEEDED_USERS.primary, SEEDED_USERS.secondary] as const;
+  const users = [
+    SEEDED_USERS.primary,
+    SEEDED_USERS.secondary,
+    SEEDED_USERS.coreLoop,
+  ] as const;
 
   try {
-    await db.$transaction(async (tx) => {
-      await tx.allowlistEntry.deleteMany({
-        where: { id: { in: users.map((user) => user.allowlistId) } },
-      });
-      await tx.user.deleteMany({
-        where: { id: { in: users.map((user) => user.id) } },
-      });
+    await db.$transaction(
+      async (tx) => {
+        await tx.allowlistEntry.deleteMany({
+          where: { id: { in: users.map((user) => user.allowlistId) } },
+        });
+        await tx.user.deleteMany({
+          where: { id: { in: users.map((user) => user.id) } },
+        });
+        await tx.lichessPuzzle.deleteMany({
+          where: { puzzleId: SEEDED_USERS.coreLoop.puzzleId },
+        });
 
-      for (const user of users) await seedUser(tx, user);
+        for (const user of users) await seedUser(tx, user);
+        await seedOnboardedState(tx, SEEDED_USERS.primary);
+        await seedOnboardedState(tx, SEEDED_USERS.secondary);
+        await seedCalibrationThroughService(tx, SEEDED_USERS.coreLoop.id);
 
-      await tx.program.create({
-        data: {
-          id: SEEDED_USERS.secondary.programId,
-          userId: SEEDED_USERS.secondary.id,
-          methodologyVersion: METHODOLOGY_VERSION,
-          generationInput: { source: "playwright-fixture" },
-          createdAt: FIXED_AT,
-        },
-      });
-      await tx.programItem.create({
-        data: {
-          id: SEEDED_USERS.secondary.programItemId,
-          programId: SEEDED_USERS.secondary.programId,
-          date: FIXED_AT,
-          orderIndex: 0,
-          activityId: "themed_tactics",
-          activityType: "puzzle_theme",
-          params: {
-            theme: "playwright-empty-theme",
-            track: "pattern",
-            targetRating: 1500,
-            count: 1,
-            estMinutes: 10,
+        await tx.program.create({
+          data: {
+            id: SEEDED_USERS.secondary.programId,
+            userId: SEEDED_USERS.secondary.id,
+            methodologyVersion: METHODOLOGY_VERSION,
+            generationInput: { source: "playwright-fixture" },
+            createdAt: FIXED_AT,
           },
-          dimensionsTargeted: ["calculation"],
-          rationaleKey: "playwright_fixture",
-          rationaleText: "Disposable browser authorization fixture.",
-          evidenceGrade: "D",
-          evidenceTier: 2,
-          citationKey: "playwright_fixture",
-          confidence: "insufficient",
-          soften: true,
-          createdAt: FIXED_AT,
-        },
-      });
-    });
+        });
+        await tx.programItem.create({
+          data: {
+            id: SEEDED_USERS.secondary.programItemId,
+            programId: SEEDED_USERS.secondary.programId,
+            date: FIXED_AT,
+            orderIndex: 0,
+            activityId: "themed_tactics",
+            activityType: "puzzle_theme",
+            params: {
+              theme: "playwright-empty-theme",
+              track: "pattern",
+              targetRating: 1500,
+              count: 1,
+              estMinutes: 10,
+            },
+            dimensionsTargeted: ["calculation"],
+            rationaleKey: "playwright_fixture",
+            rationaleText: "Disposable browser authorization fixture.",
+            evidenceGrade: "D",
+            evidenceTier: 2,
+            citationKey: "playwright_fixture",
+            confidence: "insufficient",
+            soften: true,
+            createdAt: FIXED_AT,
+          },
+        });
+      },
+      { timeout: 30_000 },
+    );
 
     await mkdir(AUTH_STATE_DIRECTORY, { recursive: true });
     await Promise.all(users.map(writeStorageState));

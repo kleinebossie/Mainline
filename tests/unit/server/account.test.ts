@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { fixedClock } from "@/lib/clock";
 import { CURRENT_DATA_USE_NOTICE } from "@/lib/research-consent";
+import { USER_DATA_EXPORT_COVERAGE } from "@/server/account-export-coverage";
 import {
   consentStatus,
   exportUserData,
@@ -165,6 +166,9 @@ describe("account privacy service", () => {
         "researchConsents",
       ]),
     );
+    for (const coverage of Object.values(USER_DATA_EXPORT_COVERAGE)) {
+      expect(exported).toHaveProperty(coverage.exportPath);
+    }
     expect(
       db.importedGame.findMany.mock.calls[0]?.[0].select.analysis.select,
     ).toHaveProperty("rawFeatures", true);
@@ -305,8 +309,9 @@ describe("account privacy service", () => {
       purgeAccountByToken(db as never, "opaque", fixedClock(1000)),
     ).resolves.toEqual({ alreadyPurged: false });
     expect(tx.jobRun.deleteMany.mock.calls[0]?.[0].where.OR).toEqual([
-      { key: { endsWith: "u1" } },
-      { key: { endsWith: "conn1" } },
+      { key: { endsWith: ":u1" } },
+      { key: { contains: ":u1:" } },
+      { key: { endsWith: ":conn1" } },
     ]);
     expect(tx.user.delete).toHaveBeenCalledWith({ where: { id: "u1" } });
     expect(tx.accountPurgeLedger.update).toHaveBeenCalledWith({
@@ -321,10 +326,10 @@ describe("account privacy service", () => {
   });
 
   it("recovers a crash after the User was already removed", async () => {
-    const update = vi.fn().mockResolvedValue({});
+    const updateMany = vi.fn().mockResolvedValue({ count: 1 });
     const tx = {
       user: { findUnique: vi.fn().mockResolvedValue(null) },
-      accountPurgeLedger: { update },
+      accountPurgeLedger: { updateMany },
     };
     const db = {
       accountPurgeLedger: {
@@ -335,8 +340,8 @@ describe("account privacy service", () => {
     await expect(
       purgeAccountByToken(db as never, "opaque", fixedClock(3000)),
     ).resolves.toEqual({ alreadyPurged: false });
-    expect(update).toHaveBeenCalledWith({
-      where: { token: "opaque" },
+    expect(updateMany).toHaveBeenCalledWith({
+      where: { token: "opaque", completedAt: null },
       data: { completedAt: new Date(3000) },
     });
   });
@@ -349,7 +354,9 @@ describe("account privacy service", () => {
     const rootDeleteMany = vi.fn().mockResolvedValue({ count: 1 });
     const tx = {
       user: { findUnique: vi.fn().mockResolvedValue(null) },
-      accountPurgeLedger: { update: vi.fn().mockResolvedValue({}) },
+      accountPurgeLedger: {
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      },
     };
     const db = {
       jobRun: {

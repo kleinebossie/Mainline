@@ -57,6 +57,26 @@ export async function findRecentRewardEvents(
   });
 }
 
+/** Latest unseen event of one configured type, independent of the recent-event display cap. */
+export async function findLatestUnseenRewardEvent(
+  db: Pick<PrismaClient, "rewardEvent">,
+  userId: string,
+  type: string,
+) {
+  return db.rewardEvent.findFirst({
+    where: { userId, type, seen: false },
+    orderBy: [{ occurredAt: "desc" }, { id: "desc" }],
+    select: {
+      id: true,
+      type: true,
+      copyKey: true,
+      payload: true,
+      occurredAt: true,
+      seen: true,
+    },
+  });
+}
+
 /** Mark reward events seen (the only mutation allowed on the append-only log). */
 export async function markRewardEventsSeen(
   db: Pick<PrismaClient, "rewardEvent">,

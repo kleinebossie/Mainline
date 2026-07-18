@@ -91,10 +91,10 @@ export function ConstraintsForm({
       />
     );
   }
-  // Key on the loaded row so the form initialises its state from saved values once.
+  // The query's initial loading state already gates this form. Keep the component mounted
+  // after a save so cache invalidation does not erase its success state and Continue action.
   return (
     <Form
-      key={current.data?.id ?? "new"}
       initial={current.data ?? EMPTY_CONSTRAINTS}
       ifThenRationale={ifThenRationale}
       continueHref={continueHref}

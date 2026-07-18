@@ -61,6 +61,65 @@ function EvidenceNote({
   );
 }
 
+function RecoveryNote({
+  event,
+  pending,
+  failed,
+  onClear,
+}: {
+  event: ProgressSummary["consistency"]["recoveryEvents"][number];
+  pending: boolean;
+  failed: boolean;
+  onClear: () => void;
+}) {
+  return (
+    <aside
+      aria-labelledby={`recovery-note-${event.id ?? "current"}`}
+      className="relative overflow-hidden rounded-lg border border-amber/45 bg-amber/10 p-4 shadow-sheet sm:p-5"
+    >
+      <span aria-hidden className="absolute inset-y-0 left-0 w-1 bg-amber" />
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="max-w-3xl pl-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <p
+              id={`recovery-note-${event.id ?? "current"}`}
+              className="font-mono text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-ink"
+            >
+              Return to the board
+            </p>
+            <span className="rounded-sm border border-ink/10 px-1.5 py-0.5 font-mono text-[0.65rem] uppercase text-ink">
+              Grade {event.evidenceGrade} / Tier {event.evidenceTier}
+            </span>
+          </div>
+          <p className="mt-2 font-serif text-sm leading-relaxed text-graphite">
+            {event.text}
+          </p>
+          <p className="mt-2 font-mono text-[0.68rem] text-graphite">
+            {event.citationSource ?? event.citationKey}
+          </p>
+          {failed && (
+            <p role="alert" className="mt-2 text-sm text-clay">
+              The note is still here. Try clearing it again.
+            </p>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={onClear}
+          disabled={pending || event.id === null}
+          className="inline-flex min-h-9 shrink-0 items-center justify-center rounded-sm border border-ink/15 bg-card px-3 font-mono text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-ink transition-colors hover:bg-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {pending
+            ? "Clearing note..."
+            : failed
+              ? "Try clearing again"
+              : "Clear note"}
+        </button>
+      </div>
+    </aside>
+  );
+}
+
 function StatTile({
   label,
   value,
@@ -365,6 +424,9 @@ function RatingSignal({
 
 export function ProgressDashboard() {
   const summary = trpc.progress.summary.useQuery();
+  const markSeen = trpc.engagement.markSeen.useMutation({
+    onSuccess: () => void summary.refetch(),
+  });
 
   if (summary.isLoading) {
     return (
@@ -394,6 +456,9 @@ export function ProgressDashboard() {
   }
 
   const data = summary.data;
+  const recoveryEvent = data.consistency.recoveryEvents.find(
+    (event) => !event.seen,
+  );
   const dueDetail =
     data.reviews.dueCount === 0
       ? "Review queue clear"
@@ -404,6 +469,19 @@ export function ProgressDashboard() {
   return (
     <div className="settle flex flex-col gap-6">
       <div className="flex flex-col gap-6">
+        {recoveryEvent && (
+          <RecoveryNote
+            event={recoveryEvent}
+            pending={markSeen.isPending}
+            failed={markSeen.isError}
+            onClear={() => {
+              if (recoveryEvent.id) {
+                markSeen.mutate({ ids: [recoveryEvent.id] });
+              }
+            }}
+          />
+        )}
+
         {/* Row 1: Consistency Grid & Dashboard Rationale */}
         <section className="grid grid-cols-1 md:grid-cols-12 gap-6">
           <div className="md:col-span-7 rounded-lg border bg-card p-5 shadow-sheet flex flex-col justify-between">

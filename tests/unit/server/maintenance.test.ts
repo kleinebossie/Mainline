@@ -39,10 +39,11 @@ describe("daily job queue", () => {
         findMany: vi.fn().mockResolvedValue([{ id: "u1" }, { id: "u2" }]),
       },
       platformConnection: {
-        findMany: vi.fn().mockResolvedValue([{ id: "c1" }]),
+        findMany: vi.fn().mockResolvedValue([{ id: "c1", userId: "u1" }]),
       },
       accountPurgeLedger: { findMany: vi.fn().mockResolvedValue([]) },
       jobRun: { createMany },
+      $transaction: (work: (tx: unknown) => unknown) => work(db),
     };
 
     await expect(
@@ -80,6 +81,7 @@ describe("daily job queue", () => {
         findMany: vi.fn().mockResolvedValue([{ token: "opaque" }]),
       },
       jobRun: { createMany },
+      $transaction: (work: (tx: unknown) => unknown) => work(db),
     };
 
     await expect(
@@ -102,7 +104,9 @@ describe("daily job queue", () => {
     );
     const tx = {
       user: { findUnique: vi.fn().mockResolvedValue(null) },
-      accountPurgeLedger: { update: vi.fn().mockResolvedValue({}) },
+      accountPurgeLedger: {
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      },
     };
     const findUnique = vi
       .fn()
@@ -110,6 +114,7 @@ describe("daily job queue", () => {
         kind: "account_purge",
         key: "account_purge:opaque",
         status: "queued",
+        attempt: 0,
         lockedUntil: null,
       })
       .mockResolvedValueOnce({
@@ -139,11 +144,51 @@ describe("daily job queue", () => {
         kind: true,
         key: true,
         status: true,
+        attempt: true,
         lockedUntil: true,
       },
     });
     expect(db.jobRun.deleteMany).toHaveBeenCalledWith({
       where: { key: "account_purge:opaque" },
+    });
+  });
+
+  it("removes an orphaned retryable import job after disconnect", async () => {
+    const deleteMany = vi.fn().mockResolvedValue({ count: 1 });
+    const db = {
+      jobRun: {
+        findUnique: vi.fn().mockResolvedValue({
+          kind: "import_sync",
+          key: "import_sync:daily:2026-07-18:gone-connection",
+          status: "error",
+          attempt: 3,
+          lockedUntil: null,
+        }),
+        deleteMany,
+      },
+      platformConnection: { findUnique: vi.fn().mockResolvedValue(null) },
+    };
+
+    await expect(
+      retryFailedJob(db as never, "orphan", fixedClock(5_000)),
+    ).resolves.toEqual({
+      state: "completed",
+      kind: "import_sync",
+      imported: 0,
+    });
+    expect(deleteMany).toHaveBeenCalledWith({
+      where: {
+        id: "orphan",
+        key: "import_sync:daily:2026-07-18:gone-connection",
+        attempt: 3,
+        OR: [
+          { status: { in: ["queued", "error"] } },
+          {
+            status: "running",
+            lockedUntil: { lte: new Date(5_000) },
+          },
+        ],
+      },
     });
   });
 });

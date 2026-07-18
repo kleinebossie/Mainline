@@ -38,13 +38,26 @@ export const SEEDED_USERS = {
     programItemId: "playwright-program-item-secondary",
     storageStatePath: resolve(AUTH_STATE_DIRECTORY, "secondary.json"),
   },
+  coreLoop: {
+    id: "playwright-user-core-loop",
+    name: "Playwright Core Loop",
+    email: "core-loop@mainline.playwright.invalid",
+    sessionId: "playwright-session-core-loop",
+    sessionToken: "playwright-database-session-core-loop",
+    allowlistId: "playwright-beta-grant-core-loop",
+    connectionId: "playwright-connection-core-loop",
+    puzzleId: "playwright-core-loop-puzzle",
+    storageStatePath: resolve(AUTH_STATE_DIRECTORY, "core-loop.json"),
+  },
 } as const;
 
 export type SeededUser =
   | typeof SEEDED_USERS.primary
-  | typeof SEEDED_USERS.secondary;
+  | typeof SEEDED_USERS.secondary
+  | typeof SEEDED_USERS.coreLoop;
 export type PrimarySeededUser = typeof SEEDED_USERS.primary;
 export type SecondarySeededUser = typeof SEEDED_USERS.secondary;
+export type CoreLoopSeededUser = typeof SEEDED_USERS.coreLoop;
 
 /**
  * E2E setup performs destructive fixture replacement. Keep it limited to an

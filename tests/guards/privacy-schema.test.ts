@@ -1,5 +1,11 @@
 import { readFileSync } from "node:fs";
+import { Prisma } from "@prisma/client";
 import { describe, expect, it } from "vitest";
+
+import {
+  INDIRECT_USER_DATA_EXPORT_COVERAGE,
+  USER_DATA_EXPORT_COVERAGE,
+} from "@/server/account-export-coverage";
 
 const SCHEMA = readFileSync("prisma/schema.prisma", "utf8");
 const INVITE_CASCADE_MIGRATION = readFileSync(
@@ -34,6 +40,76 @@ const P9_MIGRATION = readFileSync(
 const P9_RESEARCH_SERVICE = readFileSync("src/server/research.ts", "utf8");
 
 describe("privacy schema guards", () => {
+  it("derives complete user-export coverage from Prisma's generated model", () => {
+    const directUserRelations = Prisma.dmmf.datamodel.models
+      .flatMap((model) =>
+        model.fields.some(
+          (field) =>
+            field.kind === "object" &&
+            field.type === "User" &&
+            (field.relationFromFields?.length ?? 0) > 0,
+        )
+          ? [model.name]
+          : [],
+      )
+      .sort();
+
+    expect(Object.keys(USER_DATA_EXPORT_COVERAGE).sort()).toEqual(
+      directUserRelations,
+    );
+
+    for (const modelName of directUserRelations) {
+      const model = Prisma.dmmf.datamodel.models.find(
+        (candidate) => candidate.name === modelName,
+      );
+      const userRelation = model?.fields.find(
+        (field) =>
+          field.kind === "object" &&
+          field.type === "User" &&
+          (field.relationFromFields?.length ?? 0) > 0,
+      );
+      expect(userRelation?.relationOnDelete, modelName).toBe("Cascade");
+    }
+
+    const ownedModels = new Set(directUserRelations);
+    let previousSize = -1;
+    while (ownedModels.size !== previousSize) {
+      previousSize = ownedModels.size;
+      for (const model of Prisma.dmmf.datamodel.models) {
+        if (
+          !ownedModels.has(model.name) &&
+          model.fields.some(
+            (field) =>
+              field.kind === "object" &&
+              ownedModels.has(field.type) &&
+              (field.relationFromFields?.length ?? 0) > 0,
+          )
+        ) {
+          ownedModels.add(model.name);
+        }
+      }
+    }
+    const indirectUserRelations = [...ownedModels]
+      .filter((model) => !directUserRelations.includes(model))
+      .sort();
+    expect(Object.keys(INDIRECT_USER_DATA_EXPORT_COVERAGE).sort()).toEqual(
+      indirectUserRelations,
+    );
+    for (const [modelName, coverage] of Object.entries(
+      INDIRECT_USER_DATA_EXPORT_COVERAGE,
+    )) {
+      const parentRelation = Prisma.dmmf.datamodel.models
+        .find((model) => model.name === modelName)
+        ?.fields.find(
+          (field) =>
+            field.kind === "object" &&
+            field.type === coverage.parentModel &&
+            (field.relationFromFields?.length ?? 0) > 0,
+        );
+      expect(parentRelation?.relationOnDelete, modelName).toBe("Cascade");
+    }
+  });
+
   it("deletes claimed invitations with an erased account", () => {
     expect(SCHEMA).toMatch(
       /usedByUser\s+User\?\s+@relation\([^\n]*onDelete:\s*Cascade\)/,

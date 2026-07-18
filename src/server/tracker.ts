@@ -51,6 +51,7 @@ import { captureOperationalEvent } from "@/server/observability";
 import { lockUserProgramMutation } from "@/db/user-mutation-lock";
 import { expectedError } from "@/server/errors";
 import { playingRatingWithDeviationFromSnapshot } from "@/lib/rating-snapshot";
+import { assertActiveJobClaim, type JobClaim } from "@/server/jobs";
 
 type TrackerDb = Pick<
   PrismaClient,
@@ -452,6 +453,7 @@ export async function runDailyAdaptation(
   db: Db,
   userId: string,
   clock: Clock = systemClock,
+  claim?: JobClaim,
 ): Promise<{ decisions: number }> {
   const cfg = loadMethodology();
   const now = clock.now();
@@ -459,36 +461,46 @@ export async function runDailyAdaptation(
   dayStart.setUTCHours(0, 0, 0, 0);
   const dayEnd = new Date(dayStart.getTime() + DAY_MS);
 
-  const alreadyRun = await db.adaptationLog.findFirst({
-    where: {
-      userId,
-      trigger: "daily_cron",
-      runAt: { gte: dayStart, lt: dayEnd },
-    },
-    select: { id: true },
-  });
-  if (alreadyRun) return { decisions: 0 };
+  const transactionResult = await db.$transaction(async (tx) => {
+    await lockUserProgramMutation(tx, userId);
+    if (claim) await assertActiveJobClaim(tx, claim);
+    const alreadyRun = await tx.adaptationLog.findFirst({
+      where: {
+        userId,
+        trigger: "daily_cron",
+        runAt: { gte: dayStart, lt: dayEnd },
+      },
+      select: { id: true },
+    });
+    if (alreadyRun) return { decisions: 0, persisted: false };
 
-  const result = runAdaptation({
-    events: [],
-    skillState: await findSkillStates(db, userId),
-    scheduleState: [],
-    glickoHistory: await loadGlickoHistory(db, userId),
-    trigger: "daily_cron",
-    clock,
-    config: cfg,
+    const result = runAdaptation({
+      events: [],
+      skillState: await findSkillStates(tx, userId),
+      scheduleState: [],
+      glickoHistory: await loadGlickoHistory(tx, userId),
+      trigger: "daily_cron",
+      clock,
+      config: cfg,
+    });
+    await persistAdaptation(
+      tx,
+      userId,
+      result,
+      { dailyRun: dayStart.toISOString() } as Prisma.InputJsonValue,
+      cfg.version,
+    );
+    return {
+      decisions: result.adaptationLog.decisions.length,
+      persisted: true,
+    };
   });
-  await persistAdaptation(
-    db,
-    userId,
-    result,
-    { dailyRun: dayStart.toISOString() } as Prisma.InputJsonValue,
-    cfg.version,
-  );
-  captureOperationalEvent({
-    operation: "adaptation",
-    status: "success",
-    count: result.adaptationLog.decisions.length,
-  });
-  return { decisions: result.adaptationLog.decisions.length };
+  if (transactionResult.persisted) {
+    captureOperationalEvent({
+      operation: "adaptation",
+      status: "success",
+      count: transactionResult.decisions,
+    });
+  }
+  return { decisions: transactionResult.decisions };
 }

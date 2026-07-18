@@ -13,9 +13,15 @@ import {
   ApiCallBudgetExceededError,
   assertApiCallBudget,
 } from "@/server/api-budget";
-import { runJob } from "@/server/jobs";
+import {
+  assertActiveJobClaim,
+  runJob,
+  type JobClaim,
+  type JobOwner,
+} from "@/server/jobs";
 import { captureOperationalEvent } from "@/server/observability";
 import { systemClock, type Clock } from "@/lib/clock";
+import { lockUserProgramMutation } from "@/db/user-mutation-lock";
 
 type Db = PrismaClient;
 
@@ -35,10 +41,11 @@ export async function withJobRun<T>(
   db: Db,
   kind: string,
   key: string,
-  fn: () => Promise<T>,
+  fn: (claim: JobClaim) => Promise<T>,
   clock: Clock = systemClock,
+  owner?: JobOwner,
 ): Promise<T | undefined> {
-  const result = await runJob(db, { kind, key, run: fn, clock });
+  const result = await runJob(db, { kind, key, run: fn, clock, owner });
   return result.state === "completed" ? result.value : undefined;
 }
 
@@ -49,6 +56,80 @@ interface ConnectionRow {
   externalUsername: string;
   accessToken: string | null;
   lastSyncedAt: Date | null;
+  updatedAt?: Date;
+}
+
+type VersionedConnectionRow = ConnectionRow & { updatedAt: Date };
+
+/** Mark a failed import only while its claim and source connection version still own the write. */
+export async function markConnectionImportError(
+  db: Db,
+  conn: VersionedConnectionRow,
+  claim: JobClaim,
+  clock: Clock = systemClock,
+): Promise<boolean> {
+  return db.$transaction(async (tx) => {
+    await lockUserProgramMutation(tx, conn.userId);
+    await assertActiveJobClaim(tx, claim);
+    const updated = await tx.platformConnection.updateMany({
+      where: {
+        id: conn.id,
+        userId: conn.userId,
+        updatedAt: conn.updatedAt,
+      },
+      data: {
+        status: "error",
+        updatedAt: new Date(
+          Math.max(clock.now(), conn.updatedAt.getTime() + 1),
+        ),
+      },
+    });
+    return updated.count === 1;
+  });
+}
+
+type ClaimedConnectionImporter = (
+  db: Db,
+  conn: VersionedConnectionRow,
+  clock: Clock,
+  claim: JobClaim,
+) => Promise<ConnectionImportResult>;
+
+/** Reload the owned connection after claim acquisition, then run one fenced import. */
+export async function importClaimedConnection(
+  db: Db,
+  userId: string,
+  connectionId: string,
+  claim: JobClaim,
+  clock: Clock = systemClock,
+  importer: ClaimedConnectionImporter = importConnection,
+): Promise<ConnectionImportResult | null> {
+  const conn = await db.$transaction(async (tx) => {
+    await lockUserProgramMutation(tx, userId);
+    await assertActiveJobClaim(tx, claim);
+    const [user, current] = await Promise.all([
+      tx.user.findFirst({
+        where: { id: userId, deletedAt: null },
+        select: { id: true },
+      }),
+      tx.platformConnection.findFirst({
+        where: { id: connectionId, userId },
+      }),
+    ]);
+    if (user && current) return current;
+    await tx.jobRun.deleteMany({
+      where: { key: claim.key, attempt: claim.attempt, status: "running" },
+    });
+    return null;
+  });
+  if (!conn) return null;
+
+  try {
+    return await importer(db, conn, clock, claim);
+  } catch (error) {
+    await markConnectionImportError(db, conn, claim, clock);
+    throw error;
+  }
 }
 
 /** Capture a snapshot + import games for one connection. */
@@ -56,6 +137,7 @@ export async function importConnection(
   db: Db,
   conn: ConnectionRow,
   clock: Clock = systemClock,
+  claim?: JobClaim,
 ): Promise<ConnectionImportResult> {
   // Advance the incremental cursor only to the point before any remote reads.
   // A game that becomes visible while this import is running must remain eligible
@@ -71,53 +153,87 @@ export async function importConnection(
       assertApiCallBudget(db, conn.userId, platform, new Date(clock.now())),
   };
 
-  // 1) Point-in-time ratings (Measurement seam time series).
+  // Fetch remote data before opening a database transaction. The transaction below
+  // fences local effects against a reclaimed attempt or a concurrent manual import.
   const snapshot = await adapter.fetchProfile(ref);
-  await db.chessProfileSnapshot.create({
-    data: {
-      userId: conn.userId,
-      platform,
-      capturedAt: new Date(snapshot.capturedAt),
-      ratings: snapshot.ratings as Prisma.InputJsonValue,
-      totalGames: snapshot.totalGames,
-      raw: snapshot.raw as Prisma.InputJsonValue,
-    },
-  });
-
-  // 2) Games — incremental from lastSyncedAt; idempotent via (userId, dedupeKey).
   const since = conn.lastSyncedAt ? conn.lastSyncedAt.getTime() : undefined;
   const games = dedupeImportedGames(await adapter.fetchGames(ref, since));
-  const created = await db.importedGame.createMany({
-    data: games.map((g) => ({
-      userId: conn.userId,
-      platform: g.platform,
-      externalGameId: g.externalGameId,
-      dedupeKey: g.dedupeKey,
-      pgn: g.pgn,
-      playedAt: new Date(g.playedAt),
-      timeControl: g.timeControl,
-      color: g.color,
-      result: g.result,
-      userRatingAtGame: g.userRatingAtGame,
-      opponentRating: g.opponentRating,
-      eco: g.eco,
-      opening: g.opening,
-      source: g.source,
-    })),
-    skipDuplicates: true, // re-import = no dupes (M2 DoD)
-  });
+  return db.$transaction(async (tx) => {
+    await lockUserProgramMutation(tx, conn.userId);
+    if (claim) await assertActiveJobClaim(tx, claim);
+    const current = await tx.platformConnection.findUnique({
+      where: { id: conn.id },
+      select: { userId: true, lastSyncedAt: true, updatedAt: true },
+    });
+    const expectedWatermark = conn.lastSyncedAt?.getTime() ?? null;
+    const currentWatermark = current?.lastSyncedAt?.getTime() ?? null;
+    const expectedVersion = conn.updatedAt?.getTime();
+    if (
+      !current ||
+      current.userId !== conn.userId ||
+      currentWatermark !== expectedWatermark ||
+      (expectedVersion !== undefined &&
+        current.updatedAt.getTime() !== expectedVersion)
+    ) {
+      return {
+        platform,
+        snapshotCaptured: false,
+        fetched: games.length,
+        imported: 0,
+      };
+    }
 
-  await db.platformConnection.update({
-    where: { id: conn.id },
-    data: { lastSyncedAt: syncStartedAt, status: "active" },
-  });
+    // Point-in-time ratings (Measurement seam time series).
+    await tx.chessProfileSnapshot.create({
+      data: {
+        userId: conn.userId,
+        platform,
+        capturedAt: new Date(snapshot.capturedAt),
+        ratings: snapshot.ratings as Prisma.InputJsonValue,
+        totalGames: snapshot.totalGames,
+        raw: snapshot.raw as Prisma.InputJsonValue,
+      },
+    });
 
-  return {
-    platform,
-    snapshotCaptured: true,
-    fetched: games.length,
-    imported: created.count,
-  };
+    // Games are incremental from lastSyncedAt and idempotent by (userId, dedupeKey).
+    const created = await tx.importedGame.createMany({
+      data: games.map((g) => ({
+        userId: conn.userId,
+        platform: g.platform,
+        externalGameId: g.externalGameId,
+        dedupeKey: g.dedupeKey,
+        pgn: g.pgn,
+        playedAt: new Date(g.playedAt),
+        timeControl: g.timeControl,
+        color: g.color,
+        result: g.result,
+        userRatingAtGame: g.userRatingAtGame,
+        opponentRating: g.opponentRating,
+        eco: g.eco,
+        opening: g.opening,
+        source: g.source,
+      })),
+      skipDuplicates: true,
+    });
+
+    await tx.platformConnection.update({
+      where: { id: conn.id },
+      data: {
+        lastSyncedAt: syncStartedAt,
+        status: "active",
+        updatedAt: new Date(
+          Math.max(clock.now(), current.updatedAt.getTime() + 1),
+        ),
+      },
+    });
+
+    return {
+      platform,
+      snapshotCaptured: true,
+      fetched: games.length,
+      imported: created.count,
+    };
+  });
 }
 
 export interface UserImportSummary {
@@ -151,8 +267,9 @@ export async function runImportForUser(
         db,
         "import_sync",
         key,
-        () => importConnection(db, conn, clock),
+        (claim) => importClaimedConnection(db, userId, conn.id, claim, clock),
         clock,
+        { userId, connectionId: conn.id },
       );
       if (r) results.push(r);
       if (r) {
@@ -165,10 +282,8 @@ export async function runImportForUser(
       }
     } catch (err) {
       const platform = conn.platform as Platform;
-      // Surface 429/403/etc. as data; mark the connection so the UI can show it.
-      await db.platformConnection
-        .update({ where: { id: conn.id }, data: { status: "error" } })
-        .catch(() => undefined);
+      // Surface 429/403/etc. as safe data. The claim-fenced body owns any
+      // connection status change, so an older caller cannot overwrite success.
       errors.push({
         platform,
         code:

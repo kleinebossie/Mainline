@@ -58,7 +58,7 @@ authenticated P11 journey works.
 | Missed day                                    | High     | Local and CI                | Partial         | Methodology engagement and server engagement tests cover a planned inactive day and no-op when no work was planned.                                              | Add deterministic service acceptance for the persisted missed-day transition and its recovery effect.                                                                                                                                                             |
 | Disconnected platform                         | High     | Local and CI                | Partial         | Onboarding service tests cover error and revoked connection states.                                                                                              | Exercise the authenticated user-visible path and prove no cross-user or invalid import side effect.                                                                                                                                                               |
 | Insufficient data                             | High     | Local and CI                | Partial         | Methodology tests cover sample gates and honest insufficient-data results.                                                                                       | Exercise the authenticated user-visible state and assert the persisted decision input or focus behavior.                                                                                                                                                          |
-| Unavailable training block                    | High     | Local and CI                | Partial         | Component and rendered-state tests cover the recovery UI.                                                                                                        | Exercise the real authenticated unavailable block and assert the recovery mutation and persisted replacement behavior.                                                                                                                                            |
+| Unavailable training block                    | High     | Local and CI                | Partial         | Component and rendered-state tests cover the recovery UI.                                                                                                        | Exercise the real authenticated unavailable block and assert the persisted recovery behavior with no learning credit.                                                                                                                                             |
 | Manual PGN                                    | High     | Local, CI, and live         | Partial         | Parser and service tests cover validation, orientation, unknown metadata, duplicates, bounds, and serializable retry.                                            | Use authenticated browser import, assert ImportedGame ownership and idempotency, then run a designated live client-analysis smoke.                                                                                                                                |
 | Repeated request and idempotency              | Critical | Local and CI                | Partial         | Tracker, feedback, program replan, manual import, and account deletion service tests cover focused retry paths.                                                  | Add end-to-end or database-backed acceptance for the repeated P11 requests exercised by the browser journey.                                                                                                                                                      |
 | User data export                              | Critical | Local and CI                | Partial         | `tests/unit/server/account.test.ts` asserts an explicit export projection and credential exclusions with mocked model reads.                                     | Compare every current user-owned Prisma relation, run an isolated database-backed export, assert ownership and exclusions, and keep live download as a designated smoke.                                                                                          |
@@ -77,7 +77,7 @@ authenticated P11 journey works.
 | -------------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1. Baseline and acceptance ledger      | Pass    | Baseline commands above ran on 2026-07-18; this ledger records all known P11 and Stage A gaps without treating unexecuted checks as passing. |
 | 2. Authenticated Playwright foundation | Pass    | See the executed Job 2 evidence below.                                                                                                       |
-| 3. Normal core-loop acceptance         | Missing | Component service evidence exists, but no authenticated connected journey exists.                                                            |
+| 3. Normal core-loop acceptance         | Pass    | See the executed Job 3 evidence below.                                                                                                       |
 | 4. P11 edge journeys                   | Missing | Focused evidence exists, but the required acceptance set is incomplete.                                                                      |
 | 5. Privacy and lifecycle acceptance    | Missing | Mocked service and schema-guard evidence exists, but isolated database lifecycle evidence is incomplete.                                     |
 | 6. Failed-job recovery acceptance      | Missing | Focused unit evidence exists, but no complete deterministic recovery drill exists.                                                           |
@@ -91,6 +91,22 @@ Job 2 evidence, executed locally on 2026-07-18:
   cross-user browser isolation test.
 - The database-name safety rejection was exercised. CI now provisions PostgreSQL and migrates the
   dedicated `PLAYWRIGHT_DATABASE_URL`. Auth.js storage states stay under ignored `test-results/`.
+
+Job 3 evidence, executed locally on 2026-07-18:
+
+- The serial authenticated core-loop Playwright journey passed against the disposable PostgreSQL
+  database with a dedicated user whose assessment was completed through the calibration service.
+- The browser persisted onboarding constraints, rendered the honest no-analysed-games reveal,
+  generated a program, solved a dynamically discovered generated puzzle, completed the block,
+  changed the time budget, explicitly replanned, opened same-day version history, and submitted
+  contextual training feedback.
+- Direct PostgreSQL assertions proved user ownership and persistence for the constraint versions,
+  Program, ProgramItem, RecommendationExposure, puzzle and completion ActivityEvents,
+  AdaptationLog, SkillState and snapshot, ProgramRevision, TrainingFeedback, and preference state.
+  The original generation input, graded item rationale, outcome payload, and recommendation
+  exposure remained unchanged under deep comparison after replan and feedback.
+- `npx playwright test tests/e2e/authenticated/core-loop.spec.ts --project=authenticated --workers=1`
+  passed. Typecheck, focused lint, and the production build also passed.
 
 ## Remaining owner evidence
 

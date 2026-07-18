@@ -19,6 +19,7 @@ import {
 } from "@/server/connections";
 import { expectedError } from "@/server/errors";
 import { protectedProcedure, router } from "@/server/trpc";
+import { lockUserProgramMutation } from "@/db/user-mutation-lock";
 
 function profileLookupError(
   error: unknown,
@@ -160,7 +161,17 @@ export const connectionsRouter = router({
           /* local disconnect proceeds regardless (§6.2) */
         });
       }
-      await ctx.prisma.platformConnection.delete({ where: { id: conn.id } });
+      await ctx.prisma.$transaction(async (tx) => {
+        await lockUserProgramMutation(tx, ctx.userId);
+        // Import jobs are not relational rows, so erase their correlatable
+        // connection id before the connection itself becomes undiscoverable.
+        await tx.jobRun.deleteMany({
+          where: { key: { endsWith: `:${conn.id}` } },
+        });
+        await tx.platformConnection.deleteMany({
+          where: { id: conn.id, userId: ctx.userId },
+        });
+      });
       return { id: conn.id };
     }),
 });

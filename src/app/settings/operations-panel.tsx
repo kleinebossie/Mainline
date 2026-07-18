@@ -76,10 +76,13 @@ export function OperationsPanel() {
               <p className="text-graphite mt-1 font-mono text-[0.7rem]">
                 {job.status} · attempt {job.attempt} ·{" "}
                 {job.startedAt.toLocaleString()}
+                {job.lockedUntil
+                  ? ` · ${job.retryable && job.status === "running" ? "stale since" : "lease until"} ${job.lockedUntil.toLocaleString()}`
+                  : ""}
                 {job.errorCode ? ` · ${job.errorCode}` : ""}
               </p>
             </div>
-            {(job.status === "error" || job.status === "queued") && (
+            {job.retryable && (
               <button
                 className="rounded-md border px-3 py-1.5 font-mono text-xs disabled:opacity-50"
                 disabled={retry.isPending}

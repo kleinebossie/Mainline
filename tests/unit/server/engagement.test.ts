@@ -89,6 +89,7 @@ function fakeDb(opts: {
         };
       },
     },
+    $transaction: async (work: (tx: unknown) => unknown) => work(db),
   } as unknown as PrismaClient;
   return { db, rec };
 }

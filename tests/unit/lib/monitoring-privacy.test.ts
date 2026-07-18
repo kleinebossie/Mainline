@@ -99,6 +99,35 @@ describe("monitoring privacy", () => {
     expect(result.extra).toBeUndefined();
   });
 
+  it("retains only the real account purge job kind", () => {
+    const accountPurge = scrubMonitoringEvent({
+      type: undefined,
+      tags: {
+        operation: "job",
+        status: "error",
+        job_kind: "account_purge",
+      },
+    });
+    const obsoleteAlias = scrubMonitoringEvent({
+      type: undefined,
+      tags: {
+        operation: "job",
+        status: "error",
+        job_kind: "deletion",
+      },
+    });
+
+    expect(accountPurge.tags).toEqual({
+      operation: "job",
+      status: "error",
+      job_kind: "account_purge",
+    });
+    expect(obsoleteAlias.tags).toEqual({
+      operation: "job",
+      status: "error",
+    });
+  });
+
   it("drops console breadcrumbs and strips network breadcrumb details", () => {
     expect(
       scrubMonitoringBreadcrumb({ category: "console", message: "token" }),

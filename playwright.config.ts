@@ -24,6 +24,9 @@ export default defineConfig({
     {
       name: "authenticated",
       testMatch: "**/authenticated/**/*.spec.ts",
+      // Authenticated acceptance specs share one disposable database. A single
+      // worker keeps destructive lifecycle and recovery drills isolated by file.
+      workers: 1,
       use: { storageState: SEEDED_USERS.primary.storageStatePath },
     },
   ],

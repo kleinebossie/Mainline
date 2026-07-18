@@ -326,6 +326,9 @@ export async function getProgressSummary(
     consistency: {
       streak: engagement.streak,
       grid: engagement.grid,
+      recoveryEvents: engagement.latestUnseenRecovery
+        ? [engagement.latestUnseenRecovery]
+        : [],
     },
     work: {
       windowDays: workWindowDays,

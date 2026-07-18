@@ -53,7 +53,25 @@ function fakeDb() {
         activityEvents.filter((event) => event.type !== "skip").length,
     },
     notificationPref: { findUnique: async () => null },
-    rewardEvent: { findMany: async () => [] },
+    rewardEvent: {
+      findMany: async () =>
+        Array.from({ length: 8 }, (_, index) => ({
+          id: `streak-${index}`,
+          type: "streak_tick",
+          copyKey: "streak_tick",
+          payload: { streakDay: 1, streak: 1 },
+          occurredAt: new Date(T - index),
+          seen: false,
+        })),
+      findFirst: async () => ({
+        id: "recovery-1",
+        type: "recovery_prompt",
+        copyKey: "recovery_prompt",
+        payload: {},
+        occurredAt: new Date(T - DAY_MS),
+        seen: false,
+      }),
+    },
     programItem: {
       count: async ({ where }: { where: { status: string } }) =>
         where.status === "done" ? 2 : 1,
@@ -111,6 +129,16 @@ describe("getProgressSummary", () => {
     expect(summary.evidence.progressSurface.evidenceGrade).toBe("A");
     expect(summary.evidence.progressSurface.citationKey).toBe("deci1999");
     expect(summary.evidence.ratingNoise.citationKey).toBe("glickman2012");
+    expect(summary.consistency.recoveryEvents).toMatchObject([
+      {
+        id: "recovery-1",
+        type: "recovery_prompt",
+        evidenceGrade: "B",
+        evidenceTier: 2,
+        citationKey: "lally2010",
+        seen: false,
+      },
+    ]);
   });
 
   it("surfaces rating as uncertainty ranges, not a raw headline number", async () => {

@@ -24,15 +24,19 @@ import {
   appendRewardEvents,
   countCompletedActivities,
   findActiveDayEpochs,
+  findLatestUnseenRewardEvent,
   findRecentRewardEvents,
   getNotificationPref,
   upsertNotificationPref,
 } from "@/db/engagement";
+import { lockUserProgramMutation } from "@/db/user-mutation-lock";
+import { assertActiveJobClaim, type JobClaim } from "@/server/jobs";
 
 type Db = Pick<
   PrismaClient,
   "activityEvent" | "rewardEvent" | "notificationPref" | "programItem"
 >;
+type TransactionalDb = Db & Pick<PrismaClient, "$transaction">;
 
 // Display bound only; streak calculations still use the full methodology window.
 const MAX_GRID_DAYS = 91;
@@ -174,60 +178,65 @@ export async function recordEngagementForCompletion(
  * provides concurrency control; the existing-event check also makes a post-write retry safe.
  */
 export async function recordEngagementForMissedDay(
-  db: Db,
+  db: TransactionalDb,
   userId: string,
   missedDayStart: number,
+  claim?: JobClaim,
 ): Promise<{ recorded: boolean }> {
   const missedStart = new Date(missedDayStart);
   const missedEnd = new Date(missedDayStart + DAY_MS);
-  const alreadyRecorded = await db.rewardEvent.findFirst({
-    where: {
+  return db.$transaction(async (tx) => {
+    await lockUserProgramMutation(tx, userId);
+    if (claim) await assertActiveJobClaim(tx, claim);
+    const alreadyRecorded = await tx.rewardEvent.findFirst({
+      where: {
+        userId,
+        type: "recovery_prompt",
+        occurredAt: { gte: missedStart, lt: missedEnd },
+      },
+      select: { id: true },
+    });
+    if (alreadyRecorded) return { recorded: false };
+
+    const planned = await tx.programItem.count({
+      where: {
+        program: { userId },
+        date: { gte: missedStart, lt: missedEnd },
+      },
+    });
+    if (planned === 0) return { recorded: false };
+
+    const cfg = loadMethodology();
+    const active = await activeDaySet(
+      tx,
       userId,
-      type: "recovery_prompt",
-      occurredAt: { gte: missedStart, lt: missedEnd },
-    },
-    select: { id: true },
+      missedDayStart + DAY_MS - 1,
+      cfg.engagement.consistencyWindowDays.value,
+    );
+    const missedDay = dayIndexOf(missedDayStart);
+    if (active.has(missedDay)) return { recorded: false };
+
+    const drafts = onStateChange(
+      {
+        activityCompleted: false,
+        activeDayStreak: consistencyStreak(active, missedDay - 1),
+        completedCount: await countCompletedActivities(tx, userId),
+        dayMissed: true,
+      },
+      cfg,
+    );
+    await appendRewardEvents(
+      tx,
+      drafts.map((draft) => ({
+        userId,
+        type: draft.type,
+        copyKey: draft.copyKey,
+        occurredAt: missedStart,
+        payload: draft.payload as Prisma.InputJsonValue,
+      })),
+    );
+    return { recorded: drafts.length > 0 };
   });
-  if (alreadyRecorded) return { recorded: false };
-
-  const planned = await db.programItem.count({
-    where: {
-      program: { userId },
-      date: { gte: missedStart, lt: missedEnd },
-    },
-  });
-  if (planned === 0) return { recorded: false };
-
-  const cfg = loadMethodology();
-  const active = await activeDaySet(
-    db,
-    userId,
-    missedDayStart + DAY_MS - 1,
-    cfg.engagement.consistencyWindowDays.value,
-  );
-  const missedDay = dayIndexOf(missedDayStart);
-  if (active.has(missedDay)) return { recorded: false };
-
-  const drafts = onStateChange(
-    {
-      activityCompleted: false,
-      activeDayStreak: consistencyStreak(active, missedDay - 1),
-      completedCount: await countCompletedActivities(db, userId),
-      dayMissed: true,
-    },
-    cfg,
-  );
-  await appendRewardEvents(
-    db,
-    drafts.map((draft) => ({
-      userId,
-      type: draft.type,
-      copyKey: draft.copyKey,
-      occurredAt: missedStart,
-      payload: draft.payload as Prisma.InputJsonValue,
-    })),
-  );
-  return { recorded: drafts.length > 0 };
 }
 
 export interface EngagementSummary {
@@ -247,6 +256,7 @@ export interface EngagementSummary {
     soften: boolean;
   };
   recentEvents: RewardEventView[];
+  latestUnseenRecovery: RewardEventView | null;
   notifications: {
     enabled: boolean;
     channel: string;
@@ -281,8 +291,14 @@ export async function getEngagementSummary(
   }));
 
   const ledger = ledgerMap(cfg);
-  const recent = await findRecentRewardEvents(db, userId, 8);
+  const [recent, latestUnseenRecoveryRow] = await Promise.all([
+    findRecentRewardEvents(db, userId, 8),
+    findLatestUnseenRewardEvent(db, userId, "recovery_prompt"),
+  ]);
   const recentEvents = recent.map((r) => toRewardView(r, cfg, ledger));
+  const latestUnseenRecovery = latestUnseenRecoveryRow
+    ? toRewardView(latestUnseenRecoveryRow, cfg, ledger)
+    : null;
 
   const pref = await getNotificationPref(db, userId);
   const caption = rationaleFor("consistency_grid", cfg);
@@ -304,6 +320,7 @@ export async function getEngagementSummary(
       soften: caption.soften,
     },
     recentEvents,
+    latestUnseenRecovery,
     notifications: {
       enabled: pref?.enabled ?? false,
       channel: pref?.channel ?? "none",

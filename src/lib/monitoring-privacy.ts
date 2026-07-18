@@ -15,7 +15,7 @@ const SAFE_JOB_KINDS = new Set([
   "daily_adaptation",
   "day_missed",
   "import_sync",
-  "deletion",
+  "account_purge",
 ]);
 const SAFE_RUNTIMES = new Set(["browser", "edge", "node", "nodejs"]);
 const SAFE_ERROR_TYPES = new Set([

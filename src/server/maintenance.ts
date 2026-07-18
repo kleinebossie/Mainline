@@ -2,10 +2,11 @@ import type { PrismaClient } from "@prisma/client";
 
 import { DAY_MS, systemClock, type Clock } from "@/lib/clock";
 import { recordEngagementForMissedDay } from "@/server/engagement";
-import { importConnection } from "@/server/import";
+import { importClaimedConnection } from "@/server/import";
 import { runJob } from "@/server/jobs";
 import { ACCOUNT_PURGE_JOB_KIND, runAccountPurge } from "@/server/account";
 import { runDailyAdaptation } from "@/server/tracker";
+import { lockUserProgramMutation } from "@/db/user-mutation-lock";
 
 export interface DailyQueueSummary {
   users: number;
@@ -22,9 +23,16 @@ export interface MaintenanceSummary {
   errors: number;
 }
 
+export const RETRYABLE_JOB_KINDS = [
+  ACCOUNT_PURGE_JOB_KIND,
+  "daily_adaptation",
+  "day_missed",
+  "import_sync",
+] as const;
+
 export interface RetryJobResult {
   state: "completed" | "skipped";
-  kind?: "daily_adaptation" | "day_missed" | "import_sync" | "account_purge";
+  kind?: (typeof RETRYABLE_JOB_KINDS)[number];
   imported?: number;
   missedDayEvent?: boolean;
 }
@@ -44,55 +52,81 @@ export async function enqueueDailyWork(
   const yesterday = today - DAY_MS;
   const dayKey = new Date(today).toISOString().slice(0, 10);
   const missedKey = new Date(yesterday).toISOString().slice(0, 10);
-  const [users, connections, purges] = await Promise.all([
-    db.user.findMany({
-      where: { deletedAt: null },
-      select: { id: true },
-    }),
-    db.platformConnection.findMany({
-      where: { status: { not: "revoked" }, user: { deletedAt: null } },
-      select: { id: true },
-    }),
-    db.accountPurgeLedger.findMany({
-      where: { completedAt: null },
-      select: { token: true },
-    }),
-  ]);
+  return db.$transaction(async (tx) => {
+    const [userCandidates, connectionCandidates] = await Promise.all([
+      tx.user.findMany({
+        where: { deletedAt: null },
+        select: { id: true },
+      }),
+      tx.platformConnection.findMany({
+        where: { status: { not: "revoked" }, user: { deletedAt: null } },
+        select: { id: true, userId: true },
+      }),
+    ]);
+    const userIds = [
+      ...new Set([
+        ...userCandidates.map((user) => user.id),
+        ...connectionCandidates.map((connection) => connection.userId),
+      ]),
+    ].sort();
+    for (const userId of userIds) {
+      await lockUserProgramMutation(tx, userId);
+    }
 
-  const jobs = [
-    ...users.flatMap((user) => [
-      {
-        kind: "daily_adaptation",
-        key: `daily_adaptation:${dayKey}:${user.id}`,
-      },
-      { kind: "day_missed", key: `day_missed:${missedKey}:${user.id}` },
-    ]),
-    ...connections.map((connection) => ({
-      kind: "import_sync",
-      key: `import_sync:daily:${dayKey}:${connection.id}`,
-    })),
-    ...purges.map((purge) => ({
-      kind: ACCOUNT_PURGE_JOB_KIND,
-      key: `account_purge:${purge.token}`,
-    })),
-  ];
-  const created = jobs.length
-    ? await db.jobRun.createMany({
-        data: jobs.map((job) => ({
-          ...job,
-          status: "queued",
-          attempt: 0,
-          lockedUntil: null,
-        })),
-        skipDuplicates: true,
-      })
-    : { count: 0 };
+    const [users, connections, purges] = await Promise.all([
+      tx.user.findMany({
+        where: { id: { in: userIds }, deletedAt: null },
+        select: { id: true },
+      }),
+      tx.platformConnection.findMany({
+        where: {
+          id: { in: connectionCandidates.map((connection) => connection.id) },
+          status: { not: "revoked" },
+          user: { deletedAt: null },
+        },
+        select: { id: true },
+      }),
+      tx.accountPurgeLedger.findMany({
+        where: { completedAt: null },
+        select: { token: true },
+      }),
+    ]);
 
-  return {
-    users: users.length,
-    connections: connections.length,
-    enqueued: created.count,
-  };
+    const jobs = [
+      ...users.flatMap((user) => [
+        {
+          kind: "daily_adaptation",
+          key: `daily_adaptation:${dayKey}:${user.id}`,
+        },
+        { kind: "day_missed", key: `day_missed:${missedKey}:${user.id}` },
+      ]),
+      ...connections.map((connection) => ({
+        kind: "import_sync",
+        key: `import_sync:daily:${dayKey}:${connection.id}`,
+      })),
+      ...purges.map((purge) => ({
+        kind: ACCOUNT_PURGE_JOB_KIND,
+        key: `account_purge:${purge.token}`,
+      })),
+    ];
+    const created = jobs.length
+      ? await tx.jobRun.createMany({
+          data: jobs.map((job) => ({
+            ...job,
+            status: "queued",
+            attempt: 0,
+            lockedUntil: null,
+          })),
+          skipDuplicates: true,
+        })
+      : { count: 0 };
+
+    return {
+      users: users.length,
+      connections: connections.length,
+      enqueued: created.count,
+    };
+  });
 }
 
 /** Bounded pruning only. Daily jobs are enqueued and drained separately. */
@@ -130,6 +164,7 @@ export async function retryFailedJob(
       kind: true,
       key: true,
       status: true,
+      attempt: true,
       lockedUntil: true,
     },
   });
@@ -142,15 +177,37 @@ export async function retryFailedJob(
         job.lockedUntil <= new Date(clock.now())));
   if (!job || !retryable) return { state: "skipped" };
 
+  const removeOrphanedUserJob = async (userId: string): Promise<boolean> => {
+    const user = await db.user.findFirst({
+      where: { id: userId, deletedAt: null },
+      select: { id: true },
+    });
+    if (user) return false;
+    const removed = await db.jobRun.deleteMany({
+      where: {
+        id: jobId,
+        key: job.key,
+        attempt: job.attempt,
+        OR: [
+          { status: { in: ["queued", "error"] } },
+          { status: "running", lockedUntil: { lte: new Date(clock.now()) } },
+        ],
+      },
+    });
+    return removed.count === 1;
+  };
+
   const parts = job.key.split(":");
   if (job.kind === "daily_adaptation") {
     const userId = parts.at(-1);
     if (!userId) return { state: "skipped" };
+    if (await removeOrphanedUserJob(userId)) return { state: "completed" };
     const result = await runJob(db, {
       kind: job.kind,
       key: job.key,
       clock,
-      run: () => runDailyAdaptation(db, userId, clock),
+      owner: { userId },
+      run: (claim) => runDailyAdaptation(db, userId, clock, claim),
     });
     return {
       state: result.state === "completed" ? "completed" : "skipped",
@@ -163,11 +220,13 @@ export async function retryFailedJob(
     const date = parts.at(-2);
     const missedAt = date ? Date.parse(`${date}T00:00:00.000Z`) : Number.NaN;
     if (!userId || !Number.isFinite(missedAt)) return { state: "skipped" };
+    if (await removeOrphanedUserJob(userId)) return { state: "completed" };
     const result = await runJob(db, {
       kind: job.kind,
       key: job.key,
       clock,
-      run: () => recordEngagementForMissedDay(db, userId, missedAt),
+      owner: { userId },
+      run: (claim) => recordEngagementForMissedDay(db, userId, missedAt, claim),
     });
     return {
       state: result.state === "completed" ? "completed" : "skipped",
@@ -183,17 +242,41 @@ export async function retryFailedJob(
     const connection = await db.platformConnection.findUnique({
       where: { id: connectionId },
     });
-    if (!connection) return { state: "skipped" };
+    if (!connection) {
+      const removed = await db.jobRun.deleteMany({
+        where: {
+          id: jobId,
+          key: job.key,
+          attempt: job.attempt,
+          OR: [
+            { status: { in: ["queued", "error"] } },
+            { status: "running", lockedUntil: { lte: new Date(clock.now()) } },
+          ],
+        },
+      });
+      return removed.count === 1
+        ? { state: "completed", kind: "import_sync", imported: 0 }
+        : { state: "skipped" };
+    }
     const result = await runJob(db, {
       kind: job.kind,
       key: job.key,
       clock,
-      run: () => importConnection(db, connection, clock),
+      owner: { userId: connection.userId, connectionId: connection.id },
+      run: (claim) =>
+        importClaimedConnection(
+          db,
+          connection.userId,
+          connection.id,
+          claim,
+          clock,
+        ),
     });
     return {
       state: result.state === "completed" ? "completed" : "skipped",
       kind: "import_sync",
-      imported: result.state === "completed" ? result.value.imported : 0,
+      imported:
+        result.state === "completed" ? (result.value?.imported ?? 0) : 0,
     };
   }
 

@@ -8,7 +8,8 @@ import {
   type ResearchConsentScope,
 } from "@/lib/research-consent";
 import { systemClock, type Clock } from "@/lib/clock";
-import { runJob } from "@/server/jobs";
+import { lockUserProgramMutation } from "@/db/user-mutation-lock";
+import { assertActiveJobClaim, runJob, type JobClaim } from "@/server/jobs";
 
 export const ACCOUNT_PURGE_JOB_KIND = "account_purge";
 const RESEARCH_SCOPE: ResearchConsentScope = "aggregate_observational_training";
@@ -547,6 +548,7 @@ export async function requestAccountDeletion(
 ): Promise<string> {
   const requestedAt = new Date(clock.now());
   return db.$transaction(async (tx) => {
+    await lockUserProgramMutation(tx, userId);
     const existing = await tx.user.findUnique({
       where: { id: userId },
       select: { deletionToken: true },
@@ -590,33 +592,40 @@ export async function purgeAccountByToken(
   db: PrismaClient,
   token: string,
   clock: Clock = systemClock,
+  claim?: JobClaim,
 ) {
   const ledger = await db.accountPurgeLedger.findUnique({ where: { token } });
   if (!ledger) throw new Error("Unknown account purge token.");
   if (ledger.completedAt) return { alreadyPurged: true };
 
   await db.$transaction(async (tx) => {
+    const candidate = await tx.user.findUnique({
+      where: { deletionToken: token },
+      select: { id: true },
+    });
+    if (candidate) await lockUserProgramMutation(tx, candidate.id);
+    if (claim) await assertActiveJobClaim(tx, claim);
     const user = await tx.user.findUnique({
       where: { deletionToken: token },
       select: { id: true, platformConnections: { select: { id: true } } },
     });
     if (!user) {
-      await tx.accountPurgeLedger.update({
-        where: { token },
+      await tx.accountPurgeLedger.updateMany({
+        where: { token, completedAt: null },
         data: { completedAt: new Date(clock.now()) },
       });
       return;
     }
-    const identifiers = [
-      user.id,
-      ...user.platformConnections.map((row) => row.id),
-    ];
     await tx.jobRun.deleteMany({
       where: {
         NOT: { key: `account_purge:${token}` },
-        OR: identifiers.map((identifier) => ({
-          key: { endsWith: identifier },
-        })),
+        OR: [
+          { key: { endsWith: `:${user.id}` } },
+          { key: { contains: `:${user.id}:` } },
+          ...user.platformConnections.map((connection) => ({
+            key: { endsWith: `:${connection.id}` },
+          })),
+        ],
       },
     });
     await tx.user.delete({ where: { id: user.id } });
@@ -638,7 +647,7 @@ export async function runAccountPurge(
     kind: ACCOUNT_PURGE_JOB_KIND,
     key,
     clock,
-    run: () => purgeAccountByToken(db, token, clock),
+    run: (claim) => purgeAccountByToken(db, token, clock, claim),
   });
   // Privacy exception to immutable successful JobRun keys: erase the purge key
   // because it is correlatable during deletion. AccountPurgeLedger is the opaque proof.
