@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import crypto from "crypto";
+import crypto from "node:crypto";
 
 import { prisma } from "@/db/client";
 import { runDailyOperations } from "@/server/daily-operations";
@@ -20,10 +20,12 @@ function authorized(req: Request): boolean {
   const expectedBuf = Buffer.from(expected);
   const authHeaderBuf = Buffer.from(authHeader);
 
+  // Prevent unhandled TypeError from timingSafeEqual if lengths differ
   if (expectedBuf.byteLength !== authHeaderBuf.byteLength) {
     return false;
   }
 
+  // Use constant-time comparison to prevent timing attacks
   return crypto.timingSafeEqual(
     expectedBuf,
     authHeaderBuf
