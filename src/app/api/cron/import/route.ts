@@ -5,6 +5,7 @@
 // No chess/learning decision happens here (L1) — this is pure plumbing.
 
 import { NextResponse } from "next/server";
+import crypto from "crypto";
 
 import { prisma } from "@/db/client";
 import { runImportForUser } from "@/server/import";
@@ -14,8 +15,25 @@ export const maxDuration = 60; // seconds (Vercel free-tier cap)
 
 function authorized(req: Request): boolean {
   const secret = process.env.CRON_SECRET;
-  if (!secret) return false; // fail closed if unconfigured
-  return req.headers.get("authorization") === `Bearer ${secret}`;
+  const authHeader = req.headers.get("authorization");
+
+  if (!secret || !authHeader) {
+    return false;
+  }
+
+  const expected = `Bearer ${secret}`;
+
+  const expectedBuf = Buffer.from(expected);
+  const authHeaderBuf = Buffer.from(authHeader);
+
+  if (expectedBuf.byteLength !== authHeaderBuf.byteLength) {
+    return false;
+  }
+
+  return crypto.timingSafeEqual(
+    expectedBuf,
+    authHeaderBuf
+  );
 }
 
 export async function GET(req: Request) {

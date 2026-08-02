@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import crypto from "crypto";
 
 import { prisma } from "@/db/client";
 import { runDailyOperations } from "@/server/daily-operations";
@@ -8,8 +9,24 @@ export const maxDuration = 60;
 
 function authorized(req: Request): boolean {
   const secret = process.env.CRON_SECRET;
-  return Boolean(
-    secret && req.headers.get("authorization") === `Bearer ${secret}`,
+  const authHeader = req.headers.get("authorization");
+
+  if (!secret || !authHeader) {
+    return false;
+  }
+
+  const expected = `Bearer ${secret}`;
+
+  const expectedBuf = Buffer.from(expected);
+  const authHeaderBuf = Buffer.from(authHeader);
+
+  if (expectedBuf.byteLength !== authHeaderBuf.byteLength) {
+    return false;
+  }
+
+  return crypto.timingSafeEqual(
+    expectedBuf,
+    authHeaderBuf
   );
 }
 
