@@ -41,7 +41,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html
       lang="en"
-      className={`${fraunces.variable} ${plexMono.variable}`}
+      className={`${fraunces.variable} ${plexMono.variable} scroll-smooth`}
       suppressHydrationWarning
     >
       <body className="bg-paper text-ink min-h-screen antialiased">

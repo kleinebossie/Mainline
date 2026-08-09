@@ -1,5 +1,14 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import {
+  HelpCircle,
+  ShieldAlert,
+  RefreshCw,
+  ShieldCheck,
+  Cpu,
+  Unlock,
+  type LucideIcon,
+} from "lucide-react";
 
 import { beginSelectedBetaSignIn } from "@/app/signin/actions";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
@@ -41,44 +50,50 @@ const SETUP_STEPS = [
   },
 ] as const;
 
-const PRINCIPLES = [
+interface PrincipleItem {
+  icon: LucideIcon;
+  title: string;
+  detail: string;
+}
+
+const PRINCIPLES: PrincipleItem[] = [
   {
-    mark: "∴",
+    icon: HelpCircle,
     title: "Every recommendation explains why",
     detail:
       "See why this activity made the plan, why it matters now, and how strong the supporting evidence is.",
   },
   {
-    mark: "≠",
+    icon: ShieldAlert,
     title: "No rating promises",
     detail:
       "No training activity has been proven to cause rating gains. Mainline will not turn uncertainty into a sales pitch.",
   },
   {
-    mark: "↻",
+    icon: RefreshCw,
     title: "The plan keeps moving",
     detail:
       "New games and completed training reshape what comes next. There is no generic syllabus to fall behind on.",
   },
   {
-    mark: "⌁",
+    icon: ShieldCheck,
     title: "Your data stays under your control",
     detail:
       "Connections are read-only. Your data is never sold, and you can export or delete it whenever you choose.",
   },
   {
-    mark: "□",
+    icon: Cpu,
     title: "No runtime AI",
     detail:
       "The product uses open data, transparent rules, and a client-side chess engine, not an opaque chatbot deciding your training.",
   },
   {
-    mark: "0€",
+    icon: Unlock,
     title: "Training quality is never paywalled",
     detail:
       "Mainline is free, without ads. Optional patronage may support the project, but never buys better training.",
   },
-] as const;
+];
 
 export default async function Home() {
   const session = await auth();
@@ -92,7 +107,7 @@ export default async function Home() {
   );
 
   return (
-    <main className="min-h-screen overflow-hidden">
+    <main className="min-h-screen overflow-x-clip">
       <header className="bg-paper/90 sticky top-0 z-30 border-b border-line/80 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-6 px-4 sm:px-6">
           <Link
@@ -209,10 +224,8 @@ export default async function Home() {
               </div>
 
               <div className="border-t border-dashed border-paper/20 pt-4">
-                <p className="flex gap-3 font-serif text-sm leading-relaxed text-paper/65">
-                  <span className="font-mono text-evergreen-bright" aria-hidden>
-                    ∴
-                  </span>
+                <p className="flex items-start gap-3 font-serif text-sm leading-relaxed text-paper/65">
+                  <HelpCircle className="mt-0.5 h-4 w-4 shrink-0 text-evergreen-bright" aria-hidden="true" />
                   Every block carries its evidence grade, the data that
                   triggered it, and an honest explanation of uncertainty.
                 </p>
@@ -285,25 +298,25 @@ export default async function Home() {
           </div>
 
           <div className="mt-12 grid border-l border-t border-line sm:grid-cols-2 lg:grid-cols-3">
-            {PRINCIPLES.map((principle) => (
-              <article
-                key={principle.title}
-                className="border-b border-r border-line bg-paper-raised/50 p-6 sm:p-7"
-              >
-                <span
-                  className="font-mono text-sm font-semibold text-evergreen"
-                  aria-hidden
+            {PRINCIPLES.map((principle) => {
+              const Icon = principle.icon;
+              return (
+                <article
+                  key={principle.title}
+                  className="border-b border-r border-line bg-paper-raised/50 p-6 sm:p-7"
                 >
-                  {principle.mark}
-                </span>
-                <h3 className="mt-6 font-serif text-xl font-semibold leading-snug">
-                  {principle.title}
-                </h3>
-                <p className="mt-3 text-sm leading-relaxed text-graphite">
-                  {principle.detail}
-                </p>
-              </article>
-            ))}
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-line/80 bg-paper text-evergreen shadow-xs">
+                    <Icon className="h-5 w-5 stroke-[1.75]" aria-hidden="true" />
+                  </div>
+                  <h3 className="mt-5 font-serif text-xl font-semibold leading-snug">
+                    {principle.title}
+                  </h3>
+                  <p className="mt-3 text-sm leading-relaxed text-graphite">
+                    {principle.detail}
+                  </p>
+                </article>
+              );
+            })}
           </div>
         </div>
       </section>

@@ -4,6 +4,7 @@
 // and nothing else, so trust is legible at a glance and a placeholder can never pose as
 // established fact (L3).
 
+import { Flag } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type EvidenceGrade = "A" | "B" | "C" | "D";
@@ -145,7 +146,7 @@ export function PlaceholderTag({ className }: { className?: string }) {
         className,
       )}
     >
-      <span aria-hidden>⚑</span> Placeholder
+      <Flag className="h-3 w-3 stroke-[2]" aria-hidden="true" /> Placeholder
     </span>
   );
 }

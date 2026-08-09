@@ -3,23 +3,38 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
+import type { LucideIcon } from "lucide-react";
+import {
+  Settings,
+  SlidersHorizontal,
+  MessageSquare,
+  Link2,
+  Download,
+  LogOut,
+} from "lucide-react";
 
 import { signOutAction } from "@/server/auth-actions";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
 import { safeRouteContext } from "@/lib/feedback";
 import { cn } from "@/lib/utils";
 
-// The account menu (⚙) at the right of the top bar — the home for everything that is
+// The account menu at the right of the top bar: the home for everything that is
 // account/data rather than training: Settings, Connections, data export, and Sign out.
-// A small, dependency-free popover (Esc + click-outside + roving focus) so the shell stays
+// A small popover (Esc + click-outside + roving focus) so the shell stays
 // lean (the repo only ships button/card/input primitives) and on-brand (mono, paper, ink).
 
-const ITEMS: ReadonlyArray<{ href: string; label: string }> = [
-  { href: "/onboarding", label: "Setup" },
-  { href: "/settings", label: "Settings" },
-  { href: "/settings#feedback", label: "Feedback" },
-  { href: "/connections", label: "Connections" },
-  { href: "/settings#data", label: "Export data" },
+interface AccountMenuItem {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+}
+
+const ITEMS: ReadonlyArray<AccountMenuItem> = [
+  { href: "/onboarding", label: "Setup", icon: SlidersHorizontal },
+  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/settings#feedback", label: "Feedback", icon: MessageSquare },
+  { href: "/connections", label: "Connections", icon: Link2 },
+  { href: "/settings#data", label: "Export data", icon: Download },
 ];
 
 export function AccountMenu() {
@@ -75,7 +90,7 @@ export function AccountMenu() {
             : "text-graphite hover:text-ink hover:bg-ink/[0.04]",
         )}
       >
-        <span aria-hidden>⚙</span>
+        <Settings className="h-4 w-4" aria-hidden="true" />
       </button>
 
       {open && (
@@ -83,29 +98,39 @@ export function AccountMenu() {
           id={menuId}
           role="group"
           aria-label="Account actions"
-          className="absolute right-0 top-full z-40 mt-2 w-48 overflow-hidden rounded-md border border-line bg-paper-raised py-1 shadow-sheet"
+          className="absolute right-0 top-full z-40 mt-2 w-52 overflow-hidden rounded-md border border-line bg-paper-raised/95 p-1 shadow-lg backdrop-blur-md"
         >
-          {ITEMS.map((item) => (
-            <Link
-              key={item.href}
-              href={
-                item.label === "Feedback"
-                  ? `/settings?feedbackFrom=${encodeURIComponent(feedbackFrom)}#feedback`
-                  : item.href
-              }
-              ref={item === ITEMS[0] ? firstItemRef : undefined}
-              onClick={() => setOpen(false)}
-              className="text-graphite hover:text-ink hover:bg-ink/[0.05] block min-h-9 px-3 py-2 font-mono text-xs tracking-tight transition-colors focus-visible:bg-ink/[0.05] focus-visible:outline-none"
-            >
-              {item.label}
-            </Link>
-          ))}
-          <form action={signOutAction} className="border-t border-line/80">
+          {ITEMS.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.href}
+                href={
+                  item.label === "Feedback"
+                    ? `/settings?feedbackFrom=${encodeURIComponent(feedbackFrom)}#feedback`
+                    : item.href
+                }
+                ref={item === ITEMS[0] ? firstItemRef : undefined}
+                onClick={() => setOpen(false)}
+                className="group flex min-h-8 items-center gap-2.5 rounded-sm px-2.5 py-1.5 font-mono text-xs tracking-tight text-graphite transition-colors hover:bg-ink/[0.06] hover:text-ink focus-visible:bg-ink/[0.06] focus-visible:outline-none"
+              >
+                <span className="flex h-4 w-4 shrink-0 items-center justify-center text-graphite/70 transition-colors group-hover:text-ink">
+                  <Icon className="h-3.5 w-3.5 stroke-[1.75]" aria-hidden="true" />
+                </span>
+                <span className="leading-none">{item.label}</span>
+              </Link>
+            );
+          })}
+          <div className="my-1 h-px bg-line/70" />
+          <form action={signOutAction}>
             <PendingSubmitButton
               pendingLabel="Signing out…"
-              className="text-graphite hover:text-clay hover:bg-clay/[0.06] block min-h-9 w-full px-3 py-2 text-left font-mono text-xs tracking-tight transition-colors focus-visible:bg-clay/[0.06] focus-visible:outline-none"
+              className="group flex min-h-8 w-full items-center gap-2.5 rounded-sm px-2.5 py-1.5 text-left font-mono text-xs tracking-tight text-graphite transition-colors hover:bg-clay/10 hover:text-clay focus-visible:bg-clay/10 focus-visible:outline-none"
             >
-              Sign out
+              <span className="flex h-4 w-4 shrink-0 items-center justify-center text-graphite/70 transition-colors group-hover:text-clay">
+                <LogOut className="h-3.5 w-3.5 stroke-[1.75]" aria-hidden="true" />
+              </span>
+              <span className="leading-none">Sign out</span>
             </PendingSubmitButton>
           </form>
         </div>

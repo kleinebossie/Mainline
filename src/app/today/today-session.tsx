@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Link from "next/link";
+import { Target, ChevronDown } from "lucide-react";
 
 import { BookLogForm, type OwnedBook } from "@/app/today/today-book-log";
 import {
@@ -176,8 +177,11 @@ export function TodayHeader({
               <p className="font-mono text-[0.62rem] uppercase tracking-[0.12em] text-graphite">
                 Planned
               </p>
-              <h2 className="mt-1 font-serif text-xl font-semibold leading-tight text-ink sm:text-2xl">
-                {sessionMinuteCap(program)}
+              <h2 className="mt-1 flex flex-wrap items-baseline gap-x-2 font-serif text-xl font-semibold leading-tight text-ink sm:text-2xl">
+                <span>{sessionMinuteCap(program)}</span>
+                <span className="font-mono text-xs font-normal text-graphite">
+                  ordered training blocks
+                </span>
               </h2>
             </div>
             <div className="border-l border-line pl-5">
@@ -227,13 +231,15 @@ export function TodayHeader({
           aria-controls="today-process-goal"
           className="eyebrow flex cursor-pointer items-center gap-2 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
         >
-          <span aria-hidden className="text-evergreen not-italic">
-            ∴
-          </span>
-          Today&apos;s goal
-          <span aria-hidden className="text-xs">
-            {goalOpen ? "▼" : "▶"}
-          </span>
+          <Target className="h-3.5 w-3.5 shrink-0 text-evergreen" aria-hidden="true" />
+          <span>Today&apos;s goal</span>
+          <ChevronDown
+            className={cn(
+              "h-3.5 w-3.5 shrink-0 text-graphite transition-transform duration-200",
+              !goalOpen && "-rotate-90",
+            )}
+            aria-hidden="true"
+          />
         </button>
         {goalOpen && (
           <p

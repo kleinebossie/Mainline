@@ -7,6 +7,7 @@
 // established fact (VISION §2).
 
 import { useId, useState } from "react";
+import { HelpCircle, ChevronDown } from "lucide-react";
 import {
   GradeMark,
   ConfidenceBar,
@@ -113,13 +114,15 @@ function TransparencyDisclosure({
             aria-controls={contentId}
             className="eyebrow flex cursor-pointer items-center gap-2 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
           >
-            <span aria-hidden className="text-evergreen not-italic">
-              ∴
-            </span>
-            Why this?
-            <span aria-hidden className="text-xs">
-              {collapsed ? "▶" : "▼"}
-            </span>
+            <HelpCircle className="h-3.5 w-3.5 shrink-0 text-evergreen" aria-hidden="true" />
+            <span>Why this?</span>
+            <ChevronDown
+              className={cn(
+                "h-3.5 w-3.5 shrink-0 text-graphite transition-transform duration-200",
+                collapsed && "-rotate-90",
+              )}
+              aria-hidden="true"
+            />
           </button>
           {hasPlaceholder && <PlaceholderTag />}
         </div>
