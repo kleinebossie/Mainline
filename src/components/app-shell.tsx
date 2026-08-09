@@ -68,7 +68,7 @@ function TopBar() {
                   if (isTrainingSurface) prefetchNavigationData(item.href);
                 }}
                 className={cn(
-                  "relative flex min-h-10 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-sm px-2 py-2 font-mono text-[0.68rem] tracking-tight transition-colors focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset sm:min-h-0 sm:flex-none sm:px-2.5 sm:py-1.5 sm:text-[0.8rem]",
+                  "relative flex min-h-11 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-sm px-2 py-2 font-mono text-[0.68rem] tracking-tight transition-colors focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset sm:min-h-0 sm:flex-none sm:px-2.5 sm:py-1.5 sm:text-[0.8rem]",
                   item.secondary && "hidden sm:inline-flex",
                   active
                     ? "text-ink font-medium"

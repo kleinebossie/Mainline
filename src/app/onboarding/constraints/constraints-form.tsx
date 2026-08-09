@@ -599,28 +599,32 @@ function Form({
         </legend>
         <MethodologyRationaleCard rationale={ifThenRationale} />
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <span className="font-serif text-sm text-graphite shrink-0">
-            After
-          </span>
-          <Input
-            value={cue}
-            onChange={(e) => setCue(e.target.value)}
-            placeholder="my morning coffee"
-            aria-label="If-then cue"
-            maxLength={160}
-            className="flex-1"
-          />
-          <span className="font-serif text-sm text-graphite shrink-0">
-            , I will
-          </span>
-          <Input
-            value={plan}
-            onChange={(e) => setPlan(e.target.value)}
-            placeholder="open today's session"
-            aria-label="If-then plan"
-            maxLength={160}
-            className="flex-1"
-          />
+          <div className="flex flex-1 items-center gap-2">
+            <span className="font-serif text-sm text-graphite shrink-0">
+              After
+            </span>
+            <Input
+              value={cue}
+              onChange={(e) => setCue(e.target.value)}
+              placeholder="my morning coffee"
+              aria-label="If-then cue"
+              maxLength={160}
+              className="flex-1"
+            />
+          </div>
+          <div className="flex flex-1 items-center gap-2">
+            <span className="font-serif text-sm text-graphite shrink-0">
+              , I will
+            </span>
+            <Input
+              value={plan}
+              onChange={(e) => setPlan(e.target.value)}
+              placeholder="open today's session"
+              aria-label="If-then plan"
+              maxLength={160}
+              className="flex-1"
+            />
+          </div>
         </div>
       </fieldset>
 

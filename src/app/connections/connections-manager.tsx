@@ -72,7 +72,16 @@ export function ConnectionsManager() {
   });
 
   return (
-    <div className="flex flex-col gap-12">
+    <div className="flex flex-col gap-10">
+      <div className="flex flex-col gap-2 rounded-md border border-line bg-paper/60 p-4">
+        <h3 className="font-serif text-base font-semibold text-ink">
+          Connect your accounts to enable blunder practice
+        </h3>
+        <p className="text-graphite font-serif text-sm leading-relaxed">
+          Mainline imports your public game history to detect key tactical mistakes and convert them into personalized spaced-repetition drills.
+        </p>
+      </div>
+
       <section className="flex flex-col gap-4">
         <h2 className="eyebrow border-b border-line/80 pb-3">Lichess</h2>
         <p className="text-graphite text-sm leading-relaxed font-serif">

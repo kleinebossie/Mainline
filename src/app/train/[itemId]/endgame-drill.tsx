@@ -99,21 +99,26 @@ export function EndgameDrillSession({
   );
 
   // One reused Stockfish worker, serialised so replies never overlap (mirrors ReviewBoard).
+  const [isEngineLoading, setIsEngineLoading] = useState(false);
   const engineRef = useRef<AnalysisEngine | null>(null);
   const queueRef = useRef<Promise<unknown>>(Promise.resolve());
   const getEngine = useCallback(async (): Promise<AnalysisEngine> => {
     if (engineRef.current) return engineRef.current;
-    const { SINGLE_THREAD_PLAN, StockfishAnalysisEngine } =
-      await import("@/analysis");
-    const engine = new StockfishAnalysisEngine(SINGLE_THREAD_PLAN);
+    setIsEngineLoading(true);
     try {
+      const { SINGLE_THREAD_PLAN, StockfishAnalysisEngine } =
+        await import("@/analysis");
+      const engine = new StockfishAnalysisEngine(SINGLE_THREAD_PLAN);
       await engine.init();
+      engineRef.current = engine;
+      return engine;
     } catch (error) {
-      engine.dispose();
+      engineRef.current?.dispose();
+      engineRef.current = null;
       throw error;
+    } finally {
+      setIsEngineLoading(false);
     }
-    engineRef.current = engine;
-    return engine;
   }, []);
   useEffect(() => {
     return () => {
@@ -308,6 +313,12 @@ export function EndgameDrillSession({
                 Convert this endgame against the engine. The result is judged on
                 whether you achieve the objective.
               </p>
+
+              {isEngineLoading && (
+                <StatusMessage tone="loading">
+                  Initializing Stockfish WASM engine in browser...
+                </StatusMessage>
+              )}
 
               {engineError && (
                 <StatusMessage tone="error" heading="Engine unavailable">

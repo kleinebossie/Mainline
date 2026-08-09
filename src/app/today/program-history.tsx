@@ -323,7 +323,7 @@ function ProgramVersion({
                       {item.dimensionLabels.join(", ") || "General"}
                     </p>
                   </div>
-                  <div className="flex gap-4 text-right">
+                  <div className="flex w-full sm:w-auto items-baseline justify-between sm:justify-end gap-4 text-left sm:text-right">
                     <TimeMetric
                       label="Planned"
                       value={formatPlannedMinutes(item.plannedMinutes)}

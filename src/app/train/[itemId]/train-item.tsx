@@ -748,11 +748,16 @@ export function TrainItem({ programItemId }: TrainItemProps) {
                   )}
                 >
                   {solveStatus === "solved" && "Solved"}
-                  {solveStatus === "wrong" && "Wrong move"}
+                  {solveStatus === "wrong" && "Incorrect move"}
                   {solveStatus === "correct" && "Correct move"}
                   {solveStatus === "pending" &&
                     (isDrill ? "Find the missed move" : "Find the move")}
                 </span>
+                {solveStatus === "wrong" && (
+                  <p className="text-destructive font-serif text-xs leading-relaxed">
+                    That move was not optimal. The position will reset shortly so you can retry.
+                  </p>
+                )}
               </div>
 
               {/* Scaffolded Hint Display (Phase 1) */}

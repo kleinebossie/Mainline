@@ -220,7 +220,7 @@ export function AnalysisDashboard() {
                 Most recent first.
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {platforms.length > 0 && (
                 <div
                   role="group"
@@ -340,23 +340,47 @@ export function AnalysisDashboard() {
               retryLabel="Reload games"
             />
           ) : games.length === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center gap-3 py-6 text-center">
-                <p className="text-graphite font-serif text-sm">
-                  {selectedPlatform === "manual"
-                    ? "No manual games imported yet. Paste one game or choose a PGN file above."
-                    : platforms.length === 0
-                      ? "No games imported yet. Connect a chess account, then sync to pull your most recent games."
-                      : `No ${platformLabel(selectedPlatform)} games imported yet. Try syncing, or switch platform.`}
-                </p>
+            <Card gutter="B">
+              <CardContent className="flex flex-col gap-6 py-6">
+                <div className="flex flex-col gap-2 text-center">
+                  <h3 className="font-serif text-xl font-bold text-ink">
+                    Start converting your real games into personal drills
+                  </h3>
+                  <p className="text-graphite font-serif text-sm max-w-xl mx-auto leading-relaxed">
+                    {selectedPlatform === "manual"
+                      ? "Import PGN files or paste raw game text above. Mainline scans your moves for critical blunders and queues them for interactive practice."
+                      : platforms.length === 0
+                        ? "Connect your Lichess or Chess.com username. Mainline automatically pulls your recent games, identifies tactical mistakes, and generates custom training blocks."
+                        : `No ${platformLabel(selectedPlatform)} games imported yet. Click sync below to fetch your latest games or manage connected accounts.`}
+                  </p>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-3 border-t border-line/80 pt-5">
+                  <div className="flex flex-col gap-1 p-3 rounded-md bg-paper/60 border border-line">
+                    <span className="eyebrow !text-[0.6rem]">Step 1</span>
+                    <span className="font-serif text-sm font-semibold text-ink">Link Account or PGN</span>
+                    <span className="text-graphite font-serif text-xs">Add your username or upload raw game text.</span>
+                  </div>
+                  <div className="flex flex-col gap-1 p-3 rounded-md bg-paper/60 border border-line">
+                    <span className="eyebrow !text-[0.6rem]">Step 2</span>
+                    <span className="font-serif text-sm font-semibold text-ink">Run Engine Scan</span>
+                    <span className="text-graphite font-serif text-xs">Client Stockfish finds critical turning points.</span>
+                  </div>
+                  <div className="flex flex-col gap-1 p-3 rounded-md bg-paper/60 border border-line">
+                    <span className="eyebrow !text-[0.6rem]">Step 3</span>
+                    <span className="font-serif text-sm font-semibold text-ink">Train Your Mistakes</span>
+                    <span className="text-graphite font-serif text-xs">Mistakes schedule into daily training blocks.</span>
+                  </div>
+                </div>
+
                 {selectedPlatform !== "manual" && (
-                  <div className="flex flex-wrap justify-center gap-3">
+                  <div className="flex flex-wrap justify-center gap-3 border-t border-line/80 pt-4">
                     <Button
                       size="sm"
                       disabled={sync.isPending}
                       onClick={() => sync.mutate()}
                     >
-                      {sync.isPending ? "Syncing…" : "Sync games now"}
+                      {sync.isPending ? "Syncing games..." : "Sync games now"}
                     </Button>
                     <Link
                       href="/connections"
@@ -366,8 +390,8 @@ export function AnalysisDashboard() {
                       })}
                     >
                       {platforms.length === 0
-                        ? "Connect an account"
-                        : "Manage connections"}
+                        ? "Connect Lichess or Chess.com"
+                        : "Manage connected accounts"}
                     </Link>
                   </div>
                 )}
