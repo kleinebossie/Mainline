@@ -194,7 +194,7 @@ export function ActiveReproductionStep({
               )}
 
               {revealed && analysis && (
-                <div className="flex flex-col gap-2">
+                <div className="flex max-h-48 flex-col gap-2 overflow-y-auto pr-1">
                   <h4 className="text-graphite font-mono text-xs font-semibold uppercase">
                     Top engine moves
                   </h4>

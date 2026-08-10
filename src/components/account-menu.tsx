@@ -98,7 +98,7 @@ export function AccountMenu() {
           id={menuId}
           role="group"
           aria-label="Account actions"
-          className="absolute right-0 top-full z-40 mt-2 w-52 overflow-hidden rounded-md border border-line bg-paper-raised/95 p-1 shadow-lg backdrop-blur-md"
+          className="absolute right-0 top-full z-40 mt-2 w-52 overflow-hidden rounded-md border border-line bg-paper-raised/95 p-1 shadow-lg backdrop-blur-md animate-in fade-in-0 zoom-in-95 motion-reduce:animate-none"
         >
           {ITEMS.map((item) => {
             const Icon = item.icon;

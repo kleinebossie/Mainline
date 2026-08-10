@@ -50,15 +50,21 @@ export function EmptyTodayCard({
   onRegenerate: () => void;
 }) {
   return (
-    <Card gutter="A" className="p-6">
-      <div className="flex flex-col gap-4">
-        <div>
-          <h2 className="font-serif text-xl font-semibold text-ink">
-            No session yet
-          </h2>
-          <p className="text-graphite mt-2 text-sm leading-relaxed">
-            Choose today&apos;s time budget to build your first session.
-          </p>
+    <Card gutter="A" className="focus-card p-6 shadow-sheet">
+      <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-4">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-line bg-paper font-serif text-3xl text-evergreen shadow-xs" aria-hidden="true">
+            ♔
+          </span>
+          <div>
+            <p className="eyebrow">Today&apos;s Training</p>
+            <h2 className="mt-1 font-serif text-2xl font-semibold text-ink">
+              Your constraints are set
+            </h2>
+            <p className="text-graphite mt-1 max-w-md font-serif text-sm leading-relaxed">
+              Choose today&apos;s available time budget to build your adapted training session.
+            </p>
+          </div>
         </div>
         <TimeEdit
           timeInput={timeInput}
@@ -120,6 +126,19 @@ export function TodayHeader({
           ? "All training complete"
           : "Session finished with skips"
         : "Session in progress";
+  const handleRegenerateWithConfirm = () => {
+    if (done > 0) {
+      if (
+        !window.confirm(
+          "Update training plan? Progress completed in today's session will be replaced.",
+        )
+      ) {
+        return;
+      }
+    }
+    onRegenerate();
+  };
+
   return (
     <section className="bg-card focus-card rounded-lg border p-4 shadow-sheet settle sm:p-5">
       <div className="mb-5 border-b border-line pb-4">
@@ -217,7 +236,7 @@ export function TodayHeader({
           setTimeInput={setTimeInput}
           timeBusy={timeBusy}
           timeValid={timeValid}
-          onRegenerate={onRegenerate}
+          onRegenerate={handleRegenerateWithConfirm}
           compact
           changed={timeChanged}
         />
@@ -406,6 +425,11 @@ function TodayBlockCard({
   const bookOptions = scheduledBook ? [scheduledBook] : ownedBooks;
   const meta = itemMeta(item);
 
+  const isExternal =
+    isBook ||
+    item.activityType === "play_game" ||
+    primaryActionKind(item) === "external";
+
   return (
     <Card
       gutter={asEvidenceGrade(item.evidenceGrade)}
@@ -434,6 +458,14 @@ function TodayBlockCard({
                 <span>{formatMinuteCap(item.estMinutes)}</span>
                 <span aria-hidden="true">·</span>
                 <span>{rowStatusLabel(item)}</span>
+                {isExternal && (
+                  <>
+                    <span aria-hidden="true">·</span>
+                    <span className="rounded-xs border border-line/80 bg-paper/60 px-1 py-0.5 font-mono text-[0.62rem] uppercase tracking-wider text-graphite">
+                      External
+                    </span>
+                  </>
+                )}
               </div>
             </div>
           </div>

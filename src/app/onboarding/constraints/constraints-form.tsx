@@ -290,6 +290,16 @@ function Form({
     });
   };
 
+  const isDirty =
+    minutesPerDay !== initial.minutesPerDay ||
+    daysPerWeek !== initial.daysPerWeek ||
+    preferredVariety !== initial.formatPrefs.preferredVariety ||
+    targetFocus !== initial.formatPrefs.targetFocus ||
+    depthVsBreadth !== initial.sessionStyle.depthVsBreadth ||
+    interleave !== initial.sessionStyle.interleave ||
+    cue !== (initial.ifThenPlan?.cue ?? "") ||
+    plan !== (initial.ifThenPlan?.plan ?? "");
+
   return (
     <form className="flex flex-col gap-10 settle" onSubmit={onSubmit}>
       {(connections.error || primaryQuery.error || libraryQuery.error) && (
@@ -632,6 +642,11 @@ function Form({
         <Button type="submit" disabled={save.isPending}>
           {save.isPending ? "Saving…" : "Save constraints"}
         </Button>
+        {isDirty && !saved && (
+          <span className="rounded-sm border border-amber/40 bg-amber/10 px-2.5 py-1 font-mono text-[0.68rem] font-semibold uppercase text-amber">
+            Unsaved changes
+          </span>
+        )}
         {saved && (
           <>
             <StatusMessage tone="success" className="py-2">

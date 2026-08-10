@@ -205,7 +205,7 @@ export function Calibration() {
         </div>
         <CardTitle className="font-serif text-3xl font-semibold mt-2">
           {activeTrack.label}: puzzle {activeTrack.next.itemNumber} of{" "}
-          {maxItems}
+          {maxItems} <span className="font-mono text-base font-normal text-graphite">(typically 8-15 total)</span>
         </CardTitle>
         <p className="text-graphite text-sm leading-relaxed mt-1">
           Solve a {activeTrack.label.toLowerCase()} puzzle around this strength,

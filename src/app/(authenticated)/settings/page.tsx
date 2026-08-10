@@ -44,11 +44,19 @@ export default async function SettingsPage() {
           <FeedbackPanel />
         </section>
 
-        <AnalysisRunner />
+        <section id="analysis" className="scroll-mt-24 flex flex-col gap-4">
+          <h2 className="eyebrow border-b border-line/80 pb-3">Analysis</h2>
+          <AnalysisRunner />
+        </section>
 
         <AccountActions />
 
-        {account?.role === "admin" && <OperationsPanel />}
+        {account?.role === "admin" && (
+          <section id="admin" className="scroll-mt-24 flex flex-col gap-4">
+            <h2 className="eyebrow border-b border-line/80 pb-3">Operations</h2>
+            <OperationsPanel />
+          </section>
+        )}
       </div>
     </PageShell>
   );

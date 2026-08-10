@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Check } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -107,7 +108,11 @@ export function OnboardingSteps({ status }: { status: OnboardingStatus }) {
                         : "border-line text-graphite bg-paper",
                   )}
                 >
-                  {step.done ? "\u2713" : i + 1}
+                  {step.done ? (
+                    <Check className="h-3.5 w-3.5 stroke-[2.5]" aria-hidden="true" />
+                  ) : (
+                    i + 1
+                  )}
                 </span>
                 <div>
                   <div className="flex items-center gap-2">
@@ -123,6 +128,11 @@ export function OnboardingSteps({ status }: { status: OnboardingStatus }) {
                   <p className="text-graphite text-sm leading-relaxed mt-1">
                     {step.detail}
                   </p>
+                  {!step.done && !isNext && i > 0 && (
+                    <p className="mt-1 font-mono text-[0.65rem] text-graphite">
+                      Complete the step above to unlock.
+                    </p>
+                  )}
                 </div>
               </div>
               <Link

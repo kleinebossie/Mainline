@@ -7,7 +7,7 @@
 // established fact (VISION §2).
 
 import { useId, useState } from "react";
-import { HelpCircle, ChevronDown } from "lucide-react";
+import { CircleHelp, ChevronDown } from "lucide-react";
 import {
   GradeMark,
   ConfidenceBar,
@@ -51,7 +51,7 @@ function TransparencyDetails({
     <section
       className={cn(
         grouped &&
-          "border-line/70 border-t py-4 first:border-t-0 first:pt-3 last:pb-0",
+          "border-l-2 border-line/40 pl-3 py-3 first:pt-2 last:pb-0",
       )}
     >
       {item.title && (
@@ -112,13 +112,16 @@ function TransparencyDisclosure({
             onClick={() => setCollapsed((prev) => !prev)}
             aria-expanded={expanded}
             aria-controls={contentId}
-            className="eyebrow flex cursor-pointer items-center gap-2 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
+            className="eyebrow group flex cursor-pointer items-center gap-2 rounded-sm text-graphite transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
           >
-            <HelpCircle className="h-3.5 w-3.5 shrink-0 text-evergreen" aria-hidden="true" />
+            <CircleHelp className="h-3.5 w-3.5 shrink-0 text-evergreen" aria-hidden="true" />
             <span>Why this?</span>
+            <span className="font-mono text-[0.62rem] text-graphite/70 group-hover:text-ink">
+              ({collapsed ? "click to expand" : "click to collapse"})
+            </span>
             <ChevronDown
               className={cn(
-                "h-3.5 w-3.5 shrink-0 text-graphite transition-transform duration-200",
+                "h-3.5 w-3.5 shrink-0 text-graphite transition-transform duration-200 group-hover:text-ink",
                 collapsed && "-rotate-90",
               )}
               aria-hidden="true"

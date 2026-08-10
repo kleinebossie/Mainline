@@ -150,21 +150,33 @@ function ConsistencyGrid({
   grid: { date: Date; active: boolean }[];
 }) {
   return (
-    <div
-      className="grid grid-flow-col grid-rows-7 gap-[3px] overflow-x-auto pb-1"
-      role="img"
-      aria-label="Consistency grid over the methodology-owned practice window"
-    >
-      {grid.map((cell) => (
-        <span
-          key={cell.date.toISOString()}
-          title={`${cell.date.toLocaleDateString()} - ${cell.active ? "trained" : "no logged practice"}`}
-          className={cn(
-            "h-3 w-3 shrink-0 rounded-[2px]",
-            cell.active ? "bg-evergreen" : "bg-ink/10",
-          )}
-        />
-      ))}
+    <div className="flex flex-col gap-2">
+      <div
+        className="grid grid-flow-col grid-rows-7 gap-[3px] overflow-x-auto pb-1"
+        role="img"
+        aria-label="Consistency grid over the methodology-owned practice window"
+      >
+        {grid.map((cell) => (
+          <span
+            key={cell.date.toISOString()}
+            title={`${cell.date.toLocaleDateString()} - ${cell.active ? "trained" : "no logged practice"}`}
+            className={cn(
+              "h-3 w-3 shrink-0 rounded-[2px]",
+              cell.active ? "bg-evergreen" : "bg-ink/10",
+            )}
+          />
+        ))}
+      </div>
+      <div className="flex items-center gap-4 font-mono text-[0.62rem] text-graphite">
+        <span className="flex items-center gap-1.5">
+          <span className="h-2.5 w-2.5 rounded-[2px] bg-evergreen" aria-hidden="true" />
+          Trained
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-2.5 w-2.5 rounded-[2px] bg-ink/10" aria-hidden="true" />
+          Rest day
+        </span>
+      </div>
     </div>
   );
 }
@@ -215,6 +227,8 @@ function SkillSignals({
       {skills.map((skill) => {
         const pct = Math.round(skill.estimate * 100);
         const band = Math.round(skill.uncertainty * 100);
+        const isLowSample = skill.sampleSize < 5;
+
         return (
           <div
             key={skill.dimension}
@@ -225,14 +239,18 @@ function SkillSignals({
                 {skill.label}
               </p>
               <span className="font-mono text-sm font-semibold tabular-nums text-ink">
-                {pct}% ± {band}
+                {isLowSample ? "Gathering data" : `${pct}% ± ${band}`}
               </span>
             </div>
-            <div className="mt-3 h-2 rounded-sm bg-ink/10">
-              <div
-                className="h-2 rounded-sm bg-evergreen"
-                style={{ width: `${Math.max(0, Math.min(100, pct))}%` }}
-              />
+            <div className="mt-3 h-2 rounded-sm bg-ink/10 overflow-hidden">
+              {isLowSample ? (
+                <div className="h-2 w-full rounded-sm bg-[repeating-linear-gradient(135deg,hsl(var(--evergreen)/0.3)_0_4px,transparent_4px_8px)]" />
+              ) : (
+                <div
+                  className="h-2 rounded-sm bg-evergreen"
+                  style={{ width: `${Math.max(0, Math.min(100, pct))}%` }}
+                />
+              )}
             </div>
             <p className="mt-2 font-mono text-[0.68rem] uppercase tracking-[0.12em] text-graphite">
               {skill.sampleSize} logged interaction
@@ -349,7 +367,7 @@ function RatingSignal({
                   </span>
 
                   {/* CI band */}
-                  <div className="hidden items-center gap-2 sm:flex">
+                  <div className="flex items-center gap-2">
                     <div className="relative flex items-center">
                       <div
                         className="h-[4px] rounded-full bg-graphite/25"

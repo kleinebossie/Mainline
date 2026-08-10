@@ -543,6 +543,18 @@ export function TrainItem({ programItemId }: TrainItemProps) {
             <p className="text-graphite font-serif text-sm leading-relaxed">
               {completionMessage}
             </p>
+            {solvables.length > 0 && (
+              <p className="font-mono text-xs text-evergreen border-l-2 border-evergreen/40 pl-3">
+                {solvables.length - retestQueue.length} of {solvables.length}{" "}
+                positions correct on first attempt (
+                {Math.round(
+                  ((solvables.length - retestQueue.length) /
+                    solvables.length) *
+                    100,
+                )}
+                % accuracy).
+              </p>
+            )}
             <Button
               onClick={() => router.push("/today")}
               className="self-start"

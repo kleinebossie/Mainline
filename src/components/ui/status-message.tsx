@@ -40,6 +40,7 @@ const StatusMessage = React.forwardRef<HTMLDivElement, StatusMessageProps>(
         ref={ref}
         role={role ?? (tone === "error" ? "alert" : "status")}
         aria-live={ariaLive ?? (tone === "error" ? "assertive" : "polite")}
+        aria-busy={tone === "loading" ? true : undefined}
         className={cn(
           "flex items-start gap-3 rounded-md border px-4 py-3",
           TONE_CLASSES[tone],

@@ -21,6 +21,8 @@
     --evergreen-bright: 150 39% 41%; /* hover / Grade B */
     --amber: 38 70% 38%; /* Grade C "dubious" */
     --clay: 12 56% 42%; /* Grade D "blunder" · destructive */
+    --board-light: #e9e7d8;
+    --board-dark: #6f8a7d;
 
     /* — evidence grade ramp (the signature; chess annotation grammar) — */
     --grade-a: var(--evergreen);
@@ -61,6 +63,8 @@
     --evergreen-bright: 150 45% 55%;
     --amber: 38 64% 52%;
     --clay: 12 58% 56%;
+    --board-light: #3a443f;
+    --board-dark: #23302b;
 
     --background: var(--paper);
     --foreground: var(--ink);

@@ -376,6 +376,12 @@ export function GameAnalysisFlow() {
       width="wide"
     >
       <div className="flex flex-col gap-6">
+        <div className="h-1 w-full rounded-full bg-ink/10">
+          <div
+            className="h-1 rounded-full bg-evergreen transition-all duration-300"
+            style={{ width: `${(step / 3) * 100}%` }}
+          />
+        </div>
         <GameIdentity game={game} />
         {step === 1 && (
           <CalibrationStep

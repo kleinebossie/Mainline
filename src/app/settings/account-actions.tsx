@@ -15,6 +15,7 @@ export function AccountActions() {
   const [affirmOptional, setAffirmOptional] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const grant = trpc.account.grantResearchConsent.useMutation({
@@ -212,31 +213,45 @@ export function AccountActions() {
             <Button
               type="button"
               variant="destructive"
-              onClick={() => setConfirming(true)}
+              onClick={() => {
+                setConfirming(true);
+                setDeleteConfirmText("");
+              }}
             >
               Delete my account
             </Button>
           ) : (
             <div className="flex flex-wrap items-center gap-3">
               <StatusMessage tone="error" className="basis-full">
-                This queues a retryable hard erase of your account, local
-                credentials, connections, and training data. It cannot be
-                undone.
+                This queues a hard erase of your account and training data. Type
+                <strong className="mx-1 font-mono text-ink">DELETE</strong>
+                below to confirm.
               </StatusMessage>
+              <input
+                type="text"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder='Type "DELETE" to confirm'
+                aria-label="Confirm account deletion"
+                className="h-9 rounded-md border border-clay/50 bg-paper-raised px-3 font-mono text-xs text-ink outline-none focus:ring-2 focus:ring-ring"
+              />
               <Button
                 type="button"
                 variant="destructive"
                 size="sm"
                 onClick={() => del.mutate()}
-                disabled={del.isPending}
+                disabled={deleteConfirmText !== "DELETE" || del.isPending}
               >
-                {del.isPending ? "Queuing erase..." : "Yes, permanently erase"}
+                {del.isPending ? "Queuing erase..." : "Permanently erase"}
               </Button>
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
-                onClick={() => setConfirming(false)}
+                onClick={() => {
+                  setConfirming(false);
+                  setDeleteConfirmText("");
+                }}
                 disabled={del.isPending}
               >
                 Cancel

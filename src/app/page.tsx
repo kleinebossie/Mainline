@@ -1,15 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import {
-  HelpCircle,
-  ShieldAlert,
-  RefreshCw,
-  ShieldCheck,
-  Cpu,
-  Unlock,
-  type LucideIcon,
-} from "lucide-react";
+import { LandingIcon, type LandingIconName } from "@/components/landing-icons";
 
+import { cn } from "@/lib/utils";
 import { beginSelectedBetaSignIn } from "@/app/signin/actions";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
 import { buttonVariants } from "@/components/ui/button";
@@ -51,44 +44,44 @@ const SETUP_STEPS = [
 ] as const;
 
 interface PrincipleItem {
-  icon: LucideIcon;
+  icon: LandingIconName;
   title: string;
   detail: string;
 }
 
 const PRINCIPLES: PrincipleItem[] = [
   {
-    icon: HelpCircle,
+    icon: "help",
     title: "Every recommendation explains why",
     detail:
       "See why this activity made the plan, why it matters now, and how strong the supporting evidence is.",
   },
   {
-    icon: ShieldAlert,
+    icon: "shield-alert",
     title: "No rating promises",
     detail:
       "No training activity has been proven to cause rating gains. Mainline will not turn uncertainty into a sales pitch.",
   },
   {
-    icon: RefreshCw,
+    icon: "refresh",
     title: "The plan keeps moving",
     detail:
       "New games and completed training reshape what comes next. There is no generic syllabus to fall behind on.",
   },
   {
-    icon: ShieldCheck,
+    icon: "shield-check",
     title: "Your data stays under your control",
     detail:
       "Connections are read-only. Your data is never sold, and you can export or delete it whenever you choose.",
   },
   {
-    icon: Cpu,
+    icon: "cpu",
     title: "No runtime AI",
     detail:
       "The product uses open data, transparent rules, and a client-side chess engine, not an opaque chatbot deciding your training.",
   },
   {
-    icon: Unlock,
+    icon: "unlock",
     title: "Training quality is never paywalled",
     detail:
       "Mainline is free, without ads. Optional patronage may support the project, but never buys better training.",
@@ -121,7 +114,7 @@ export default async function Home() {
           </Link>
           <nav
             aria-label="Landing page navigation"
-            className="hidden items-center gap-6 font-mono text-xs text-graphite sm:flex"
+            className="flex items-center gap-3 font-mono text-[0.7rem] text-graphite sm:gap-6 sm:text-xs"
           >
             <a
               className="transition-colors hover:text-ink"
@@ -208,24 +201,27 @@ export default async function Home() {
                   minutes="10 min"
                   title="Repair your own mistakes"
                   reason="Recent games supply the positions."
+                  delay="[animation-delay:150ms]"
                 />
                 <TrainingBlock
                   number="2"
                   minutes="8 min"
                   title="Review what is due"
                   reason="Completed work returns when it is useful."
+                  delay="[animation-delay:250ms]"
                 />
                 <TrainingBlock
                   number="3"
                   minutes="7 min"
                   title="Build the current priority"
                   reason="The session fits the goal and time left."
+                  delay="[animation-delay:350ms]"
                 />
               </div>
 
               <div className="border-t border-dashed border-paper/20 pt-4">
                 <p className="flex items-start gap-3 font-serif text-sm leading-relaxed text-paper/65">
-                  <HelpCircle className="mt-0.5 h-4 w-4 shrink-0 text-evergreen-bright" aria-hidden="true" />
+                  <LandingIcon name="help" className="mt-0.5 h-4 w-4 shrink-0 text-evergreen-bright" />
                   Every block carries its evidence grade, the data that
                   triggered it, and an honest explanation of uncertainty.
                 </p>
@@ -298,25 +294,22 @@ export default async function Home() {
           </div>
 
           <div className="mt-12 grid border-l border-t border-line sm:grid-cols-2 lg:grid-cols-3">
-            {PRINCIPLES.map((principle) => {
-              const Icon = principle.icon;
-              return (
-                <article
-                  key={principle.title}
-                  className="border-b border-r border-line bg-paper-raised/50 p-6 sm:p-7"
-                >
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-line/80 bg-paper text-evergreen shadow-xs">
-                    <Icon className="h-5 w-5 stroke-[1.75]" aria-hidden="true" />
-                  </div>
-                  <h3 className="mt-5 font-serif text-xl font-semibold leading-snug">
-                    {principle.title}
-                  </h3>
-                  <p className="mt-3 text-sm leading-relaxed text-graphite">
-                    {principle.detail}
-                  </p>
-                </article>
-              );
-            })}
+            {PRINCIPLES.map((principle) => (
+              <article
+                key={principle.title}
+                className="border-b border-r border-line bg-paper-raised/50 p-6 sm:p-7"
+              >
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-line/80 bg-paper text-evergreen shadow-xs">
+                  <LandingIcon name={principle.icon} className="h-5 w-5 stroke-[1.75]" />
+                </div>
+                <h3 className="mt-5 font-serif text-xl font-semibold leading-snug">
+                  {principle.title}
+                </h3>
+                <p className="mt-3 text-sm leading-relaxed text-graphite">
+                  {principle.detail}
+                </p>
+              </article>
+            ))}
           </div>
         </div>
       </section>
@@ -412,14 +405,21 @@ function TrainingBlock({
   minutes,
   title,
   reason,
+  delay = "[animation-delay:150ms]",
 }: {
   number: string;
   minutes: string;
   title: string;
   reason: string;
+  delay?: string;
 }) {
   return (
-    <div className="relative grid grid-cols-[2.4rem_1fr_auto] items-start gap-3 rounded-md border border-paper/10 bg-paper/[0.04] p-3.5">
+    <div
+      className={cn(
+        "settle relative grid grid-cols-[2.4rem_1fr_auto] items-start gap-3 rounded-md border border-paper/10 bg-paper/[0.04] p-3.5",
+        delay,
+      )}
+    >
       <span className="relative z-10 flex h-6 w-6 items-center justify-center rounded-full bg-evergreen font-mono text-[0.65rem] font-semibold text-primary-foreground">
         {number}
       </span>

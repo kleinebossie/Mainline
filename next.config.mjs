@@ -2,6 +2,7 @@ import { withSentryConfig } from "@sentry/nextjs";
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  transpilePackages: ["lucide-react"],
   // Cross-origin isolation so multi-threaded stockfish.wasm (SharedArrayBuffer) works
   // client-side later (BUILD.md §6.5). Applied app-wide.
   async headers() {
