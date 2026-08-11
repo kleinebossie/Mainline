@@ -110,7 +110,7 @@ export function TodayHeader({
   timeChanged: boolean;
   onRegenerate: () => void;
 }) {
-  const [goalOpen, setGoalOpen] = useState(false);
+  const [goalOpen, setGoalOpen] = useState(true);
   const done = program.items.filter((item) => item.status === "done").length;
   const skipped = program.items.filter(
     (item) => item.status === "skipped",
@@ -130,7 +130,7 @@ export function TodayHeader({
     if (done > 0) {
       if (
         !window.confirm(
-          "Update training plan? Progress completed in today's session will be replaced.",
+          "Update training plan? Completed progress in today's session will be preserved while remaining work is updated to fit the new time budget.",
         )
       ) {
         return;
@@ -145,7 +145,7 @@ export function TodayHeader({
         <div className="flex flex-wrap items-end justify-between gap-2">
           <div>
             <p className="eyebrow">{statusTitle}</p>
-            <p className="mt-1 font-serif text-lg font-semibold text-ink">
+            <p className="mt-1 font-sans text-lg font-semibold text-ink">
               {program.items.length === 0
                 ? "Nothing is waiting for you today."
                 : `${done} done, ${skipped} skipped, ${remaining} remaining`}
@@ -423,7 +423,6 @@ function TodayBlockCard({
   const isBook = item.activityType === "book";
   const scheduledBook = item.bookResource ?? item.params.bookResource ?? null;
   const bookOptions = scheduledBook ? [scheduledBook] : ownedBooks;
-  const meta = itemMeta(item);
 
   const isExternal =
     isBook ||
@@ -488,39 +487,6 @@ function TodayBlockCard({
         <p className="text-graphite min-w-0 text-sm leading-relaxed">
           {itemSummary(item)}
         </p>
-
-        {item.params.fitExplanation && (
-          <div className="border-l-2 border-evergreen/40 pl-3 text-sm leading-relaxed text-ink">
-            <p className="font-serif">
-              {item.params.fitExplanation.text}{" "}
-              <span className="font-mono text-[0.65rem] uppercase tracking-[0.08em] text-graphite">
-                Grade {item.params.fitExplanation.evidenceGrade} · Tier{" "}
-                {item.params.fitExplanation.evidenceTier} ·{" "}
-                {item.params.fitExplanation.citationKey}
-              </span>
-            </p>
-            {item.params.fitExplanation.soften && (
-              <p className="text-graphite mt-1 font-mono text-[0.68rem] leading-relaxed">
-                {item.params.fitExplanation.flag === "best-guess"
-                  ? "Best-guess delivery rule, not evidence that this activity works better."
-                  : "Low-confidence delivery rule, not evidence that this activity works better."}
-              </p>
-            )}
-          </div>
-        )}
-
-        {meta.length > 0 && (
-          <div className="flex min-w-0 flex-wrap gap-1.5">
-            {meta.map((label) => (
-              <span
-                key={label}
-                className="rounded-sm border border-line/80 bg-paper/50 px-2 py-1 font-mono text-[0.65rem] uppercase tracking-[0.12em] text-graphite"
-              >
-                {label}
-              </span>
-            ))}
-          </div>
-        )}
 
         <div className="flex min-w-0 flex-wrap items-center gap-2 border-t border-line/80 pt-3">
           <Button
@@ -770,6 +736,8 @@ function TodayBlockDetails({
   onSkip: () => void;
 }) {
   const closed = isClosedItem(item);
+  const meta = itemMeta(item);
+  const fitExplanation = item.params.fitExplanation;
   const showsBookLog =
     isBook &&
     !closed &&
@@ -792,6 +760,38 @@ function TodayBlockDetails({
           soften={item.soften}
           defaultCollapsed={false}
         />
+      )}
+
+      {fitExplanation && (
+        <div className="border-l-2 border-evergreen/40 pl-3 text-sm leading-relaxed text-ink">
+          <p className="font-serif">
+            {fitExplanation.text}{" "}
+            <span className="font-mono text-[0.65rem] uppercase tracking-[0.08em] text-graphite">
+              Grade {fitExplanation.evidenceGrade} · Tier{" "}
+              {fitExplanation.evidenceTier} · {fitExplanation.citationKey}
+            </span>
+          </p>
+          {fitExplanation.soften && (
+            <p className="text-graphite mt-1 font-mono text-[0.68rem] leading-relaxed">
+              {fitExplanation.flag === "best-guess"
+                ? "Best-guess delivery rule, not evidence that this activity works better."
+                : "Low-confidence delivery rule, not evidence that this activity works better."}
+            </p>
+          )}
+        </div>
+      )}
+
+      {meta.length > 0 && (
+        <div className="flex min-w-0 flex-wrap gap-1.5">
+          {meta.map((label) => (
+            <span
+              key={label}
+              className="rounded-sm border border-line/80 bg-paper/50 px-2 py-1 font-mono text-[0.65rem] uppercase tracking-[0.12em] text-graphite"
+            >
+              {label}
+            </span>
+          ))}
+        </div>
       )}
 
       {isBook && !closed ? (

@@ -33,6 +33,7 @@ export function Calibration() {
 
   const submit = trpc.assessment.submit.useMutation({
     onSuccess: () => void utils.assessment.state.invalidate(),
+    onError: () => setSolveStatus("pending"),
   });
   const reset = trpc.assessment.reset.useMutation({
     onSuccess: () => void utils.assessment.state.invalidate(),

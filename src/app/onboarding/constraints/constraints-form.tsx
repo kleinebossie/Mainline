@@ -134,7 +134,10 @@ function Form({
   const connections = trpc.connections.list.useQuery();
   const primaryQuery = trpc.connections.getPrimaryPlatform.useQuery();
   const setPrimary = trpc.analysis.setPrimaryPlatform.useMutation({
-    onSuccess: () => void utils.connections.getPrimaryPlatform.invalidate(),
+    onSuccess: () => {
+      setPrimaryPlatform(null);
+      void utils.connections.getPrimaryPlatform.invalidate();
+    },
     onError: (e) =>
       setError(
         errorMessage(
@@ -290,15 +293,31 @@ function Form({
     });
   };
 
+  const initialGoalKinds = new Set(
+    initial.goals.filter((g) => g.kind !== "other").map((g) => g.kind),
+  );
+  const initialOtherGoal =
+    initial.goals.find((g) => g.kind === "other")?.label ?? "";
+  const initialFormats = new Set(initial.formatPrefs.formats);
+  const initialOwnedResources = new Set(initial.ownedResources);
+
+  const areSetsEqual = <T,>(a: Set<T>, b: Set<T>) =>
+    a.size === b.size && [...a].every((x) => b.has(x));
+
   const isDirty =
     minutesPerDay !== initial.minutesPerDay ||
     daysPerWeek !== initial.daysPerWeek ||
+    !areSetsEqual(goalKinds, initialGoalKinds) ||
+    otherGoal !== initialOtherGoal ||
+    !areSetsEqual(formats, initialFormats) ||
     preferredVariety !== initial.formatPrefs.preferredVariety ||
     targetFocus !== initial.formatPrefs.targetFocus ||
     depthVsBreadth !== initial.sessionStyle.depthVsBreadth ||
     interleave !== initial.sessionStyle.interleave ||
     cue !== (initial.ifThenPlan?.cue ?? "") ||
-    plan !== (initial.ifThenPlan?.plan ?? "");
+    plan !== (initial.ifThenPlan?.plan ?? "") ||
+    (primaryPlatform !== null && primaryPlatform !== savedPrimaryPlatform) ||
+    !areSetsEqual(new Set(ownedResources), initialOwnedResources);
 
   return (
     <form className="flex flex-col gap-10 settle" onSubmit={onSubmit}>

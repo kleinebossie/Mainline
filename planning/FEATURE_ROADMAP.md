@@ -113,7 +113,7 @@ Implement P0-P11 in dependency order. Before inviting anyone:
 - All BUILD.md M15 requirements are complete or explicitly moved to `SHIPPING.md` with an owner and
   reason. Access control, privacy, deletion, API limits, and monitoring may not be deferred.
 - The active methodology is a validated `research-*` release rather than a user-facing stub.
-- The builder completes a 14-day natural-use validation with at least eight real training sessions,
+- [x] The builder completes a 14-day natural-use validation with at least eight real training sessions, (Completed on 2026-08-11)
   at least ten naturally played/imported games, and at least one manual PGN or OTB game.
 - The full flow works without database repair: import, analysis, weekly focus, internal seven-day
   forecast generation, Today, outcome logging, adaptation, history, feedback, export, and deletion.

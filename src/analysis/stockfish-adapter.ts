@@ -81,13 +81,18 @@ export class StockfishAnalysisEngine implements AnalysisEngineAdapter {
       for (const l of [...this.listeners]) l(line);
     };
 
-    await this.waitFor("uci", (l) => l.startsWith("uciok"));
-    if (!this.plan.singleThreaded) {
-      this.post(`setoption name Threads value ${Math.max(1, opts.threads)}`);
+    try {
+      await this.waitFor("uci", (l) => l.startsWith("uciok"));
+      if (!this.plan.singleThreaded) {
+        this.post(`setoption name Threads value ${Math.max(1, opts.threads)}`);
+      }
+      this.post(`setoption name Hash value ${Math.max(1, opts.hashMb)}`);
+      await this.waitFor("isready", (l) => l.startsWith("readyok"));
+      this.ready = true;
+    } catch (err) {
+      this.dispose();
+      throw err;
     }
-    this.post(`setoption name Hash value ${Math.max(1, opts.hashMb)}`);
-    await this.waitFor("isready", (l) => l.startsWith("readyok"));
-    this.ready = true;
   }
 
   async analyzePosition(

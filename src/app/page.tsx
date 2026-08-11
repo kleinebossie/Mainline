@@ -125,6 +125,9 @@ export default async function Home() {
             <a className="transition-colors hover:text-ink" href="#principles">
               Principles
             </a>
+            <Link className="transition-colors hover:text-ink" href="/about">
+              About
+            </Link>
           </nav>
           <a href="#get-started" className={buttonVariants({ size: "sm" })}>
             Get started
@@ -393,7 +396,12 @@ export default async function Home() {
           <span className="uppercase tracking-[0.18em]">
             Mainline · science-based chess training
           </span>
-          <span>No ads · no runtime AI · no rating promises</span>
+          <div className="flex items-center gap-6">
+            <span>No ads · no runtime AI · no rating promises</span>
+            <Link className="transition-colors hover:text-paper" href="/about">
+              About
+            </Link>
+          </div>
         </div>
       </footer>
     </main>

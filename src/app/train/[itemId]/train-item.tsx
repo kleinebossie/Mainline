@@ -419,14 +419,17 @@ export function TrainItem({ programItemId }: TrainItemProps) {
         ? retestQueue
         : [...retestQueue, current];
       setRetestQueue(nextRetestQueue);
-      setAdvanceAfterSave(true);
-      try {
-        await logOutcome(current, false, 0);
-      } catch {
-        return;
+      if (firstTryPassed) {
+        setAdvanceAfterSave(true);
+        try {
+          await logOutcome(current, false, 0);
+        } catch {
+          return;
+        } finally {
+          setAdvanceAfterSave(false);
+        }
       }
-      setAdvanceAfterSave(false);
-      handleNext({ persisted: true, retestQueueOverride: nextRetestQueue });
+      handleNext({ persisted: firstTryPassed, retestQueueOverride: nextRetestQueue });
       return;
     }
 
