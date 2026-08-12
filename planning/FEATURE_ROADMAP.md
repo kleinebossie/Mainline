@@ -115,12 +115,14 @@ Implement P0-P11 in dependency order. Before inviting anyone:
 - The active methodology is a validated `research-*` release rather than a user-facing stub.
 - [x] The builder completes a 14-day natural-use validation with at least eight real training sessions, (Completed on 2026-08-11)
   at least ten naturally played/imported games, and at least one manual PGN or OTB game.
+- [x] Publish source code under AGPL-3.0 as a closed beta repository. (Completed on 2026-08-12)
 - The full flow works without database repair: import, analysis, weekly focus, internal seven-day
   forecast generation, Today, outcome logging, adaptation, history, feedback, export, and deletion.
 - No unresolved critical incident exists.
 
 ### Stage B: pilot closed beta, 5-10 active users
 
+- [x] Send promo invitations to request 5-10 beta testers. (Completed on 2026-08-12)
 - Freeze major feature expansion for the first two weeks. Fix reliability, comprehension, and data
   integrity failures first.
 - Keep research observational. Collect qualitative feedback and validate that plan changes are both
@@ -209,7 +211,7 @@ Every part must end with:
 | P8   | Training-fit and product-feedback loop                          | Before closed beta                       | P5, P7                              | Complete |
 | P9   | Observational research capture and public methodology changelog | Before closed beta                       | P3, P8                              | Complete |
 | P10  | Manual PGN and OTB import                                       | Before closed beta                       | P2, P3                              | Complete |
-| P11  | User-zero acceptance and closed-beta release audit              | Before closed beta                       | P1-P10                              | Planned  |
+| P11  | User-zero acceptance and closed-beta release audit              | Before closed beta                       | P1-P10                              | Complete |
 | B1   | Recurring motif and board-vision diagnosis                      | Pilot beta                               | P11                                 | Planned  |
 | B2   | Phase and conversion diagnosis                                  | Closed beta                              | B1                                  | Planned  |
 | B3   | Time-use, opening gates, and uncertainty-driven probes          | Closed beta                              | B1                                  | Planned  |
