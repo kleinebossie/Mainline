@@ -527,6 +527,7 @@ test("normal core loop persists outcomes, adaptation, history, replan, and feedb
     );
     await expect(timeInput).toHaveValue(String(INITIAL_MINUTES));
     await timeInput.fill(String(REPLAN_MINUTES));
+    coreLoopPage.once("dialog", (dialog) => dialog.accept());
     await coreLoopPage.getByRole("button", { name: "Update plan" }).click();
     await expect(
       coreLoopPage.getByText("Plan updated", { exact: true }),

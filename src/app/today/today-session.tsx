@@ -367,6 +367,7 @@ export function TodayBlockList({
   onLogOutcome,
   onBookLogged,
   onUndoSkip,
+  defaultDetailsOpen,
 }: {
   items: TodayItem[];
   ownedBooks: OwnedBook[];
@@ -375,6 +376,7 @@ export function TodayBlockList({
   onLogOutcome: (input: LogOutcomeInput) => void;
   onBookLogged: () => void;
   onUndoSkip: (programItemId: string) => void;
+  defaultDetailsOpen?: boolean;
 }) {
   return (
     <div
@@ -392,6 +394,7 @@ export function TodayBlockList({
           onLogOutcome={onLogOutcome}
           onBookLogged={onBookLogged}
           onUndoSkip={onUndoSkip}
+          defaultDetailsOpen={defaultDetailsOpen}
         />
       ))}
     </div>
@@ -407,6 +410,7 @@ function TodayBlockCard({
   onLogOutcome,
   onBookLogged,
   onUndoSkip,
+  defaultDetailsOpen,
 }: {
   item: TodayItem;
   index: number;
@@ -416,8 +420,9 @@ function TodayBlockCard({
   onLogOutcome: (input: LogOutcomeInput) => void;
   onBookLogged: () => void;
   onUndoSkip: (programItemId: string) => void;
+  defaultDetailsOpen?: boolean;
 }) {
-  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(defaultDetailsOpen ?? false);
   const detailsId = `today-block-details-${item.id}`;
   const closed = isClosedItem(item);
   const isBook = item.activityType === "book";

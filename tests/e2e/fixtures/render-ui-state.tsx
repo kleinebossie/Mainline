@@ -115,6 +115,7 @@ function todayMarkup(statuses: string[]) {
           onLogOutcome={noOp}
           onBookLogged={noOp}
           onUndoSkip={noOp}
+          defaultDetailsOpen
         />
       </div>
       <div id="history">
