@@ -17,33 +17,64 @@ next-env.d.ts
 /test-results
 /blob-report
 
-# prisma
+# prisma and database dumps
 /prisma/*.db
+/prisma/*.db-journal
+*.sqlite
+*.sqlite-journal
+*.db-journal
+*.dump
 
-# Lichess open puzzle DB dumps (CC0) — large source data for scripts/ingest-puzzles.ts,
+# Lichess open puzzle DB dumps (CC0): large source data for scripts/ingest-puzzles.ts,
 # never committed (the stratified subset lives in Postgres). Download per the ingest docs.
 /lichess_db_puzzle.csv
 /lichess_db_puzzle.csv.zst
 
-# Stockfish WASM engine (GPLv3, ~14 MB) — copied from node_modules/stockfish into
+# Stockfish WASM engine (GPLv3, ~14 MB): copied from node_modules/stockfish into
 # public/ by `npm run setup:stockfish` (also auto-run before dev/build). Not committed;
 # regenerated from the pinned devDependency so client-side analysis (M5, §6.5) works.
 /public/stockfish/
 
-# misc
-.DS_Store
-*.pem
-*.tsbuildinfo
+# logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
 
-# env files (never commit secrets — VISION §7)
+# misc & OS junk
+.DS_Store
+._*
+Thumbs.db
+ehthumbs.db
+*.pem
+*.key
+*.crt
+*.tsbuildinfo
+*.tmp
+*.bak
+
+# env files (never commit secrets: VISION §7)
 .env
 .env*.local
+.env.production
+.env.staging
+.env.development
+.env.test
+
+# editor & IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# AI tools & assistant state (keeps project skills in .agents committed)
+.claude/
+.gemini/
+.cursor/
 
 # vercel
 .vercel
-
-# Claude Code local plan transcripts
-.claude/plans/
 
 # Temporary planning files
 /planning/TEMP_*
