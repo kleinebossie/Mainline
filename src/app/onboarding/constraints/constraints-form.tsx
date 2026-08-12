@@ -345,6 +345,8 @@ function Form({
             Minutes per day
           </span>
           <Input
+            id="minutesPerDay"
+            name="minutesPerDay"
             type="number"
             min={MIN_MINUTES_PER_DAY}
             max={MAX_MINUTES_PER_DAY}
@@ -362,6 +364,8 @@ function Form({
             Days per week
           </span>
           <Input
+            id="daysPerWeek"
+            name="daysPerWeek"
             type="number"
             min={1}
             max={7}
@@ -379,6 +383,9 @@ function Form({
           {GOAL_OPTIONS.map((g) => (
             <label key={g.kind} className="choice-control">
               <input
+                id={`goal-${g.kind}`}
+                name="goals"
+                value={g.kind}
                 type="checkbox"
                 checked={goalKinds.has(g.kind)}
                 onChange={() => setGoalKinds((s) => toggle(s, g.kind))}
@@ -388,6 +395,8 @@ function Form({
           ))}
           <div className="mt-2 max-w-md">
             <Input
+              id="otherGoal"
+              name="otherGoal"
               value={otherGoal}
               onChange={(e) => setOtherGoal(e.target.value)}
               placeholder="Something else (optional)"
@@ -409,6 +418,9 @@ function Form({
           {CHESS_FORMATS.map((f) => (
             <label key={f} className="choice-control capitalize">
               <input
+                id={`format-${f}`}
+                name="formats"
+                value={f}
                 type="checkbox"
                 checked={formats.has(f)}
                 onChange={() => setFormats((s) => toggle(s, f))}
@@ -419,6 +431,8 @@ function Form({
         </div>
         <label className="choice-control mt-2">
           <input
+            id="preferredVariety"
+            name="preferredVariety"
             type="checkbox"
             checked={preferredVariety}
             onChange={(e) => setVariety(e.target.checked)}
@@ -436,8 +450,10 @@ function Form({
             {TARGET_FOCUSES.map((tf) => (
               <label key={tf} className="choice-control">
                 <input
+                  id={`targetFocus-${tf}`}
                   type="radio"
                   name="targetFocus"
+                  value={tf}
                   checked={targetFocus === tf}
                   onChange={() => setTargetFocus(tf)}
                 />
@@ -464,8 +480,10 @@ function Form({
           {(["lichess", "chesscom"] as const).map((p) => (
             <label key={p} className="choice-control">
               <input
+                id={`primaryPlatform-${p}`}
                 type="radio"
                 name="primaryPlatform"
+                value={p}
                 checked={effectivePrimary === p}
                 onChange={() => setPrimaryPlatform(p)}
               />
@@ -517,6 +535,8 @@ function Form({
         )}
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <Select
+            id="newResourceKind"
+            name="newResourceKind"
             value={newResourceKind}
             onChange={(e) =>
               handleResourceKindChange(e.target.value as OwnedResource["kind"])
@@ -532,6 +552,8 @@ function Form({
           </Select>
           {newResourceKind === "book" ? (
             <Select
+              id="newResourceExternalRef"
+              name="newResourceExternalRef"
               value={newResourceExternalRef || ""}
               onChange={(e) => {
                 const bookId = e.target.value;
@@ -562,6 +584,8 @@ function Form({
             </Select>
           ) : (
             <Input
+              id="newResourceLabel"
+              name="newResourceLabel"
               value={newResourceLabel}
               onChange={(e) => setNewResourceLabel(e.target.value)}
               onKeyDown={(e) => {
@@ -603,8 +627,10 @@ function Form({
           {DEPTH_VS_BREADTH.map((d) => (
             <label key={d} className="choice-control">
               <input
+                id={`depthVsBreadth-${d}`}
                 type="radio"
                 name="depthVsBreadth"
+                value={d}
                 checked={depthVsBreadth === d}
                 onChange={() => setDepth(d)}
               />
@@ -614,6 +640,8 @@ function Form({
         </div>
         <label className="choice-control mt-1">
           <input
+            id="interleave"
+            name="interleave"
             type="checkbox"
             checked={interleave}
             onChange={(e) => setInterleave(e.target.checked)}
@@ -633,6 +661,8 @@ function Form({
               After
             </span>
             <Input
+              id="ifThenCue"
+              name="ifThenCue"
               value={cue}
               onChange={(e) => setCue(e.target.value)}
               placeholder="my morning coffee"
@@ -646,6 +676,8 @@ function Form({
               , I will
             </span>
             <Input
+              id="ifThenPlan"
+              name="ifThenPlan"
               value={plan}
               onChange={(e) => setPlan(e.target.value)}
               placeholder="open today's session"

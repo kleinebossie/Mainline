@@ -175,6 +175,8 @@ export function FeedbackPanel() {
             <label className="flex flex-col gap-2 font-mono text-xs text-graphite">
               Training block
               <Select
+                id="feedbackTargetId"
+                name="targetId"
                 value={targetId}
                 onChange={(event) => setTargetId(event.target.value)}
                 required
@@ -199,6 +201,8 @@ export function FeedbackPanel() {
               <label className="flex flex-col gap-2 font-mono text-xs text-graphite">
                 Felt relevant
                 <Select
+                  id="feedbackRelevance"
+                  name="relevance"
                   value={relevance}
                   onChange={(event) =>
                     setRelevance(event.target.value as typeof relevance)
@@ -212,6 +216,8 @@ export function FeedbackPanel() {
               <label className="flex flex-col gap-2 font-mono text-xs text-graphite">
                 Enjoyment
                 <Select
+                  id="feedbackEnjoyment"
+                  name="enjoyment"
                   value={enjoyment}
                   onChange={(event) =>
                     setEnjoyment(event.target.value as typeof enjoyment)
@@ -225,6 +231,8 @@ export function FeedbackPanel() {
               <label className="flex flex-col gap-2 font-mono text-xs text-graphite">
                 Time fit
                 <Select
+                  id="feedbackTimeFit"
+                  name="timeFit"
                   value={timeFit}
                   onChange={(event) =>
                     setTimeFit(event.target.value as typeof timeFit)
@@ -250,6 +258,8 @@ export function FeedbackPanel() {
                       className="flex cursor-pointer items-center gap-2 rounded-md border border-line bg-paper/50 px-3 py-2 font-mono text-xs text-graphite"
                     >
                       <input
+                        id={`frictionTag-${tag.value}`}
+                        name="frictionTags"
                         type="checkbox"
                         checked={selected}
                         onChange={() =>
@@ -270,6 +280,8 @@ export function FeedbackPanel() {
             <label className="flex flex-col gap-2 font-mono text-xs text-graphite">
               Anything else? Optional
               <Textarea
+                id="feedbackComment"
+                name="comment"
                 value={comment}
                 maxLength={1000}
                 onChange={(event) => setComment(event.target.value)}
@@ -302,6 +314,8 @@ export function FeedbackPanel() {
             <label className="flex max-w-md flex-col gap-2 font-mono text-xs text-graphite">
               Optional positive delivery preference
               <Select
+                id="feedbackPreferredActivity"
+                name="preferredActivity"
                 value={data.state.preferredActivity ?? ""}
                 disabled={setPreference.isPending}
                 onChange={(event) =>
@@ -364,6 +378,8 @@ export function FeedbackPanel() {
           <label className="flex max-w-sm flex-col gap-2 font-mono text-xs text-graphite">
             Category
             <Select
+              id="productCategory"
+              name="productCategory"
               value={productCategory}
               onChange={(event) =>
                 setProductCategory(event.target.value as typeof productCategory)
@@ -378,6 +394,8 @@ export function FeedbackPanel() {
           <label className="flex flex-col gap-2 font-mono text-xs text-graphite">
             Message
             <Textarea
+              id="productMessage"
+              name="productMessage"
               required
               maxLength={2000}
               value={productMessage}
@@ -387,6 +405,8 @@ export function FeedbackPanel() {
           </label>
           <label className="flex items-start gap-2 font-mono text-xs text-graphite">
             <input
+              id="contactAllowed"
+              name="contactAllowed"
               type="checkbox"
               checked={contactAllowed}
               onChange={(event) => setContactAllowed(event.target.checked)}

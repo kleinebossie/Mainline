@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
     title: "Mainline",
   },
-  icons: { apple: "/icons/mainline-192.png" },
+  icons: { icon: "/favicon.ico", apple: "/icons/mainline-192.png" },
   formatDetection: { telephone: false },
 };
 

@@ -149,6 +149,8 @@ export function AccountActions() {
           <>
             <label className="flex items-start gap-3 text-sm">
               <input
+                id="affirmOptional"
+                name="affirmOptional"
                 checked={affirmOptional}
                 className="mt-1"
                 disabled={!loadedNotice}
