@@ -519,10 +519,10 @@ function StreamlinedForm({
             </span>
             <div className="flex flex-col">
               <p className="font-serif text-sm font-semibold text-evergreen">
-                Preferences saved successfully!
+                Preferences saved
               </p>
               <p className="font-serif text-xs text-graphite">
-                Your daily training program will use these settings.
+                Saved. Your daily program will use these settings.
               </p>
             </div>
           </div>
