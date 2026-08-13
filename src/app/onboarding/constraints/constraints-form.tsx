@@ -31,7 +31,7 @@ import type { RationaleEntry } from "@/methodology";
 import { errorMessage } from "@/lib/error-presentation";
 import { shouldPersistPrimaryPlatform } from "@/lib/primary-platform";
 
-// Labels for the play-medium choice (M14) — drives the 2D/3D modality + OTB recommendations.
+// Labels for the play-medium choice (M14): drives the 2D/3D modality + OTB recommendations.
 const TARGET_FOCUS_LABELS: Record<TargetFocus, string> = {
   online: "Online only",
   hybrid: "Both online and over-the-board",
@@ -54,7 +54,7 @@ const DEPTH_LABELS: Record<SessionStyle["depthVsBreadth"], string> = {
 };
 
 // Goal kinds offered as checkboxes (label is UI copy; the schema stores { kind, label }).
-// These are aspirations/constraints — never a skill self-rating (Seam 2 boundary).
+// These are aspirations/constraints: never a skill self-rating (Seam 2 boundary).
 const GOAL_OPTIONS: ReadonlyArray<{ kind: Goal["kind"]; label: string }> = [
   { kind: "rating", label: "Raise my rating" },
   { kind: "tactics", label: "Sharpen tactics" },
@@ -129,7 +129,7 @@ function Form({
       ),
   });
 
-  // Preferred home platform (Goal 3): stored on the User row, not the ConstraintSet — saved
+  // Preferred home platform (Goal 3): stored on the User row, not the ConstraintSet, saved
   // alongside via setPrimaryPlatform. Defaults to the saved choice, then a connected account.
   const connections = trpc.connections.list.useQuery();
   const primaryQuery = trpc.connections.getPrimaryPlatform.useQuery();
@@ -153,8 +153,12 @@ function Form({
     "lichess" | "chesscom" | null
   >(null);
 
-  const [minutesPerDay, setMinutes] = useState(initial.minutesPerDay);
-  const [daysPerWeek, setDays] = useState(initial.daysPerWeek);
+  const [minutesInput, setMinutesInput] = useState<string>(
+    String(initial.minutesPerDay),
+  );
+  const [daysInput, setDaysInput] = useState<string>(
+    String(initial.daysPerWeek),
+  );
   const [goalKinds, setGoalKinds] = useState<Set<Goal["kind"]>>(
     new Set(initial.goals.filter((g) => g.kind !== "other").map((g) => g.kind)),
   );
@@ -201,6 +205,7 @@ function Form({
   );
 
   const toggle = <T,>(set: Set<T>, value: T): Set<T> => {
+    setSaved(false);
     const nextSet = new Set(set);
     if (nextSet.has(value)) nextSet.delete(value);
     else nextSet.add(value);
@@ -216,6 +221,7 @@ function Form({
   const addResource = () => {
     const label = newResourceLabel.trim();
     if (!label || ownedResources.length >= 100) return;
+    setSaved(false);
     setOwnedResources((rs) => [
       ...rs,
       {
@@ -229,8 +235,10 @@ function Form({
     setNewResourceLabel("");
     setNewResourceExternalRef(undefined);
   };
-  const removeResource = (index: number) =>
+  const removeResource = (index: number) => {
+    setSaved(false);
     setOwnedResources((rs) => rs.filter((_, i) => i !== index));
+  };
 
   // The platform the picker should show: the in-form choice, else the saved preference, else
   // a connected account, else Lichess.
@@ -246,10 +254,32 @@ function Form({
     connectedPlatforms[0] ??
     "lichess") as "lichess" | "chesscom";
 
+  const parsedMinutes = parseInt(minutesInput.trim(), 10);
+  const currentMinutes = Number.isNaN(parsedMinutes) ? 0 : parsedMinutes;
+  const parsedDays = parseInt(daysInput.trim(), 10);
+  const currentDays = Number.isNaN(parsedDays) ? 0 : parsedDays;
+
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setSaved(false);
     setError(null);
+
+    if (
+      Number.isNaN(parsedMinutes) ||
+      parsedMinutes < MIN_MINUTES_PER_DAY ||
+      parsedMinutes > MAX_MINUTES_PER_DAY
+    ) {
+      setError(
+        `Enter a daily time budget between ${MIN_MINUTES_PER_DAY} and ${MAX_MINUTES_PER_DAY} minutes.`,
+      );
+      return;
+    }
+
+    if (Number.isNaN(parsedDays) || parsedDays < 1 || parsedDays > 7) {
+      setError("Enter training days per week between 1 and 7.");
+      return;
+    }
+
     if (formats.size === 0) {
       setError(
         "Select at least one format you play (bullet, blitz, rapid, or classical).",
@@ -279,8 +309,8 @@ function Form({
     const cueT = cue.trim();
     const planT = plan.trim();
     save.mutate({
-      minutesPerDay,
-      daysPerWeek,
+      minutesPerDay: parsedMinutes,
+      daysPerWeek: parsedDays,
       goals,
       ownedResources,
       formatPrefs: {
@@ -305,8 +335,8 @@ function Form({
     a.size === b.size && [...a].every((x) => b.has(x));
 
   const isDirty =
-    minutesPerDay !== initial.minutesPerDay ||
-    daysPerWeek !== initial.daysPerWeek ||
+    currentMinutes !== initial.minutesPerDay ||
+    currentDays !== initial.daysPerWeek ||
     !areSetsEqual(goalKinds, initialGoalKinds) ||
     otherGoal !== initialOtherGoal ||
     !areSetsEqual(formats, initialFormats) ||
@@ -350,8 +380,11 @@ function Form({
             type="number"
             min={MIN_MINUTES_PER_DAY}
             max={MAX_MINUTES_PER_DAY}
-            value={minutesPerDay}
-            onChange={(e) => setMinutes(Number(e.target.value))}
+            value={minutesInput}
+            onChange={(e) => {
+              setMinutesInput(e.target.value);
+              setSaved(false);
+            }}
           />
           <span className="text-graphite font-serif text-xs font-normal leading-relaxed">
             This is a <span className="text-ink font-medium">hard maximum</span>
@@ -369,8 +402,11 @@ function Form({
             type="number"
             min={1}
             max={7}
-            value={daysPerWeek}
-            onChange={(e) => setDays(Number(e.target.value))}
+            value={daysInput}
+            onChange={(e) => {
+              setDaysInput(e.target.value);
+              setSaved(false);
+            }}
           />
         </label>
       </fieldset>
@@ -394,15 +430,18 @@ function Form({
             </label>
           ))}
           <div className="mt-2 max-w-md">
-            <Input
-              id="otherGoal"
-              name="otherGoal"
-              value={otherGoal}
-              onChange={(e) => setOtherGoal(e.target.value)}
-              placeholder="Something else (optional)"
-              aria-label="Other goal"
-              maxLength={120}
-            />
+              <Input
+                id="otherGoal"
+                name="otherGoal"
+                value={otherGoal}
+                onChange={(e) => {
+                  setOtherGoal(e.target.value);
+                  setSaved(false);
+                }}
+                placeholder="Something else (optional)"
+                aria-label="Other goal"
+                maxLength={120}
+              />
           </div>
         </div>
       </fieldset>
@@ -435,12 +474,15 @@ function Form({
             name="preferredVariety"
             type="checkbox"
             checked={preferredVariety}
-            onChange={(e) => setVariety(e.target.checked)}
+            onChange={(e) => {
+              setVariety(e.target.checked);
+              setSaved(false);
+            }}
           />
           I like variety in my daily sessions
         </label>
 
-        {/* M14 — the play medium drives the 2D/3D modality + over-the-board recommendations
+        {/* M14: the play medium drives the 2D/3D modality + over-the-board recommendations
             and the board interface restrictions (Seam 4 §4.4). */}
         <div className="mt-3 flex flex-col gap-2">
           <span className="eyebrow !text-[0.65rem] !tracking-wider">
@@ -455,7 +497,10 @@ function Form({
                   name="targetFocus"
                   value={tf}
                   checked={targetFocus === tf}
-                  onChange={() => setTargetFocus(tf)}
+                  onChange={() => {
+                    setTargetFocus(tf);
+                    setSaved(false);
+                  }}
                 />
                 {TARGET_FOCUS_LABELS[tf]}
               </label>
@@ -485,7 +530,10 @@ function Form({
                 name="primaryPlatform"
                 value={p}
                 checked={effectivePrimary === p}
-                onChange={() => setPrimaryPlatform(p)}
+                onChange={() => {
+                  setPrimaryPlatform(p);
+                  setSaved(false);
+                }}
               />
               {platformLabel(p)}
               {connectedPlatforms.includes(p) && (
@@ -560,6 +608,7 @@ function Form({
                 setNewResourceExternalRef(bookId || undefined);
                 const book = recommendedBooks.find((b) => b.id === bookId);
                 setNewResourceLabel(book ? book.title : "");
+                setSaved(false);
               }}
               aria-label="Select recommended book"
               className="flex-1"
@@ -587,7 +636,10 @@ function Form({
               id="newResourceLabel"
               name="newResourceLabel"
               value={newResourceLabel}
-              onChange={(e) => setNewResourceLabel(e.target.value)}
+              onChange={(e) => {
+                setNewResourceLabel(e.target.value);
+                setSaved(false);
+              }}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   e.preventDefault();
@@ -632,7 +684,10 @@ function Form({
                 name="depthVsBreadth"
                 value={d}
                 checked={depthVsBreadth === d}
-                onChange={() => setDepth(d)}
+                onChange={() => {
+                  setDepth(d);
+                  setSaved(false);
+                }}
               />
               {DEPTH_LABELS[d]}
             </label>
@@ -644,7 +699,10 @@ function Form({
             name="interleave"
             type="checkbox"
             checked={interleave}
-            onChange={(e) => setInterleave(e.target.checked)}
+            onChange={(e) => {
+              setInterleave(e.target.checked);
+              setSaved(false);
+            }}
           />
           Mix different topics within a session (interleaving)
         </label>
@@ -664,7 +722,10 @@ function Form({
               id="ifThenCue"
               name="ifThenCue"
               value={cue}
-              onChange={(e) => setCue(e.target.value)}
+              onChange={(e) => {
+                setCue(e.target.value);
+                setSaved(false);
+              }}
               placeholder="my morning coffee"
               aria-label="If-then cue"
               maxLength={160}
@@ -679,7 +740,10 @@ function Form({
               id="ifThenPlan"
               name="ifThenPlan"
               value={plan}
-              onChange={(e) => setPlan(e.target.value)}
+              onChange={(e) => {
+                setPlan(e.target.value);
+                setSaved(false);
+              }}
               placeholder="open today's session"
               aria-label="If-then plan"
               maxLength={160}
