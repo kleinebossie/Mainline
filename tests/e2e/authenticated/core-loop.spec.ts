@@ -319,7 +319,7 @@ test("normal core loop persists outcomes, adaptation, history, replan, and feedb
       .click();
     await expect(coreLoopPage).toHaveURL(/\/today$/);
     await expect(
-      coreLoopPage.getByRole("heading", { name: "Today" }),
+      coreLoopPage.getByRole("heading", { name: "Today", exact: true }),
     ).toBeVisible();
 
     await expect
