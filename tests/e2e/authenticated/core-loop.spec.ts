@@ -266,22 +266,16 @@ test("normal core loop persists outcomes, adaptation, history, replan, and feedb
 
     await expect(coreLoopPage).toHaveURL(/\/onboarding\/constraints$/);
     await coreLoopPage
-      .getByLabel(/Minutes per day/)
+      .getByLabel(/Custom minutes:/)
       .fill(String(INITIAL_MINUTES));
-    await coreLoopPage.getByLabel(/Days per week/).fill("6");
-    await coreLoopPage.getByLabel("Raise my rating").check();
-    await coreLoopPage.getByLabel("Sharpen tactics").check();
-    await coreLoopPage.getByLabel("rapid", { exact: true }).check();
-    await coreLoopPage.getByLabel("If-then cue").fill("finishing breakfast");
-    await coreLoopPage
-      .getByLabel("If-then plan")
-      .fill("open my Mainline session");
+    await coreLoopPage.getByLabel("Rapid", { exact: false }).check();
+    await coreLoopPage.getByLabel("Screen only", { exact: false }).check();
     await coreLoopPage
       .getByRole("button", { name: "Save constraints" })
       .click();
     await expect(
       coreLoopPage.getByText(
-        "Saved. Your next session will use these settings.",
+        "Saved. Your daily program will use these settings.",
       ),
     ).toBeVisible();
 
@@ -291,23 +285,17 @@ test("normal core loop persists outcomes, adaptation, history, replan, and feedb
     expect(savedConstraints).toMatchObject({
       userId: coreLoopUser.id,
       minutesPerDay: INITIAL_MINUTES,
-      daysPerWeek: 6,
+      daysPerWeek: 5,
       isCurrent: true,
       version: 1,
     });
-    expect(savedConstraints.goals).toEqual([
-      { kind: "rating", label: "Raise my rating" },
-      { kind: "tactics", label: "Sharpen tactics" },
-    ]);
+    expect(savedConstraints.goals).toEqual([]);
     expect(savedConstraints.formatPrefs).toEqual({
       formats: ["rapid"],
       preferredVariety: false,
       targetFocus: "online",
     });
-    expect(savedConstraints.ifThenPlan).toEqual({
-      cue: "finishing breakfast",
-      plan: "open my Mainline session",
-    });
+    expect(savedConstraints.ifThenPlan).toBeNull();
 
     await coreLoopPage.getByRole("link", { name: /Continue/ }).click();
     await expect(coreLoopPage).toHaveURL(/\/onboarding\/reveal$/);

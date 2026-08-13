@@ -1,20 +1,18 @@
 import { PageShell } from "@/components/app-shell";
-import { ConstraintsForm } from "@/app/onboarding/constraints/constraints-form";
-import { loadMethodology, rationaleFor } from "@/methodology";
+import { OnboardingConstraintsForm } from "@/app/onboarding/constraints/onboarding-constraints-form";
 
-// Constraints step (BUILD.md §8 step 6 · §5.4). Captures the user's reality — time,
-// cadence, goals, format preferences, and a Seam-9 if-then plan. Everything here is
-// constraints/goals self-report (allowed); skill is never self-reported (Seam 2).
+// Constraints step (BUILD.md §8 step 6 · §5.4). Captures core user constraints:
+// time budget, primary game format, and screen vs physical board modality.
+// Advanced settings (book libraries, if-then plans, interleaving) live in Settings.
 export default function ConstraintsPage() {
-  const ifThenRationale = rationaleFor("if_then_plan", loadMethodology());
-
   return (
     <PageShell
       eyebrow="Step 3 of setup"
-      title="Your time & goals"
-      lede="This shapes how much Mainline plans each day and what we prioritise. You can change these constraints at any time."
+      title="Your training constraints"
+      lede="Three simple choices to shape your daily training. You can customize books, interleaving, and habit cues in Settings at any time."
     >
-      <ConstraintsForm ifThenRationale={ifThenRationale} />
+      <OnboardingConstraintsForm />
     </PageShell>
   );
 }
+
