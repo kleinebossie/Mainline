@@ -5,6 +5,7 @@
 Before looking for bugs, understand what you're auditing. This requires depth, not just a directory listing. Launch **multiple `research` agents in parallel** to map different aspects of the codebase:
 
 **Agent 1a: Overview, tech stack, and comparable baseline**
+
 ```
 Explore the codebase at <path>. Answer:
 1. What is this application? What kind of software? (web app, API, CLI tool, library, daemon, desktop app, mobile backend, etc.)
@@ -16,6 +17,7 @@ Return specific file paths for key entry points.
 ```
 
 **Agent 1b: Trust boundaries and access control**
+
 ```
 Explore the codebase at <path>. Find and read ALL code related to:
 1. Trust boundaries — where does untrusted input enter the system? (HTTP requests, CLI args, file reads, IPC, message queues, environment variables, config files, etc.)
@@ -27,6 +29,7 @@ Return the trust model: who are the actors, what can each do by design, and whic
 ```
 
 **Agent 1c: Input surface inventory**
+
 ```
 Explore the codebase at <path>. Produce a complete inventory of where external input enters the system:
 1. Network-facing surfaces (HTTP endpoints, gRPC services, WebSocket handlers, TCP/UDP listeners, etc.) — list each with method/verb and purpose
@@ -39,6 +42,7 @@ Return specific file paths. Be exhaustive.
 ```
 
 Collect all three agents' outputs and synthesize them into `<output-dir>/architecture.md`:
+
 - 1-2 page structured summary covering application type, tech stack, trust model, input surfaces, and baseline comparable
 - Include the key file paths from all agents — these become the starting points for Phase 2
 - This document is injected verbatim into every Phase 2 agent prompt

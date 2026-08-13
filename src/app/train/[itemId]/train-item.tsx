@@ -120,6 +120,11 @@ export function TrainItem({ programItemId }: TrainItemProps) {
   const sessionDeadlineRef = useRef<number | null>(null);
   const sessionTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Auto-advance State
+  const [autoAdvanceSec, setAutoAdvanceSec] = useState<number | null>(null);
+  const [autoAdvancePaused, setAutoAdvancePaused] = useState<boolean>(false);
+  const autoAdvanceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   const finishSession = useCallback(
     (reason: "completed" | "manual" | "time_up") => {
       if (timerRef.current) clearInterval(timerRef.current);
@@ -246,6 +251,9 @@ export function TrainItem({ programItemId }: TrainItemProps) {
       if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
       if (delayTimerRef.current) clearInterval(delayTimerRef.current);
       if (sessionTimerRef.current) clearInterval(sessionTimerRef.current);
+      if (autoAdvanceTimerRef.current) {
+        clearInterval(autoAdvanceTimerRef.current);
+      }
     };
   }, []);
 
@@ -279,6 +287,55 @@ export function TrainItem({ programItemId }: TrainItemProps) {
     logMutation.error ?? completionMutation.error,
   );
   const resultBlocked = resultAdvanceBlocked(persistenceState);
+
+  useEffect(() => {
+    if (
+      phase !== "complete" ||
+      !data?.nextItem ||
+      autoAdvancePaused ||
+      resultBlocked
+    ) {
+      if (autoAdvanceTimerRef.current) {
+        clearInterval(autoAdvanceTimerRef.current);
+        autoAdvanceTimerRef.current = null;
+      }
+      return;
+    }
+
+    if (autoAdvanceSec === null) {
+      setAutoAdvanceSec(4);
+      return;
+    }
+
+    if (autoAdvanceSec <= 0) {
+      if (autoAdvanceTimerRef.current) {
+        clearInterval(autoAdvanceTimerRef.current);
+        autoAdvanceTimerRef.current = null;
+      }
+      const nextUrl = data.nextItem.url ?? "/today";
+      router.push(nextUrl);
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setAutoAdvanceSec((prev) => (prev !== null ? prev - 1 : null));
+    }, 1000);
+    autoAdvanceTimerRef.current = timer;
+
+    return () => {
+      clearInterval(timer);
+      if (autoAdvanceTimerRef.current === timer) {
+        autoAdvanceTimerRef.current = null;
+      }
+    };
+  }, [
+    autoAdvancePaused,
+    autoAdvanceSec,
+    data?.nextItem,
+    phase,
+    resultBlocked,
+    router,
+  ]);
 
   async function retryOutcome() {
     if (completionMutation.error && completionMutation.variables) {
@@ -429,7 +486,10 @@ export function TrainItem({ programItemId }: TrainItemProps) {
           setAdvanceAfterSave(false);
         }
       }
-      handleNext({ persisted: firstTryPassed, retestQueueOverride: nextRetestQueue });
+      handleNext({
+        persisted: firstTryPassed,
+        retestQueueOverride: nextRetestQueue,
+      });
       return;
     }
 
@@ -519,7 +579,9 @@ export function TrainItem({ programItemId }: TrainItemProps) {
             ? "This block stopped at its planned limit. Completed puzzle results are saved."
             : finishReason === "manual"
               ? "Completed puzzle results are saved. Unattempted puzzles were left untouched."
-              : "Your outcomes have been recorded and any follow-up review work is scheduled in Today.";
+              : data.nextItem
+                ? `You completed this training block. Ready to advance to Block ${data.nextItem.orderIndex + 1}.`
+                : "Your outcomes have been recorded and any follow-up review work is scheduled in Today.";
 
     return (
       <div className="flex flex-col gap-6 py-6 settle">
@@ -551,20 +613,94 @@ export function TrainItem({ programItemId }: TrainItemProps) {
                 {solvables.length - retestQueue.length} of {solvables.length}{" "}
                 positions correct on first attempt (
                 {Math.round(
-                  ((solvables.length - retestQueue.length) /
-                    solvables.length) *
+                  ((solvables.length - retestQueue.length) / solvables.length) *
                     100,
                 )}
                 % accuracy).
               </p>
             )}
-            <Button
-              onClick={() => router.push("/today")}
-              className="self-start"
-              disabled={resultBlocked}
-            >
-              {resultAdvanceLabel(persistenceState, "Back to Today")}
-            </Button>
+
+            {data.nextItem && (
+              <div className="rounded-md border border-evergreen/30 bg-evergreen/[0.04] p-3 sm:p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="eyebrow text-evergreen">
+                      Next in today&apos;s session
+                    </p>
+                    <p className="mt-0.5 font-serif text-base font-semibold text-ink">
+                      Block {data.nextItem.orderIndex + 1}:{" "}
+                      {data.nextItem.label}
+                    </p>
+                    {!autoAdvancePaused &&
+                      autoAdvanceSec !== null &&
+                      autoAdvanceSec > 0 &&
+                      !resultBlocked && (
+                        <p className="text-graphite font-mono text-xs mt-1">
+                          Auto-advancing in {autoAdvanceSec}s...
+                        </p>
+                      )}
+                    {autoAdvancePaused && (
+                      <p className="text-graphite font-mono text-xs mt-1">
+                        Auto-advance paused.
+                      </p>
+                    )}
+                  </div>
+                  {!autoAdvancePaused &&
+                    autoAdvanceSec !== null &&
+                    autoAdvanceSec > 0 &&
+                    !resultBlocked && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setAutoAdvancePaused(true)}
+                      >
+                        Pause auto-advance
+                      </Button>
+                    )}
+                </div>
+              </div>
+            )}
+
+            <div className="flex flex-wrap items-center gap-3 pt-2">
+              {data.nextItem ? (
+                <>
+                  <Button
+                    onClick={() => {
+                      if (autoAdvanceTimerRef.current) {
+                        clearInterval(autoAdvanceTimerRef.current);
+                      }
+                      router.push(data.nextItem?.url ?? "/today");
+                    }}
+                    disabled={resultBlocked}
+                  >
+                    {resultAdvanceLabel(
+                      persistenceState,
+                      `Continue to Block ${data.nextItem.orderIndex + 1}`,
+                    )}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      if (autoAdvanceTimerRef.current) {
+                        clearInterval(autoAdvanceTimerRef.current);
+                      }
+                      router.push("/today");
+                    }}
+                    disabled={resultBlocked}
+                  >
+                    Back to Today
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  onClick={() => router.push("/today")}
+                  disabled={resultBlocked}
+                >
+                  {resultAdvanceLabel(persistenceState, "Back to Today")}
+                </Button>
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -770,7 +906,8 @@ export function TrainItem({ programItemId }: TrainItemProps) {
                 </span>
                 {solveStatus === "wrong" && (
                   <p className="text-destructive font-serif text-xs leading-relaxed">
-                    That move was not optimal. The position will reset shortly so you can retry.
+                    That move was not optimal. The position will reset shortly
+                    so you can retry.
                   </p>
                 )}
               </div>

@@ -9,6 +9,7 @@ Each agent gets the architecture summary from Phase 1 injected into its prompt p
 **How many agents?** Use Phase 1 to decide. More focused agents produce better results than broad ones that run out of context. For a small library, 3-4 agents may suffice. For a large application with distinct subsystems, launch 8-12+ — split by attack class AND by subsystem. If Phase 1 revealed an auth system, a plugin system, a media pipeline, and a comment engine, each of those could warrant its own injection agent, its own logic agent, etc.
 
 Every agent prompt MUST include:
+
 1. The architecture summary from Phase 1 (copy it in verbatim)
 2. The specific attack class and scope to investigate
 3. Relevant file paths from Phase 1 as starting points

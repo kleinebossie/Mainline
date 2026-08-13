@@ -224,7 +224,10 @@ export default async function Home() {
 
               <div className="border-t border-dashed border-paper/20 pt-4">
                 <p className="flex items-start gap-3 font-serif text-sm leading-relaxed text-paper/65">
-                  <LandingIcon name="help" className="mt-0.5 h-4 w-4 shrink-0 text-evergreen-bright" />
+                  <LandingIcon
+                    name="help"
+                    className="mt-0.5 h-4 w-4 shrink-0 text-evergreen-bright"
+                  />
                   Every block carries its evidence grade, the data that
                   triggered it, and an honest explanation of uncertainty.
                 </p>
@@ -303,7 +306,10 @@ export default async function Home() {
                 className="border-b border-r border-line bg-paper-raised/50 p-6 sm:p-7"
               >
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-line/80 bg-paper text-evergreen shadow-xs">
-                  <LandingIcon name={principle.icon} className="h-5 w-5 stroke-[1.75]" />
+                  <LandingIcon
+                    name={principle.icon}
+                    className="h-5 w-5 stroke-[1.75]"
+                  />
                 </div>
                 <h3 className="mt-5 font-serif text-xl font-semibold leading-snug">
                   {principle.title}

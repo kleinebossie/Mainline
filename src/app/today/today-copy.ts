@@ -181,3 +181,16 @@ export function completionEventType(
 ): "drill_done" | "game_played" {
   return item.activityType === "play_game" ? "game_played" : "drill_done";
 }
+
+export function firstIncompleteItem(
+  items: readonly TodayItem[],
+): TodayItem | null {
+  return items.find((item) => !isClosedItem(item)) ?? null;
+}
+
+export function isFirstBlockActive(items: readonly TodayItem[]): boolean {
+  const first = items[0];
+  if (!first) return false;
+  const active = firstIncompleteItem(items);
+  return active?.id === first.id;
+}

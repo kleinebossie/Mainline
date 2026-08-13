@@ -64,7 +64,17 @@
               "properties": {
                 "kind": {
                   "type": "string",
-                  "enum": ["authentication_level", "authorization_role", "user_interaction", "system_configuration", "network_routing", "environmental_dependency", "data_state", "timing_dependency", "third_party_dependency"]
+                  "enum": [
+                    "authentication_level",
+                    "authorization_role",
+                    "user_interaction",
+                    "system_configuration",
+                    "network_routing",
+                    "environmental_dependency",
+                    "data_state",
+                    "timing_dependency",
+                    "third_party_dependency"
+                  ]
                 },
                 "description": {
                   "type": "string"
@@ -101,7 +111,12 @@
                 "description": "Observable outcome confirming successful exploitation."
               }
             },
-            "required": ["attacker_perspective", "payloads", "instructions", "expected_result"],
+            "required": [
+              "attacker_perspective",
+              "payloads",
+              "instructions",
+              "expected_result"
+            ],
             "additionalProperties": false
           },
           "remediation": {
@@ -139,7 +154,13 @@
                 "properties": {
                   "score": {
                     "type": "string",
-                    "enum": ["informational", "low", "medium", "high", "critical"]
+                    "enum": [
+                      "informational",
+                      "low",
+                      "medium",
+                      "high",
+                      "critical"
+                    ]
                   },
                   "reason": {
                     "type": "string"
@@ -153,7 +174,13 @@
                 "properties": {
                   "score": {
                     "type": "string",
-                    "enum": ["informational", "low", "medium", "high", "critical"]
+                    "enum": [
+                      "informational",
+                      "low",
+                      "medium",
+                      "high",
+                      "critical"
+                    ]
                   },
                   "reason": {
                     "type": "string"
@@ -186,7 +213,19 @@
             "additionalProperties": false
           }
         },
-        "required": ["verdict", "title", "description", "root_cause", "intended_behavior", "trace", "conditions", "execution", "remediation", "severity", "confidence"],
+        "required": [
+          "verdict",
+          "title",
+          "description",
+          "root_cause",
+          "intended_behavior",
+          "trace",
+          "conditions",
+          "execution",
+          "remediation",
+          "severity",
+          "confidence"
+        ],
         "additionalProperties": false
       },
       {

@@ -21,10 +21,12 @@ Use the platform's equivalent capabilities while preserving the specified roles,
 ## Setup
 
 Before starting, establish two paths:
+
 - **Target**: the codebase to audit (from the user's request or the current working directory)
 - **Output directory**: where all audit artifacts go. Ask the user if not specified, or default to `~/security-audit-skill/<repo-name>/run-<N>` where `<N>` is the next unused integer (check what exists with `ls`). Create it if it doesn't exist. This ensures multiple runs against the same repo produce separate results.
 
 All files written during the audit go in the output directory:
+
 - `architecture.md` — Phase 1 output, fed into Phase 2 agent prompts
 - `REPORT.md` — human-readable report (Phase 4)
 - `FINDINGS-DETAIL.md` — detailed data flows for MEDIUM+ findings (Phase 4)
@@ -37,6 +39,7 @@ Subagents (Phases 1, 2, 3, 6) do NOT write files — they return results to you 
 Each audit run explores different code paths depending on which agents find what and where they dig. No single run finds everything. Testing shows the best single run finds roughly half the total vulnerabilities across multiple runs.
 
 **If prior runs exist** for the same repo (check `~/security-audit-skill/<repo-name>/`), read their `findings.json` files before starting Phase 2. Use them to:
+
 1. **Skip known findings** — don't waste agents re-discovering the same status bypass. Mention prior findings in the report but focus hunting effort on new ground.
 2. **Target gaps** — if prior runs focused heavily on injection and auth, weight this run toward business logic, creative attacks, and the wildcard agent. If prior runs missed public endpoints, focus there.
 3. **Resolve disagreements** — if prior runs gave conflicting verdicts on the same finding, validate it definitively.
@@ -70,7 +73,7 @@ If Layer A prevents the attack, the absence of Layer B is a hardening note, not 
 Severity is the combination of **likelihood** (how easy to exploit, what access is needed) and **impact** (what damage is achieved). Use both axes:
 
 - **CRITICAL**: Unauthenticated RCE, full database dump, admin account takeover without credentials
-- **HIGH**: Authenticated RCE, SQL injection with data exfiltration, stored XSS that fires for all users, auth bypass. Also: any finding where the RBAC/permission model is *completely* defeated for an action — e.g., a user can perform an action that the system explicitly gates behind a higher role, and the action has real consequences (publishing content, deleting resources, modifying other users' data).
+- **HIGH**: Authenticated RCE, SQL injection with data exfiltration, stored XSS that fires for all users, auth bypass. Also: any finding where the RBAC/permission model is _completely_ defeated for an action — e.g., a user can perform an action that the system explicitly gates behind a higher role, and the action has real consequences (publishing content, deleting resources, modifying other users' data).
 - **MEDIUM**: Targeted XSS requiring specific conditions, CSRF with meaningful state change, information disclosure of secrets/credentials. Also: business logic bypasses with real but limited consequences — e.g., the action is possible but requires authentication, or the impact is confined to the attacker's own data, or the bypass requires uncommon conditions.
 - **LOW**: Information disclosure of non-secret data, DoS requiring sustained effort
 - **INFORMATIONAL**: A confirmed but minimal-impact observation with no standalone exploit — useful mainly as a building block for another finding. Pure defense-in-depth gaps belong in hardening notes, not here.

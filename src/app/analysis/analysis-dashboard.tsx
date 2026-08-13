@@ -358,18 +358,30 @@ export function AnalysisDashboard() {
                 <div className="grid gap-3 sm:grid-cols-3 border-t border-line/80 pt-5">
                   <div className="flex flex-col gap-1 p-3 rounded-md bg-paper/60 border border-line">
                     <span className="eyebrow !text-[0.6rem]">Step 1</span>
-                    <span className="font-serif text-sm font-semibold text-ink">Link Account or PGN</span>
-                    <span className="text-graphite font-serif text-xs">Add your username or upload raw game text.</span>
+                    <span className="font-serif text-sm font-semibold text-ink">
+                      Link Account or PGN
+                    </span>
+                    <span className="text-graphite font-serif text-xs">
+                      Add your username or upload raw game text.
+                    </span>
                   </div>
                   <div className="flex flex-col gap-1 p-3 rounded-md bg-paper/60 border border-line">
                     <span className="eyebrow !text-[0.6rem]">Step 2</span>
-                    <span className="font-serif text-sm font-semibold text-ink">Run Engine Scan</span>
-                    <span className="text-graphite font-serif text-xs">Client Stockfish finds critical turning points.</span>
+                    <span className="font-serif text-sm font-semibold text-ink">
+                      Run Engine Scan
+                    </span>
+                    <span className="text-graphite font-serif text-xs">
+                      Client Stockfish finds critical turning points.
+                    </span>
                   </div>
                   <div className="flex flex-col gap-1 p-3 rounded-md bg-paper/60 border border-line">
                     <span className="eyebrow !text-[0.6rem]">Step 3</span>
-                    <span className="font-serif text-sm font-semibold text-ink">Train Your Mistakes</span>
-                    <span className="text-graphite font-serif text-xs">Mistakes schedule into daily training blocks.</span>
+                    <span className="font-serif text-sm font-semibold text-ink">
+                      Train Your Mistakes
+                    </span>
+                    <span className="text-graphite font-serif text-xs">
+                      Mistakes schedule into daily training blocks.
+                    </span>
                   </div>
                 </div>
 

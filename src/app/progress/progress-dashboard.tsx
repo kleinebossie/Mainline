@@ -169,11 +169,17 @@ function ConsistencyGrid({
       </div>
       <div className="flex items-center gap-4 font-mono text-[0.62rem] text-graphite">
         <span className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-[2px] bg-evergreen" aria-hidden="true" />
+          <span
+            className="h-2.5 w-2.5 rounded-[2px] bg-evergreen"
+            aria-hidden="true"
+          />
           Trained
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-[2px] bg-ink/10" aria-hidden="true" />
+          <span
+            className="h-2.5 w-2.5 rounded-[2px] bg-ink/10"
+            aria-hidden="true"
+          />
           Rest day
         </span>
       </div>

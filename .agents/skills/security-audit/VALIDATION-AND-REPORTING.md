@@ -7,11 +7,13 @@ Collect all findings from Phase 2 agents and **consolidate duplicates first**. P
 For findings from the same attack surface, batch them into one validation agent. Launch validation agents in parallel where they cover independent areas.
 
 Each validation agent prompt should:
+
 1. State the specific finding being validated (title, claimed attack, claimed impact)
 2. Ask the agent to read the exact code paths and verify each step of the trace
 3. Ask it to apply these tests (the adversarial, Phase 3 form of the canonical validation rules in [HUNTING.md](HUNTING.md) — here a separate agent tries to make each one fail):
 
 **Validation tests:**
+
 1. **Exploitation test**: Read the actual code at each step of the trace. Does the data flow work as claimed? Can you construct the exact input (HTTP request, CLI invocation, API call, crafted file, etc.) that triggers this?
 2. **Impact test**: What does the attacker actually get? If the answer is "they learn field names" or "they cause an error", that's not meaningful impact — not a finding on its own (at most a building block for a chain).
 3. **Baseline test**: Does the identified comparable have the same pattern? If yes, has it been exploited? If never exploited in years of production use, understand why before reporting.
@@ -55,13 +57,14 @@ Keep it short. If the report is longer than the codebase deserves, you're paddin
 For every finding that survived Phase 3 validation, produce a structured JSON object conforming to the schema defined in `report-schema.json` (in the same directory as this skill file — read it via the Read tool before writing output). Write the result to `<output-dir>/findings.json`.
 
 The schema supports two verdict types via `oneOf`:
+
 - **`confirmed`** — a validated vulnerability with full trace, execution, and remediation
 - **`rejected`** — a finding that was investigated and determined to be factually incorrect
 
 **Before writing `findings.json`:**
 
 1. Read `report-schema.json` from this skill's directory. Follow it exactly — `additionalProperties: false` is enforced, so extra fields will make the output invalid.
-2. For each finding, populate every required field. If you cannot fill `trace` with real file paths and line numbers verified against the source, the finding is not sufficiently verified — go back and verify it or reject it. Mind the required fields that aren't self-evident: `intended_behavior` (what the code is *supposed* to do, so the defect is legible), `confidence` (`low`/`medium`/`high`, with a reason), and the `severity` object (`likelihood`/`impact`/`overall_severity`). All `severity` scores use the schema's **lowercase** enum — `informational`/`low`/`medium`/`high`/`critical`; the UPPERCASE tiers in SKILL.md and REPORT.md are prose labels, not valid JSON values.
+2. For each finding, populate every required field. If you cannot fill `trace` with real file paths and line numbers verified against the source, the finding is not sufficiently verified — go back and verify it or reject it. Mind the required fields that aren't self-evident: `intended_behavior` (what the code is _supposed_ to do, so the defect is legible), `confidence` (`low`/`medium`/`high`, with a reason), and the `severity` object (`likelihood`/`impact`/`overall_severity`). All `severity` scores use the schema's **lowercase** enum — `informational`/`low`/`medium`/`high`/`critical`; the UPPERCASE tiers in SKILL.md and REPORT.md are prose labels, not valid JSON values.
 3. Run `node <skill-dir>/validate-findings.cjs <output-dir>/findings.json` to validate. It checks required fields, enum values, structural constraints, and `additionalProperties`. This is a structural check only — it confirms the JSON conforms to the schema, not that the findings are correct. Factual verification is Phase 6's job. Fix any failures before proceeding.
 
 ### Phase 6: Independent verification
@@ -100,6 +103,7 @@ Return one of:
 ```
 
 Apply the agent's corrections:
+
 - **VERIFIED** findings: no changes needed
 - **CORRECTED** findings: update the specific fields in `findings.json`, re-run the schema validation script
 - **REJECTED** findings: change their `verdict` to `"rejected"` with the agent's reason, or remove them entirely

@@ -2,7 +2,7 @@
 
 #### When to use this file
 
-Reach for this file when the target speaks HTTP at a layer where parsing, caching, or identity decisions happen: reverse proxies, CDNs, API gateways, load balancers, custom HTTP servers and parsers, and any app that builds responses or URLs from request metadata — and whenever it implements or consumes an auth protocol (sessions, JWTs, OAuth/OIDC, SAML, or password-reset flows). These are the classes `ATTACK-CLASSES.md` treats only in passing: the injection class covers *content*, but not the request/response framing or the identity-token machinery, which have their own specific, high-hit-rate bug patterns.
+Reach for this file when the target speaks HTTP at a layer where parsing, caching, or identity decisions happen: reverse proxies, CDNs, API gateways, load balancers, custom HTTP servers and parsers, and any app that builds responses or URLs from request metadata — and whenever it implements or consumes an auth protocol (sessions, JWTs, OAuth/OIDC, SAML, or password-reset flows). These are the classes `ATTACK-CLASSES.md` treats only in passing: the injection class covers _content_, but not the request/response framing or the identity-token machinery, which have their own specific, high-hit-rate bug patterns.
 
 Use alongside `ATTACK-CLASSES.md`. Access control there answers "is the check present and correct"; this file answers "can the attacker forge, replay, or confuse the identity the check runs on, or desync the request the check applies to."
 
@@ -20,7 +20,7 @@ Pick the relevant classes based on Phase 1; split per subsystem (framing/proxy l
 ## HTTP request-framing attack classes (subagent_type: `general`)
 
 **Request smuggling / desync**
-A discrepancy in how two components (front proxy vs back-end, or HTTP/2 front vs HTTP/1.1 back) resolve message length. Classic forms: CL.TE, TE.CL, TE.TE (obfuscated `Transfer-Encoding`), and H2 downgrade (H2.CL / H2.TE) where an HTTP/2 front-end forwards to an HTTP/1.1 back-end and the injected `Content-Length`/`Transfer-Encoding` or CRLF in a header value survives. Audit angle: any component that parses HTTP messages itself, forwards requests, or normalizes headers. Look for lenient length handling (accepting both CL and TE, tolerating whitespace/casing/duplicates in `Transfer-Encoding`), and CRLF-in-header-value passthrough on the HTTP/2→1.1 hop. The prize is a request prefix that gets glued onto the *next* user's request.
+A discrepancy in how two components (front proxy vs back-end, or HTTP/2 front vs HTTP/1.1 back) resolve message length. Classic forms: CL.TE, TE.CL, TE.TE (obfuscated `Transfer-Encoding`), and H2 downgrade (H2.CL / H2.TE) where an HTTP/2 front-end forwards to an HTTP/1.1 back-end and the injected `Content-Length`/`Transfer-Encoding` or CRLF in a header value survives. Audit angle: any component that parses HTTP messages itself, forwards requests, or normalizes headers. Look for lenient length handling (accepting both CL and TE, tolerating whitespace/casing/duplicates in `Transfer-Encoding`), and CRLF-in-header-value passthrough on the HTTP/2→1.1 hop. The prize is a request prefix that gets glued onto the _next_ user's request.
 
 **Web cache poisoning (unkeyed input)**
 An input influences the response but is not part of the cache key, so the attacker's response is stored and served to others. Find the cache key construction, then find every input that changes the response body/headers but is absent from that key — `X-Forwarded-Host`, `X-Forwarded-Scheme`, custom headers, cookies stripped from the key, or a query param the key normalizes away. Reflected unkeyed input that lands in the cached body (a poisoned script src, an `<base href>` from `X-Forwarded-Host`) is stored XSS against every cache consumer.
@@ -36,17 +36,19 @@ User input reflected into a response header (`Location`, `Set-Cookie`, custom he
 
 ## Authentication-protocol attack classes (subagent_type: `general`)
 
-First establish which role the target plays — it determines whose duty each control is. `redirect_uri` allowlisting, PKCE enforcement, authorization-code issuance, and assertion signing belong to the **authorization server / IdP**; a **relying-party client** legitimately sends its own `redirect_uri` and consumes tokens, so do not report "no `redirect_uri` allowlist" or "issues codes without PKCE" against a client. Token *verification* defects (below) apply to whichever side validates the token.
+First establish which role the target plays — it determines whose duty each control is. `redirect_uri` allowlisting, PKCE enforcement, authorization-code issuance, and assertion signing belong to the **authorization server / IdP**; a **relying-party client** legitimately sends its own `redirect_uri` and consumes tokens, so do not report "no `redirect_uri` allowlist" or "issues codes without PKCE" against a client. Token _verification_ defects (below) apply to whichever side validates the token.
 
 **JWT verification defects**
 The densest source of auth bypasses. Check, in the verification code:
-- **`alg` confusion** — `alg: none` accepted, or RS256→HS256 where the server verifies an attacker-forged HS256 token using the *public* key as the HMAC secret. Find where the algorithm is chosen: is it taken from the token header (attacker-controlled) or pinned server-side?
+
+- **`alg` confusion** — `alg: none` accepted, or RS256→HS256 where the server verifies an attacker-forged HS256 token using the _public_ key as the HMAC secret. Find where the algorithm is chosen: is it taken from the token header (attacker-controlled) or pinned server-side?
 - **Decode without verify** — code that reads claims from a decoded token but never calls the verify function, or ignores its return/exception.
 - **Missing claim checks** — `exp` (expiry), `nbf`, `aud` (audience — token for service A replayed at service B), `iss` (issuer). A signature check without claim checks is half a check.
 - **Key-selection injection** — `kid`, `jku`, or `x5u` header taken from the token: `kid` used in a file path (traversal) or SQL (injection) to fetch the key, or `jku` pointing at an attacker-hosted JWK Set / `x5u` at an attacker-hosted X.509 cert chain. Attacker names the key that verifies their own forgery.
 - **Weak/shared secret** — HMAC secret that's a guessable string or shared across trust domains.
 
 **OAuth / OIDC flow defects**
+
 - **`redirect_uri` validation** — substring/prefix matching, open-redirect on an allowlisted host, or `redirect_uri` not bound to the client. Leaks the authorization code to the attacker.
 - **Missing/weak `state`** — no CSRF token on the callback → login CSRF / forced-login / session fixation of the OAuth flow. (`state` is a session-binding/CSRF control; authorization-code injection is prevented by PKCE and the OIDC `nonce`, not by `state` — don't conflate them.) Confirm `state` is generated, bound to the session, and verified on return.
 - **PKCE** — missing on public clients, or `code_verifier` not actually checked against `code_challenge`.
@@ -54,18 +56,21 @@ The densest source of auth bypasses. Check, in the verification code:
 - **Mix-up / IdP confusion** — multi-IdP flows where the response isn't bound to the IdP the request went to.
 
 **SAML assertion defects**
+
 - **Signature wrapping (XSW)** — a signed assertion plus an injected unsigned one; the verifier checks the signature on one element but reads identity from another. Find the gap between "what is signature-verified" and "what is read as the authenticated identity."
 - **Signature exclusion** — unsigned assertions accepted, or signature verification skippable via a flag/empty-signature path.
 - **XXE / DTD** in the XML parser processing assertions.
 - **Comment truncation** — a comment inserted into the signed NameID (`admin@company.com<!---->.attacker.com`) that canonicalization strips before the signature check (so it still validates) but that truncates identity extraction to the pre-comment text (`admin@company.com`, the victim). Same root as XSW: the bytes the signature covers ≠ the bytes read as identity.
-- **Missing replay / binding checks** — even with a valid signature, is the assertion bound and fresh? Check `NotBefore`/`NotOnOrAfter` (validity window), `Recipient`/`Audience` (assertion minted for *this* SP, not replayed from another), `InResponseTo` (bound to a real outstanding request — blocks unsolicited-response injection), and one-time-use (a replayed assertion rejected). The signature checks above prove the assertion wasn't forged; these prove it wasn't stolen and replayed.
+- **Missing replay / binding checks** — even with a valid signature, is the assertion bound and fresh? Check `NotBefore`/`NotOnOrAfter` (validity window), `Recipient`/`Audience` (assertion minted for _this_ SP, not replayed from another), `InResponseTo` (bound to a real outstanding request — blocks unsolicited-response injection), and one-time-use (a replayed assertion rejected). The signature checks above prove the assertion wasn't forged; these prove it wasn't stolen and replayed.
 
 **Session-management defects**
+
 - **Fixation** — session identifier not rotated on privilege change (login, step-up auth). Attacker fixes a known ID, victim authenticates into it.
 - **Weak invalidation** — session/token still valid after logout, password change, or revocation; server-side state not cleared (especially stateless JWT sessions with no revocation list).
 - **Predictable identifiers** (non-CSPRNG session IDs an attacker can guess/derive), or an overly broad cookie `Domain` that leaks the session cookie to an attacker-controlled sibling subdomain. (Bare "cookie could be shorter-lived" with no leakage path is a hardening note, not a finding.)
 
 **Password-reset / account-recovery defects**
+
 - Token not cryptographically bound to the user (reset A's token, use it on B), predictable/short token, no single-use or expiry, token leaked via `Host` header (see above) or `Referer`, or a race that mints multiple valid tokens. Recovery flows are frequently the weakest path to the strongest impact (account takeover).
 
 ## Universal moves (apply across the above)

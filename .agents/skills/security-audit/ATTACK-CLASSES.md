@@ -14,6 +14,7 @@ Select attack classes relevant to the application type. Not every class applies 
 
 **Injection** (subagent_type: `general`)
 Trace untrusted input from entry point to dangerous sink. What counts as a "dangerous sink" depends on the application:
+
 - Web apps: SQL queries, HTML output, shell commands, template engines, file paths, HTTP redirects, deserialization
 - Libraries: any function that processes caller-supplied data without validation — buffer operations, parsers, format strings
 - CLI tools: shell command construction, file path handling, environment variable interpolation
@@ -23,7 +24,8 @@ Trace untrusted input from entry point to dangerous sink. What counts as a "dang
 Don't just check the obvious direct paths. Look for indirect injection: data stored safely, then retrieved and used in a dangerous context by different code. Look for injection through field names, keys, headers, and metadata — not just values. Look for injection into secondary systems (logs, caches, search indexes, analytics).
 
 **Access control** (subagent_type: `general`)
-Can a caller do something they shouldn't? Go beyond checking whether permission checks exist — verify they check the *right* permission for the *right* resource via the *right* mechanism:
+Can a caller do something they shouldn't? Go beyond checking whether permission checks exist — verify they check the _right_ permission for the _right_ resource via the _right_ mechanism:
+
 - Is there a path to the same state change that checks a different (weaker) permission?
 - Can a field in the request body override what the permission system intended to restrict?
 - Are there endpoints that gate on authentication but forget authorization?
@@ -33,6 +35,7 @@ Can a caller do something they shouldn't? Go beyond checking whether permission 
 For complex access models, split into separate agents for auth bypass vs authorization logic.
 
 **Resource and file handling** (subagent_type: `general`)
+
 - Path traversal (reading/writing outside intended directories) — including through symlinks, encoded sequences, and null bytes
 - SSRF (making the application fetch attacker-controlled URLs) — including through redirects, DNS rebinding, and URL parser differentials
 - Unsafe deserialization, archive extraction (zip slip), temp file handling
@@ -40,6 +43,7 @@ For complex access models, split into separate agents for auth bypass vs authori
 - Race conditions on file operations (TOCTOU between check and use)
 
 **Cryptography and secrets** (subagent_type: `general`)
+
 - Weak randomness for security-critical values (tokens, keys, nonces)
 - Hardcoded secrets, secrets in logs, error messages, URLs, or client-visible responses
 - Broken key derivation, missing HMAC verification, nonce reuse
@@ -49,6 +53,7 @@ For complex access models, split into separate agents for auth bypass vs authori
 
 **Business logic** (subagent_type: `general`)
 This is where the real bugs hide. Standard scanners can't find logic errors. For each major workflow:
+
 - **State machine violations**: Can you skip steps? Go backwards? Reach an invalid state? What happens if you replay a completed flow? What about partial failure — if step 2 of 3 fails, is step 1 rolled back?
 - **Race conditions with business impact**: Concurrent operations that produce invalid states (double-spend, double-approve, lost updates). Focus on operations that check-then-act non-atomically.
 - **Numeric/quantity manipulation**: Negative values, zero values, overflow, precision loss, type coercion between string and number.
@@ -59,6 +64,7 @@ This is where the real bugs hide. Standard scanners can't find logic errors. For
 
 **Feature abuse and data leakage** (subagent_type: `general`)
 Legitimate features used for unintended purposes. Don't look for bugs in the code — look for bugs in the design:
+
 - **Export/backup as exfiltration**: Can a low-privilege user trigger an export, snapshot, or backup that includes data above their access level? Can they export other users' data? Does the export include deleted/draft/private content? Revision history that was supposed to be pruned?
 - **Import/restore as injection**: Can import overwrite existing data? Can it create records that bypass normal validation? Can it inject content into collections the user doesn't have write access to? Does it respect the same permission model as the UI?
 - **Search/filter/sort as oracle**: Can search queries reveal whether content exists that the user can't directly access? Do filter parameters let users probe statuses, roles, or fields they shouldn't know about? Does sorting by a hidden field reveal its values through result ordering?
@@ -68,6 +74,7 @@ Legitimate features used for unintended purposes. Don't look for bugs in the cod
 
 **Chained attacks and trust boundaries** (subagent_type: `general`)
 Individual safe behaviors that become dangerous in combination. Think about the full system:
+
 - **Multi-step chains**: Map out what a low-privilege user CAN do, then look for combinations. Info disclosure (learning a resource ID) + IDOR (accessing it directly) + missing rate limit (brute-forcing the ID space). Open redirect + OAuth callback = token theft. Benign XSS in a low-value context + CSRF to escalate it.
 - **Cross-component trust gaps**: Component A validates input and passes it to component B. Does B re-validate or trust A? What if A's validation is subtly different from what B needs (e.g., A allows 255 chars but B truncates at 128, creating a different string)? What about plugin/extension trust — can third-party code manipulate core state, bypass permission hooks, or access storage directly?
 - **Second-order attacks**: Data safe when stored but dangerous when used in a different context. A field name safe in SQL becomes a key in a JSON path expression. A slug safe in a URL becomes part of a file path. Content stored HTML-escaped gets double-escaped or rendered in a context that expects raw text. Config values stored as strings get parsed as URLs, regexes, or templates.
@@ -81,6 +88,7 @@ You are not given a category. You are given the codebase and told to break it.
 Ignore the standard vulnerability classes — other agents are covering those. Your job is to find the thing nobody thought to look for. Read code that looks boring. Follow functions that seem unrelated to security. Get curious about the weird stuff.
 
 Some starting points, but don't limit yourself to these:
+
 - What's the strangest code in the codebase? Why does it exist? What happens if it's abused?
 - Are there any features that feel half-finished, experimental, or bolted on? Those have the weakest security because they got the least review.
 - What happens if you use the API in a way the frontend never would? The UI constrains users, but the API doesn't. What API calls are possible but never made by the client?
@@ -96,6 +104,7 @@ Follow rabbit holes. If something looks weird, dig. If a function has a comment 
 
 **Obvious things** (subagent_type: `general`)
 The other agents are hunting for subtle bugs. This agent checks the dumb stuff that's easy to overlook because everyone assumes someone else already checked it:
+
 - Are there any hardcoded passwords, API keys, tokens, or secrets in the source? (grep for `password`, `secret`, `apikey`, `token`, `Bearer`, `-----BEGIN`, common default passwords)
 - Are there any TODO/FIXME/HACK/XXX comments that reference security? (`TODO: add auth`, `FIXME: validate input`, `HACK: skip permission check`)
 - Is debug mode / dev mode properly gated? Can it be enabled in production via environment variable, query parameter, or header?

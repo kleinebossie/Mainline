@@ -162,25 +162,19 @@ research anyway. The durable advantages are:
 - **Longitudinal data** — over time, what actually moves real users' ratings. This compounds and
   cannot be copied.
 
-### Funding model — patronage, not extraction
+### Funding model: developer patronage, not extraction
 
-The app follows the **Lichess model**: it is **free for everyone, with all training features
-included**, and a single optional **patronage subscription** lets users support the creator and
-further development. Target price **€5/month** (optionally allow paying more; an annual ~€50/yr can
-come later). One tier, kept deliberately simple.
+The app follows the **developer patronage model**: it is **free for everyone, with all training features included**. A single optional **patronage subscription** (€5/month, with options to contribute more) allows users to fund the project directly.
 
-This also makes the app **unattractive to clone** — there is very little revenue to extract — which
-is a feature, not a bug.
+All patronage revenue directly funds two purposes:
+
+1. **Operating costs**: Server hosting, database compute, domain names, and external monitoring tools.
+2. **Developer compensation**: Funding the developer's salary and living costs for dedicated, ongoing product development and maintenance.
 
 Two hard rules keep this on-brand:
 
-- **No ads.** Ads are an attention-extraction, hype-laden mechanism — the exact thing this app
-  positions against — and at this scale they earn almost nothing while inviting tracking/consent
-  burden. Free means genuinely free, not ad-supported.
-- **Never paywall training quality.** The science, the program, and the adaptation are free
-  forever. Premium perks are **cosmetic or non-functional only** (e.g. a supporter badge, maybe
-  early access). The moment better _training_ sits behind the paywall, the app has become the thing
-  it's fighting.
+- **No ads.** Ads are an attention-extraction, hype-laden mechanism: the exact thing this app positions against. Free means genuinely free, not ad-supported.
+- **Never paywall training quality.** The science, the program, and the adaptation are free forever. Premium perks are cosmetic or non-functional only (e.g. a supporter badge, early access). The moment better training sits behind a paywall, the app becomes the thing it fights against.
 
 ### Open source
 

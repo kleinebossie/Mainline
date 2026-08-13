@@ -89,7 +89,14 @@ export const programRouter = router({
       const item = await ctx.prisma.programItem.findUnique({
         where: { id: input.programItemId },
         include: {
-          program: true,
+          program: {
+            include: {
+              items: {
+                orderBy: { orderIndex: "asc" },
+                include: { resourceRef: true },
+              },
+            },
+          },
           resourceRef: true,
         },
       });
@@ -208,6 +215,37 @@ export const programRouter = router({
       // Board-trainer items never need an external play platform.
       const todayItem = toTodayItem(item, cfg, dimLabels, ledger, null);
 
+      const user = await ctx.prisma.user.findUnique({
+        where: { id: ctx.userId },
+        select: { primaryPlatform: true },
+      });
+      const primaryPlatform = user?.primaryPlatform ?? null;
+
+      const allProgramItems = item.program.items.map((it) =>
+        toTodayItem(it, cfg, dimLabels, ledger, primaryPlatform),
+      );
+      const currentProgramIdx = allProgramItems.findIndex(
+        (it) => it.id === item.id,
+      );
+      const nextTodayItem =
+        allProgramItems
+          .slice(currentProgramIdx + 1)
+          .find((it) => it.status !== "done" && it.status !== "skipped") ??
+        null;
+
+      const nextItem = nextTodayItem
+        ? {
+            id: nextTodayItem.id,
+            orderIndex: nextTodayItem.orderIndex,
+            label: nextTodayItem.label,
+            url: nextTodayItem.url,
+            externalUrl: nextTodayItem.externalUrl,
+            delivery: nextTodayItem.delivery,
+            activityType: nextTodayItem.activityType,
+            estMinutes: nextTodayItem.estMinutes,
+          }
+        : null;
+
       const tacticalRating = await resolveTacticalRating(
         ctx.prisma,
         ctx.userId,
@@ -245,6 +283,7 @@ export const programRouter = router({
         affordances,
         restrictionRationale,
         redoFlow,
+        nextItem,
       };
     }),
 

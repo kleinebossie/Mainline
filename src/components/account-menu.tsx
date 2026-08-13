@@ -115,7 +115,10 @@ export function AccountMenu() {
                 className="group flex min-h-8 items-center gap-2.5 rounded-sm px-2.5 py-1.5 font-mono text-xs tracking-tight text-graphite transition-colors hover:bg-ink/[0.06] hover:text-ink focus-visible:bg-ink/[0.06] focus-visible:outline-none"
               >
                 <span className="flex h-4 w-4 shrink-0 items-center justify-center text-graphite/70 transition-colors group-hover:text-ink">
-                  <Icon className="h-3.5 w-3.5 stroke-[1.75]" aria-hidden="true" />
+                  <Icon
+                    className="h-3.5 w-3.5 stroke-[1.75]"
+                    aria-hidden="true"
+                  />
                 </span>
                 <span className="leading-none">{item.label}</span>
               </Link>
@@ -128,7 +131,10 @@ export function AccountMenu() {
               className="group flex min-h-8 w-full items-center gap-2.5 rounded-sm px-2.5 py-1.5 text-left font-mono text-xs tracking-tight text-graphite transition-colors hover:bg-clay/10 hover:text-clay focus-visible:bg-clay/10 focus-visible:outline-none"
             >
               <span className="flex h-4 w-4 shrink-0 items-center justify-center text-graphite/70 transition-colors group-hover:text-clay">
-                <LogOut className="h-3.5 w-3.5 stroke-[1.75]" aria-hidden="true" />
+                <LogOut
+                  className="h-3.5 w-3.5 stroke-[1.75]"
+                  aria-hidden="true"
+                />
               </span>
               <span className="leading-none">Sign out</span>
             </PendingSubmitButton>

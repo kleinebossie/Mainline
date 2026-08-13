@@ -20,7 +20,7 @@ Pick the relevant classes based on Phase 1. Split per surface (DOM rendering, me
 ## DOM-based injection attack classes (subagent_type: `general`)
 
 **DOM-based XSS**
-Trace client-side sources — `location.hash`/`search`/`href`/`pathname`, `document.referrer`, `window.name`, `postMessage` data, `document.cookie` — into execution sinks: `innerHTML`/`outerHTML`, `document.write`, `eval`, `Function`, `setTimeout`/`setInterval` with a string argument, `element.src`/`href` set to a `javascript:` URI, jQuery `$(...)`/`.html()`, or framework escape hatches (`dangerouslySetInnerHTML`, `v-html`, `bypassSecurityTrustHtml`). The bug is source→sink with no sanitization *on the client path*; server-side escaping never sees fragment or `window.name` data.
+Trace client-side sources — `location.hash`/`search`/`href`/`pathname`, `document.referrer`, `window.name`, `postMessage` data, `document.cookie` — into execution sinks: `innerHTML`/`outerHTML`, `document.write`, `eval`, `Function`, `setTimeout`/`setInterval` with a string argument, `element.src`/`href` set to a `javascript:` URI, jQuery `$(...)`/`.html()`, or framework escape hatches (`dangerouslySetInnerHTML`, `v-html`, `bypassSecurityTrustHtml`). The bug is source→sink with no sanitization _on the client path_; server-side escaping never sees fragment or `window.name` data.
 
 **DOM clobbering**
 Attacker-injected `id`/`name` attributes — surviving an HTML sanitizer that strips script but allows attributes — that shadow a global the script later reads (`window.config`, a `form.action`, a flag checked before initialization). Look for code reading `window.X`/`document.X` that an injected element named `X` can override. Requires a markup-injection sink that permits `id`/`name`.
@@ -34,7 +34,7 @@ A `message` handler that acts on `event.data` (writes the DOM, calls a privilege
 A WebSocket handshake authenticated only by ambient cookies, with no `Origin` check and no per-session CSRF token — an attacker page opens a socket in the victim's authenticated context and reads/writes their data. Find the upgrade handler; check whether it validates `Origin` and binds to a token, not just the cookie.
 
 **CORS with credentials**
-A server that reflects the request `Origin` into `Access-Control-Allow-Origin` while sending `Access-Control-Allow-Credentials: true`, or allowlists `null` or a weak suffix match — any origin then reads authenticated responses. The finding is reflection or weak-match *with credentials*, not a wildcard alone (`*` with credentials is rejected by browsers).
+A server that reflects the request `Origin` into `Access-Control-Allow-Origin` while sending `Access-Control-Allow-Credentials: true`, or allowlists `null` or a weak suffix match — any origin then reads authenticated responses. The finding is reflection or weak-match _with credentials_, not a wildcard alone (`*` with credentials is rejected by browsers).
 
 ## UI-redress and navigation attack classes (subagent_type: `general`)
 
@@ -50,13 +50,13 @@ A navigation built from a client source (`location = params.get('next')`, `locat
 ## Prototype pollution attack classes (subagent_type: `general`)
 
 **Prototype pollution and gadget chain**
-An attacker-controlled key (`__proto__`, `constructor.prototype`) reaching a *nested/recursive* write — a deep merge, `lodash.set`-style path assignment, `obj[a][b]=v` with an attacker-controlled segment, or a query-string parser that builds nested objects — that lands on `Object.prototype`. A plain `JSON.parse` or shallow `Object.assign` does NOT pollute. Require the recursive sink AND a gadget that reads the polluted property (an options object checked with `opts.isAdmin`, a template reading a config default, a sink that concatenates a polluted `src`). Pollution with no reachable gadget is not exploitable; the gadget is what turns it into XSS, auth bypass, or (in Node) RCE.
+An attacker-controlled key (`__proto__`, `constructor.prototype`) reaching a _nested/recursive_ write — a deep merge, `lodash.set`-style path assignment, `obj[a][b]=v` with an attacker-controlled segment, or a query-string parser that builds nested objects — that lands on `Object.prototype`. A plain `JSON.parse` or shallow `Object.assign` does NOT pollute. Require the recursive sink AND a gadget that reads the polluted property (an options object checked with `opts.isAdmin`, a template reading a config default, a sink that concatenates a polluted `src`). Pollution with no reachable gadget is not exploitable; the gadget is what turns it into XSS, auth bypass, or (in Node) RCE.
 
 ## Universal moves (apply across the above)
 
 - **Start from the sink and walk back to a client source.** Grep the execution sinks (`innerHTML`, `eval`, `document.write`, `dangerouslySetInnerHTML`, `postMessage`, `new WebSocket`) and trace each argument back to `location`/`name`/`referrer`/message data. A sink fed only server-rendered trusted data is not a finding.
 - **Server escaping ends where the fragment begins.** Data after `#`, plus `window.name` and cross-window messages, never reaches the server — so server-side filters can't see it. That blind spot is the DOM-XSS goldmine.
-- **Enumerate the escape hatches.** In an auto-escaping framework, the candidate list *is* every `dangerouslySetInnerHTML`/`v-html`/`bypassSecurityTrust*`/`$sce.trustAs*` call. Start there.
+- **Enumerate the escape hatches.** In an auto-escaping framework, the candidate list _is_ every `dangerouslySetInnerHTML`/`v-html`/`bypassSecurityTrust*`/`$sce.trustAs*` call. Start there.
 
 ## Validation rules (apply before reporting ANY finding here)
 
