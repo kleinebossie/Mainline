@@ -225,8 +225,58 @@ export function EndgameDrillSession({
     });
   };
 
+  const [autoAdvanceSec, setAutoAdvanceSec] = useState<number | null>(null);
+  const [autoAdvancePaused, setAutoAdvancePaused] = useState<boolean>(false);
+  const autoAdvanceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const isCompleted = positions.length === 0 || idx >= positions.length;
+
+  useEffect(() => {
+    if (!isCompleted || !data?.nextItem || autoAdvancePaused || resultBlocked) {
+      if (autoAdvanceTimerRef.current) {
+        clearInterval(autoAdvanceTimerRef.current);
+        autoAdvanceTimerRef.current = null;
+      }
+      return;
+    }
+
+    if (autoAdvanceSec === null) {
+      setAutoAdvanceSec(4);
+      return;
+    }
+
+    if (autoAdvanceSec <= 0) {
+      if (autoAdvanceTimerRef.current) {
+        clearInterval(autoAdvanceTimerRef.current);
+        autoAdvanceTimerRef.current = null;
+      }
+      const nextUrl = data.nextItem.url ?? "/today";
+      router.push(nextUrl);
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setAutoAdvanceSec((prev) => (prev !== null ? prev - 1 : null));
+    }, 1000);
+    autoAdvanceTimerRef.current = timer;
+
+    return () => {
+      clearInterval(timer);
+      if (autoAdvanceTimerRef.current === timer) {
+        autoAdvanceTimerRef.current = null;
+      }
+    };
+  }, [
+    autoAdvancePaused,
+    autoAdvanceSec,
+    data?.nextItem,
+    isCompleted,
+    resultBlocked,
+    router,
+  ]);
+
   // Completed all positions.
-  if (positions.length === 0 || idx >= positions.length) {
+  if (isCompleted) {
     return (
       <div className="flex flex-col gap-6 py-6 settle">
         <Card gutter="A">
@@ -240,15 +290,93 @@ export function EndgameDrillSession({
           <CardContent className="flex flex-col gap-4">
             <p className="text-graphite font-serif text-sm leading-relaxed">
               {positions.length === 0
-                ? "There are no endgame positions due right now. They'll return on their spaced schedule."
-                : "Each result has been logged and rescheduled for a future review."}
+                ? "There are no endgame positions due right now. They will return on their spaced schedule."
+                : data.nextItem
+                  ? `Each result has been logged. Ready to advance to Block ${data.nextItem.orderIndex + 1}.`
+                  : "Each result has been logged and rescheduled for a future review."}
             </p>
-            <Button
-              onClick={() => router.push("/today")}
-              className="self-start"
-            >
-              Back to Today
-            </Button>
+
+            {data.nextItem && (
+              <div className="rounded-md border border-evergreen/30 bg-evergreen/[0.04] p-3 sm:p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="eyebrow text-evergreen">
+                      Next in today&apos;s session
+                    </p>
+                    <p className="mt-0.5 font-serif text-base font-semibold text-ink">
+                      Block {data.nextItem.orderIndex + 1}:{" "}
+                      {data.nextItem.label}
+                    </p>
+                    {!autoAdvancePaused &&
+                      autoAdvanceSec !== null &&
+                      autoAdvanceSec > 0 &&
+                      !resultBlocked && (
+                        <p className="text-graphite font-mono text-xs mt-1">
+                          Auto-advancing in {autoAdvanceSec}s...
+                        </p>
+                      )}
+                    {autoAdvancePaused && (
+                      <p className="text-graphite font-mono text-xs mt-1">
+                        Auto-advance paused.
+                      </p>
+                    )}
+                  </div>
+                  {!autoAdvancePaused &&
+                    autoAdvanceSec !== null &&
+                    autoAdvanceSec > 0 &&
+                    !resultBlocked && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setAutoAdvancePaused(true)}
+                      >
+                        Pause auto-advance
+                      </Button>
+                    )}
+                </div>
+              </div>
+            )}
+
+            <div className="flex flex-wrap items-center gap-3 pt-2">
+              {data.nextItem ? (
+                <>
+                  <Button
+                    onClick={() => {
+                      if (autoAdvanceTimerRef.current) {
+                        clearInterval(autoAdvanceTimerRef.current);
+                      }
+                      router.push(data.nextItem?.url ?? "/today");
+                    }}
+                    disabled={resultBlocked}
+                  >
+                    {resultAdvanceLabel(
+                      persistenceState,
+                      `Continue to Block ${data.nextItem.orderIndex + 1}`,
+                    )}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      if (autoAdvanceTimerRef.current) {
+                        clearInterval(autoAdvanceTimerRef.current);
+                      }
+                      router.push("/today");
+                    }}
+                    disabled={resultBlocked}
+                  >
+                    Back to Today
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  onClick={() => router.push("/today")}
+                  disabled={resultBlocked}
+                >
+                  {resultAdvanceLabel(persistenceState, "Back to Today")}
+                </Button>
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>

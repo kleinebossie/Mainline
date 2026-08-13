@@ -109,7 +109,10 @@ export function OnboardingSteps({ status }: { status: OnboardingStatus }) {
                   )}
                 >
                   {step.done ? (
-                    <Check className="h-3.5 w-3.5 stroke-[2.5]" aria-hidden="true" />
+                    <Check
+                      className="h-3.5 w-3.5 stroke-[2.5]"
+                      aria-hidden="true"
+                    />
                   ) : (
                     i + 1
                   )}

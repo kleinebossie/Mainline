@@ -6,11 +6,7 @@ vi.mock("@/lib/weekly-focus", async (importOriginal) => {
     ...actual,
     programGenerationInputSchema: {
       parse: (value: unknown) => {
-        if (
-          value &&
-          typeof value === "object" &&
-          "legacyFixture" in value
-        ) {
+        if (value && typeof value === "object" && "legacyFixture" in value) {
           throw new Error("Legacy snapshot");
         }
         return value;

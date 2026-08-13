@@ -418,7 +418,10 @@ test("normal core loop persists outcomes, adaptation, history, replan, and feedb
     }
     const initialForecastPayloads = initialForecasts.map(forecastSnapshot);
 
-    await coreLoopPage.locator(`a[href="/train/${puzzleItem.id}"]`).click();
+    await coreLoopPage
+      .locator(`a[href="/train/${puzzleItem.id}"]`)
+      .first()
+      .click();
     await expect(coreLoopPage).toHaveURL(
       new RegExp(`/train/${puzzleItem.id}$`),
     );

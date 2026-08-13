@@ -112,4 +112,44 @@ describe("Today session state", () => {
     expect(html).toContain("Skipped");
     expect(html).toContain("Undo skip");
   });
+
+  it("shows a prominent Start Session button for a fresh session", () => {
+    const html = header(["todo", "todo", "todo"]);
+
+    expect(html).toContain("Start Session");
+    expect(html).toContain("Ready to begin");
+    expect(html).toContain("Start today&#x27;s session");
+    expect(html).toContain("Block 1 of 3:");
+  });
+
+  it("shows Continue Session button pointing to the active incomplete block", () => {
+    const html = header(["done", "todo", "todo"]);
+
+    expect(html).toContain("Continue Session (Block 2)");
+    expect(html).toContain("Session in progress");
+    expect(html).toContain("Continue your session");
+    expect(html).toContain("Block 2 of 3:");
+  });
+
+  it("does not show Start Session CTA when all blocks are complete", () => {
+    const html = header(["done", "done", "done"]);
+
+    expect(html).not.toContain("today-primary-action-card");
+    expect(html).toContain("All training complete");
+  });
+
+  it("labels the first incomplete block with an Up next badge", () => {
+    const html = renderToStaticMarkup(
+      <TodayBlockList
+        items={[item("0", "done"), item("1", "todo"), item("2", "todo")]}
+        ownedBooks={[]}
+        libraryLoading={false}
+        onLogOutcome={vi.fn()}
+        onBookLogged={vi.fn()}
+        onUndoSkip={vi.fn()}
+      />,
+    );
+
+    expect(html).toContain("Up next");
+  });
 });

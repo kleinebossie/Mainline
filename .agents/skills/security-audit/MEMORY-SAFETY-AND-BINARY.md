@@ -2,7 +2,7 @@
 
 #### When to use this file
 
-The attack classes in `ATTACK-CLASSES.md` are tuned for web apps, APIs, and services. Reach for *this* file when the target processes untrusted bytes in a memory-unsafe context: C/C++/Objective-C, Rust `unsafe`, kernel modules and drivers, parsers and decoders (image/video/font/archive/PDB), reverse-engineering and dev tooling, network daemons, firmware, and language runtimes/JITs. These targets fail differently from web apps — the bug is a memory corruption or a logic error in privileged code, not an injection or an access-control gap — so the hunt needs a different lens.
+The attack classes in `ATTACK-CLASSES.md` are tuned for web apps, APIs, and services. Reach for _this_ file when the target processes untrusted bytes in a memory-unsafe context: C/C++/Objective-C, Rust `unsafe`, kernel modules and drivers, parsers and decoders (image/video/font/archive/PDB), reverse-engineering and dev tooling, network daemons, firmware, and language runtimes/JITs. These targets fail differently from web apps — the bug is a memory corruption or a logic error in privileged code, not an injection or an access-control gap — so the hunt needs a different lens.
 
 Pick the relevant classes based on Phase 1. Split per subsystem for large targets.
 
@@ -18,20 +18,24 @@ Pick the relevant classes based on Phase 1. Split per subsystem for large target
 ## Memory-safety attack classes (subagent_type: `general`)
 
 **Spatial: out-of-bounds read/write**
+
 - **Length subtraction underflow** — a copy/loop bound is `a - b` (`uri.len - prefix`, `total - consumed`) where the attacker can make `b > a`. Negative → casts to ~SIZE_MAX. Map which bytes land where; don't assume "just a crash."
 - **Operator-precedence / multi-term length errors** — an unparenthesized `+`/`-` length chain (`endp - begin + consume`) that silently over-adds when one term is attacker-sized. Audit each CALLER's value of the variable term — the common caller is often correct-by-accident on the zero path and survives testing.
 - **`sizeof(*p)` vs `sizeof(element)` pointer-depth confusion** — an allocation/copy size computed one indirection too deep (`gid_t **` → `sizeof(*p)`=8 not 4). The bounds check passes because it uses the same wrong unit. Compiled tell: `shl $0x3` where `shl $0x2` was meant.
 - **Wire-length into fixed stack buffer** — a function rebuilds a network/user blob into a fixed array using an attacker length field, with the bounds check missing/late or computed on the wrong headroom (a header pre-written into the buffer). Re-derive true headroom (size minus fixed prefix); confirm no guard precedes the copy.
 
 **Temporal: use-after-free / lifetime**
+
 - **Embedded waiter-anchor freed without draining** — a struct embeds a list head (`selinfo`/`knlist`/timer/knote) reachable by unprivileged poll/select/kqueue, and a free path destroys it but skips the drain a wakeup path does. For every `selrecord(&obj->x)`, require a matching drain on EACH path that can free `obj`.
-- **Cached raw pointer + reallocating owner** — a view caches `base+offset`, a grow/realloc path moves the backing store, and the invalidation walks only the *current* wrapper's view set while grow *replaces* the wrapper. The original view dangles.
+- **Cached raw pointer + reallocating owner** — a view caches `base+offset`, a grow/realloc path moves the backing store, and the invalidation walks only the _current_ wrapper's view set while grow _replaces_ the wrapper. The original view dangles.
 
 **Type confusion**
+
 - **Read-and-write confusion → addrof/fakeobj** — a confusion that reads a pointer slot as a scalar (addrof) and writes a scalar into a pointer slot (fakeobj). The standard pivot of runtime/JIT exploitation; the prior art is about the PROBLEM CLASS (NaN-boxing, cached typed-array data pointer), not the specific target.
 - **Hierarchical-walker leaf check skipped** — a page-table / nested / B-tree / extent walker checks the valid bit but not the leaf/size bit at level N, then descends treating an attacker-owned leaf as an interior node.
 
 **Value: uninitialized & oracle**
+
 - **Uninitialized worst-case buffer + observable compare = read oracle** — a buffer sized to a MAX constant is partially written, then compared against attacker bytes with an attacker-controlled compare length where match/no-match is observable. No memory-disclosure bug needed; the gap between actual output and MAX-size is the leak window. Brute one byte/connection, hint the structural bits, parallelize.
 
 ## Kernel & privileged-interface attack classes (subagent_type: `general`)
@@ -39,7 +43,7 @@ Pick the relevant classes based on Phase 1. Split per subsystem for large target
 - **User-copy bounds + double-fetch (TOCTOU)** — a syscall/ioctl/Mach-trap entry whose user-copy primitive (`copyin` / `copy_from_user`) brings attacker memory in, then re-reads the SAME user address after a check. Any fact derived from concurrently-mutable user memory and trusted on a later pass is a double-fetch even when each op is individually correct.
 - **Object lifecycle / UAF (IOKit/OSObject and friends)** — unbalanced retain/release on an externally-reachable object; a method that releases on one path but a sibling dispatch (compat/fallback/ptrace) forgot it. Diff the duplicated dispatch paths.
 - **Unchecked downcast / type confusion** — `OSDynamicCast` (or any tagged-union cast) whose result is used without a null check, or a selector/index into a dispatch table without a bounds check.
-- **World-writable / under-permissioned powerful interface** — a device node, admin socket, or mgmt API exposed more broadly than its power, that validates the request SHAPE (index in range) but never the requester's AUTHORITY over the named resource. Danger = power × reachability; enumerate the surface reachable from the *actual* untrusted context first.
+- **World-writable / under-permissioned powerful interface** — a device node, admin socket, or mgmt API exposed more broadly than its power, that validates the request SHAPE (index in range) but never the requester's AUTHORITY over the named resource. Danger = power × reachability; enumerate the surface reachable from the _actual_ untrusted context first.
 - **Validate-then-act-on-stale-state** — a fast path and a compat/ptrace/fallback path to the same operation where one copy forgot a guard the other performs.
 
 ## Universal moves (apply across the above)

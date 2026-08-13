@@ -1,69 +1,148 @@
-# AGENTS.md — Developer AI Orientation
+# AGENTS.md: Developer AI Orientation
 
-## 1. Product Summary & Scope
+## 1. Product Summary and Scope
 
-Mainline is a **personalized, science-based, no-BS chess training app** that adapts to a user's constraints, games, and goals.
+Mainline is a personalized, science-based chess training app. It generates and continuously adapts a daily training program.
 
-- **Core Concept**: It decides _what to train, when, and why_, rather than being just another puzzle trainer.
-- **In-App Training**: Interactive drills (puzzles, blunder practice, endgames, game review) run in-app via client-side Stockfish WASM.
-- **External References**: Real gameplay (Lichess/Chess.com) and copyrighted books/courses stay external; recommended + logged in-app.
-- **Strict Boundaries (Phase 1)**: Multi-user, billing-capable, free patronage model (AGPL-3.0). No runtime LLM/AI. No gameplay server/multiplayer/social features. No hosted copyrighted content.
-- **More Context**: See [VISION.md](file:///home/joebos/programming/Mainline/planning/VISION.md) (intent) and [BUILD.md](file:///home/joebos/programming/Mainline/planning/BUILD.md) (technical plan).
+- **In-App Drills**: Interactive puzzles, blunder practice, game review, and endgames run in-browser via Stockfish WASM.
+- **External References**: Real gameplay and books stay external. The app recommends and logs them.
+- **Boundaries**: Open source (AGPL-3.0). Multi-user and billing-ready. No runtime AI/LLM. No gameplay server or multiplayer. No hosted copyrighted content.
+- **Context Docs**: Read [VISION.md](file:///home/joebos/programming/Mainline/planning/VISION.md) for product intent, [BUILD.md](file:///home/joebos/programming/Mainline/planning/BUILD.md) for technical plans, and [OPERATIONS.md](file:///home/joebos/programming/Mainline/planning/OPERATIONS.md) for production operations.
 
-## 2. Core Architecture: Engine ⟷ Methodology Split
+## 2. Core Architecture: Engine vs Methodology Split
 
-The codebase is strictly divided to isolate chess/learning logic from orchestrating machinery.
+The codebase separates generic application machinery from chess learning science.
 
-- **The Engine** (`src/engine/`, `src/analysis/`, `src/server/`, `src/app/`, `src/db/`): Science-free, deterministic machinery. Does not decide graded choices.
-- **The Methodology** (`src/methodology/`): The science itself, plugged in as a versioned config (`MethodologyConfig` JSON) + pure reader functions. Swapped without re-architecting anything.
+- **The Engine** (`src/engine/`, `src/analysis/`, `src/server/`, `src/app/`, `src/db/`): Science-free, deterministic code.
+- **The Methodology** (`src/methodology/`): The chess learning science. It is plugged in as versioned JSON configs plus pure reader functions.
 
-### The Three Laws (CI-enforced by [tests/guards](file:///home/joebos/programming/Mainline/tests/guards))
+### The Three Architectural Laws (CI Enforced)
 
-- **L1 (Science in Config)**: The Engine contains no chess/learning constants. It consumes methodology only through the typed surface `@/methodology` ([index.ts](file:///home/joebos/programming/Mainline/src/methodology/index.ts)). No internal deep-imports.
-- **L2 (Pure & Deterministic)**: Generator, adaptation loop, and methodology functions are pure. No `Date.now()`, `new Date()`, or `Math.random()`. Inject a `Clock` ([clock.ts](file:///home/joebos/programming/Mainline/src/lib/clock.ts)) or seed.
-- **L3 (Graded Evidence)**: Every methodology leaf is a `GradedValue<T>` (grade A/B/C/D + tier 1/2 + citation). Rationale text is snapshotted onto each `ProgramItem` at generation time to preserve history.
+- **L1 (Science in Config)**: The Engine contains no chess or learning constants. Consume methodology only through `@/methodology` ([index.ts](file:///home/joebos/programming/Mainline/src/methodology/index.ts)). Do not use internal deep-imports.
+- **L2 (Pure and Deterministic)**: Generator and adaptation functions are pure. Never call `Date.now()`, `new Date()`, or `Math.random()`. Inject a `Clock` ([clock.ts](file:///home/joebos/programming/Mainline/src/lib/clock.ts)) or explicit seed.
+- **L3 (Graded Evidence)**: Every methodology leaf is a `GradedValue<T>` (grade, tier, citation). Program items snapshot their rationale at generation time to preserve history.
 
 ## 3. Directory Layout
 
-- `src/app/` — Next.js App Router UI pages & components.
-- `src/server/` — Typed API (`routers/_app.ts` via tRPC) and protected procedures.
-- `src/db/` — Prisma Client singleton and typed query helpers; contains zero business logic.
-- `src/integrations/` — `PlatformAdapter` (Lichess/Chess.com), PGN/dedupe, and puzzle/tablebase clients.
-- `src/engine/` — Spacing (FSRS), Glicko-2 CI arithmetic, and time-budget packing algorithms.
-- `src/methodology/` — Config schemas, loader, provider pure functions, and configs JSON.
-- `planning/` — Authoritative docs: `VISION.md` (intent), `BUILD.md` (tech plans/seams), `METHODOLOGY.md` (exact science values).
-- `research/` — Citation-heavy research reports.
+- `src/app/`: Next.js App Router UI pages and API route handlers.
+- `src/server/`: tRPC routers and protected API procedures.
+- `src/db/`: Prisma Client singleton and database query helpers. Contains zero business logic.
+- `src/engine/`: Spacing (FSRS), Glicko-2 arithmetic, and session-budget algorithms.
+- `src/integrations/`: Platform adapters (Lichess, Chess.com) and puzzle/tablebase clients.
+- `src/methodology/`: Versioned configs, schemas, and pure reader functions.
+- `planning/`: Authoritative plans and operational runbooks.
+- `research/`: Citation-heavy evidence reports and literature reviews.
+- `tests/`: Unit tests, architecture guards, and Playwright end-to-end tests.
 
-## 4. Setup & Core Commands
+## 4. Setup and Commands
 
-Ensure you use Node 25.2.0 (npm 11) using `nvm use`. Older versions corrupt the lockfile.
+Use Node 25.2.0 (npm 11) via `.nvmrc`.
 
 ```bash
-cp .env.example .env.local       # Fill DATABASE_URL, AUTH_SECRET, Google OAuth, CRON_SECRET
+cp .env.example .env.local
 npm ci
-npm run prisma:migrate           # Run on setup and schema changes
+npm run prisma:migrate
 ```
 
-### Script Registry
+### Essential Scripts
 
-- `npm run dev` — Dev server (runs predev Stockfish WASM setup first)
-- `npm run build` — Builds app (runs `prisma generate` first)
-- `npm run typecheck` — TypeScript check (`tsc --noEmit`)
-- `npm run lint` — ESLint checks (guards against L2 violations)
-- `npm test` — Run all Vitest tests (unit + architectural guards)
-- `npm run test:guards` — Specifically runs architecture/methodology guard tests
-- `npm run test:e2e` — Playwright tests (build first; uses npm run start)
-- `npm run format` — Code formatting with Prettier
-- `npm run ingest:puzzles` — Ingests a subset of Lichess puzzle DB into `LichessPuzzle`
-- `npm run seed:resources` — Seeds the `ResourceRef` catalog
-- `npm run check:puzzles` — Runs checks on ingested puzzles
+- `npm run dev`: Start local development server.
+- `npm run build`: Build production bundle (runs `prisma generate` first).
+- `npm run typecheck`: Run TypeScript checks (`tsc --noEmit`).
+- `npm run lint`: Run ESLint checks.
+- `npm test`: Run all Vitest unit and guard tests.
+- `npm run test:guards`: Run architecture guard tests.
+- `npm run test:e2e`: Run Playwright end-to-end tests.
+- `npm run format`: Format code with Prettier.
+- `npm run prisma:migrate`: Apply database migrations in local development.
+- `npm run prisma:deploy`: Apply migrations in production or CI.
+- `npm run beta:invite`: Create beta user invite codes.
 
-## 5. Development Gotchas & Guidelines
+## 5. Git, Branching, and Release Strategy
 
-- **Prisma Schema Changes**: Run `npm run prisma:generate` before running typecheck/build. Prisma CLI doesn't auto-load `.env.local` — environment variables must be exported/present in the shell.
-- **Stockfish WASM Isolation**: App relies on `SharedArrayBuffer`. Do not touch or disable COOP/COEP headers in `next.config.mjs`.
-- **Database & Limits**: Puzzle database is huge. Do not run heavy queries on `LichessPuzzle` without filtering. Cache tablebase calls in `TablebaseCache` (limited to ≤7 pieces) to respect external APIs.
-- **CI Pipeline**: Order is strictly: `typecheck → lint → unit → guards → build → e2e`. All must pass before merging.
-- **No Runtime AI**: Never introduce LLM/AI inside the application logic.
-- **No Em-Dashes**: Never use em-dashes (`—`) in code, comments, copy, or docs. They are a telltale sign of AI authorship. Use commas, colons, semicolons, or split into separate sentences to keep grammar correct.
-- **Don't Overtest**: Don't rerun every single test after a mini change 'just because'. Be smart about how you spend tokens.
+### Branch Strategy
+
+- `main`: Production branch. Merges deploy immediately to live production. Protect this branch on GitHub.
+- `feat/<name>`: New feature work.
+- `fix/<name>`: Bug fixes and maintenance.
+- `hotfix/<name>`: Urgent production fixes branched directly from `main`.
+
+### Continuous Deployment with Human Gatekeeper
+
+Every merge to `main` deploys directly to production. Because of this rule:
+
+- **Agents must NEVER push directly to `main`.**
+- **Agents must NEVER merge a pull request without explicit user confirmation.**
+- Always do work on short-lived branches (`feat/*`, `fix/*`, `hotfix/*`).
+- Open a pull request, verify that CI tests pass, and present the PR to the user for final approval.
+
+### Standard PR Workflow
+
+1. Before starting, update your local `main`:
+   ```bash
+   git checkout main
+   git pull origin main
+   ```
+2. Create a branch:
+   ```bash
+   git checkout -b feat/<name>
+   ```
+3. Make changes and verify locally:
+   ```bash
+   npm run typecheck
+   npm run lint
+   npm test
+   ```
+4. Push and open a pull request against `main`.
+5. Verify that CI passes on the PR preview.
+6. Ask the user for review. The user merges with **Squash and merge**.
+
+### Optional Milestone Versioning
+
+Do not bump version numbers for routine daily changes. Git commit hashes track every deployment automatically.
+
+Only bump the version in [package.json](file:///home/joebos/programming/Mainline/package.json) and create a Git tag for major user announcements or milestone releases:
+
+```bash
+# For a milestone release:
+npm version minor -m "chore(release): v%s"
+git push origin main --tags
+```
+
+### Emergency Hotfix Workflow
+
+1. If production breaks, branch directly from `main`:
+   ```bash
+   git checkout main
+   git pull origin main
+   git checkout -b hotfix/<name>
+   ```
+2. Apply fix and verify all tests pass locally.
+3. Open a PR, verify CI passes, and request user review to merge to `main`.
+
+## 6. Production and Environment Safeguards
+
+- **Local Database Isolation**: Agents must only connect to local development databases or disposable test databases (`mainline_e2e`).
+- **No Direct Production Database Access**: Never connect directly to the live production database. Never execute raw queries, mutations, or migrations against production from agent tools.
+- **No Destructive Database Commands**: Never run `prisma migrate reset` or `prisma db push --force-reset` on shared or production environments.
+- **No Direct Deployments**: Never trigger production deployments from CLI (e.g. `vercel --prod`). Production deployments must only run through automated CI when the human owner merges to `main`.
+- **Secret Protection**: Never print, log, or commit secret environment variables (`AUTH_SECRET`, `CRON_SECRET`, database passwords, or OAuth tokens).
+- **No Live Mutations**: Never send real emails, generate real invite codes against production, or trigger live webhooks without explicit user instruction.
+
+## 7. Database Operations
+
+- **Development migrations**: Run `npm run prisma:migrate` to create and apply new migrations locally.
+- **Production deployments**: Run `npm run prisma:deploy` to apply existing migrations safely.
+- **Safe migration rule**: Make schema changes backward-compatible. Add columns with defaults or make them optional. Never rename or drop active columns in one step.
+- **Beta invitations**: Run `npm run beta:invite -- --email=user@example.com` or `npm run beta:invite -- --expires-days=14`.
+- **Job recovery**: Monitor and retry failed background jobs in admin Settings or trigger `/api/cron/daily`.
+- **Privacy purges**: Account deletion queues an `account_purge` job. It hard-deletes user rows and preserves an opaque token in `AccountPurgeLedger`.
+
+## 8. Hard Development Rules
+
+- **No Unauthorized Merges**: Never push directly to `main` or merge a PR without explicit user permission.
+- **No Em-Dashes**: Never use em dashes (unicode U+2014) in code, comments, copy, or markdown docs. Use colons, commas, semicolons, or separate sentences.
+- **No Runtime AI**: Never introduce LLM or AI inference into runtime application logic.
+- **Strict CI Order**: The build pipeline runs `typecheck -> lint -> unit -> guards -> build -> e2e`. All checks must pass before merging.
+- **WASM Isolation**: Keep COOP and COEP headers intact in [next.config.mjs](file:///home/joebos/programming/Mainline/next.config.mjs) for client Stockfish multi-threading.
+- **External API Limits**: Respect rate limits for Lichess, Chess.com, and Tablebase. Cache external calls in database cache tables.

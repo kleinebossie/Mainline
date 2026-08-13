@@ -6,6 +6,7 @@ import { BookLogForm, type OwnedBook } from "@/app/today/today-book-log";
 import {
   activityActionLabel,
   completionEventType,
+  firstIncompleteItem,
   formatMinuteCap,
   formatMeasurementCoverage,
   formatMeasuredMinutes,
@@ -53,7 +54,10 @@ export function EmptyTodayCard({
     <Card gutter="A" className="focus-card p-6 shadow-sheet">
       <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-4">
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-line bg-paper font-serif text-3xl text-evergreen shadow-xs" aria-hidden="true">
+          <span
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-line bg-paper font-serif text-3xl text-evergreen shadow-xs"
+            aria-hidden="true"
+          >
             ♔
           </span>
           <div>
@@ -62,7 +66,8 @@ export function EmptyTodayCard({
               Your constraints are set
             </h2>
             <p className="text-graphite mt-1 max-w-md font-serif text-sm leading-relaxed">
-              Choose today&apos;s available time budget to build your adapted training session.
+              Choose today&apos;s available time budget to build your adapted
+              training session.
             </p>
           </div>
         </div>
@@ -118,6 +123,12 @@ export function TodayHeader({
   const remaining = program.items.length - done - skipped;
   const allHandled = remaining === 0;
   const notStarted = !historyLoading && !historyError && actualEventCount === 0;
+  const nextItem = firstIncompleteItem(program.items);
+  const nextItemIndex = nextItem
+    ? program.items.findIndex((item) => item.id === nextItem.id)
+    : -1;
+  const isFirstBlock = nextItemIndex === 0;
+
   const statusTitle =
     program.items.length === 0
       ? "No training scheduled"
@@ -188,6 +199,45 @@ export function TodayHeader({
           </p>
         )}
       </div>
+
+      {program.items.length > 0 && !allHandled && nextItem && (
+        <div
+          id="today-primary-action-card"
+          className="mb-5 rounded-lg border border-evergreen/35 bg-evergreen/[0.04] p-4 sm:p-5"
+        >
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0 flex-1">
+              <p className="eyebrow text-evergreen">
+                {isFirstBlock ? "Ready to begin" : "Session in progress"}
+              </p>
+              <h3 className="mt-0.5 font-serif text-xl font-semibold text-ink sm:text-2xl">
+                {isFirstBlock
+                  ? "Start today's session"
+                  : "Continue your session"}
+              </h3>
+              <p className="text-graphite mt-1 font-serif text-sm">
+                <span>
+                  Block {nextItemIndex + 1} of {program.items.length}:{" "}
+                </span>
+                <span className="font-semibold text-ink">{nextItem.label}</span>
+                {nextItem.estMinutes != null && (
+                  <span className="font-mono text-xs text-graphite ml-1.5">
+                    ({formatMinuteCap(nextItem.estMinutes)})
+                  </span>
+                )}
+              </p>
+            </div>
+            <div className="shrink-0">
+              <TodayHeroButton
+                item={nextItem}
+                isFirstBlock={isFirstBlock}
+                nextItemIndex={nextItemIndex}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex min-w-0 flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div className="min-w-0 flex-1">
           <p className="eyebrow">Today</p>
@@ -250,7 +300,10 @@ export function TodayHeader({
           aria-controls="today-process-goal"
           className="eyebrow flex cursor-pointer items-center gap-2 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
         >
-          <Target className="h-3.5 w-3.5 shrink-0 text-evergreen" aria-hidden="true" />
+          <Target
+            className="h-3.5 w-3.5 shrink-0 text-evergreen"
+            aria-hidden="true"
+          />
           <span>Today&apos;s goal</span>
           <ChevronDown
             className={cn(
@@ -288,6 +341,68 @@ export function TodayHeader({
         </p>
       )}
     </section>
+  );
+}
+
+function TodayHeroButton({
+  item,
+  isFirstBlock,
+  nextItemIndex,
+}: {
+  item: TodayItem;
+  isFirstBlock: boolean;
+  nextItemIndex: number;
+}) {
+  const label = isFirstBlock
+    ? "Start Session"
+    : `Continue Session (Block ${nextItemIndex + 1})`;
+
+  if (item.url) {
+    return (
+      <Link
+        id="today-start-session-link"
+        href={item.url}
+        className={cn(
+          buttonVariants({ variant: "default", size: "lg" }),
+          "h-11 px-6 text-sm font-medium shadow-xs gap-2 shrink-0 bg-evergreen hover:bg-evergreen-bright text-paper",
+        )}
+      >
+        <span>{label}</span>
+        <span aria-hidden="true">→</span>
+      </Link>
+    );
+  }
+
+  if (item.externalUrl) {
+    return (
+      <a
+        id="today-start-session-link"
+        href={item.externalUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={cn(
+          buttonVariants({ variant: "default", size: "lg" }),
+          "h-11 px-6 text-sm font-medium shadow-xs gap-2 shrink-0 bg-evergreen hover:bg-evergreen-bright text-paper",
+        )}
+      >
+        <span>{label}</span>
+        <span aria-hidden="true">↗</span>
+      </a>
+    );
+  }
+
+  return (
+    <a
+      id="today-start-session-link"
+      href={`#today-block-card-${item.id}`}
+      className={cn(
+        buttonVariants({ variant: "default", size: "lg" }),
+        "h-11 px-6 text-sm font-medium shadow-xs gap-2 shrink-0 bg-evergreen hover:bg-evergreen-bright text-paper",
+      )}
+    >
+      <span>{label}</span>
+      <span aria-hidden="true">↓</span>
+    </a>
   );
 }
 
@@ -378,6 +493,8 @@ export function TodayBlockList({
   onUndoSkip: (programItemId: string) => void;
   defaultDetailsOpen?: boolean;
 }) {
+  const activeItem = firstIncompleteItem(items);
+
   return (
     <div
       className="flex min-w-0 flex-col gap-3"
@@ -388,6 +505,7 @@ export function TodayBlockList({
           key={item.id}
           item={item}
           index={index}
+          isUpNext={activeItem?.id === item.id}
           ownedBooks={ownedBooks}
           libraryLoading={libraryLoading}
           busy={pendingItemId === item.id}
@@ -404,6 +522,7 @@ export function TodayBlockList({
 function TodayBlockCard({
   item,
   index,
+  isUpNext,
   ownedBooks,
   libraryLoading,
   busy,
@@ -414,6 +533,7 @@ function TodayBlockCard({
 }: {
   item: TodayItem;
   index: number;
+  isUpNext?: boolean;
   ownedBooks: OwnedBook[];
   libraryLoading: boolean;
   busy: boolean;
@@ -436,10 +556,12 @@ function TodayBlockCard({
 
   return (
     <Card
+      id={`today-block-card-${item.id}`}
       gutter={asEvidenceGrade(item.evidenceGrade)}
       provisional={item.soften}
       className={cn(
         "settle min-w-0",
+        isUpNext && !closed && "ring-1 ring-evergreen/40 border-evergreen/40",
         item.status === "done" && "border-evergreen/35 bg-evergreen/[0.025]",
         item.status === "skipped" && "border-clay/40 bg-clay/[0.035]",
       )}
@@ -462,6 +584,14 @@ function TodayBlockCard({
                 <span>{formatMinuteCap(item.estMinutes)}</span>
                 <span aria-hidden="true">·</span>
                 <span>{rowStatusLabel(item)}</span>
+                {isUpNext && !closed && (
+                  <>
+                    <span aria-hidden="true">·</span>
+                    <span className="rounded-xs border border-evergreen/40 bg-evergreen/10 px-1.5 py-0.5 font-mono text-[0.62rem] uppercase tracking-wider text-evergreen font-semibold">
+                      Up next
+                    </span>
+                  </>
+                )}
                 {isExternal && (
                   <>
                     <span aria-hidden="true">·</span>

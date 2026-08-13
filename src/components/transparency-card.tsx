@@ -50,8 +50,7 @@ function TransparencyDetails({
   return (
     <section
       className={cn(
-        grouped &&
-          "border-l-2 border-line/40 pl-3 py-3 first:pt-2 last:pb-0",
+        grouped && "border-l-2 border-line/40 pl-3 py-3 first:pt-2 last:pb-0",
       )}
     >
       {item.title && (
@@ -114,7 +113,10 @@ function TransparencyDisclosure({
             aria-controls={contentId}
             className="eyebrow group flex cursor-pointer items-center gap-2 rounded-sm text-graphite transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
           >
-            <CircleHelp className="h-3.5 w-3.5 shrink-0 text-evergreen" aria-hidden="true" />
+            <CircleHelp
+              className="h-3.5 w-3.5 shrink-0 text-evergreen"
+              aria-hidden="true"
+            />
             <span>Why this?</span>
             <span className="font-mono text-[0.62rem] text-graphite/70 group-hover:text-ink">
               ({collapsed ? "click to expand" : "click to collapse"})

@@ -70,7 +70,12 @@ async function seed() {
         minutesPerDay: 30,
         daysPerWeek: 5,
         goals: { primary: "Improve tactics and calculation" },
-        formatPrefs: { bullet: false, blitz: true, rapid: true, classical: true },
+        formatPrefs: {
+          bullet: false,
+          blitz: true,
+          rapid: true,
+          classical: true,
+        },
         isCurrent: true,
         version: 1,
       },

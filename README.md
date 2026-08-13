@@ -30,12 +30,15 @@ Mainline is a personalized, science-based chess training app. It decides **what 
 Instead of giving you generic material, Mainline builds a dynamic daily session around your real schedule, connected accounts, and proven learning science.
 
 ### 1. Landing Page
+
 ![Landing Page](docs/screenshots/landing-page.png)
 
 ### 2. Daily Training Session ("Today")
+
 ![Today Page](docs/screenshots/today-page.png)
 
 ### 3. Process Signals ("Progress")
+
 ![Progress Page](docs/screenshots/progress-page.png)
 
 ---
@@ -65,12 +68,12 @@ Mainline follows strict product boundaries:
 
 Mainline grounds every activity in peer-reviewed skill acquisition research. Every recommendation includes an **Evidence Grade** and citation:
 
-| Grade | Meaning | Example |
-| :--- | :--- | :--- |
-| **Grade A** | High confidence from direct or strong transfer research. | Retrieval practice and spaced review |
-| **Grade B** | Moderate confidence from general learning science. | Process goal setting |
-| **Grade C** | Reasonable theoretical support, thin direct evidence. | Specific tactical pattern categorization |
-| **Grade D** | Minimal evidence, exploratory practice. | Passive game replay |
+| Grade       | Meaning                                                  | Example                                  |
+| :---------- | :------------------------------------------------------- | :--------------------------------------- |
+| **Grade A** | High confidence from direct or strong transfer research. | Retrieval practice and spaced review     |
+| **Grade B** | Moderate confidence from general learning science.       | Process goal setting                     |
+| **Grade C** | Reasonable theoretical support, thin direct evidence.    | Specific tactical pattern categorization |
+| **Grade D** | Minimal evidence, exploratory practice.                  | Passive game replay                      |
 
 Mainline states its primary principle clearly: **no training activity has been proven to guarantee a rating gain**. Mainline helps you use available evidence without false promises.
 
@@ -103,22 +106,26 @@ Read [VISION.md](file:///home/joebos/programming/Mainline/planning/VISION.md), [
 ### Quick Start
 
 1. Clone the repository:
+
    ```bash
    git clone https://github.com/kleinebossie/Mainline.git
    cd Mainline
    ```
 
 2. Copy the environment configuration:
+
    ```bash
    cp .env.example .env.local
    ```
 
 3. Install dependencies:
+
    ```bash
    npm ci
    ```
 
 4. Run database migrations:
+
    ```bash
    npm run prisma:migrate
    ```
@@ -132,16 +139,16 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ### Script Registry
 
-| Command | Action |
-| :--- | :--- |
-| `npm run dev` | Starts the local dev server with Stockfish WASM setup. |
-| `npm run build` | Runs Prisma generation and builds the Next.js app. |
-| `npm run typecheck` | Runs TypeScript compiler checks (`tsc --noEmit`). |
-| `npm run lint` | Runs ESLint and architectural guard checks. |
-| `npm test` | Runs all Vitest unit and architectural guard tests. |
-| `npm run test:guards` | Runs architecture and methodology boundary tests. |
-| `npm run test:e2e` | Runs Playwright end-to-end browser tests. |
-| `npm run format` | Formats source files with Prettier. |
+| Command               | Action                                                 |
+| :-------------------- | :----------------------------------------------------- |
+| `npm run dev`         | Starts the local dev server with Stockfish WASM setup. |
+| `npm run build`       | Runs Prisma generation and builds the Next.js app.     |
+| `npm run typecheck`   | Runs TypeScript compiler checks (`tsc --noEmit`).      |
+| `npm run lint`        | Runs ESLint and architectural guard checks.            |
+| `npm test`            | Runs all Vitest unit and architectural guard tests.    |
+| `npm run test:guards` | Runs architecture and methodology boundary tests.      |
+| `npm run test:e2e`    | Runs Playwright end-to-end browser tests.              |
+| `npm run format`      | Formats source files with Prettier.                    |
 
 ---
 

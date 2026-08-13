@@ -78,7 +78,8 @@ export function ConnectionsManager() {
           Connect your accounts to enable blunder practice
         </h3>
         <p className="text-graphite font-serif text-sm leading-relaxed">
-          Mainline imports your public game history to detect key tactical mistakes and convert them into personalized spaced-repetition drills.
+          Mainline imports your public game history to detect key tactical
+          mistakes and convert them into personalized spaced-repetition drills.
         </p>
       </div>
 
