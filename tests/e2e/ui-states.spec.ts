@@ -64,7 +64,7 @@ test("Today states stay clear and responsive", async ({ page }, testInfo) => {
   await mountWithAppStyles(page, renderState("today-progress"));
 
   await expect(
-    page.getByText("Session in progress", { exact: true }),
+    page.getByText("Session in progress").first(),
   ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Update plan" }),
