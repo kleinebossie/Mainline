@@ -1,4 +1,4 @@
-# Mainline closed-beta operations
+# Mainline open-beta operations
 
 This runbook covers runtime controls, account privacy operations, and the P9 controlled
 observational export.

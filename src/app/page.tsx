@@ -169,7 +169,7 @@ export default async function Home() {
               </a>
             </div>
             <p className="mt-4 font-mono text-[0.68rem] uppercase tracking-[0.12em] text-graphite">
-              Closed beta · invite required · free to use
+              Open beta · free to use
             </p>
           </div>
 
@@ -327,8 +327,8 @@ export default async function Home() {
               Give your chess training a main line.
             </h2>
             <p className="mt-6 max-w-lg text-lg leading-relaxed text-paper/65">
-              Mainline is currently in closed beta. Enter your invite code, sign
-              in, and we will take you straight to connecting your games.
+              Mainline is currently in open beta. Sign in, and we will take you
+              straight to connecting your games.
             </p>
           </div>
 
@@ -336,27 +336,13 @@ export default async function Home() {
             action={beginSelectedBetaSignIn}
             className="bg-paper text-ink rounded-lg border border-paper/10 p-6 shadow-sheet sm:p-8"
           >
-            <label
-              htmlFor="landing-invite"
-              className="font-mono text-xs font-medium uppercase tracking-[0.12em]"
-            >
-              Invite code
-            </label>
-            <p
-              id="landing-invite-help"
-              className="mt-2 text-sm leading-relaxed text-graphite"
-            >
-              Optional if your email is already allowlisted.
+            <h3 className="font-serif text-xl font-semibold">
+              Get Started (Open Beta)
+            </h3>
+            <p className="mt-1 text-sm text-graphite">
+              Sign in with your chess or Google account to build your plan.
             </p>
-            <input
-              id="landing-invite"
-              name="inviteCode"
-              autoComplete="one-time-code"
-              maxLength={128}
-              aria-describedby="landing-invite-help"
-              className="mt-4 h-12 w-full rounded-md border border-input bg-paper-raised px-3 font-mono text-sm outline-none transition-shadow focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-paper"
-            />
-            <div className="mt-4 grid gap-3">
+            <div className="mt-6 grid gap-3">
               <PendingSubmitButton
                 name="provider"
                 value="lichess"

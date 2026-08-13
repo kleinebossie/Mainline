@@ -6,8 +6,7 @@ import { test, expect } from "@playwright/test";
 
 test("sign-in page offers Lichess", async ({ page }) => {
   await page.goto("/signin");
-  await expect(page.getByText(/closed beta/i)).toBeVisible();
-  await expect(page.getByLabel(/invite code/i).first()).toBeVisible();
+  await expect(page.getByText(/open beta/i)).toBeVisible();
   await expect(
     page.getByRole("button", { name: /Continue with Lichess/i }),
   ).toBeVisible();
@@ -19,9 +18,11 @@ test("sign-in callback errors explain what the user can do next", async ({
   await page.goto("/signin?error=AccessDenied");
   const errorNotice = page
     .getByRole("alert")
-    .filter({ hasText: "Beta access not granted" });
-  await expect(errorNotice).toContainText("Beta access not granted");
-  await expect(errorNotice).toContainText("Check the code and try again");
+    .filter({ hasText: "Access denied" });
+  await expect(errorNotice).toContainText("Access denied");
+  await expect(errorNotice).toContainText(
+    "This account could not be signed in",
+  );
   await expect(
     page.getByRole("button", { name: /Continue with Lichess/i }),
   ).toBeVisible();
@@ -43,8 +44,7 @@ test("home starts onboarding and offers sign-in directly", async ({ page }) => {
     page.getByRole("heading", { name: /Stop guessing what to train/i }),
   ).toBeVisible();
   await expect(page.getByRole("link", { name: /Get started/i })).toBeVisible();
-  await expect(page.getByText(/invite required/i)).toBeVisible();
-  await expect(page.getByLabel(/^Invite code$/i)).toBeVisible();
+  await expect(page.getByText(/open beta/i).first()).toBeVisible();
   await expect(
     page.getByRole("button", { name: /Continue with Lichess/i }),
   ).toBeVisible();

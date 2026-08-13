@@ -14,9 +14,9 @@ import { getPostAuthDestination } from "@/server/onboarding";
 function signInErrorCopy(code: string | undefined) {
   if (code === "AccessDenied") {
     return {
-      heading: "Beta access not granted",
+      heading: "Access denied",
       message:
-        "This account is not on the beta list, or the invite code was not accepted. Check the code and try again with the same account.",
+        "This account could not be signed in. Please try again or use another account.",
     };
   }
   if (code === "OAuthAccountNotLinked") {
@@ -68,8 +68,8 @@ export default async function SignInPage({
             Sign in
           </h1>
           <p className="text-graphite text-sm leading-relaxed">
-            Mainline is in closed beta. Sign in with an allowlisted email or
-            enter the invite code you received. No password is ever stored.
+            Mainline is in open beta. Sign in with Lichess or Google. No
+            password is ever stored.
           </p>
         </div>
 
@@ -83,26 +83,6 @@ export default async function SignInPage({
 
         <div className="bg-card rounded-lg border p-6 shadow-sheet">
           <form action={beginSelectedBetaSignIn}>
-            <label
-              htmlFor="signin-invite"
-              className="text-graphite mb-2 block text-xs"
-            >
-              Invite code (optional for allowlisted email)
-            </label>
-            <input
-              id="signin-invite"
-              name="inviteCode"
-              autoComplete="one-time-code"
-              maxLength={128}
-              aria-describedby="signin-invite-help"
-              className="border-input bg-paper-raised mb-3 w-full rounded-md border px-3 py-2 font-mono text-sm outline-none transition-shadow focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-paper"
-            />
-            <p
-              id="signin-invite-help"
-              className="text-graphite mb-4 font-mono text-[0.65rem] leading-relaxed"
-            >
-              Mainline never receives your provider password.
-            </p>
             <div className="grid gap-3">
               <PendingSubmitButton
                 name="provider"

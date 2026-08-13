@@ -2,7 +2,7 @@
 
 Mainline is a personalized, science-based chess training app. It builds and adapts a dynamic training program around your games, time budget, and goals.
 
-Mainline is currently in closed beta.
+Mainline is currently in open beta.
 
 ## What Mainline Does
 

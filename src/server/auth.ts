@@ -2,17 +2,11 @@ import NextAuth, { type NextAuthConfig } from "next-auth";
 import type { Account } from "next-auth";
 import Google from "next-auth/providers/google";
 import { PrismaAdapter } from "@auth/prisma-adapter";
-import { cookies } from "next/headers";
 
 import { prisma } from "@/db/client";
 import { LichessProvider } from "@/server/auth-providers/lichess";
 import { upsertPlatformConnection } from "@/server/connections";
-import {
-  admitBetaUser,
-  authoritativeGoogleEmail,
-  BETA_INVITE_COOKIE,
-  ownerEmailsFromEnv,
-} from "@/server/beta-access";
+import { admitBetaUser } from "@/server/beta-access";
 
 // Lichess needs no secret (public PKCE client), so it is always available — even in
 // CI/e2e without env. Google is wired only when its credentials are present, so
@@ -56,19 +50,10 @@ async function syncLichessConnection(
 
 async function betaAccessAllowed(
   userId: string | null | undefined,
-  account: Account | null | undefined,
-  profile: unknown,
 ): Promise<boolean> {
-  const cookieStore = await cookies();
-  const inviteCode = cookieStore.get(BETA_INVITE_COOKIE)?.value;
-  const authoritativeEmail =
-    account?.provider === "google" ? authoritativeGoogleEmail(profile) : null;
   return admitBetaUser(prisma, {
     userId,
-    authoritativeEmail,
-    inviteCode,
     now: new Date(),
-    ownerEmails: ownerEmailsFromEnv(),
   });
 }
 
@@ -79,8 +64,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   pages: { signIn: "/signin" },
   providers,
   callbacks: {
-    async signIn({ user, account, profile }) {
-      return betaAccessAllowed(user.id, account, profile);
+    async signIn({ user }) {
+      return betaAccessAllowed(user.id);
     },
     session({ session, user }) {
       // Database strategy: `user` is the adapter row, always has an id.
@@ -92,12 +77,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     // signIn retains the raw OAuth profile after the adapter user exists, so the
     // actual allowlist claim uses the same authoritative identity as preflight.
     async signIn({ user, account, profile, isNewUser }) {
-      const admitted = await betaAccessAllowed(user.id, account, profile);
+      const admitted = await betaAccessAllowed(user.id);
       if (!admitted) {
         if (isNewUser) {
           await prisma.user.delete({ where: { id: user.id } });
         }
-        throw new Error("Closed beta access was not granted");
+        throw new Error("Beta access was not granted");
       }
       await syncLichessConnection(
         user.id,

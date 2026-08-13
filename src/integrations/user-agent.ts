@@ -6,4 +6,4 @@
 // (an empty User-Agent makes Chess.com return 403).
 export const PLATFORM_USER_AGENT =
   process.env.CHESS_API_USER_AGENT?.trim() ||
-  "mainline/0.1.0 (personalized chess training; closed beta)";
+  "mainline/0.1.0 (personalized chess training; open beta)";

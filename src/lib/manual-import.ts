@@ -4,7 +4,7 @@ export const MANUAL_PGN_MAX_BATCH_BYTES = 512 * 1024;
 export const MANUAL_PGN_MAX_GAMES = 25;
 export const MANUAL_PGN_MAX_GAME_BYTES = 128 * 1024;
 export const MANUAL_PGN_MAX_PLIES = 600;
-/** Storage safeguard for the closed-beta manual library. This is not methodology. */
+/** Storage safeguard for the open-beta manual library. This is not methodology. */
 export const MANUAL_PGN_MAX_GAMES_PER_USER = 500;
 
 export const MANUAL_GAME_RESULTS = ["win", "loss", "draw"] as const;
