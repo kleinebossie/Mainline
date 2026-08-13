@@ -58,6 +58,18 @@ npm run prisma:migrate
 - `npm run prisma:deploy`: Apply migrations in production or CI.
 - `npm run beta:invite`: Create beta user invite codes.
 
+### E2E Testing Requirement
+
+Playwright tests require a production build (`npm run build`) and `PLAYWRIGHT_DATABASE_URL` pointing to a disposable database (for example, `postgresql://postgres:postgres@localhost:5432/mainline_e2e`).
+
+When you run E2E tests locally:
+1. Start a local Postgres container: `docker run -d --name mainline-playwright-db -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=mainline_e2e -p 5432:5432 postgres:16-alpine`
+2. Apply migrations: `PLAYWRIGHT_DATABASE_URL="postgresql://postgres:postgres@localhost:5432/mainline_e2e" npx prisma migrate deploy`
+3. Build the app: `npm run build`
+4. Run tests: `PLAYWRIGHT_DATABASE_URL="postgresql://postgres:postgres@localhost:5432/mainline_e2e" npm run test:e2e`
+
+Never report that E2E tests passed if the command exited early without running tests.
+
 ## 5. Git, Branching, and Release Strategy
 
 ### Branch Strategy
