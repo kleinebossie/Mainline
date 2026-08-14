@@ -100,4 +100,33 @@ describe("extractFeatures", () => {
       earlyCpl: 12.5,
     });
   });
+
+  it("extracts clock information from PGN clock comments", () => {
+    const clockedPgn = [
+      '[Event "Rated Rapid game"]',
+      '[TimeControl "300+3"]',
+      "",
+      "1. e4 { [%clk 0:05:00] } e5 { [%clk 0:04:58] } 2. Nf3 { [%clk 0:04:55] } 1-0",
+    ].join("\n");
+    const clockedEvals: PositionEval[] = [
+      { cp: 20, mate: null },
+      { cp: -20, mate: null },
+      { cp: 20, mate: null },
+      { cp: 30, mate: null },
+    ];
+
+    const res = extractFeatures({
+      pgn: clockedPgn,
+      evals: clockedEvals,
+      userColor: "w",
+    });
+
+    expect(res.clock).toBeDefined();
+    expect(res.clock).toEqual([
+      { ply: 1, remainingMs: 300000, spentMs: 3000 },
+      { ply: 2, remainingMs: 298000, spentMs: 5000 },
+      { ply: 3, remainingMs: 295000, spentMs: 8000 },
+    ]);
+  });
 });
+
