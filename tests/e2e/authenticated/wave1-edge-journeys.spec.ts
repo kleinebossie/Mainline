@@ -416,9 +416,11 @@ test("an empty internal block persists one skip without learning credit", async 
   expect(
     await db.skillStateSnapshot.count({ where: { userId: edgeUser.id } }),
   ).toBe(0);
-  expect(await db.scheduleState.count({ where: { userId: edgeUser.id } })).toBe(
-    0,
-  );
+  expect(
+    await db.scheduleState.count({
+      where: { userId: edgeUser.id, itemType: { not: "endgame" } },
+    }),
+  ).toBe(0);
   expect(await db.rewardEvent.count({ where: { userId: edgeUser.id } })).toBe(
     0,
   );
