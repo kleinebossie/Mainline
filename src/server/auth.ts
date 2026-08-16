@@ -7,11 +7,10 @@ import { prisma } from "@/db/client";
 import { LichessProvider } from "@/server/auth-providers/lichess";
 import { upsertPlatformConnection } from "@/server/connections";
 import { admitBetaUser } from "@/server/beta-access";
+import { getOnboardingStatus } from "@/server/onboarding";
 
-// Lichess needs no secret (public PKCE client), so it is always available — even in
-// CI/e2e without env. Google is wired only when its credentials are present, so
-// `next build` and the smoke e2e run without secrets. Add GOOGLE_CLIENT_ID/SECRET
-// (.env.local) to enable Google sign-in (M0 DoD).
+// Lichess needs no secret (public PKCE client), so it is always available, even in
+// CI/e2e without env. Add Google credentials to enable Google sign-in.
 const providers: NextAuthConfig["providers"] = [LichessProvider()];
 
 if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
@@ -24,10 +23,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
 }
 
 // When a Lichess account is signed in or linked, mirror it into a
-// PlatformConnection carrying the OAuth tokens (M1 DoD). Idempotent (upsert), so it
-// is safe to run from both the linkAccount and signIn events (the two fire across
-// first-link and returning sign-ins). `externalUsername` is resolved by the caller
-// because the two events expose it differently (OAuth profile vs. adapter user).
+// PlatformConnection carrying the OAuth tokens.
 async function syncLichessConnection(
   userId: string | undefined,
   account: Account | null | undefined,
@@ -67,7 +63,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async signIn({ user }) {
       return betaAccessAllowed(user.id);
     },
-    jwt({ token, user }) {
+    async jwt({ token, user }) {
       if (user?.id) {
         token.id = user.id;
       }
@@ -79,6 +75,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
       if (user?.image) {
         token.picture = user.image;
+      }
+      const userId = (token.id ?? user?.id) as string | undefined;
+      if (token.onboarded !== true && userId) {
+        const status = await getOnboardingStatus(prisma, userId);
+        token.onboarded = status.complete;
       }
       return token;
     },
@@ -94,6 +95,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
       if (token?.picture) {
         session.user.image = token.picture as string;
+      }
+      if (typeof token?.onboarded === "boolean") {
+        session.user.onboarded = token.onboarded;
       }
       return session;
     },

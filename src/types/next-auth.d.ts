@@ -1,12 +1,19 @@
-// Expose the DB user id on the session (set in the `session` callback, BUILD.md
-// uses it for per-user tRPC procedures). With the database session strategy the
-// adapter user always has an id.
+// Expose the DB user id and onboarding status on the session.
+// This allows fast layout gating without extra database queries.
 import type { DefaultSession } from "next-auth";
 
 declare module "next-auth" {
   interface Session {
     user: {
       id: string;
+      onboarded?: boolean;
     } & DefaultSession["user"];
+  }
+}
+
+declare module "next-auth/jwt" {
+  interface JWT {
+    id?: string;
+    onboarded?: boolean;
   }
 }
