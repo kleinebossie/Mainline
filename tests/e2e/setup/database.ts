@@ -16,13 +16,29 @@ export const PLAYWRIGHT_AUTH_SECRET =
   "e2e-placeholder-secret-must-be-at-least-32-chars-long";
 
 export async function encodePlaywrightSessionToken(
-  user: { id: string; email?: string | null; name?: string | null } | string,
+  user:
+    | {
+        id: string;
+        email?: string | null;
+        name?: string | null;
+        onboarded?: boolean;
+      }
+    | string,
 ): Promise<string> {
   const userId = typeof user === "string" ? user : user.id;
-  const email = typeof user === "string" ? undefined : (user.email ?? undefined);
+  const email =
+    typeof user === "string" ? undefined : (user.email ?? undefined);
   const name = typeof user === "string" ? undefined : (user.name ?? undefined);
+  const onboarded =
+    typeof user === "string" ? undefined : (user.onboarded ?? undefined);
   return encode({
-    token: { id: userId, sub: userId, email, name },
+    token: {
+      id: userId,
+      sub: userId,
+      email,
+      name,
+      ...(typeof onboarded === "boolean" ? { onboarded } : {}),
+    },
     secret: PLAYWRIGHT_AUTH_SECRET,
     salt: AUTHJS_SESSION_COOKIE,
   });
@@ -33,6 +49,7 @@ export const SEEDED_USERS = {
     id: "playwright-user-primary",
     name: "Playwright Primary",
     email: "primary@mainline.playwright.invalid",
+    onboarded: true,
     sessionId: "playwright-session-primary",
     sessionToken: "playwright-database-session-primary",
     allowlistId: "playwright-beta-grant-primary",
@@ -45,6 +62,7 @@ export const SEEDED_USERS = {
     id: "playwright-user-secondary",
     name: "Playwright Secondary",
     email: "secondary@mainline.playwright.invalid",
+    onboarded: true,
     sessionId: "playwright-session-secondary",
     sessionToken: "playwright-database-session-secondary",
     allowlistId: "playwright-beta-grant-secondary",

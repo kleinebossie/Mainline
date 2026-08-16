@@ -463,9 +463,7 @@ test("an admin can inspect and retry a stale job without sensitive fields", asyn
       errorCode: "fixture_error",
     },
   });
-  const authCookieValue = await encodePlaywrightSessionToken(
-    USER_IDS.operator,
-  );
+  const authCookieValue = await encodePlaywrightSessionToken(USER_IDS.operator);
   await page.context().addCookies([
     {
       name: AUTHJS_SESSION_COOKIE,
