@@ -59,7 +59,7 @@ async function betaAccessAllowed(
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
-  session: { strategy: "database" },
+  session: { strategy: "jwt" },
   trustHost: true, // required for localhost/self-host (non-Vercel) deployments
   pages: { signIn: "/signin" },
   providers,
@@ -67,9 +67,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async signIn({ user }) {
       return betaAccessAllowed(user.id);
     },
-    session({ session, user }) {
-      // Database strategy: `user` is the adapter row, always has an id.
-      session.user.id = user.id;
+    jwt({ token, user }) {
+      if (user?.id) {
+        token.id = user.id;
+      }
+      return token;
+    },
+    session({ session, token }) {
+      if (token?.id) {
+        session.user.id = token.id as string;
+      }
       return session;
     },
   },

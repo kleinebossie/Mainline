@@ -1,4 +1,5 @@
 import { resolve } from "node:path";
+import { encode } from "next-auth/jwt";
 
 const LOCAL_DATABASE_HOSTS = new Set([
   "127.0.0.1",
@@ -10,6 +11,19 @@ const DISPOSABLE_DATABASE_NAME = /(^|[-_])(e2e|playwright)([-_]|$)/i;
 
 export const AUTHJS_SESSION_COOKIE = "authjs.session-token";
 export const AUTH_STATE_DIRECTORY = resolve("test-results", "auth");
+export const PLAYWRIGHT_AUTH_SECRET =
+  process.env.AUTH_SECRET ??
+  "e2e-placeholder-secret-must-be-at-least-32-chars-long";
+
+export async function encodePlaywrightSessionToken(
+  userId: string,
+): Promise<string> {
+  return encode({
+    token: { id: userId, sub: userId },
+    secret: PLAYWRIGHT_AUTH_SECRET,
+    salt: AUTHJS_SESSION_COOKIE,
+  });
+}
 
 export const SEEDED_USERS = {
   primary: {
