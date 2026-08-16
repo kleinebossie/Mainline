@@ -29,8 +29,8 @@
 
 Every section below serves these three laws. They are non-negotiable and are **enforced by CI** (§13).
 
-| #                                           | Law                                                                                                                                                                                                                                                                                                       | What it means in code                                                                                                                                      | Enforced by                                   |
-| ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| #                                          | Law                                                                                                                                                                                                                                                                                                       | What it means in code                                                                                                                                      | Enforced by                                   |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
 | **L1: Science lives only in config**       | The Engine contains **no chess knowledge and no learning-science constant.** Every threshold, weight, target, interval, band cutoff, and copy string comes from `MethodologyConfig`.                                                                                                                      | `engine/` and `analysis/` import from `methodology/` _types and functions_ only; they never contain a magic number that encodes a chess/learning decision. | Architecture-guard test (§13.4) + code review |
 | **L2: Decisions are pure & deterministic** | The generator, the adaptation loop, and every methodology function are **pure**: same `(inputs, methodologyVersion)` → same output. Wall-clock time and randomness are **injected as inputs**, never read inside.                                                                                         | No `Date.now()`, `Math.random()`, I/O, or DB access inside engine/methodology decision functions.                                                          | Golden tests (§13.1) + lint rule              |
 | **L3: Evidence never gets stripped**       | Every methodology leaf value is a `GradedValue` (carrying grade, tier, citation, optional `stub`/`best-guess` flag). The grade + rationale **travel with the artifact** (snapshotted onto each `ProgramItem`) so the transparency UI can always show "why this / why now" and how strong the evidence is. | The config Zod schema rejects any bare leaf number; `ProgramItem` denormalises the graded rationale at generation time.                                    | Config schema validation test (§13.4)         |
@@ -282,18 +282,18 @@ algorithm; the config owns the numbers).
 
 | Function                                                                                                                        | Seam        | May call (generic Engine util) |
 | ------------------------------------------------------------------------------------------------------------------------------- | ----------- | ------------------------------ |
-| `dimensionsForBand(band, cfg)`                                                                                                  | 1           |: (data lookup)                |
-| `nextCalibrationItem(history, cfg)` · `scoreCalibration(responses, cfg)`                                                        | 2           |:                              |
-| `interpretGameFeatures(rawFeatures, band, cfg)`                                                                                 | 3           |:                              |
-| `confidenceFromSampleSize(n, signalType, cfg)`                                                                                  | 3           |:                              |
-| `mapWeaknessToActivities(signals, band, constraints, cfg)`                                                                      | 4           |:                              |
+| `dimensionsForBand(band, cfg)`                                                                                                  | 1           | : (data lookup)                |
+| `nextCalibrationItem(history, cfg)` · `scoreCalibration(responses, cfg)`                                                        | 2           | :                              |
+| `interpretGameFeatures(rawFeatures, band, cfg)`                                                                                 | 3           | :                              |
+| `confidenceFromSampleSize(n, signalType, cfg)`                                                                                  | 3           | :                              |
+| `mapWeaknessToActivities(signals, band, constraints, cfg)`                                                                      | 4           | :                              |
 | `targetPuzzleRating(userRating, track, band, recentSuccess, cfg)`                                                               | 5           | servo controller (generic)     |
-| `practiceStructure(band, motifMastery, cfg)` · `useWorkedExample(band, complexity, cfg)`                                        | 5           |:                              |
+| `practiceStructure(band, motifMastery, cfg)` · `useWorkedExample(band, complexity, cfg)`                                        | 5           | :                              |
 | `gradeFromOutcome(correct, solveMs, bandMedianMs, cfg)` · `scheduleReview(item, grade, fsrsState, cfg)` · `redoFlowPolicy(cfg)` | 6           | `fsrsStep` (generic FSRS math) |
 | `prioritizeDailyMix(skillState, dueItems, signals, constraints, band, cfg)`                                                     | 7           | weighted-sort (generic)        |
 | `detectPlateau(glickoHistory, cfg)`                                                                                             | 7           | `glickoConfidenceInterval`     |
-| `rationaleFor(triggerKey, context, cfg)`                                                                                        | 8           |:                              |
-| `engagementEventsFor(stateChange, cfg)` · `buildImplementationIntention(cue, module)`                                           | 9           |:                              |
+| `rationaleFor(triggerKey, context, cfg)`                                                                                        | 8           | :                              |
+| `engagementEventsFor(stateChange, cfg)` · `buildImplementationIntention(cue, module)`                                           | 9           | :                              |
 | `isProgressReal(glickoHistory, cfg)` · `isStableBaseline(rd, cfg)` · `expectationForBand(band, cfg)`                            | Measurement | `glickoConfidenceInterval`     |
 
 **Outputs carry their grade.** Functions that produce recommendations return objects already carrying
@@ -519,7 +519,7 @@ interface RawGameFeatures {
 - **Assessment**: onboarding behavioural calibration (Seam 2). `userId`, `completedAt?`,
   `calibrationResponses` JSON, `tacticalRatingEstimate?`, `uncertainty?`, `derivedSkillSeed` JSON,
   `methodologyVersion`. (Self-report is used for constraints/goals only, **never** for skill diagnosis
- : Seam 2.)
+  : Seam 2.)
 - **ConstraintSet**: the user's reality (current + history). `userId`, `minutesPerDay`, `daysPerWeek`,
   `goals` JSON, `ownedResources` (ResourceRef ids), `formatPrefs` JSON, **`targetFocus`**
   (`online | otb | hybrid`: the user's primary play medium; **self-report is valid here**: it is a
@@ -700,7 +700,7 @@ Mainline account may retain its OAuth-backed connection for puzzle activity and 
 
 - **No auth, no tokens.** Read by username: profile/stats (rating + RD), and **monthly game
   archives** (list archives → fetch each month's games).
-- **Hard constraints:** Chess.com **rejects requests without a proper `User-Agent`** (returns 403) : 
+- **Hard constraints:** Chess.com **rejects requests without a proper `User-Agent`** (returns 403) :
   always send a descriptive one (contact/app identifier). Serve behind Cloudflare → respect
   caching/back-off; use conditional requests (ETag/`Last-Modified`) and cache archives (they are
   immutable once a month closes). Serial, polite fetching only.
@@ -872,10 +872,10 @@ A linear, resumable flow; each step writes typed state and is independently test
 
 | Step                     | Route / action                                                 | Writes                                              | Methodology called                                  | Phase-1 status            |
 | ------------------------ | -------------------------------------------------------------- | --------------------------------------------------- | --------------------------------------------------- | ------------------------- |
-| 1. Sign in               | `(auth)`: Auth.js (Google / Lichess PKCE)                     | `User`, `Account`, `Session`                        |:                                                   | built                     |
-| 2. Connect platforms     | `onboarding`: Lichess OAuth / Chess.com username              | `PlatformConnection`                                |:                                                   | built                     |
-| 3. Background import     | `api/cron` job via `PlatformAdapter.fetchGames`                | `ImportedGame` (idempotent), `ChessProfileSnapshot` |:                                                   | built                     |
-| 4. Instant analysis      | analyse ~5 most-recent games client-side; queue rest           | `AnalysisResult` (raw features)                     |: (raw only, L1)                                    | built                     |
+| 1. Sign in               | `(auth)`: Auth.js (Google / Lichess PKCE)                      | `User`, `Account`, `Session`                        | :                                                   | built                     |
+| 2. Connect platforms     | `onboarding`: Lichess OAuth / Chess.com username               | `PlatformConnection`                                | :                                                   | built                     |
+| 3. Background import     | `api/cron` job via `PlatformAdapter.fetchGames`                | `ImportedGame` (idempotent), `ChessProfileSnapshot` | :                                                   | built                     |
+| 4. Instant analysis      | analyse ~5 most-recent games client-side; queue rest           | `AnalysisResult` (raw features)                     | : (raw only, L1)                                    | built                     |
 | 5. Tactical calibration  | adaptive ladder over puzzles, solved **in-app** (M11)          | `Assessment`                                        | `nextCalibrationItem` / `scoreCalibration` (Seam 2) | built, in-app             |
 | 6. Constraints + if-then | `onboarding` form                                              | `ConstraintSet` (incl. `ifThenPlan`, `targetFocus`) | `buildImplementationIntention` (Seam 9)             | built                     |
 | 7. The "reveal"          | interactive game review contrasting signals vs self-bias (M12) | n/a                                                 | `interpretGameFeatures` (Seam 3)                    | built, interactive review |
@@ -1284,7 +1284,7 @@ graded **`delivery`** field (Seam 4: data, not a code branch).
   board itself hardcodes **no** affordance policy (L1).
 - **Tests:** unit (golden): `stepSolve` over a fixed line (correct / wrong / solved transitions,
   deterministic `solveMs` from an injected Clock); board legality on a known FEN; **L1 guard** (no
-  chess/learning constant in `engine/interactive/`); **L2** (Clock injected, no `Date.now()`). e2e : 
+  chess/learning constant in `engine/interactive/`); **L2** (Clock injected, no `Date.now()`). e2e :
   open `/train`, make a move, see it validated locally.
 - **DoD:** ✅ interactive board renders & validates moves locally ✅ `stepSolve` golden-green &
   deterministic (Clock injected) ✅ `ProgramItem` resolves internal vs external by config `delivery`
@@ -1389,7 +1389,7 @@ graded **`delivery`** field (Seam 4: data, not a code branch).
 ### M14: Recommended resources, book-study & OTB-calibration protocols (the deliberately-external layer)
 
 - **Goal:** make the genuinely-external activities (books, courses, playing real games) **first-class**
- : recommend the right ones, guide _how_ to study them, calibrate practice to the user's play medium
+  : recommend the right ones, guide _how_ to study them, calibrate practice to the user's play medium
   (online vs OTB), and let users log progress: **without hosting anything**.
 - **Depends on:** M3 (`ResourceRef` catalog), M4 (`ConstraintSet.targetFocus`), M6/M7 (program + tracker).
 - **Contract:** Seam-4 `book` / `course` `ActivityDefinition`s (`delivery: external`) + the **per-band
@@ -1405,7 +1405,7 @@ graded **`delivery`** field (Seam 4: data, not a code branch).
   catalog's cognitive-load rule); a **book-study logging surface**: track chapters / exercises / time
   → an `ActivityEvent` (`book_session`) capturing the user's **self-reported success rate** (drives the
   85%-rule calibration nudge) + Woodpecker-cycle progress + a rolled-up `ResourceProgress`, feeding the
-  **same** tracker/adaptation loop; **OTB-calibration recommendations** gated by `targetFocus` : 
+  **same** tracker/adaptation loop; **OTB-calibration recommendations** gated by `targetFocus` :
   physical-board setup advice, the per-band 2D/3D modality split, and OTB tournament-simulation cadence
   (Zen mode, no arrows, notation, touch-move) surfaced as graded activities; wire the new Seam-8 copy
   keys (`book_active_recall`, `book_difficulty_calibration`, `book_woodpecker_cycle`, `modality_2d_vs_3d`,
@@ -1440,7 +1440,7 @@ graded **`delivery`** field (Seam 4: data, not a code branch).
   hardcoded `"online"` stub in calibration + train is replaced by the user's stored medium); (e) game-play
   stays **external** via the existing `play_games` deep-link (golden-tested to resolve to a platform URL,
   never an internal `/train` route); (f) the `book` Seam-4 activity ships `delivery: external` with a
-  conservative stub daily-mix priority of 0 (surfaced on `/library`, not forced into the timed session : 
+  conservative stub daily-mix priority of 0 (surfaced on `/library`, not forced into the timed session :
   the research config can raise it with no Engine change); (g) the e2e drives the public `/library`
   auth-gate redirect, while the full signed-in book-session loop is manually verified per §13.5.
   **No migration / infra hand-off**: all M14 state rides in existing JSON columns, and book
@@ -1452,7 +1452,7 @@ graded **`delivery`** field (Seam 4: data, not a code branch).
 - **Contract:** allowlist gate; `ApiCallBudget` middleware; PWA manifest/SW.
 - **Tasks:** invite/allowlist sign-in gate; per-user external-API rate limits + caching; Sentry;
   minimal privacy-friendly analytics; PWA; perf pass; GDPR export/delete.
-- **Tests:** unit: non-allowlisted sign-in refused; rate-limit bucket blocks over-budget calls; e2e : 
+- **Tests:** unit: non-allowlisted sign-in refused; rate-limit bucket blocks over-budget calls; e2e :
   invited user completes full loop; data export/delete works.
 - **DoD:** ✅ closed-beta gating ✅ within Vercel/Supabase free limits under expected load ✅ errors
   tracked ✅ installable PWA ✅ GDPR export/erase verified end to end ✅ owner privacy-copy approval.

@@ -710,7 +710,7 @@ identically-empty states produce an identical snapshot (L2 reproducibility).
   training daily can append ~30 rows/day. The free-tier Supabase limit tolerates this for many users, but
   a future prune roll-up (similar to P2's `pruneOperationalRows`) is a P2 follow-up, intentionally not
   implemented here to avoid widening P4's scope. The 28-day `findActivityRecency` window reads all
-  ActivityEvents for the user over that window; for very active users this is bounded but not indexed : 
+  ActivityEvents for the user over that window; for very active users this is bounded but not indexed :
   a future `(userId, occurredAt)` index optimization belongs to P9 (observational capture) when
   recency becomes a hot read. The snapshot's `constraints` field carries the persisted `id`/`version`
   in the in-memory record (mirrors `decodeConstraintSet`); the strict outer schema strips them silently

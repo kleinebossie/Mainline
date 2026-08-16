@@ -5,6 +5,7 @@ This document defines user acquisition principles, beta cohort management, and a
 ## Context Pointers
 
 - **Product Vision**: See [VISION.md](file:///home/joebos/programming/Mainline/planning/VISION.md) for brand philosophy, developer patronage model, and engagement ethics.
+- **Beta Execution Plan**: See [BETA_PRIORITIZATION_PLAN.md](file:///home/joebos/programming/Mainline/planning/BETA_PRIORITIZATION_PLAN.md) for the active 3-phase growth and conversion roadmap.
 - **Roadmap Stages**: See [FEATURE_ROADMAP.md](file:///home/joebos/programming/Mainline/planning/FEATURE_ROADMAP.md) for stage gates and user cohort sizes.
 - **Operations**: See [OPERATIONS.md](file:///home/joebos/programming/Mainline/planning/OPERATIONS.md) for beta invite generation commands.
 

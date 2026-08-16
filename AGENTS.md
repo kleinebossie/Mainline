@@ -13,6 +13,7 @@ Load these documents when executing specific branches:
 - **Production Operations**: Read [OPERATIONS.md](file:///home/joebos/programming/Mainline/planning/OPERATIONS.md) to execute migrations, beta invites, job recovery, and research exports.
 - **Release Management**: Read [SHIPPING.md](file:///home/joebos/programming/Mainline/planning/SHIPPING.md) to verify readiness gates and deployment checklists.
 - **User Growth**: Read [GROWTH.md](file:///home/joebos/programming/Mainline/planning/GROWTH.md) to review acquisition ethics and feedback loops.
+- **Beta Prioritization Plan**: Read [BETA_PRIORITIZATION_PLAN.md](file:///home/joebos/programming/Mainline/planning/BETA_PRIORITIZATION_PLAN.md) to inspect the 3-phase growth and conversion roadmap.
 
 ---
 
