@@ -16,10 +16,13 @@ export const PLAYWRIGHT_AUTH_SECRET =
   "e2e-placeholder-secret-must-be-at-least-32-chars-long";
 
 export async function encodePlaywrightSessionToken(
-  userId: string,
+  user: { id: string; email?: string | null; name?: string | null } | string,
 ): Promise<string> {
+  const userId = typeof user === "string" ? user : user.id;
+  const email = typeof user === "string" ? undefined : (user.email ?? undefined);
+  const name = typeof user === "string" ? undefined : (user.name ?? undefined);
   return encode({
-    token: { id: userId, sub: userId },
+    token: { id: userId, sub: userId, email, name },
     secret: PLAYWRIGHT_AUTH_SECRET,
     salt: AUTHJS_SESSION_COOKIE,
   });

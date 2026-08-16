@@ -20,7 +20,7 @@ const SESSION_EXPIRES = new Date("2099-01-01T00:00:00.000Z");
 const METHODOLOGY_VERSION = "research-1.4.0";
 
 async function storageState(user: SeededUser) {
-  const token = await encodePlaywrightSessionToken(user.id);
+  const token = await encodePlaywrightSessionToken(user);
   return {
     cookies: [
       {

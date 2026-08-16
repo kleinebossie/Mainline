@@ -71,11 +71,29 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (user?.id) {
         token.id = user.id;
       }
+      if (user?.email) {
+        token.email = user.email;
+      }
+      if (user?.name) {
+        token.name = user.name;
+      }
+      if (user?.image) {
+        token.picture = user.image;
+      }
       return token;
     },
     session({ session, token }) {
       if (token?.id) {
         session.user.id = token.id as string;
+      }
+      if (token?.email) {
+        session.user.email = token.email as string;
+      }
+      if (token?.name) {
+        session.user.name = token.name as string;
+      }
+      if (token?.picture) {
+        session.user.image = token.picture as string;
       }
       return session;
     },
