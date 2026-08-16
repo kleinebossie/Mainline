@@ -37,11 +37,12 @@ export function Today() {
   );
   const replan = trpc.program.replan.useMutation({
     onMutate: () => setProgramNotice(null),
-    onSuccess: async () => {
-      await Promise.all([
-        utils.program.getToday.invalidate(),
-        utils.program.history.invalidate(),
-      ]);
+    onSuccess: (data) => {
+      if (data) {
+        utils.program.getToday.setData(undefined, data);
+      }
+      void utils.program.getToday.invalidate();
+      void utils.program.history.invalidate();
       setProgramNotice({
         tone: "success",
         heading: "Plan updated",
@@ -58,12 +59,13 @@ export function Today() {
   const dueReviews = trpc.tracker.dueReviews.useQuery();
   const generate = trpc.program.generate.useMutation({
     onMutate: () => setProgramNotice(null),
-    onSuccess: async () => {
-      await Promise.all([
-        utils.program.getToday.invalidate(),
-        utils.tracker.dueReviews.invalidate(),
-        utils.program.history.invalidate(),
-      ]);
+    onSuccess: (data) => {
+      if (data) {
+        utils.program.getToday.setData(undefined, data);
+      }
+      void utils.program.getToday.invalidate();
+      void utils.tracker.dueReviews.invalidate();
+      void utils.program.history.invalidate();
       setProgramNotice({
         tone: "success",
         heading: "Session built",
@@ -94,6 +96,22 @@ export function Today() {
   }, [generate, program, staleProgram]);
   const log = trpc.tracker.logOutcome.useMutation({
     onSuccess: (_result, variables) => {
+      if (variables.programItemId) {
+        utils.program.getToday.setData(undefined, (current) => {
+          if (!current) return current;
+          return {
+            ...current,
+            items: current.items.map((item) =>
+              item.id === variables.programItemId
+                ? {
+                    ...item,
+                    status: variables.type === "skip" ? "skipped" : "done",
+                  }
+                : item,
+            ),
+          };
+        });
+      }
       void utils.program.getToday.invalidate();
       void utils.tracker.dueReviews.invalidate();
       void utils.program.history.invalidate();
@@ -109,11 +127,25 @@ export function Today() {
   });
   const undoSkip = trpc.tracker.undoSkip.useMutation({
     onMutate: () => setProgramNotice(null),
-    onSuccess: async () => {
-      await Promise.all([
-        utils.program.getToday.invalidate(),
-        utils.program.history.invalidate(),
-      ]);
+    onSuccess: (_result, variables) => {
+      if (variables.programItemId) {
+        utils.program.getToday.setData(undefined, (current) => {
+          if (!current) return current;
+          return {
+            ...current,
+            items: current.items.map((item) =>
+              item.id === variables.programItemId
+                ? {
+                    ...item,
+                    status: "pending",
+                  }
+                : item,
+            ),
+          };
+        });
+      }
+      void utils.program.getToday.invalidate();
+      void utils.program.history.invalidate();
       setProgramNotice({
         tone: "success",
         heading: "Skip undone",

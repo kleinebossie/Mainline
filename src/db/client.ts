@@ -31,6 +31,4 @@ export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient(datasourceUrl ? { datasourceUrl } : undefined);
 
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
-}
+globalForPrisma.prisma = prisma;

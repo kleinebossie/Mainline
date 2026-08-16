@@ -62,8 +62,11 @@ export function Reveal() {
   const constraints = trpc.constraints.getCurrent.useQuery();
   const library = trpc.analysis.library.useQuery();
   const generate = trpc.program.generate.useMutation({
-    onSuccess: async () => {
-      await utils.program.getToday.invalidate();
+    onSuccess: (data) => {
+      if (data) {
+        utils.program.getToday.setData(undefined, data);
+      }
+      void utils.program.getToday.invalidate();
       router.push("/today");
     },
   });

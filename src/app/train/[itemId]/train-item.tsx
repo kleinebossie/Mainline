@@ -65,6 +65,15 @@ export function TrainItem({ programItemId }: TrainItemProps) {
   });
   const completionMutation = trpc.tracker.completeProgramItem.useMutation({
     onSuccess: () => {
+      utils.program.getToday.setData(undefined, (current) => {
+        if (!current) return current;
+        return {
+          ...current,
+          items: current.items.map((item) =>
+            item.id === programItemId ? { ...item, status: "done" } : item,
+          ),
+        };
+      });
       void utils.program.getToday.invalidate();
       void utils.program.history.invalidate();
     },
@@ -73,11 +82,18 @@ export function TrainItem({ programItemId }: TrainItemProps) {
   const completeProgramItem = completionMutation.mutate;
   const emptyCloseRequestIdRef = useRef<string | null>(null);
   const emptyCloseMutation = trpc.tracker.logOutcome.useMutation({
-    onSuccess: async () => {
-      await Promise.all([
-        utils.program.getToday.invalidate(),
-        utils.program.history.invalidate(),
-      ]);
+    onSuccess: () => {
+      utils.program.getToday.setData(undefined, (current) => {
+        if (!current) return current;
+        return {
+          ...current,
+          items: current.items.map((item) =>
+            item.id === programItemId ? { ...item, status: "done" } : item,
+          ),
+        };
+      });
+      void utils.program.getToday.invalidate();
+      void utils.program.history.invalidate();
       router.push("/today");
     },
   });
