@@ -67,6 +67,15 @@ export function EndgameDrillSession({
   const completionRequestIdRef = useRef<string | null>(null);
   const completionMutation = trpc.tracker.completeProgramItem.useMutation({
     onSuccess: () => {
+      utils.program.getToday.setData(undefined, (currentProgram) => {
+        if (!currentProgram) return currentProgram;
+        return {
+          ...currentProgram,
+          items: currentProgram.items.map((item) =>
+            item.id === programItemId ? { ...item, status: "done" } : item,
+          ),
+        };
+      });
       void utils.program.getToday.invalidate();
       void utils.program.history.invalidate();
       setIdx(positions.length);

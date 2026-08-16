@@ -56,7 +56,9 @@ describe("recommendationExposureDraftSchema", () => {
   };
 
   it("accepts a valid draft where totalEligibleCount matches alternatives + 1 and ranks are contiguous", () => {
-    expect(recommendationExposureDraftSchema.safeParse(validDraft).success).toBe(true);
+    expect(
+      recommendationExposureDraftSchema.safeParse(validDraft).success,
+    ).toBe(true);
   });
 
   it("rejects when totalEligibleCount does not match alternatives.length + 1", () => {

@@ -105,7 +105,10 @@ describe("cron API routes", () => {
       ]);
       serverImport.runImportForUser
         .mockResolvedValueOnce({ results: [{ imported: 3 }], errors: [] })
-        .mockResolvedValueOnce({ results: [{ imported: 2 }], errors: ["failed game"] });
+        .mockResolvedValueOnce({
+          results: [{ imported: 2 }],
+          errors: ["failed game"],
+        });
 
       const req = new Request("http://localhost/api/cron/import", {
         headers: { authorization: `Bearer ${cronSecret}` },

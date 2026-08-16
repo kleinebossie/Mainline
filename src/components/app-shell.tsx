@@ -6,10 +6,9 @@ import type { ReactNode } from "react";
 
 import { AccountMenu } from "@/components/account-menu";
 import { NAV } from "@/components/navigation";
-import { useNavigationDataPrefetch } from "@/components/navigation-data-prefetch";
 import { cn } from "@/lib/utils";
 
-// The app shell — one slim mono top bar across every signed-in surface, so the product
+// The app shell: one slim mono top bar across every signed-in surface, so the product
 // reads as a single instrument instead of a stack of pages. The wordmark carries the
 // annotation mark (·!) that is the brand's whole idea: a graded, honest line.
 //
@@ -35,14 +34,6 @@ export function Wordmark({ className }: { className?: string }) {
 
 function TopBar() {
   const pathname = usePathname();
-  const prefetchNavigationData = useNavigationDataPrefetch();
-  const isTrainingSurface = [
-    "/today",
-    "/analysis",
-    "/library",
-    "/progress",
-    "/train",
-  ].some((href) => pathname === href || pathname.startsWith(`${href}/`));
 
   return (
     <header className="bg-paper/80 sticky top-0 z-30 border-b border-line/80 backdrop-blur-sm">
@@ -61,12 +52,6 @@ function TopBar() {
                 key={item.href}
                 href={item.href}
                 aria-current={active ? "page" : undefined}
-                onFocus={() => {
-                  if (isTrainingSurface) prefetchNavigationData(item.href);
-                }}
-                onMouseEnter={() => {
-                  if (isTrainingSurface) prefetchNavigationData(item.href);
-                }}
                 className={cn(
                   "relative flex min-h-11 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-sm px-2 py-2 font-mono text-[0.68rem] tracking-tight transition-colors focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset sm:min-h-0 sm:flex-none sm:px-2.5 sm:py-1.5 sm:text-[0.8rem]",
                   item.secondary && "hidden sm:inline-flex",

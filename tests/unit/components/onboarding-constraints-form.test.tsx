@@ -74,7 +74,7 @@ describe("OnboardingConstraintsForm", () => {
     expect(html).toContain("Advanced settings live in Settings");
     expect(html).toContain("Customizable later");
     expect(html).toContain(
-      "You can add your owned chess books, customize habit cues, and adjust topic mixing in <span class=\"text-ink font-medium\">Settings</span> at any time.",
+      'You can add your owned chess books, customize habit cues, and adjust topic mixing in <span class="text-ink font-medium">Settings</span> at any time.',
     );
 
     // Save button

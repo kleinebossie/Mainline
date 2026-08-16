@@ -23,8 +23,8 @@ Trace untrusted input from entry point to dangerous sink. What counts as a "dang
 
 Don't just check the obvious direct paths. Look for indirect injection: data stored safely, then retrieved and used in a dangerous context by different code. Look for injection through field names, keys, headers, and metadata — not just values. Look for injection into secondary systems (logs, caches, search indexes, analytics).
 
-**Access control** (subagent_type: `general`)
-Can a caller do something they shouldn't? Go beyond checking whether permission checks exist — verify they check the _right_ permission for the _right_ resource via the _right_ mechanism:
+**Access control** (subagent*type: `general`)
+Can a caller do something they shouldn't? Go beyond checking whether permission checks exist — verify they check the \_right* permission for the _right_ resource via the _right_ mechanism:
 
 - Is there a path to the same state change that checks a different (weaker) permission?
 - Can a field in the request body override what the permission system intended to restrict?

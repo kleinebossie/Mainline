@@ -13,6 +13,7 @@ import { TransparencyCardGroup } from "@/components/transparency-card";
 import { StatusMessage } from "@/components/ui/status-message";
 import { ErrorNotice } from "@/components/ui/error-notice";
 import { CalibrationTrackGauges } from "@/app/onboarding/calibration-track-gauges";
+import { InstantBlunderDrill } from "@/app/onboarding/instant-blunder-drill";
 
 export function FirstSessionAction({
   error,
@@ -59,12 +60,13 @@ export function Reveal() {
   const state = trpc.assessment.state.useQuery();
   const signals = trpc.program.gameSignals.useQuery();
   const constraints = trpc.constraints.getCurrent.useQuery();
-  // The reveal IS the interactive review (M12): step through your most-recent analysed game.
   const library = trpc.analysis.library.useQuery();
-  const reviewGameId = library.data?.games.find((g) => g.analyzed)?.id ?? null;
   const generate = trpc.program.generate.useMutation({
-    onSuccess: async () => {
-      await utils.program.getToday.invalidate();
+    onSuccess: (data) => {
+      if (data) {
+        utils.program.getToday.setData(undefined, data);
+      }
+      void utils.program.getToday.invalidate();
       router.push("/today");
     },
   });
@@ -230,43 +232,14 @@ export function Reveal() {
         </CardContent>
       </Card>
 
-      {/* 2.5 — see it for yourself: the interactive review of a real game (M12) */}
-      <Card className="settle [animation-delay:120ms]">
-        <CardHeader className="pb-4">
-          <CardTitle className="font-serif text-2xl font-semibold">
-            Step through one of your games
-          </CardTitle>
-          <p className="text-graphite font-mono text-sm mt-1">
-            The honest picture isn&apos;t a number: it&apos;s the moment it
-            turned. Walk the turning points and find better moves for your
-            mistakes.
-          </p>
-        </CardHeader>
-        <CardContent>
-          {reviewGameId ? (
-            <div className="flex flex-col gap-3">
-              <p className="text-graphite text-sm leading-relaxed font-serif">
-                You have games ready for review. Walk through the turning
-                points, identify your errors, and schedule them as personal
-                drills.
-              </p>
-              <div>
-                <Link
-                  href={`/analysis/${reviewGameId}`}
-                  className={buttonVariants()}
-                >
-                  Review Game →
-                </Link>
-              </div>
-            </div>
-          ) : (
-            <p className="text-graphite text-sm leading-relaxed font-serif">
-              Scan a game first: then you&apos;ll be able to review it, walk the
-              turning points, and drill your mistakes.
-            </p>
-          )}
-        </CardContent>
-      </Card>
+      {/* 2.5: see it for yourself: the interactive first blunder drill (M12) */}
+      <InstantBlunderDrill
+        onContinue={() => {
+          if (!generate.isPending) {
+            generate.mutate();
+          }
+        }}
+      />
 
       {/* 3 — what you said you want, and how we reconcile it */}
       <Card className="settle [animation-delay:160ms]">

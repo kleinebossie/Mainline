@@ -112,7 +112,9 @@ describe("Today copy helpers", () => {
         reviewThemes: ["Fork", "Mate in 2"],
       }),
     );
-    expect(summary).toBe("Review due failed tactics: Fork, Mate in 2.");
+    expect(summary).toBe(
+      "Reinforces previously missed tactics to prevent recurring leaks: Fork, Mate in 2.",
+    );
   });
 
   it("uses neutral review copy without raw ids or quantity pressure", () => {
@@ -122,10 +124,48 @@ describe("Today copy helpers", () => {
         reviewThemes: [],
       }),
     );
-    expect(summary).toBe("Review due failed tactics.");
+    expect(summary).toBe(
+      "Reinforces previously missed tactics to prevent recurring leaks.",
+    );
     expect(summary).not.toContain("099Vg");
     expect(summary).not.toContain("0cbN7");
     expect(summary).not.toMatch(/puzzles?|positions?|games?/i);
+  });
+
+  it("speaks with active, confident training intent for all drill types", () => {
+    expect(
+      itemSummary(
+        item({
+          activityType: "puzzle_theme",
+          params: { theme: "fork", track: "pattern" },
+        }),
+      ),
+    ).toBe("Trains fast recognition of pins, forks, and mating motifs.");
+
+    expect(
+      itemSummary(
+        item({
+          activityType: "puzzle_theme",
+          params: { theme: null, track: "calculation" },
+        }),
+      ),
+    ).toBe("Trains deep calculation and candidate move validation.");
+
+    expect(
+      itemSummary(
+        item({
+          activityType: "blunder_drill",
+        }),
+      ),
+    ).toBe("Drills critical turning points from your own games.");
+
+    expect(
+      itemSummary(
+        item({
+          activityType: "endgame_drill",
+        }),
+      ),
+    ).toBe("Trains conversion technique in key endgame structures.");
   });
 
   it("uses final status labels for closed rows", () => {

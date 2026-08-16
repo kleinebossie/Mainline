@@ -36,6 +36,8 @@ import {
 } from "@/lib/result-persistence";
 import { cn } from "@/lib/utils";
 import { humanizeTheme } from "@/integrations/puzzles/themes";
+import { GradeMark } from "@/components/evidence";
+import { itemSummary } from "@/app/today/today-copy";
 
 // One board-solvable item (a Lichess puzzle or a personal blunder drill), as returned by
 // program.getTrainItem. Both render on the same board + redo flow; only the solve-state
@@ -63,6 +65,15 @@ export function TrainItem({ programItemId }: TrainItemProps) {
   });
   const completionMutation = trpc.tracker.completeProgramItem.useMutation({
     onSuccess: () => {
+      utils.program.getToday.setData(undefined, (current) => {
+        if (!current) return current;
+        return {
+          ...current,
+          items: current.items.map((item) =>
+            item.id === programItemId ? { ...item, status: "done" } : item,
+          ),
+        };
+      });
       void utils.program.getToday.invalidate();
       void utils.program.history.invalidate();
     },
@@ -71,11 +82,18 @@ export function TrainItem({ programItemId }: TrainItemProps) {
   const completeProgramItem = completionMutation.mutate;
   const emptyCloseRequestIdRef = useRef<string | null>(null);
   const emptyCloseMutation = trpc.tracker.logOutcome.useMutation({
-    onSuccess: async () => {
-      await Promise.all([
-        utils.program.getToday.invalidate(),
-        utils.program.history.invalidate(),
-      ]);
+    onSuccess: () => {
+      utils.program.getToday.setData(undefined, (current) => {
+        if (!current) return current;
+        return {
+          ...current,
+          items: current.items.map((item) =>
+            item.id === programItemId ? { ...item, status: "done" } : item,
+          ),
+        };
+      });
+      void utils.program.getToday.invalidate();
+      void utils.program.history.invalidate();
       router.push("/today");
     },
   });
@@ -741,10 +759,12 @@ export function TrainItem({ programItemId }: TrainItemProps) {
 
             <blockquote className="border-l-4 border-evergreen/40 pl-4 py-1 text-left text-sm text-graphite italic font-serif leading-relaxed">
               &ldquo;{data.redoFlow.rationale.value}&rdquo;
-              <cite className="block text-right text-xs mt-1 font-mono not-italic opacity-80">
-                Evidence {data.redoFlow.rationale.grade} · tier{" "}
-                {data.redoFlow.rationale.tier}
-              </cite>
+              <div className="mt-2 flex items-center justify-end not-italic">
+                <GradeMark
+                  grade={data.redoFlow.rationale.grade}
+                  tier={data.redoFlow.rationale.tier}
+                />
+              </div>
             </blockquote>
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4 border-t border-line">
@@ -794,20 +814,29 @@ export function TrainItem({ programItemId }: TrainItemProps) {
           retryLabel="Try saving result"
         />
       )}
-      <div className="flex flex-col gap-2 border-b border-line pb-3 sm:flex-row sm:items-baseline sm:justify-between">
-        <div className="flex flex-col gap-1">
-          <p className="eyebrow !text-[0.65rem] uppercase tracking-wider">
-            {phaseLabel} · {data.item.label}
-          </p>
-          <h1 className="text-ink font-serif text-3xl font-bold tracking-tight">
+      <div className="flex flex-col gap-3 border-b border-line pb-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-col gap-1.5 min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="eyebrow !text-[0.65rem] uppercase tracking-wider">
+              {phaseLabel} · {data.item.label}
+            </p>
+            <GradeMark
+              grade={data.item.evidenceGrade}
+              tier={data.item.evidenceTier}
+            />
+          </div>
+          <h1 className="text-ink font-serif text-2xl font-bold tracking-tight sm:text-3xl">
             {phase === "retest"
               ? "Retest this position"
               : isDrill
                 ? "Find the missed move"
                 : "Current puzzle"}
           </h1>
+          <p className="text-graphite font-serif text-sm leading-relaxed max-w-2xl">
+            {itemSummary(data.item)}
+          </p>
         </div>
-        <span className="text-graphite font-mono text-sm sm:text-right">
+        <span className="text-graphite font-mono text-sm sm:text-right shrink-0">
           {current.rating != null
             ? `Rating target: ${current.rating}`
             : "From your own game"}

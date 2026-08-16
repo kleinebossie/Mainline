@@ -48,8 +48,12 @@ describe("manual-import schemas", () => {
     });
 
     it("rejects index out of bounds", () => {
-      expect(manualGameImportInputSchema.safeParse({ index: -1 }).success).toBe(false);
-      expect(manualGameImportInputSchema.safeParse({ index: 25 }).success).toBe(false);
+      expect(manualGameImportInputSchema.safeParse({ index: -1 }).success).toBe(
+        false,
+      );
+      expect(manualGameImportInputSchema.safeParse({ index: 25 }).success).toBe(
+        false,
+      );
     });
   });
 

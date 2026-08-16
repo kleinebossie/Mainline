@@ -1,9 +1,9 @@
 "use client";
 
-// TransparencyCard — the honesty-brand component (BUILD.md §7.6). It renders the
+// TransparencyCard: The honesty-brand component (BUILD.md §7.6). It renders the
 // "why this / why now" rationale snapshotted on a ProgramItem (L3) as a chess-style
-// annotation: the evidence grade as a glyph, the confidence as an eval meter, and a
-// dashed/struck treatment for thin (C/D) or placeholder evidence so it can never read as
+// annotation: the evidence grade as an interactive badge, confidence as an eval meter,
+// and a dashed/struck treatment for thin or placeholder evidence so it can never read as
 // established fact (VISION §2).
 
 import { useId, useState } from "react";
@@ -58,11 +58,16 @@ function TransparencyDetails({
           {item.title}
         </h3>
       )}
-      <p className="text-ink mt-2 font-serif text-[0.95rem] leading-relaxed">
-        {item.rationaleText}
-      </p>
+      <div className="mt-2">
+        <p className="text-xs font-mono font-semibold uppercase tracking-wider text-evergreen">
+          Why Mainline scheduled this:
+        </p>
+        <p className="text-ink mt-1 font-serif text-[0.95rem] leading-relaxed">
+          {item.rationaleText}
+        </p>
+      </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+      <div className="mt-3.5 flex flex-wrap items-center gap-x-4 gap-y-2">
         <GradeMark grade={item.evidenceGrade} tier={item.evidenceTier} />
         <ConfidenceBar confidence={item.confidence} />
       </div>
@@ -76,7 +81,7 @@ function TransparencyDetails({
       )}
 
       <p className="text-graphite mt-3 font-mono text-[0.7rem]">
-        <span className="uppercase tracking-[0.12em]">Source</span> ·{" "}
+        <span className="uppercase tracking-[0.12em]">Evidence source</span> ·{" "}
         {item.citationSource ?? item.citationKey}
       </p>
     </section>

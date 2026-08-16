@@ -93,11 +93,20 @@ export function itemSummary(item: TodayItem): string {
   const p = item.params;
   if (item.activityType === "spaced_review") {
     return item.reviewThemes.length > 0
-      ? `Review due failed tactics: ${item.reviewThemes.join(", ")}.`
-      : "Review due failed tactics.";
+      ? `Reinforces previously missed tactics to prevent recurring leaks: ${item.reviewThemes.join(", ")}.`
+      : "Reinforces previously missed tactics to prevent recurring leaks.";
   }
   if (item.activityType === "blunder_drill") {
-    return "Revisit mistakes from your own games and find the better move.";
+    return "Drills critical turning points from your own games.";
+  }
+  if (item.activityType === "endgame_drill") {
+    return "Trains conversion technique in key endgame structures.";
+  }
+  if (p.track === "calculation") {
+    return "Trains deep calculation and candidate move validation.";
+  }
+  if (p.track === "pattern" || item.activityType === "puzzle_theme") {
+    return "Trains fast recognition of pins, forks, and mating motifs.";
   }
   if (item.activityType === "book") {
     return p.bookResource
@@ -112,15 +121,6 @@ export function itemSummary(item: TodayItem): string {
   }
   if (item.activityType === "play_game") {
     return "Play rated games on your platform, then log that the block is done.";
-  }
-  if (item.activityType === "endgame_drill") {
-    return "Play out the endgame position and convert the result.";
-  }
-  if (p.track === "calculation") {
-    return "Take the slower calculation track and solve before moving.";
-  }
-  if (p.track === "pattern") {
-    return "Train pattern recognition at today's difficulty target.";
   }
   return "Do this away from the app, then log it below.";
 }

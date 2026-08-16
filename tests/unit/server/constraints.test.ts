@@ -44,7 +44,11 @@ describe("constraints service", () => {
           daysPerWeek: 5,
           goals: [{ kind: "rating", label: "Improve calculation" }],
           ownedResources: [],
-          formatPrefs: { formats: ["blitz"], preferredVariety: false, targetFocus: "online" },
+          formatPrefs: {
+            formats: ["blitz"],
+            preferredVariety: false,
+            targetFocus: "online",
+          },
           sessionStyle: null,
           ifThenPlan: null,
         }),
@@ -58,7 +62,11 @@ describe("constraints service", () => {
       minutesPerDay: 25,
       daysPerWeek: 5,
       goals: [{ kind: "rating", label: "Improve calculation" }],
-      formatPrefs: { formats: ["blitz"], preferredVariety: false, targetFocus: "online" },
+      formatPrefs: {
+        formats: ["blitz"],
+        preferredVariety: false,
+        targetFocus: "online",
+      },
       sessionStyle: { depthVsBreadth: "balanced", interleave: true },
       ifThenPlan: null,
     });
@@ -85,7 +93,11 @@ describe("constraints service", () => {
           daysPerWeek: 3,
           goals: [],
           ownedResources: [],
-          formatPrefs: { formats: ["classical"], preferredVariety: false, targetFocus: "otb" },
+          formatPrefs: {
+            formats: ["classical"],
+            preferredVariety: false,
+            targetFocus: "otb",
+          },
           sessionStyle: null,
           ifThenPlan: null,
         }),
@@ -122,7 +134,11 @@ describe("constraints service", () => {
       $transaction: vi.fn(async (cb: (txArg: typeof tx) => unknown) => cb(tx)),
     };
 
-    const result = await saveConstraints(db as never, "user-1", validConstraints);
+    const result = await saveConstraints(
+      db as never,
+      "user-1",
+      validConstraints,
+    );
 
     expect(updateMany).toHaveBeenCalledWith({
       where: { userId: "user-1", isCurrent: true },

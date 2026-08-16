@@ -46,7 +46,10 @@ describe("db/practice query helpers", () => {
     const findMany = vi.fn().mockResolvedValue(rows);
     const db = { practiceItem: { findMany } };
 
-    const items = await findPracticeItemsByIds(db as never, "u1", ["pi-1", "pi-2"]);
+    const items = await findPracticeItemsByIds(db as never, "u1", [
+      "pi-1",
+      "pi-2",
+    ]);
 
     expect(findMany).toHaveBeenCalledWith({
       where: { userId: "u1", id: { in: ["pi-1", "pi-2"] } },
