@@ -70,6 +70,24 @@ describe("InstantBlunderDrill component", () => {
     expect(html).toContain("White to move");
   });
 
+  it("renders a black-to-move blunder drill with black perspective", () => {
+    const blackDrill: BlunderDrillData = {
+      fen: "r4rk1/5ppp/8/8/8/8/5PPP/3R2K1 b - - 0 1",
+      solutionLine: ["f8d8"],
+      source: "game",
+      title: "Black turning point",
+      gameInfo: "French Defence",
+    };
+
+    const html = renderToStaticMarkup(
+      <InstantBlunderDrill initialDrill={blackDrill} />,
+    );
+
+    expect(html).toContain("Black turning point");
+    expect(html).toContain("Black to move");
+    expect(html).toContain("French Defence");
+  });
+
   it("derives and solves a blunder drill using engine contracts", () => {
     const blunders = [
       {

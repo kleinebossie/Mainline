@@ -244,6 +244,16 @@ export function InstantBlunderDrill({
     library.isLoading,
   ]);
 
+  const playerColor = useMemo(() => {
+    try {
+      return new Chess(drill.fen).turn();
+    } catch {
+      return "w";
+    }
+  }, [drill.fen]);
+
+  const orientation = playerColor === "b" ? "black" : "white";
+
   const turn = useMemo(() => {
     try {
       return new Chess(boardFen).turn();
@@ -252,7 +262,6 @@ export function InstantBlunderDrill({
     }
   }, [boardFen]);
 
-  const orientation = turn === "b" ? "black" : "white";
   const turnLabel = turn === "w" ? "White to move" : "Black to move";
 
   const handleMove = useCallback(
