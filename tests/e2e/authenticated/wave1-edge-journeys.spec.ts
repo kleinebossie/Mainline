@@ -13,6 +13,7 @@ import { recordEngagementForMissedDay } from "@/server/engagement";
 import { connectionsRouter } from "@/server/routers/connections";
 import {
   AUTHJS_SESSION_COOKIE,
+  encodePlaywrightSessionToken,
   requireDisposablePlaywrightDatabaseUrl,
 } from "../setup/database";
 
@@ -127,11 +128,12 @@ async function authenticatePage(
   user: EdgeUser,
 ): Promise<void> {
   if (!baseURL) throw new Error("Playwright baseURL is required.");
+  const authCookieValue = await encodePlaywrightSessionToken(user.id);
   await page.context().clearCookies();
   await page.context().addCookies([
     {
       name: AUTHJS_SESSION_COOKIE,
-      value: user.sessionToken,
+      value: authCookieValue,
       url: baseURL,
       expires: Math.floor(SESSION_EXPIRES.getTime() / 1_000),
       httpOnly: true,

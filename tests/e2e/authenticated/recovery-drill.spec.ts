@@ -22,6 +22,7 @@ import { connectionsRouter } from "../../../src/server/routers/connections";
 import { operationsRouter } from "../../../src/server/routers/operations";
 import {
   AUTHJS_SESSION_COOKIE,
+  encodePlaywrightSessionToken,
   requireDisposablePlaywrightDatabaseUrl,
 } from "../setup/database";
 
@@ -462,10 +463,13 @@ test("an admin can inspect and retry a stale job without sensitive fields", asyn
       errorCode: "fixture_error",
     },
   });
+  const authCookieValue = await encodePlaywrightSessionToken(
+    USER_IDS.operator,
+  );
   await page.context().addCookies([
     {
       name: AUTHJS_SESSION_COOKIE,
-      value: sessionToken,
+      value: authCookieValue,
       url: baseURL,
       expires: Date.parse("2099-01-01T00:00:00.000Z") / 1_000,
       httpOnly: true,

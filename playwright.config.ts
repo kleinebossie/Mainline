@@ -1,6 +1,7 @@
 import { defineConfig } from "@playwright/test";
 
 import {
+  PLAYWRIGHT_AUTH_SECRET,
   requireDisposablePlaywrightDatabaseUrl,
   SEEDED_USERS,
 } from "./tests/e2e/setup/database";
@@ -41,7 +42,7 @@ export default defineConfig({
     reuseExistingServer: false,
     timeout: 120_000,
     env: {
-      AUTH_SECRET: process.env.AUTH_SECRET ?? "e2e-placeholder-secret",
+      AUTH_SECRET: PLAYWRIGHT_AUTH_SECRET,
       AUTH_URL: baseURL,
       DATABASE_URL: playwrightDatabaseUrl,
     },

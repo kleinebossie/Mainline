@@ -9,6 +9,7 @@ import {
 import {
   AUTHJS_SESSION_COOKIE,
   AUTH_STATE_DIRECTORY,
+  encodePlaywrightSessionToken,
   requireDisposablePlaywrightDatabaseUrl,
   SEEDED_USERS,
   type SeededUser,
@@ -18,12 +19,13 @@ const FIXED_AT = new Date("2026-07-18T12:00:00.000Z");
 const SESSION_EXPIRES = new Date("2099-01-01T00:00:00.000Z");
 const METHODOLOGY_VERSION = "research-1.4.0";
 
-function storageState(user: SeededUser) {
+async function storageState(user: SeededUser) {
+  const token = await encodePlaywrightSessionToken(user);
   return {
     cookies: [
       {
         name: AUTHJS_SESSION_COOKIE,
-        value: user.sessionToken,
+        value: token,
         domain: "localhost",
         path: "/",
         expires: Math.floor(SESSION_EXPIRES.getTime() / 1_000),
@@ -157,9 +159,10 @@ export async function resetCoreLoopFixture(db: PrismaClient): Promise<void> {
 }
 
 async function writeStorageState(user: SeededUser): Promise<void> {
+  const state = await storageState(user);
   await writeFile(
     user.storageStatePath,
-    `${JSON.stringify(storageState(user), null, 2)}\n`,
+    `${JSON.stringify(state, null, 2)}\n`,
     { mode: 0o600 },
   );
   await chmod(user.storageStatePath, 0o600);

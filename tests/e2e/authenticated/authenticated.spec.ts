@@ -1,6 +1,6 @@
 import { expect, test } from "../fixtures/authenticated";
 
-test("database session authenticates a beta user", async ({
+test("session authenticates a beta user", async ({
   page,
   request,
   primaryUser,
