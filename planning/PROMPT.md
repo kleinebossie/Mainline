@@ -1,33 +1,60 @@
-# Roadmap agent prompts
+# Roadmap Agent Prompts
 
-Replace `[PART_ID]` with the part to execute, for example `P4` or `B1`.
+This document contains standardized prompt templates for subagents executing roadmap parts.
 
-## Implementation agent
+Replace `[PART_ID]` with the target part identifier, such as `P4` or `B1`.
+
+---
+
+## 1. Implementation Subagent
+
+Use this template to launch an implementation agent:
 
 ```text
 Implement Part [PART_ID] from planning/FEATURE_ROADMAP.md.
 
-You have fresh context. First read AGENTS.md, planning/VISION.md, planning/BUILD.md, planning/METHODOLOGY.md, and planning/FEATURE_ROADMAP.md. Load the relevant skills named by the roadmap. Confirm the part's dependencies are complete, then inspect the current implementation and git changes.
+Context setup:
+1. Read AGENTS.md, planning/VISION.md, planning/BUILD.md, planning/METHODOLOGY.md, and planning/FEATURE_ROADMAP.md.
+2. Load all repository skills specified by the roadmap part.
+3. Confirm that all prerequisite parts for [PART_ID] are complete.
+4. Inspect the existing implementation and current git changes.
 
-Work only on [PART_ID]. Implement its full Definition of Done, including necessary migrations, tests, documentation, and minimal UI. Preserve unrelated changes and do not start a later part. Run the required verification, update the part's status and handoff notes in FEATURE_ROADMAP.md, and report results, owner actions, deviations, and remaining risks. Do not commit unless explicitly asked.
+Execution boundaries:
+- Work strictly on Part [PART_ID].
+- Implement the complete Definition of Done, including Prisma migrations, unit tests, E2E tests, documentation, and UI components.
+- Preserve all unrelated changes in the working tree.
+- Do not start work on subsequent roadmap parts.
+- Run the required local verification commands before completing.
+- Update the part status and handoff notes in planning/FEATURE_ROADMAP.md.
+- Report executed tests, required owner actions, architectural deviations, and remaining risks.
+- Do not commit changes unless explicitly instructed.
 
-Delegate work that doesn't entail planning or review to the following subagents:
-  - Explorer
-  - Executor
-Don't reuse the same subagent.
+Subagent delegation:
+Delegate research and repetitive file operations to Explorer or Executor subagents. Do not reuse the same subagent instance across distinct tasks.
 ```
 
-## Review agent
+---
+
+## 2. Review Subagent
+
+Use this template to launch a code review agent:
 
 ```text
 Review the current git changes for Part [PART_ID] from planning/FEATURE_ROADMAP.md.
 
-You have fresh context. First read AGENTS.md, planning/VISION.md, planning/BUILD.md, planning/METHODOLOGY.md, and planning/FEATURE_ROADMAP.md. Load the code-review-expert skill and any relevant architecture or evidence skills. Inspect the diff and run non-mutating verification where useful.
+Context setup:
+1. Read AGENTS.md, planning/VISION.md, planning/BUILD.md, planning/METHODOLOGY.md, and planning/FEATURE_ROADMAP.md.
+2. Load the code-review-expert skill and applicable architecture guard skills.
+3. Inspect the git diff and run non-mutating verification commands.
 
-Do not edit files. Check the part's Definition of Done, correctness, scope, security, privacy, determinism, Engine/Methodology separation, evidence handling, migrations, tests, and regressions. Report only actionable findings ordered by severity, with file and line references, then give a clear pass/fail verdict and note any unverified risks.
+Review boundaries:
+- Do not edit or create repository files.
+- Verify compliance with the part Definition of Done, functional correctness, security, privacy boundaries, and determinism.
+- Verify the strict Engine and Methodology separation (L1-L3 laws).
+- Verify database migration safety, test coverage, and regression prevention.
+- Order findings strictly by severity with precise file and line references.
+- Provide a clear PASS or FAIL verdict with a summary of unverified risks.
 
-Delegate work that doesn't entail planning or review to the following subagents:
-  - Explorer
-  - Executor
-Don't reuse the same subagent.
+Subagent delegation:
+Delegate file lookups or test runs to Explorer or Executor subagents. Do not reuse the same subagent instance across distinct tasks.
 ```

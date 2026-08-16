@@ -639,7 +639,7 @@ order, and every P4 Definition of Done gate is met.
 
 The data model gains two new tables, both cascade-on-User-delete (verified by the privacy-schema guard):
 `SkillStateSnapshot` (append-only immutable per-dimension history stamped with
-`methodologyVersion` + `runAt`, no `updatedAt`, no unique key — every adaptation run may append) and
+`methodologyVersion` + `runAt`, no `updatedAt`, no unique key: every adaptation run may append) and
 `TrainingPreferenceState` (one row per user, `userId @unique`, the derived-fit-preferences rollup P4
 ships empty and P8 will populate). The existing `SkillState` table remains the cheap latest-state view
 (upserted); the new snapshot table is the longitudinal memory the assembler reads.
@@ -710,7 +710,7 @@ identically-empty states produce an identical snapshot (L2 reproducibility).
   training daily can append ~30 rows/day. The free-tier Supabase limit tolerates this for many users, but
   a future prune roll-up (similar to P2's `pruneOperationalRows`) is a P2 follow-up, intentionally not
   implemented here to avoid widening P4's scope. The 28-day `findActivityRecency` window reads all
-  ActivityEvents for the user over that window; for very active users this is bounded but not indexed —
+  ActivityEvents for the user over that window; for very active users this is bounded but not indexed : 
   a future `(userId, occurredAt)` index optimization belongs to P9 (observational capture) when
   recency becomes a hot read. The snapshot's `constraints` field carries the persisted `id`/`version`
   in the in-memory record (mirrors `decodeConstraintSet`); the strict outer schema strips them silently

@@ -1,261 +1,133 @@
-# VISION.md — what the app is
+# VISION.md: Product Intent and Core Principles
 
-> **Purpose of this document:** a **high-level overview** of what the app should become — the
-> product idea, the principles it's built on, and the boundaries around it. It is deliberately
-> _not_ detailed. The concrete technical plan (stack, data model, build order, conventions) lives
-> in `BUILD.md`; the science lives in the research phase (`research/`). Read this first to
-> understand _what_ and _why_; read `BUILD.md` for _how_.
->
-> **Build intent:** built **personal-first** — the builder is user zero and the first goal is a tool
-> good enough to train _himself_. But it is **architected from day one to become a public, monetized
-> product.** Nothing personal is ever hardcoded; everything user-specific lives in data, so the jump
-> from "works for me" to "works for the public" is a change of degree, not a rewrite.
->
-> **Language:** English (document + code). User-facing UI copy may be localized later.
+This document provides the high-level product vision, brand principles, and system boundaries for Mainline.
 
-Phases 2 (_Shipping_) and 3 (_Acquiring Users_) are tracked in `SHIPPING.md` and `GROWTH.md`.
-This document is about Phase 1 (_Building_) at the level of intent.
+## Context Pointers
+
+- **Technical Plan**: Read [BUILD.md](file:///home/joebos/programming/Mainline/planning/BUILD.md) to inspect engine architecture, data schemas, and the 0-to-1 build specification.
+- **Methodology**: Read [METHODOLOGY.md](file:///home/joebos/programming/Mainline/planning/METHODOLOGY.md) to inspect evidence grades, citations, and research seams.
+- **Release and Operations**: Read [SHIPPING.md](file:///home/joebos/programming/Mainline/planning/SHIPPING.md) and [OPERATIONS.md](file:///home/joebos/programming/Mainline/planning/OPERATIONS.md) for launch stages and operational procedures.
 
 ---
 
-## 1. The idea
+## 1. The Core Idea
 
-An app that generates a **personalized, science-based, no-BS chess training program** — and then
-keeps adapting it.
+Mainline generates and continuously adapts a personalized, science-based chess training program.
 
-It is **not** another game-analysis tool, puzzle trainer, or spaced-repetition deck. Those exist
-and many are good. This app sits one layer up: it is the **training-program layer** that decides
-_what you should work on, with which resources, and why_ — and revises that plan continuously as
-you train and play.
+Mainline is not another game analysis tool, puzzle trainer, or flashcard deck. Mainline operates at the training-program layer. It decides what you should train, which resources to use, and why. The application continuously adapts this plan as you train and play.
 
-Three things make it different:
+Three principles differentiate Mainline:
 
-1. **Personalization through constraints.** The user describes their situation — time per day,
-   days per week, goals, the resources they already own, preferences — and connects their chess
-   accounts. The program is built around _their_ reality, not a generic curriculum.
-2. **It's alive.** After generation the program is **super dynamic**: a tracker records every
-   outcome, and the program re-prioritizes itself over time. There is no fixed syllabus.
-3. **It internalises what it can, references what it can't.** Wherever a training activity can be
-   done well _inside the app_ from **open data and a client-side chess engine** — solving puzzles,
-   drilling your own blunders, reviewing your games, practising endgames — the app does it in-app and
-   **tracks the outcome precisely** (no lossy self-report). Where an activity **can't or shouldn't**
-   be internalised — playing real games (Lichess and Chess.com already do that better), or
-   copyrighted books and courses — it stays a **reference to an external resource**, and the app helps
-   you choose it and log your progress. The app **hosts no copyrighted content, runs no competing
-   game-play platform, and uses no LLM/AI inside the product.**
+1. **Personalization through Constraints**: The user defines time budgets, days per week, goals, owned resources, and preferences. The application connects to Lichess and Chess.com. The program adapts to the user's real schedule rather than imposing a fixed curriculum.
+2. **Dynamic Adaptation**: The training tracker records every outcome. The program reprioritizes upcoming sessions automatically. There is no static syllabus.
+3. **In-App Drills with External References**: The application delivers interactive drills in-browser using open data and client-side Stockfish WASM. This includes tactical puzzles, personal blunder practice, game review, and endgame sparring. Activities that require external platforms remain references (playing rated games on Lichess or Chess.com, or studying copyrighted books). The application hosts no copyrighted books, operates no multiplayer gameplay server, and runs no runtime AI or LLMs.
 
 ---
 
-## 2. The brand: science-based and radically honest
+## 2. Brand Identity: Science-Based and Radically Honest
 
-The product's identity is **trust**. Two commitments, both visible _in the app itself_:
+The product identity centers on user trust through two commitments:
 
-- **Science-based.** Recommendations are grounded in research on skill acquisition, practice
-  design, and retention — not folklore or guru opinion.
-- **No-BS.** The app is honest about _why_ it suggests each activity and **how strong the evidence
-  is**. It shows a "why this / why now" rationale and is candid where the science is thin or where
-  expectations should be realistic. It does not over-promise rating gains.
+- **Science-Based**: Recommendations derive from peer-reviewed research on skill acquisition, cognitive load, and memory retention rather than folklore.
+- **Radical Honesty**: The application displays explicit "why this / why now" rationales and evidence grades for every recommendation. It explains when evidence is strong and when evidence is limited. It never promises rating increases.
 
-The strongest honest statement, and the app says it plainly: **no training activity has been
-_proven_ to cause a measured rating gain.** The app helps you train smarter on the best available
-evidence; it never promises you a rating.
+### The Central Scientific Truth
 
-The stance is deliberately **polarizing, and that's fine.** If a user would rather follow their
-favorite course-selling guru, that's their choice. The honest position is: _training with weak or
-indirect evidence is still better than training with none_ — but only when that's actually true, so
-the app never pretends evidence is stronger than it is. It shows the grade and the reasoning, and
-lets the user decide. This honesty isn't a footnote — it's the differentiator. Every recommendation
-is explainable.
+No scientific study has proven that any chess training activity causes a measured rating gain. Mainline helps users train effectively using the best available evidence, but it never guarantees rating outcomes.
+
+Honesty is our primary differentiator. Every recommendation remains transparent and explainable.
 
 ---
 
-## 3. Adherence is a first-class problem
+## 3. Adherence and Motivation
 
-The hardest problem in chess improvement isn't _knowing_ what to train — it's actually doing it,
-consistently, over months. A smarter plan that no one follows is worthless. So **engagement and
-adherence are a first-class product concern, not a late add-on.**
+Knowing what to train does not guarantee consistent execution over months. Training adherence is a primary design priority.
 
-But engagement must stay **on-brand**: aggressive dopamine engineering (unbreakable streaks,
-manipulative loss-aversion, slot-machine reward) is exactly the manipulative, un-scientific design
-this app is a reaction against — using it would make the "no-BS" brand hypocritical. Instead the
-engagement layer is **evidence-based motivation design**, grounded in the research on what sustains
-effort: Self-Determination Theory — **autonomy** (the user stays in control of the plan),
-**competence** (visible progress and honest feedback), and the finding that **intrinsic motivation
-outlasts extrinsic rewards.** Same priority as any dopamine-driven app; a defensible, durable, and
-on-brand execution.
+Mainline avoids manipulative engagement techniques, such as artificial streaks, loss-aversion shaming, and slot-machine animations. Instead, the application applies evidence-based motivation design rooted in Self-Determination Theory:
+
+- **Autonomy**: Users retain full control over training constraints, weekly goals, and activity choices.
+- **Competence**: Progress views highlight controllable effort and tactical precision rather than volatile rating changes.
+- **Intrinsic Motivation**: Focusing on mastery and problem solving produces longer-lasting engagement than extrinsic point rewards.
 
 ---
 
-## 4. The one architectural idea that matters
+## 4. Core Architecture: Engine vs Methodology Split
 
-The single most important design decision: **separate the generic engine from the science.**
+The codebase separates generic application machinery from chess learning science:
 
-- **The Engine** — generic, deterministic machinery: accounts and imports, the user profile and
-  constraints, raw game analysis, the program generator, the tracker, the adaptation loop, the
-  transparency UI. It contains **no chess/learning knowledge of its own.**
-- **The Methodology** — the actual science: what skills to measure, how to read a player's games,
-  which resource fits which weakness at which level, how hard tasks should be, how to space and
-  prioritize, and the "why" copy. This is produced later in the research phase and plugged in as a
-  **versioned configuration**.
+- **The Engine**: Generic, deterministic code covering authentication, platform imports, raw Stockfish analysis, session scheduling, outcome logging, and user interfaces. The Engine contains zero chess or learning constants.
+- **The Methodology**: The learning science parameters: measured skills, game interpretation rules, resource mappings, difficulty targets, spacing intervals, and rationale copy. Methodology is loaded as a versioned JSON configuration.
 
-The engine is built **now** and ships with safe placeholder methodology so the whole thing runs
-end-to-end. The real science is **swapped in later without re-architecting anything.** Science
-enters the system in exactly one place.
-
-This is what lets the project move forward before the research is done — and lets the research land
-later without a rewrite.
+This separation enables development of the core engine while research evolves. Science enters the system through a single typed interface.
 
 ---
 
-## 5. What the experience looks like
+## 5. The User Experience Flow
 
-1. **Sign in** with an existing account (e.g. Google or Lichess).
-2. **Connect** chess accounts (Lichess, Chess.com) so the app can see real games and ratings.
-3. **Assess** — a short calibration plus capturing the user's constraints and goals.
-4. **Get a program** — a daily training session that fits the user's time budget and current
-   priorities, each activity with a visible rationale — mostly **in-app activities** (puzzles, drills,
-   game review, endgames), plus external references where they're genuinely better (real games,
-   books, courses).
-5. **Train and track** — the user trains; in-app activities are **tracked automatically**, external
-   ones are logged.
-6. **Watch it adapt** — new results and freshly imported games reshape what comes next.
+1. **Sign In**: Authenticate using an existing account (such as Google or Lichess OAuth).
+2. **Connect Platforms**: Link Lichess and Chess.com accounts to import real games and ratings.
+3. **Assess and Calibrate**: Complete a brief tactical calibration and set daily time constraints and goals.
+4. **Receive Daily Program**: Access a personalized daily session with visible evidence rationales.
+5. **Train and Track**: Complete in-app drills with automatic outcome recording and log external study.
+6. **Adaptive Revision**: Watch upcoming sessions adapt as new game results and drill outcomes arrive.
 
 ---
 
-## 6. Who it's for and how it's built
+## 6. Target Audience and Build Constraints
 
-- **Personal-first, public-ready.** The builder is the first user and the first validator. But the
-  app is multi-user from day one and nothing personal is hardcoded — the methodology must generalize
-  beyond the builder's own rating, resources, and tastes, or the path to a public product is broken.
-- **Every rating.** The app makes no hardcoded assumptions about level; a beginner and an expert
-  both get something coherent. Level lives in the user's data, not in the code. (This also _serves_
-  the public-product goal — it forces the methodology to generalize.)
-- **Built solo, via AI coding agents,** by a non-professional developer working limited hours on a
-  tight budget. This shapes every technical choice toward simplicity, type-safety, and tooling that
-  AI agents handle reliably — detailed in `BUILD.md`.
-- **Built on external platforms.** The product depends on Lichess and Chess.com (their APIs, data,
-  and goodwill) and on open data like the Lichess puzzle database and tablebase. This is a real dependency — their
-  APIs or terms can change and break features — and the app names it honestly. It treats those
-  platforms as **partners to respect, not resources to exploit**: it caches aggressively, honors
-  rate limits, and never hammers them, and keeps a clean adapter boundary so platforms can be added
-  or swapped (detail in `BUILD.md`).
-- **Web first.** Responsive web now; native mobile/desktop is a possible future, not a Phase 1
-  concern.
-- **Quality over speed.** No hard deadline. Correct and trustworthy beats fast.
+- **Personal-First and Public-Ready**: The developer is user zero. However, the system is multi-user from day one. Nothing personal is hardcoded in the codebase.
+- **All Rating Levels**: The application serves beginners and advanced players alike. Rating levels live in user data rather than application logic.
+- **Solo AI-Assisted Development**: Built using automated AI coding agents. Technical choices prioritize type safety, deterministic testing, and simplicity.
+- **Respect for External Platforms**: The application respects Lichess and Chess.com API terms. It caches responses, respects rate limits, and uses clean platform adapters.
+- **Web-First Delivery**: Responsive web application running on desktop and mobile browsers.
 
 ---
 
-## 7. What makes it defensible, and how it's funded
+## 7. Business Model and Open Source Strategy
 
-The long-term intent is to **monetize**, but modestly and on-brand. The model is designed in
-Phase 2/3, not now; Phase 1 only has to stay multi-user and **billing-capable.**
+### Funding Model: Developer Patronage
 
-### The moat
+Mainline uses a developer patronage model:
 
-The moat is **not** a secret, black-box algorithm. That would conflict with the transparency brand
-(you can't both "explain everything" and hide the sauce), and competitors read the same public
-research anyway. The durable advantages are:
+- **100% Free Core Access**: All training features, science, and adaptation algorithms remain free for all users.
+- **Optional Patronage Subscription**: Users can fund operations via an optional subscription (such as 5 euros per month).
+- **Revenue Allocation**: Patronage revenue funds server hosting, database compute, external APIs, and developer compensation.
+- **Zero Advertisements**: The application contains no advertising.
+- **No Paywalled Training**: The application never locks training quality or science behind a paywall.
 
-- **A curated, evidence-graded methodology corpus** — the slow, hard work of mapping a thin and
-  scattered literature into concrete, honest recommendations. Hard to replicate well.
-- **Trust and brand** — being _the_ honest, science-first option in a market full of hype.
-- **Longitudinal data** — over time, what actually moves real users' ratings. This compounds and
-  cannot be copied.
+### Open Source Strategy
 
-### Funding model: developer patronage, not extraction
-
-The app follows the **developer patronage model**: it is **free for everyone, with all training features included**. A single optional **patronage subscription** (€5/month, with options to contribute more) allows users to fund the project directly.
-
-All patronage revenue directly funds two purposes:
-
-1. **Operating costs**: Server hosting, database compute, domain names, and external monitoring tools.
-2. **Developer compensation**: Funding the developer's salary and living costs for dedicated, ongoing product development and maintenance.
-
-Two hard rules keep this on-brand:
-
-- **No ads.** Ads are an attention-extraction, hype-laden mechanism: the exact thing this app positions against. Free means genuinely free, not ad-supported.
-- **Never paywall training quality.** The science, the program, and the adaptation are free forever. Premium perks are cosmetic or non-functional only (e.g. a supporter badge, early access). The moment better training sits behind a paywall, the app becomes the thing it fights against.
-
-### Open source
-
-The app is intended to be **open source** — the strongest possible proof of the transparency brand,
-and the rest of the Lichess playbook. Key decisions:
-
-- **License: AGPL-3.0** (copyleft _with_ the network clause), the same as Lichess. This lets anyone
-  read, verify, and self-host, but **forbids a closed-source commercial fork run as a service** — a
-  permissive license (MIT/Apache) would let a competitor clone it, add ads, and monetize. AGPL is
-  what makes "free + open" safe rather than self-defeating.
-- **What is _not_ given away:** open-sourcing the _code_ (engine + methodology config) does not
-  surrender the compounding moats — the **longitudinal outcome data** (private user data, never in
-  the repo) and the **ongoing curation + trust**. The methodology is already exposed in-app by the
-  transparency brand, so opening it formally is consistent, not a new sacrifice.
-- **Secrets stay out of the repo** — OAuth keys, DB credentials, etc. live in environment config,
-  always.
-- **Timing: open by beta.** The personal-first phase stays private while the architecture is messy;
-  the repo goes public once it coheres, by the closed beta at the latest. Do it for verifiability
-  and trust, not in expectation of contributors — a niche solo app will draw few early on.
-
-### Data, privacy, and the built-in study
-
-Honesty extends to data. The app is open about **what** it collects (connected-account data,
-imported games, and training outcomes) and **why**: those outcomes power the adaptation loop and,
-over time, build the longitudinal picture of what actually helps. In effect the app runs **its own
-small scientific study on its users' data** — and it says so plainly rather than burying it in a
-policy. The users this app is for will understand that contributing anonymized outcome data is how
-the app improves, and how the thin chess-training evidence base gets a little less thin.
-
-Principles:
-
-- **Transparent, not extractive.** Clear about what is stored and why; **never sold or shared** for
-  advertising or any third-party purpose.
-- **User control.** Easy data **export and deletion**; GDPR-aligned by default (the builder is EU-based).
-- **Aggregate and anonymized** for any study or product-improvement use; an individual's data stays
-  the individual's.
-- **Continuous, light-touch user feedback.** Feedback is invited as an ongoing signal — but **never
-  obsessively or naggingly**; that would violate the adherence ethic in §3.
+- **AGPL-3.0 License**: Mainline is licensed under AGPL-3.0. Anyone can inspect, verify, and self-host the code. The license prevents proprietary closed-source commercial forks.
+- **Sustainable Moats**: The code is open source, while user trust, curated methodology, and longitudinal outcome datasets form the durable product advantage.
+- **Secret Isolation**: All credentials and API keys remain strictly in environment variables outside the repository.
 
 ---
 
-## 8. Boundaries (what this app is deliberately _not_)
+## 8. Data Privacy and Observational Research
 
-- **No social or multiplayer.** Not in the beta, not after it. It isn't the goal of the app.
-- **No LLM/AI in the product** — AI plays chess poorly and invites cost and abuse.
-- **No competing game-play platform and no hosted content.** Playing real games stays on
-  Lichess/Chess.com; books, courses, and videos are recommended and logged, never hosted. But
-  training that can be done well in-app from **open data + the chess engine** (puzzles, blunder
-  drills, game review, endgames) _is_ done in-app — the app is **internal-first, external only where
-  it must be.** (Sparring the engine for a drill is training, not multiplayer.)
-- **No payments, no native apps, no opening-repertoire trainers** in Phase 1 (payments come later;
-  the architecture stays billing-capable).
+Mainline is transparent about data collection:
 
-The build progresses **personal use → closed free beta → public**. Phase 1 targets the first two,
-staying inside free infrastructure tiers.
+- **Data Collected**: Account profile details, imported chess games, and training outcome metrics.
+- **Purpose**: Power the adaptive engine and build an observational dataset on chess skill acquisition.
+- **User Control**: Full data export and account deletion are available in Settings. The application is GDPR-compliant by design.
+- **Data Protection**: Personal data is never sold or shared with third parties.
+- **Research Consent**: Observational research exports use HMAC pseudonymization and require explicit, revocable user consent.
 
 ---
 
-## 9. Where the science plugs in
+## 9. Deliberate System Boundaries
 
-The research phase fills a fixed set of **seams** — well-defined slots in the methodology
-configuration that the engine already knows how to read. Filling them tunes the product's behavior
-and copy; it never changes the architecture. At a high level the seams cover:
+Mainline explicitly excludes the following features:
 
-- which skills to measure and how to assess them,
-- how to turn a player's games into an understanding of their weaknesses,
-- which external resource to recommend, at what difficulty,
-- how to space, prioritize, and periodize the work,
-- the "why" and the honest evidence rating shown to the user,
-- and the rules for healthy, evidence-based engagement (see §3).
-
-The precise list and interfaces are documented in `BUILD.md`; the answers come from `research/`.
+- **No Social or Multiplayer**: No friend feeds, chat rooms, or player-versus-player matchmaking.
+- **No Runtime AI or LLMs**: No runtime language models or conversational AI in the core application.
+- **No Hosted Copyrighted Content**: No scanned chess books or unauthorized video hosting.
+- **No Competing Gameplay Platform**: Real games remain hosted on Lichess and Chess.com.
 
 ---
 
-## 10. Definition of success for Phase 1
+## 10. Definition of Phase 1 Success
 
-A working end-to-end loop that is good enough to train the builder **and** generalizes beyond him:
-a user can sign in, connect their chess accounts, get a personalized program of in-app and external
-activities with honest rationales, train (in-app outcomes tracked automatically), and see the next
-session genuinely adapt — all running
-on free infrastructure, with the science cleanly swappable as research arrives, and nothing
-personal hardcoded. In other words: a foundation that can expand into a shippable, monetizable
-product without re-architecting.
+Phase 1 succeeds when an end-to-end training loop runs smoothly:
+
+A user signs in, connects chess accounts, receives a personalized training program, trains in-browser with automatic outcome tracking, and sees upcoming sessions adapt deterministically. The application operates within free infrastructure tiers with cleanly swappable methodology configurations.

@@ -1,127 +1,77 @@
-# Methodology changelog
+# Methodology Changelog
 
-This is the public record of active methodology releases. A release changes only
-the versioned MethodologyConfig and its evidence-carrying copy. Historic program
-artifacts retain the version and rationale snapshot used when they were generated.
+This document records all methodology configuration releases in Mainline.
 
-The central caveat is unchanged: no training activity has been proven to cause a
-measured chess-rating gain. Mainline reports associations and learning mechanisms
-with their limitations, not promises.
+A methodology release modifies only the versioned `MethodologyConfig` JSON files and evidence copy. Historic program artifacts retain the version and rationale snapshots generated at creation time.
 
-## research-1.0.0, 2026-07-10
+### Core Scientific Caveat
 
-Status: first research release, retained for reproducibility. Rollback target: `stub-0.1.0`.
+No chess training activity has proven causal rating gains in scientific literature. Mainline reports observed correlations and learning mechanisms with their known limitations. The application never promises rating increases.
 
-Source: `planning/METHODOLOGY.md`.
+---
 
-This release promotes the approved Phase 1 methodology configuration from the
-pre-release channel to the research channel. The Engine architecture is unchanged.
-The loader validates the release through the same fail-closed schema, resolves every
-used citation through the evidence ledger, deep-freezes the result, and keeps
-`stub-0.1.0` available for historic programs and rollback.
+## research-1.4.0 (2026-07-15)
 
-Included in this release:
+- **Status**: Active default methodology configuration.
+- **Rollback Target**: `research-1.3.0`.
+- **Changes**:
+  - Added Part P8 training fit policy without altering measured skill formulas or difficulty targets.
+  - Added a 7-day weekly check-in cadence, a 14-day contextual cooldown, and a 2-problem contextual trigger (all Grade C product estimates).
+  - Configured subjective fit as positive-only in decision logic. Enjoyed activities or relevant resources break ties between activities with identical scores and focus.
+  - Neutral and negative responses do not reduce scores, suppress activities, or lower difficulty.
+  - Added boundary copy (Grade A, Tier 1, citing `heck2025`) clarifying that self-report is kept separate from behavioral assessment.
+  - Added Part P9 observational exposure capture. Every served program item snapshots its methodology version, eligible context, evidence grade, and allocated time.
+  - Research datasets use HMAC pseudonymization. Observational data does not modify active methodology automatically.
 
-- the current nine seams and Measurement configuration already consumed by M4-M14;
-- graded values with grade, tier, citation, and flags where the source is limited;
-- the current rationale table, evidence ledger, in-app activity delivery choices,
-  book-study protocol, modality guidance, and engagement guardrails;
-- the structured-analysis runtime defaults and game-selection scoring heuristics
-  that were previously provider fallbacks, now exposed as graded config leaves;
-- the complete graded skill-taxonomy descriptors and the graded redo hint policy;
-- historic-program rendering pinned to each program's persisted methodology version;
-- association-safe rationale copy across analysis, spacing, difficulty, goals,
-  books, modality, feedback, habits, and personal-position recommendations;
-- explicit release metadata listing retained best guesses and deliberate stubs.
+---
 
-Retained best guesses:
+## research-1.3.0 (2026-07-12)
 
-- calibration ladder length, offsets, stopping rule, and uncertainty estimator;
-- per-band puzzle offsets, success targets, session volume, and practice structure;
-- FSRS transfer to spatial patterns, solve-time thresholds, and beginner
-  micro-spacing;
-- per-band analysis ratios, RPL thresholds, entropy window, and modality
-  proportions;
-- book catalog priorities, plateau window, rating expectations, and engagement
-  quantities.
+- **Status**: Retained for reproducibility and rollback.
+- **Rollback Target**: `research-1.2.0`.
+- **Changes**:
+  - Clarified weekly focus rationale copy.
+  - Framed user choice around user goals while preserving evidence-led recommendations (Grade C, Tier 2, citing `williamson2022`).
+  - Preserved the three-item tactical calibration track from `research-1.2.0`.
 
-Deliberate stubs and limitations:
+---
 
-- the psychological dimension and numeric salience priors are not activated;
-- phase, conversion, time-use, opening, and recurring-motif signals are not yet
-  daily generator inputs;
-- semantic strategic diagnosis and precise online-to-FIDE conversion remain out of
-  scope;
-- chess-specific causal effects of activities, spacing, books, and engagement
-  mechanics remain unproven;
-- local solve-time norms and tilt-cooldown effectiveness require product data.
+## research-1.2.0 (2026-07-12)
 
-These limitations are intentional. They are labeled in config or release metadata
-so a future methodology version can replace them with reviewed evidence, a version
-bump, golden tests, and a new changelog entry. Telemetry must not update the active
-methodology automatically.
+- **Status**: Retained for reproducibility and rollback.
+- **Rollback Target**: `research-1.1.0`.
+- **Changes**:
+  - Shortened new-user calibration to a single three-item tactical track.
+  - Calibration length is a Grade C product estimate. Historic assessments keep their original versions.
 
-`stub-0.1.0.json` remains byte-for-byte unchanged. Provider values that existed in
-code before this release, plus the historic scaffolded-hint behavior, are carried in
-an additive version-matched compatibility JSON. The loader rejects any compatibility
-entry that attempts to replace an existing historic field.
+---
 
-## research-1.1.0
+## research-1.1.0 (2026-07-12)
 
-Status: released on 2026-07-12 and retained for reproducibility. Adds the P5 weekly-focus policy, deterministic confidence-gated
-selection and revision, structural goal-to-process mappings, and bounded alternatives. Every
-stability value and score weight is Grade C and flagged `best-guess`. The release makes no rating
-gain claim. Rollback is `research-1.0.0`; historic base config bytes remain unchanged and receive
-the additive focus seam needed to keep rollback generation operational.
+- **Status**: Retained for reproducibility and rollback.
+- **Rollback Target**: `research-1.0.0`.
+- **Changes**:
+  - Added Part P5 weekly focus policy with confidence-gated selection and revision.
+  - Added structural goal-to-process mappings and bounded alternatives.
+  - Stability weights are Grade C estimates without rating gain claims.
 
-## research-1.2.0
+---
 
-Status: released on 2026-07-12 and retained for reproducibility. Shortens new-user calibration to one three-item tactical track.
-The length remains a Grade C product best guess. Historic assessments keep their original
-methodology version and calibration behavior. Rollback is `research-1.1.0`.
+## research-1.0.0 (2026-07-10)
 
-## research-1.3.0
+- **Status**: First full research release. Retained for reproducibility.
+- **Rollback Target**: `stub-0.1.0`.
+- **Source**: [METHODOLOGY.md](file:///home/joebos/programming/Mainline/planning/METHODOLOGY.md).
+- **Changes**:
+  - Promoted approved Phase 1 methodology from pre-release stub to the research channel.
+  - Configured nine research seams and measurement parameters.
+  - Added evidence ledger with grades (A, B, C, D), tiers (Tier 1, Tier 2), and source citations.
+  - Added structured analysis defaults, puzzle offsets, FSRS spacing parameters, and book catalog entries.
+  - Stubs and deliberate limitations: psychological dimensions inactive, conversion and time-use signals unweighted, and strategic semantic diagnosis out of scope.
 
-Status: released on 2026-07-12 and retained for reproducibility. Keeps the `research-1.2.0` calibration behavior and clarifies the
-bounded weekly-focus alternative rationale. Optional choice is now framed around giving more weight
-to a user-selected goal while keeping the evidence-led recommendation available. The rationale
-remains Grade C, Tier 2, softened, and cited to `williamson2022`; no evidence grade or training rule
-changed. Rollback is `research-1.2.0`.
-
-## research-1.4.0
-
-Status: active by default from 2026-07-15. Adds the P8 training-fit policy without changing any
-measured skill rule, due-work rule, difficulty target, or weekly focus selection.
-
-The release adds a seven-day weekly check-in cadence, a fourteen-day contextual cooldown, and a
-two-problem contextual trigger. These exact prompt values are Grade C product best guesses.
-Persisted prompt exposure starts the cooldown even when the user gives no response.
-
-Subjective fit is positive-only in the decision path. An enjoyed activity or relevant resource may
-break a tie between activities with the same methodology score, the same due status, and the
-already-selected focus. The release delta sets the earlier weekly-focus fit weight to zero while
-older releases keep their original value for reproducible replay. Neutral and negative responses
-contribute no penalty, do not dilute earlier positive fit, and cannot suppress an activity, lower
-difficulty, displace due work, or alter weekly skill focus. The chosen ProgramItem snapshots a
-softened Grade C explanation and its `best-guess` flag when the tie-break changes order.
-
-The user-facing boundary copy is Grade A, Tier 1 and cites `heck2025`: self-report and behavior are
-kept separate. Product feedback is also separate from training evidence. No effectiveness or rating
-gain claim is introduced. Rollback is `research-1.3.0`.
-
-P9 adds controlled observational capture without changing `research-1.4.0` or the active pointer.
-Every served ProgramItem now has an immutable, safe exposure snapshot containing its methodology
-version, ranked eligible context, score and due context, evidence grade, and allocated time.
-Currently consented records may be exported through an admin-only, bounded, HMAC-pseudonymized
-path for association analysis. Raw operational events remain canonical.
-
-Aggregate basis for every release through `research-1.4.0`: none. No Mainline observational
-aggregate has informed a methodology value or evidence grade. The new capture path does not claim
-findings, publish individual histories, or activate methodology. Rollback remains
-`research-1.3.0`; exposure records remain attached to historic programs for reproducibility.
+---
 
 ## stub-0.1.0
 
-Status: retained for reproducibility and rollback. This was the pre-release
-placeholder configuration used by the first end-to-end loop. It remains loadable and
-is still covered by the methodology integrity tests.
+- **Status**: Retained for historical program reproducibility and test verification.
+- **Summary**: Pre-release placeholder configuration used during initial 0-to-1 build milestones (M0-M14).
