@@ -37,5 +37,402 @@
       "flag": "best-guess",
       "soften": true
     }
+  },
+  "bookStudy": {
+    "catalogByBand": {
+      "u800": [
+        {
+          "id": "giannatos_first_workbook",
+          "title": "Everyone's First Chess Workbook",
+          "author": "Giannatos",
+          "category": "tactics",
+          "studyUnit": "exercises",
+          "recommendation": {
+            "value": "Single-move tactics and fundamental checkmate patterns: the board vision everything else is built on.",
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "best_books",
+            "flag": "best-guess"
+          }
+        },
+        {
+          "id": "fischer_teaches_chess",
+          "title": "Bobby Fischer Teaches Chess",
+          "author": "Fischer & Margulies",
+          "category": "tactics",
+          "studyUnit": "exercises",
+          "recommendation": {
+            "value": "Spaced, repetitive back-rank and mating-pattern drills, gentle and motivating for a first book.",
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "best_books",
+            "flag": "best-guess"
+          }
+        },
+        {
+          "id": "bain_tactics_for_students",
+          "title": "Chess Tactics for Students",
+          "author": "Bain",
+          "category": "tactics",
+          "studyUnit": "exercises",
+          "recommendation": {
+            "value": "A clean themed-tactics workbook to automate the basic motifs by repetition.",
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "best_books",
+            "flag": "best-guess"
+          },
+          "chapters": [
+            { "chapter": 1, "title": "Pins and Skewers", "estMinutes": 20 },
+            {
+              "chapter": 2,
+              "title": "Forks and Double Attacks",
+              "estMinutes": 20
+            },
+            {
+              "chapter": 3,
+              "title": "Discovered Attacks and Checks",
+              "estMinutes": 20
+            },
+            { "chapter": 4, "title": "Back-Rank Checkmates", "estMinutes": 20 }
+          ]
+        }
+      ],
+      "b800_1200": [
+        {
+          "id": "polgar_5334",
+          "title": "Chess: 5334 Problems, Combinations and Games",
+          "author": "Polgár",
+          "category": "tactics",
+          "studyUnit": "exercises",
+          "recommendation": {
+            "value": "High-volume mate-in-2 pattern automation, ideal raw material for Woodpecker cycles.",
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "best_books",
+            "flag": "best-guess"
+          }
+        },
+        {
+          "id": "silman_complete_endgame",
+          "title": "Silman's Complete Endgame Course",
+          "author": "Silman",
+          "category": "endgame",
+          "studyUnit": "exercises",
+          "recommendation": {
+            "value": "The essential mathematical endgames for your level, introduced in order of need.",
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "best_books",
+            "flag": "best-guess"
+          },
+          "chapters": [
+            {
+              "chapter": 1,
+              "title": "Endgames for Beginners (Under 1000)",
+              "estMinutes": 25
+            },
+            {
+              "chapter": 2,
+              "title": "Endgames for Class E (1000-1199)",
+              "estMinutes": 30
+            },
+            {
+              "chapter": 3,
+              "title": "Endgames for Class D (1200-1399)",
+              "estMinutes": 35
+            },
+            {
+              "chapter": 4,
+              "title": "Endgames for Class C (1400-1599)",
+              "estMinutes": 40
+            },
+            {
+              "chapter": 5,
+              "title": "Endgames for Class B (1600-1799)",
+              "estMinutes": 45
+            },
+            {
+              "chapter": 6,
+              "title": "Endgames for Class A (1800-1999)",
+              "estMinutes": 45
+            },
+            {
+              "chapter": 7,
+              "title": "Endgames for Experts (2000-2199)",
+              "estMinutes": 50
+            },
+            {
+              "chapter": 8,
+              "title": "Endgames for Masters (2200-2399)",
+              "estMinutes": 60
+            }
+          ]
+        },
+        {
+          "id": "chernev_logical_chess",
+          "title": "Logical Chess: Move by Move",
+          "author": "Chernev",
+          "category": "games",
+          "studyUnit": "games",
+          "recommendation": {
+            "value": "Every move explained in words: a first taste of planning without heavy strategic load.",
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "best_books",
+            "flag": "best-guess"
+          }
+        }
+      ],
+      "b1200_1600": [
+        {
+          "id": "yusupov_1",
+          "title": "Build Up Your Chess 1: The Fundamentals",
+          "author": "Yusupov",
+          "category": "tactics",
+          "studyUnit": "exercises",
+          "recommendation": {
+            "value": "Structured Russian school training covering core tactical motifs, combinations, and basic endgames.",
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "best_books",
+            "flag": "best-guess"
+          },
+          "chapters": [
+            { "chapter": 1, "title": "The Mating Net", "estMinutes": 30 },
+            {
+              "chapter": 2,
+              "title": "Basic Opening Principles",
+              "estMinutes": 30
+            },
+            { "chapter": 3, "title": "Simple Tactics", "estMinutes": 30 },
+            { "chapter": 4, "title": "Pin Tactics", "estMinutes": 30 },
+            { "chapter": 5, "title": "Double Attack", "estMinutes": 30 },
+            { "chapter": 6, "title": "Discovered Attack", "estMinutes": 30 },
+            { "chapter": 7, "title": "Knight Endgames", "estMinutes": 30 },
+            { "chapter": 8, "title": "Pawn Endgames", "estMinutes": 30 },
+            { "chapter": 9, "title": "Rook Endgames", "estMinutes": 30 },
+            {
+              "chapter": 10,
+              "title": "Defending Against Threats",
+              "estMinutes": 30
+            }
+          ]
+        },
+        {
+          "id": "silman_amateurs_mind",
+          "title": "The Amateur's Mind",
+          "author": "Silman",
+          "category": "strategy",
+          "studyUnit": "games",
+          "recommendation": {
+            "value": "Names and corrects the thinking errors that stall club players: imbalances over memorisation.",
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "best_books",
+            "flag": "best-guess"
+          }
+        },
+        {
+          "id": "stean_simple_chess",
+          "title": "Simple Chess",
+          "author": "Stean",
+          "category": "strategy",
+          "studyUnit": "games",
+          "recommendation": {
+            "value": "A short, clear introduction to planning in quiet positions (outposts, files, weak pawns).",
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "best_books",
+            "flag": "best-guess"
+          }
+        },
+        {
+          "id": "delavilla_100_endgames",
+          "title": "100 Endgames You Must Know",
+          "author": "de la Villa",
+          "category": "endgame",
+          "studyUnit": "exercises",
+          "recommendation": {
+            "value": "The theoretical endgames worth memorising at this level. Study with active recall, then space them.",
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "best_books",
+            "flag": "best-guess"
+          },
+          "chapters": [
+            { "chapter": 1, "title": "Basic Checkmates", "estMinutes": 25 },
+            {
+              "chapter": 2,
+              "title": "King and Pawn Endgames",
+              "estMinutes": 30
+            },
+            { "chapter": 3, "title": "Knight Endgames", "estMinutes": 30 },
+            { "chapter": 4, "title": "Bishop Endgames", "estMinutes": 35 },
+            { "chapter": 5, "title": "Rook Endgames", "estMinutes": 40 }
+          ]
+        }
+      ],
+      "b1600_2000": [
+        {
+          "id": "silman_reassess_your_chess",
+          "title": "How to Reassess Your Chess (4th ed.)",
+          "author": "Silman",
+          "category": "strategy",
+          "studyUnit": "games",
+          "recommendation": {
+            "value": "A full method for reading imbalances and forming plans: the positional backbone for this band.",
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "best_books",
+            "flag": "best-guess"
+          }
+        },
+        {
+          "id": "flores_chess_structures",
+          "title": "Chess Structures: A Grandmaster Guide",
+          "author": "Flores Rios",
+          "category": "strategy",
+          "studyUnit": "games",
+          "recommendation": {
+            "value": "Learn the typical pawn structures and the plans that go with them, connecting openings to middlegames.",
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "best_books",
+            "flag": "best-guess"
+          }
+        },
+        {
+          "id": "smith_tikkanen_woodpecker",
+          "title": "The Woodpecker Method",
+          "author": "Smith & Tikkanen",
+          "category": "tactics",
+          "studyUnit": "exercises",
+          "recommendation": {
+            "value": "A built-in cyclic tactics set: re-solve with a shrinking clock to turn calculation into recognition.",
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "best_books",
+            "flag": "best-guess"
+          },
+          "chapters": [
+            { "chapter": 1, "title": "Easy Exercises", "estMinutes": 20 },
+            {
+              "chapter": 2,
+              "title": "Intermediate Exercises 1",
+              "estMinutes": 30
+            },
+            {
+              "chapter": 3,
+              "title": "Intermediate Exercises 2",
+              "estMinutes": 30
+            },
+            { "chapter": 4, "title": "Advanced Exercises", "estMinutes": 45 }
+          ]
+        },
+        {
+          "id": "vukovic_art_of_attack",
+          "title": "The Art of Attack in Chess",
+          "author": "Vuković",
+          "category": "strategy",
+          "studyUnit": "games",
+          "recommendation": {
+            "value": "The geometry of the kingside attack: study the model games with the board set up and moves covered.",
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "best_books",
+            "flag": "best-guess"
+          }
+        }
+      ],
+      "b2000_2200": [
+        {
+          "id": "dvoretsky_endgame_manual",
+          "title": "Dvoretsky's Endgame Manual",
+          "author": "Dvoretsky",
+          "category": "endgame",
+          "studyUnit": "exercises",
+          "recommendation": {
+            "value": "High-precision theoretical endgames: the reference, worked actively, not just read.",
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "best_books",
+            "flag": "best-guess"
+          }
+        },
+        {
+          "id": "aagaard_calculation",
+          "title": "Grandmaster Preparation: Calculation",
+          "author": "Aagaard",
+          "category": "calculation",
+          "studyUnit": "exercises",
+          "recommendation": {
+            "value": "Deep, solitary calculation studies (20-40 min per position) that stress your search tree.",
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "best_books",
+            "flag": "best-guess"
+          }
+        },
+        {
+          "id": "gelfand_positional_decision",
+          "title": "Positional Decision Making in Chess",
+          "author": "Gelfand",
+          "category": "strategy",
+          "studyUnit": "games",
+          "recommendation": {
+            "value": "Elite positional transformations explained by a world-class player, with high cognitive friction by design.",
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "best_books",
+            "flag": "best-guess"
+          }
+        }
+      ],
+      "b2200plus": [
+        {
+          "id": "volokitin_perfect_your_chess",
+          "title": "Perfect Your Chess",
+          "author": "Volokitin & Grabinsky",
+          "category": "calculation",
+          "studyUnit": "exercises",
+          "recommendation": {
+            "value": "Elite calculation puzzles for micro-weakness optimisation: stretch the error target to 30-40%.",
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "best_books",
+            "flag": "best-guess"
+          }
+        },
+        {
+          "id": "bronstein_zurich_1953",
+          "title": "Zurich International Chess Tournament 1953",
+          "author": "Bronstein",
+          "category": "games",
+          "studyUnit": "games",
+          "recommendation": {
+            "value": "Deep classical annotations: study the decision-making, not just the moves.",
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "best_books",
+            "flag": "best-guess"
+          }
+        },
+        {
+          "id": "shereshevsky_endgame_strategy",
+          "title": "Endgame Strategy",
+          "author": "Shereshevsky",
+          "category": "endgame",
+          "studyUnit": "games",
+          "recommendation": {
+            "value": "Complex endgame thinking principles: do not hurry, schematic thinking, and the two weaknesses.",
+            "grade": "C",
+            "tier": 1,
+            "citationKey": "best_books",
+            "flag": "best-guess"
+          }
+        }
+      ]
+    }
   }
 }

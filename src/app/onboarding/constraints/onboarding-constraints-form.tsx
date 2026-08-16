@@ -38,14 +38,16 @@ const FORMAT_OPTIONS: readonly FormatOption[] = [
     id: "blitz",
     title: "Blitz",
     timeRange: "3 to 5 min",
-    description: "Fast pattern recognition, speed tactics, and sharp instincts.",
+    description:
+      "Fast pattern recognition, speed tactics, and sharp instincts.",
     icon: Zap,
   },
   {
     id: "rapid",
     title: "Rapid",
     timeRange: "10 to 15 min",
-    description: "Deep calculation, structured strategy, and balanced clock play.",
+    description:
+      "Deep calculation, structured strategy, and balanced clock play.",
     icon: Trophy,
     badge: "Recommended",
   },
@@ -53,7 +55,8 @@ const FORMAT_OPTIONS: readonly FormatOption[] = [
     id: "classical",
     title: "Classical",
     timeRange: "30+ min",
-    description: "Complex calculation, endgame precision, and tournament stamina.",
+    description:
+      "Complex calculation, endgame precision, and tournament stamina.",
     icon: Clock,
   },
 ];
@@ -76,13 +79,15 @@ const MODALITY_OPTIONS: readonly ModalityOption[] = [
     id: "otb",
     title: "Physical board",
     description: "Real chess set and tournament simulation.",
-    detail: "Hides visual arrows and hover cues to build real-board visualization.",
+    detail:
+      "Hides visual arrows and hover cues to build real-board visualization.",
   },
   {
     id: "hybrid",
     title: "Both",
     description: "Flexible mix of screen and over-the-board play.",
-    detail: "Combines digital training drills with physical board recommendations.",
+    detail:
+      "Combines digital training drills with physical board recommendations.",
   },
 ];
 
@@ -217,10 +222,7 @@ function StreamlinedForm({
     // Keep any other format the user previously saved if they had custom multi-selection
     const otherSavedFormats = initial.formatPrefs.formats.filter(
       (f) =>
-        f !== "bullet" &&
-        f !== "blitz" &&
-        f !== "rapid" &&
-        f !== "classical",
+        f !== "bullet" && f !== "blitz" && f !== "rapid" && f !== "classical",
     );
 
     const mergedFormats = Array.from(
@@ -293,7 +295,9 @@ function StreamlinedForm({
                   <span
                     className={cn(
                       "ml-1 font-mono text-[0.6rem] uppercase tracking-wider",
-                      isSelected ? "text-primary-foreground/90" : "text-graphite",
+                      isSelected
+                        ? "text-primary-foreground/90"
+                        : "text-graphite",
                     )}
                   >
                     (Default)
@@ -504,7 +508,9 @@ function StreamlinedForm({
             </div>
             <p className="text-graphite font-serif text-xs leading-relaxed">
               You can add your owned chess books, customize habit cues, and
-              adjust topic mixing in <span className="text-ink font-medium">Settings</span> at any time.
+              adjust topic mixing in{" "}
+              <span className="text-ink font-medium">Settings</span> at any
+              time.
             </p>
           </div>
         </div>
@@ -528,7 +534,10 @@ function StreamlinedForm({
           </div>
           <Link
             href={continueHref}
-            className={cn(buttonVariants({ variant: "default", size: "sm" }), "shrink-0")}
+            className={cn(
+              buttonVariants({ variant: "default", size: "sm" }),
+              "shrink-0",
+            )}
           >
             {continueLabel}
           </Link>
@@ -538,7 +547,11 @@ function StreamlinedForm({
       {/* Actions */}
       <div className="flex flex-wrap items-center gap-4 border-t border-line/80 pt-6 mt-2">
         <Button type="submit" disabled={save.isPending}>
-          {save.isPending ? "Saving…" : saved ? "Save again" : "Save constraints"}
+          {save.isPending
+            ? "Saving…"
+            : saved
+              ? "Save again"
+              : "Save constraints"}
         </Button>
         {isDirty && !saved && (
           <span className="rounded-sm border border-amber/40 bg-amber/10 px-2.5 py-1 font-mono text-[0.68rem] font-semibold uppercase text-amber">

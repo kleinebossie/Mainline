@@ -430,18 +430,18 @@ function Form({
             </label>
           ))}
           <div className="mt-2 max-w-md">
-              <Input
-                id="otherGoal"
-                name="otherGoal"
-                value={otherGoal}
-                onChange={(e) => {
-                  setOtherGoal(e.target.value);
-                  setSaved(false);
-                }}
-                placeholder="Something else (optional)"
-                aria-label="Other goal"
-                maxLength={120}
-              />
+            <Input
+              id="otherGoal"
+              name="otherGoal"
+              value={otherGoal}
+              onChange={(e) => {
+                setOtherGoal(e.target.value);
+                setSaved(false);
+              }}
+              placeholder="Something else (optional)"
+              aria-label="Other goal"
+              maxLength={120}
+            />
           </div>
         </div>
       </fieldset>

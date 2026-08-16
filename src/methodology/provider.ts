@@ -8,18 +8,20 @@ import { Chess } from "chess.js";
 
 import type { Grade, GradedFlag, Tier } from "@/methodology/schema/graded";
 import type {
+  BookChapter,
   MethodologyConfig,
   RationaleEntry,
   RewardEventType,
   TargetFocus,
 } from "@/methodology/schema/config";
 import type { RawGameFeatures } from "@/lib/raw-features";
+import type { BookPosition } from "@/lib/tracker";
 import { servoOffset } from "@/engine/math/servo";
 import { fsrsStep, type FsrsGrade, type FsrsState } from "@/engine/math/fsrs";
 import { glickoConfidenceInterval } from "@/engine/math/glicko";
 import { DAY_MS, type Clock } from "@/lib/clock";
 
-export type { FsrsGrade, FsrsState };
+export type { FsrsGrade, FsrsState, BookChapter };
 
 // ---------------------------------------------------------------------------
 // Seam 2 — Assessment calibration (WEAKNESS_DIAGNOSIS §2; METHODOLOGY Seam 2)
@@ -430,6 +432,7 @@ export interface CandidateBookResource {
   title: string;
   category: string;
   studyUnit: "exercises" | "games";
+  chapters?: BookChapter[];
 }
 
 /** A candidate activity (Seam 4) — a methodology-selected activity + params to run it. */
@@ -685,6 +688,7 @@ function bookSelection(
       title: book.title,
       category: book.category,
       studyUnit: book.studyUnit,
+      chapters: book.chapters,
     },
     dimensions: bookCategoryDimensions(book.category, cfg),
   };
@@ -953,6 +957,7 @@ export interface BookRecommendation {
   evidenceTier: Tier;
   citationKey: string;
   flag?: GradedFlag;
+  chapters?: BookChapter[];
 }
 
 /**
@@ -988,7 +993,42 @@ export function recommendBooks(
       evidenceTier: b.recommendation.tier,
       citationKey: b.recommendation.citationKey,
       flag: b.recommendation.flag,
+      chapters: b.chapters,
     }));
+}
+
+/**
+ * Seam 4 §4.2: pure reader function to determine the next assigned chapter for a book.
+ * It reads chapter table-of-contents metadata from the recommendation and advances past lastPosition.
+ */
+export function nextAssignedBookChapter(
+  book:
+    | { chapters?: readonly BookChapter[] | BookChapter[] }
+    | BookRecommendation,
+  lastPosition?: BookPosition | null,
+): { chapter: number; title: string; estMinutes: number } | null {
+  const chapters = book.chapters;
+  if (!chapters || chapters.length === 0) {
+    return null;
+  }
+  const lastChapter = lastPosition?.chapter;
+  let targetChapter: BookChapter;
+  if (lastChapter == null || lastChapter <= 0) {
+    targetChapter = chapters[0]!;
+  } else {
+    const nextChapter = chapters.find((c) => c.chapter === lastChapter + 1);
+    if (nextChapter) {
+      targetChapter = nextChapter;
+    } else {
+      const subsequentChapter = chapters.find((c) => c.chapter > lastChapter);
+      targetChapter = subsequentChapter ?? chapters[0]!;
+    }
+  }
+  return {
+    chapter: targetChapter.chapter,
+    title: targetChapter.title,
+    estMinutes: targetChapter.estMinutes ?? 30,
+  };
 }
 
 export interface WoodpeckerCycle {

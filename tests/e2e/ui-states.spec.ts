@@ -63,9 +63,7 @@ test("Today states stay clear and responsive", async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 1365, height: 900 });
   await mountWithAppStyles(page, renderState("today-progress"));
 
-  await expect(
-    page.getByText("Session in progress").first(),
-  ).toBeVisible();
+  await expect(page.getByText("Session in progress").first()).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Update plan" }),
   ).toBeDisabled();

@@ -4,7 +4,7 @@ import { Fraunces, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import { TRPCReactProvider } from "@/lib/trpc/react";
 import { ServiceWorkerRegistration } from "@/components/service-worker-registration";
-import { Analytics } from "@vercel/analytics/next";
+import { Analytics } from "@vercel/analytics/react";
 
 // Two families, split by role — the product's Engine⟷Methodology, human⟷machine split.
 // Fraunces is the human voice (titles, prose, honest declarations); IBM Plex Mono is the

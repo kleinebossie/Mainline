@@ -4,6 +4,7 @@ import { loadMethodology } from "@/methodology/loader";
 import {
   bandForRating,
   bookDifficultyFeedback,
+  nextAssignedBookChapter,
   recommendBooks,
   woodpeckerSchedule,
 } from "@/methodology/provider";
@@ -11,8 +12,8 @@ import {
 // Golden tests for the Seam-4 §4.2–4.3 book-study layer (M14): the per-band recommendation
 // lookup applies the cognitive-load block rule (low-band strategy/opening books suppressed),
 // every recommendation is graded (L3), and the Woodpecker-cycle intervals + the 85%-rule
-// verdict derive deterministically from config (L1/L2). Pinned to stub-0.1.0.
-const cfg = loadMethodology("stub-0.1.0");
+// verdict derive deterministically from config (L1/L2). Pinned to research-1.3.0.
+const cfg = loadMethodology("research-1.3.0");
 const u800 = bandForRating(500, cfg);
 const b1200 = bandForRating(1400, cfg);
 const b1600 = bandForRating(1800, cfg);
@@ -102,5 +103,82 @@ describe("bookDifficultyFeedback (Seam 4 §4.2 — the 85% rule)", () => {
     expect(f.lowerBound).toBe(0.75);
     expect(f.upperBound).toBe(0.9);
     expect(f.citationKey).toBe("wilson2019");
+  });
+});
+
+describe("nextAssignedBookChapter (Seam 4 §4.2)", () => {
+  it("returns null when book has no chapters", () => {
+    const book = {
+      id: "no_chapters_book",
+      title: "No Chapters",
+      author: "Author",
+      category: "tactics",
+      why: "Why",
+      studyUnit: "exercises" as const,
+      owned: true,
+      evidenceGrade: "C" as const,
+      evidenceTier: 1 as const,
+      citationKey: "best_books",
+    };
+    expect(nextAssignedBookChapter(book)).toBeNull();
+    expect(nextAssignedBookChapter({ ...book, chapters: [] })).toBeNull();
+  });
+
+  it("returns the first chapter when no previous position is recorded", () => {
+    const recs = recommendBooks({ band: b1200 }, cfg);
+    const yusupov = recs.find((r) => r.id === "yusupov_1");
+    expect(yusupov).toBeDefined();
+    expect(yusupov?.chapters).toBeDefined();
+
+    const assigned = nextAssignedBookChapter(yusupov!, null);
+    expect(assigned).toEqual({
+      chapter: 1,
+      title: "The Mating Net",
+      estMinutes: 30,
+    });
+  });
+
+  it("advances to the next chapter based on last recorded position", () => {
+    const recs = recommendBooks({ band: b1200 }, cfg);
+    const yusupov = recs.find((r) => r.id === "yusupov_1")!;
+
+    const assigned = nextAssignedBookChapter(yusupov, { chapter: 3 });
+    expect(assigned).toEqual({
+      chapter: 4,
+      title: "Pin Tactics",
+      estMinutes: 30,
+    });
+  });
+
+  it("cycles back to chapter 1 after completing the final chapter", () => {
+    const recs = recommendBooks({ band: b1200 }, cfg);
+    const yusupov = recs.find((r) => r.id === "yusupov_1")!;
+    const maxChapter = yusupov.chapters![yusupov.chapters!.length - 1]!.chapter;
+
+    const assigned = nextAssignedBookChapter(yusupov, { chapter: maxChapter });
+    expect(assigned).toEqual({
+      chapter: 1,
+      title: "The Mating Net",
+      estMinutes: 30,
+    });
+  });
+
+  it("uses default 30 minutes when estMinutes is absent", () => {
+    const book = {
+      chapters: [{ chapter: 1, title: "Intro without estMinutes" }],
+    };
+    const assigned = nextAssignedBookChapter(book, null);
+    expect(assigned).toEqual({
+      chapter: 1,
+      title: "Intro without estMinutes",
+      estMinutes: 30,
+    });
+  });
+
+  it("loads chapter metadata for curated books across configs", () => {
+    const recs = recommendBooks({ band: b1600 }, cfg);
+    const woodpecker = recs.find((r) => r.id === "smith_tikkanen_woodpecker");
+    expect(woodpecker?.chapters?.length).toBeGreaterThan(0);
+    expect(woodpecker?.chapters?.[0]?.title).toBe("Easy Exercises");
   });
 });

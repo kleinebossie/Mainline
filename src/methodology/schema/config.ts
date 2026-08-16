@@ -703,6 +703,12 @@ const BOOK_CATEGORIES = [
 ] as const;
 const bookCategorySchema = z.enum(BOOK_CATEGORIES);
 
+const bookChapterSchema = z.object({
+  chapter: z.number().int().positive(),
+  title: z.string().min(1),
+  estMinutes: z.number().positive().optional(),
+});
+
 const bookRecSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
@@ -713,6 +719,7 @@ const bookRecSchema = z.object({
   // The graded "why this book at this band" focus copy (Grade C coaching consensus); carries
   // the citation so a recommendation can never render as Grade-A fact.
   recommendation: gradedValue(z.string().min(1)),
+  chapters: z.array(bookChapterSchema).optional(),
 });
 
 const activityBookSubstitutionSchema = z.object({
@@ -1278,6 +1285,7 @@ export type InterpretationConfig = MethodologyConfig["interpretation"];
 export type ActivityDefinition = MethodologyConfig["activities"][number];
 export type BookStudyConfig = MethodologyConfig["bookStudy"];
 export type BookRec = BookStudyConfig["catalogByBand"][string][number];
+export type BookChapter = z.infer<typeof bookChapterSchema>;
 export type BookCategory = (typeof BOOK_CATEGORIES)[number];
 export type ModalityConfig = MethodologyConfig["modality"];
 export type TargetFocus = "online" | "otb" | "hybrid";

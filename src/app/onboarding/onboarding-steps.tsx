@@ -23,7 +23,8 @@ export function OnboardingSteps({ status }: { status: OnboardingStatus }) {
     "/connections": "Link Lichess or add a Chess.com username.",
     "/onboarding/calibration": "Complete a short adaptive puzzle check.",
     "/onboarding/constraints": "Set your time, goals, and playing formats.",
-    "/onboarding/reveal": "Review your starting picture.",
+    "/onboarding/reveal":
+      "Review your starting picture and solve your first blunder drill.",
     "/today": "Create your first daily training session.",
   };
   const steps: Step[] = status.steps.map((step) => ({

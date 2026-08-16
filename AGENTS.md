@@ -63,6 +63,7 @@ npm run prisma:migrate
 Playwright tests require a production build (`npm run build`) and `PLAYWRIGHT_DATABASE_URL` pointing to a disposable database (for example, `postgresql://postgres:postgres@localhost:5432/mainline_e2e`).
 
 When you run E2E tests locally:
+
 1. Start a local Postgres container: `docker run -d --name mainline-playwright-db -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=mainline_e2e -p 5432:5432 postgres:16-alpine`
 2. Apply migrations: `PLAYWRIGHT_DATABASE_URL="postgresql://postgres:postgres@localhost:5432/mainline_e2e" npx prisma migrate deploy`
 3. Build the app: `npm run build`

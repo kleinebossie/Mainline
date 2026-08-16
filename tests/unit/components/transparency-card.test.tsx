@@ -84,4 +84,42 @@ describe("TransparencyCard", () => {
     expect(html).toContain("Second choice");
     expect(html).toContain("The second rationale.");
   });
+
+  it("presents confident direct training statements first", () => {
+    const html = renderToStaticMarkup(
+      <TransparencyCard
+        rationaleText="Trains deep calculation and candidate move validation."
+        evidenceGrade="A"
+        evidenceTier={1}
+        citationKey="charness1981"
+        confidence="high"
+        soften={false}
+        defaultCollapsed={false}
+      />,
+    );
+    expect(html).toContain("Why Mainline scheduled this:");
+    expect(html).toContain(
+      "Trains deep calculation and candidate move validation.",
+    );
+    expect(html).toContain("Grade A");
+    expect(html).toContain("‼");
+    expect(html).toContain("chess-specific");
+  });
+
+  it("renders interactive GradeMark with accessible button attributes", () => {
+    const html = renderToStaticMarkup(
+      <TransparencyCard
+        rationaleText="Reinforces previously missed tactics."
+        evidenceGrade="B"
+        evidenceTier={2}
+        citationKey="cepeda2006"
+        confidence="medium"
+        soften={false}
+        defaultCollapsed={false}
+      />,
+    );
+    expect(html).toContain('role="button"');
+    expect(html).toContain('aria-haspopup="dialog"');
+    expect(html).toContain("general learning science");
+  });
 });

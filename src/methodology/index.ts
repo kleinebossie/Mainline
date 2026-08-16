@@ -31,6 +31,7 @@ export {
   interfaceAffordancesFor,
   // Seam 4 §4.2–4.4 (M14): book-study + 2D/3D-modality readers for the deliberately-external layer.
   recommendBooks,
+  nextAssignedBookChapter,
   woodpeckerSchedule,
   bookDifficultyFeedback,
   modalityRecommendation,
@@ -146,6 +147,7 @@ export type {
   TiltTriggerConfig,
   BookStudyConfig,
   BookRec,
+  BookChapter,
   BookCategory,
   ModalityConfig,
 } from "@/methodology/schema/config";

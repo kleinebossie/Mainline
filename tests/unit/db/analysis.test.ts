@@ -27,17 +27,12 @@ const mockRawFeatures: RawGameFeatures = {
 
 describe("db/analysis query helpers", () => {
   it("queries games needing analysis with limit and platform filter", async () => {
-    const findMany = vi.fn().mockResolvedValue([
-      { id: "g1", userId: "u1", platform: "lichess" },
-    ]);
+    const findMany = vi
+      .fn()
+      .mockResolvedValue([{ id: "g1", userId: "u1", platform: "lichess" }]);
     const db = { importedGame: { findMany } };
 
-    const result = await gamesNeedingAnalysis(
-      db as never,
-      "u1",
-      10,
-      "lichess",
-    );
+    const result = await gamesNeedingAnalysis(db as never, "u1", 10, "lichess");
 
     expect(findMany).toHaveBeenCalledWith({
       where: {

@@ -17,9 +17,9 @@ describe("program-history transport schemas", () => {
     });
 
     it("rejects missing fields", () => {
-      expect(programHistoryCursorSchema.safeParse({ id: "prog-1" }).success).toBe(
-        false,
-      );
+      expect(
+        programHistoryCursorSchema.safeParse({ id: "prog-1" }).success,
+      ).toBe(false);
     });
   });
 
@@ -30,9 +30,15 @@ describe("program-history transport schemas", () => {
     });
 
     it("rejects limit below 1 or above 25", () => {
-      expect(programHistoryInputSchema.safeParse({ limit: 0 }).success).toBe(false);
-      expect(programHistoryInputSchema.safeParse({ limit: 26 }).success).toBe(false);
-      expect(programHistoryInputSchema.safeParse({ limit: 20 }).success).toBe(true);
+      expect(programHistoryInputSchema.safeParse({ limit: 0 }).success).toBe(
+        false,
+      );
+      expect(programHistoryInputSchema.safeParse({ limit: 26 }).success).toBe(
+        false,
+      );
+      expect(programHistoryInputSchema.safeParse({ limit: 20 }).success).toBe(
+        true,
+      );
     });
   });
 

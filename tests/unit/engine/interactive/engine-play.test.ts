@@ -59,7 +59,9 @@ describe("createEnginePlay", () => {
     };
 
     const enginePlay = createEnginePlay(adapter, clock);
-    const result = await enginePlay.getOpponentMove(promotionFen, { depth: 10 });
+    const result = await enginePlay.getOpponentMove(promotionFen, {
+      depth: 10,
+    });
 
     expect(result).toEqual({
       san: "e8=Q",
@@ -69,7 +71,8 @@ describe("createEnginePlay", () => {
   });
 
   it("converts black moves accurately", async () => {
-    const blackToMoveFen = "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1";
+    const blackToMoveFen =
+      "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1";
     const clock = { now: () => 1_000 };
     const analyzePosition = vi.fn().mockResolvedValue({
       bestMove: "g8f6",
@@ -87,7 +90,9 @@ describe("createEnginePlay", () => {
     };
 
     const enginePlay = createEnginePlay(adapter, clock);
-    const result = await enginePlay.getOpponentMove(blackToMoveFen, { depth: 8 });
+    const result = await enginePlay.getOpponentMove(blackToMoveFen, {
+      depth: 8,
+    });
 
     expect(result).toEqual({
       san: "Nf6",
