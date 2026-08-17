@@ -84,6 +84,6 @@ describe("OnboardingConstraintsForm", () => {
     );
 
     // Save button
-    expect(html).toContain("Save &amp; Continue →");
+    expect(html).toContain("Build my first session →");
   });
 });

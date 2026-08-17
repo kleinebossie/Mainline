@@ -20,13 +20,34 @@ import {
 } from "@/server/guest-migration";
 
 export const accountRouter = router({
-  exportData: protectedProcedure.query(({ ctx }) =>
-    exportUserData(ctx.prisma, ctx.userId),
-  ),
+  exportData: publicProcedure.query(async ({ ctx }) => {
+    const userId = ctx.session?.user?.id;
+    if (!userId) {
+      return {
+        exportedAt: new Date().toISOString(),
+        guestMode: true,
+        user: { id: "guest", role: "guest" },
+        connections: [],
+        constraintSets: [],
+        programs: [],
+        skillStates: [],
+        activityEvents: [],
+      };
+    }
+    return exportUserData(ctx.prisma, userId);
+  }),
 
-  researchConsent: protectedProcedure.query(({ ctx }) =>
-    consentStatus(ctx.prisma, ctx.userId),
-  ),
+  researchConsent: publicProcedure.query(async ({ ctx }) => {
+    const userId = ctx.session?.user?.id;
+    if (!userId) {
+      return {
+        isEligible: false,
+        hasActiveGrant: false,
+        notice: null,
+      };
+    }
+    return consentStatus(ctx.prisma, userId);
+  }),
 
   grantResearchConsent: protectedProcedure
     .input(

@@ -150,6 +150,7 @@ function StreamlinedForm({
   initial,
   isGuestMode = false,
   continueHref,
+  continueLabel,
 }: {
   initial: ConstraintsInput;
   isGuestMode?: boolean;
@@ -178,17 +179,13 @@ function StreamlinedForm({
   );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [nextDestination, setNextDestination] = useState<string>(continueHref);
 
   const save = trpc.constraints.save.useMutation({
     onSuccess: () => {
-      trackFunnelEvent("onboarding_completed", {
-        minutesPerDay: Number(minutesInput) || 20,
-        daysPerWeek: initial.daysPerWeek || 5,
-        primaryFormat: selectedFormat,
-        isGuest: false,
-      });
+      setSubmitting(false);
       void utils.constraints.getCurrent.invalidate();
-      router.push(continueHref);
+      router.push(nextDestination || continueHref);
     },
     onError: (e) => {
       setSubmitting(false);
@@ -274,7 +271,7 @@ function StreamlinedForm({
         primaryFormat: selectedFormat,
         isGuest: true,
       });
-      router.push(continueHref);
+      router.push(nextDestination || continueHref);
       return;
     }
 
@@ -553,19 +550,34 @@ function StreamlinedForm({
       </div>
 
       {/* Actions */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-t border-line/80 pt-6 mt-2">
-        <Button
-          type="submit"
-          size="lg"
-          disabled={submitting || save.isPending}
-          className="w-full sm:w-auto"
-        >
-          {submitting || save.isPending
-            ? "Saving & building program…"
-            : isGuestMode
-              ? "Save & Open Today's Training →"
-              : "Save & Continue →"}
-        </Button>
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 border-t border-line/80 pt-6 mt-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <Button
+            type="submit"
+            size="lg"
+            disabled={submitting || save.isPending}
+            onClick={() => setNextDestination("/today")}
+            className="w-full sm:w-auto"
+          >
+            {submitting || save.isPending
+              ? "Saving & building program…"
+              : "Build my first session →"}
+          </Button>
+          <Button
+            type="submit"
+            variant="outline"
+            size="lg"
+            disabled={submitting || save.isPending}
+            onClick={() =>
+              setNextDestination(
+                continueHref === "/today" ? "/connections" : continueHref,
+              )
+            }
+            className="w-full sm:w-auto"
+          >
+            {continueLabel ?? "Save & Continue setup →"}
+          </Button>
+        </div>
         {error && <StatusMessage tone="error">{error}</StatusMessage>}
       </div>
     </form>

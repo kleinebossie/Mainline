@@ -100,7 +100,7 @@ export const DEFAULT_GUEST_CONSTRAINTS: GuestConstraints = {
 
 export const DEFAULT_GUEST_BASELINE: GuestBaseline = {
   tacticalRatingEstimate: 1450,
-  uncertainty: 180,
+  uncertainty: 350,
 };
 
 /** Read the guest session from browser storage. */

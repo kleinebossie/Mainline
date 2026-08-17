@@ -117,30 +117,37 @@ export function Reveal() {
     );
   }
 
-  const guestRating = guestSession?.baseline?.tacticalRatingEstimate ?? 1500;
-  const guestUncertainty = guestSession?.baseline?.uncertainty ?? 120;
+  const isGuestCalibrated = Boolean(
+    guestSession?.baseline?.calibratedAt ||
+      (guestSession?.calibrationResponses &&
+        guestSession.calibrationResponses.length >= 5),
+  );
+  const guestRating = guestSession?.baseline?.tacticalRatingEstimate ?? 1450;
+  const guestUncertainty = guestSession?.baseline?.uncertainty ?? 350;
+  const completed = isGuest ? isGuestCalibrated : Boolean(state.data?.completed);
   const estimate = isGuest
-    ? {
-        tacticalRatingEstimate: guestRating,
-        uncertainty: guestUncertainty,
-        evidenceGrade: "A",
-        evidenceTier: 1,
-        citationKey: "de_groot_1965",
-        confidence: "high",
-        soften: false,
-        flag: null,
-      }
+    ? isGuestCalibrated
+      ? {
+          tacticalRatingEstimate: guestRating,
+          uncertainty: guestUncertainty,
+          evidenceGrade: "A",
+          evidenceTier: 1,
+          citationKey: "de_groot_1965",
+          confidence: "high",
+          soften: false,
+          flag: null,
+        }
+      : null
     : state.data?.estimate;
-  const completed = isGuest ? true : Boolean(state.data?.completed);
   const tracks = isGuest
     ? [
         {
           id: "tactics",
           dimension: "tactics",
           label: "Tactical pattern recognition",
-          theme: "mix",
+          theme: guestSession?.baseline?.topBlindspot || "mix",
           completed: true,
-          responseCount: 5,
+          responseCount: guestSession?.calibrationResponses?.length ?? 5,
           next: {
             itemNumber: 5,
             totalItems: 5,
@@ -158,21 +165,34 @@ export function Reveal() {
 
   if (!completed || !estimate) {
     return (
-      <Card className="settle">
-        <CardHeader className="pb-4">
-          <CardTitle className="font-serif text-2xl font-semibold">
-            Calibration not done yet
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <p className="text-graphite text-sm leading-relaxed font-serif">
-            Finish the short tactical calibration and your starting picture
-            appears here.
-          </p>
-          <Link href="/onboarding/calibration" className={buttonVariants()}>
-            Go to calibration →
-          </Link>
-        </CardContent>
+      <Card className="settle border-line bg-card shadow-sheet p-6 sm:p-8">
+        <div className="flex flex-col gap-5">
+          <div>
+            <p className="eyebrow text-evergreen">Step 4 of setup</p>
+            <h2 className="font-serif text-2xl sm:text-3xl font-semibold mt-1">
+              Tactical calibration not completed yet
+            </h2>
+            <p className="text-graphite text-sm sm:text-base font-serif leading-relaxed mt-2 max-w-xl">
+              Mainline uses a short 5-puzzle adaptive check to measure pattern
+              recognition and blunder sensitivity. Complete calibration to
+              reveal your starting tactical baseline and blindspots.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3 pt-2">
+            <Link
+              href="/onboarding/calibration"
+              className={buttonVariants({ size: "default" })}
+            >
+              Start 5-puzzle calibration →
+            </Link>
+            <Link
+              href="/today"
+              className={buttonVariants({ variant: "outline", size: "default" })}
+            >
+              Skip to Today&apos;s training →
+            </Link>
+          </div>
+        </div>
       </Card>
     );
   }

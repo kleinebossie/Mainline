@@ -101,26 +101,35 @@ export function OnboardingSteps({ status }: { status: OnboardingStatus }) {
         </div>
       </div>
 
-      <div
-        className={cn(
-          "rounded-lg border px-4 py-3",
-          isComplete
-            ? "border-evergreen/30 bg-evergreen/[0.06]"
-            : "border-line bg-card",
-        )}
-        role="status"
-      >
-        <p className="font-serif text-sm font-semibold text-ink">
-          {isComplete
-            ? "Required setup complete"
-            : `${requiredDone} of ${requiredCount} required steps done`}
-        </p>
-        <p className="mt-1 text-sm text-graphite">
-          {isComplete
-            ? "Daily training is unlocked. Finish the last two steps when you are ready."
-            : "Complete the required steps to unlock daily training."}
-        </p>
-      </div>
+      {isComplete ? (
+        <div className="bg-paper-raised border border-evergreen/40 rounded-lg p-5 shadow-sheet flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <p className="eyebrow text-evergreen">Ready to train</p>
+            <p className="font-serif text-lg font-semibold text-ink mt-1">
+              Your first daily training session is ready
+            </p>
+            <p className="text-graphite font-serif text-sm mt-0.5 max-w-lg">
+              You can start training right now, or finish connecting your accounts
+              and calibration below to refine your starting signals.
+            </p>
+          </div>
+          <Link
+            href="/today"
+            className={cn(buttonVariants({ size: "default" }), "shrink-0")}
+          >
+            Start Today&apos;s session →
+          </Link>
+        </div>
+      ) : (
+        <div className="rounded-lg border border-line bg-card px-4 py-3" role="status">
+          <p className="font-serif text-sm font-semibold text-ink">
+            {`${requiredDone} of ${requiredCount} required steps done`}
+          </p>
+          <p className="mt-1 text-sm text-graphite">
+            Complete the required constraints step to unlock daily training.
+          </p>
+        </div>
+      )}
 
       <ol className="flex flex-col gap-4">
         {steps.map((step, i) => {

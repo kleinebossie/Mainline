@@ -1,14 +1,18 @@
 import { test, expect } from "@playwright/test";
 
-// Settings is auth-gated (edit-your-plan + data export/erase). Unauthenticated → sign-in.
-// The signed-in round-trip (edit constraints → regenerate Today) needs a session + DB and
-// is verified manually with a Lichess test account (BUILD.md §13.5).
-test("/settings redirects to sign-in when unauthenticated", async ({
+// Settings is accessible in guest mode (plan adjustments, feedback, analysis, and local data export).
+test("/settings opens for unauthenticated visitors in guest mode", async ({
   page,
 }) => {
   await page.goto("/settings");
-  await expect(page).toHaveURL(/\/signin/);
+  await expect(page).toHaveURL(/\/settings$/);
+  await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
+  await expect(page.getByText("Your plan", { exact: true })).toBeVisible();
+  await expect(page.getByText("Feedback", { exact: true })).toBeVisible();
   await expect(
-    page.getByRole("button", { name: /Continue with Lichess/i }),
+    page.getByText("Privacy and your data", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: /Export local data/i }),
   ).toBeVisible();
 });

@@ -5,24 +5,34 @@
 import { constraintsInputSchema } from "@/lib/constraints";
 import { getCurrentConstraints, saveConstraints } from "@/server/constraints";
 import { expectedError } from "@/server/errors";
-import { protectedProcedure, router } from "@/server/trpc";
+import { publicProcedure, router } from "@/server/trpc";
 
 export const constraintsRouter = router({
-  getCurrent: protectedProcedure.query(({ ctx }) =>
-    getCurrentConstraints(ctx.prisma, ctx.userId),
-  ),
+  getCurrent: publicProcedure.query(async ({ ctx }) => {
+    const userId = ctx.session?.user?.id;
+    if (!userId) return null;
+    return getCurrentConstraints(ctx.prisma, userId);
+  }),
 
-  save: protectedProcedure
+  save: publicProcedure
     .input(constraintsInputSchema)
-    .mutation(({ ctx, input }) => {
-      // Require at least one playing format so the generator has a format signal.
-      // Enforced here (BAD_REQUEST) so the client gets a clear message, and again
-      // in saveConstraints as defense-in-depth.
+    .mutation(async ({ ctx, input }) => {
       if (input.formatPrefs.formats.length === 0) {
         throw expectedError.badRequest(
           "Select at least one format you play: bullet, blitz, rapid, or classical.",
         );
       }
-      return saveConstraints(ctx.prisma, ctx.userId, input);
+      const userId = ctx.session?.user?.id;
+      if (!userId) {
+        return {
+          id: `guest_constraints_${Date.now()}`,
+          userId: "guest",
+          version: 1,
+          createdAt: new Date(),
+          isCurrent: true,
+          ...input,
+        };
+      }
+      return saveConstraints(ctx.prisma, userId, input);
     }),
 });

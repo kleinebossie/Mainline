@@ -35,8 +35,8 @@ describe("Setup progress", () => {
     const html = renderToStaticMarkup(<OnboardingSteps status={status} />);
 
     expect(html).toContain("3 of 5 steps done");
-    expect(html).toContain("Required setup complete");
+    expect(html).toContain("Your first daily training session is ready");
     expect(html).toContain("See where you stand");
-    expect(html).toContain("Build your first session");
+    expect(html).toContain("Start Today");
   });
 });
