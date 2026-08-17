@@ -10,6 +10,9 @@ import type { OnboardingStatus } from "@/server/onboarding";
 // The guided setup checklist. All five completion states come from persisted server
 // state so revisiting this page never resets visible progress.
 
+import { useEffect, useState } from "react";
+import { getGuestSession, type GuestSessionData } from "@/lib/guest-session";
+
 interface Step {
   href: string;
   title: string;
@@ -19,27 +22,55 @@ interface Step {
 }
 
 export function OnboardingSteps({ status }: { status: OnboardingStatus }) {
+  const [guestSession, setGuestSession] = useState<GuestSessionData | null>(null);
+
+  useEffect(() => {
+    setGuestSession(getGuestSession());
+  }, []);
+
   const details: Record<string, string> = {
+    "/onboarding/constraints": "Set your time, goals, and playing formats.",
     "/connections": "Link Lichess or add a Chess.com username.",
     "/onboarding/calibration": "Complete a short adaptive puzzle check.",
-    "/onboarding/constraints": "Set your time, goals, and playing formats.",
     "/onboarding/reveal":
       "Review your starting picture and solve your first blunder drill.",
     "/today": "Create your first daily training session.",
   };
-  const steps: Step[] = status.steps.map((step) => ({
-    href: step.href,
-    title: step.label,
-    detail: details[step.href] ?? "Complete this setup step.",
-    done: step.done,
-    required: step.required,
-  }));
+
+  const steps: Step[] = status.steps.map((step) => {
+    let done = step.done;
+    if (step.href === "/onboarding/constraints" && guestSession?.constraints != null) {
+      done = true;
+    }
+    if (
+      step.href === "/connections" &&
+      ((guestSession?.connections && guestSession.connections.length > 0) ||
+        Boolean(guestSession?.baseline?.username))
+    ) {
+      done = true;
+    }
+    if (
+      step.href === "/onboarding/calibration" &&
+      Boolean(guestSession?.baseline?.calibratedAt)
+    ) {
+      done = true;
+    }
+    if (step.href === "/today" && guestSession?.program != null) {
+      done = true;
+    }
+    return {
+      href: step.href,
+      title: step.label,
+      detail: details[step.href] ?? "Complete this setup step.",
+      done,
+      required: step.required,
+    };
+  });
+
   const doneCount = steps.filter((step) => step.done).length;
-  const requiredDone = steps.filter(
-    (step) => step.required && step.done,
-  ).length;
-  const requiredCount = steps.filter((step) => step.required).length;
-  const nextStep = steps.find((step) => step.href === status.nextStep?.href);
+  const isComplete = steps.filter((step) => step.required).every((step) => step.done);
+  const allComplete = steps.every((step) => step.done);
+  const nextStep = steps.find((step) => step.required && !step.done) ?? steps.find((step) => !step.done);
 
   return (
     <div className="flex flex-col gap-6">
@@ -68,21 +99,25 @@ export function OnboardingSteps({ status }: { status: OnboardingStatus }) {
       <div
         className={cn(
           "rounded-lg border px-4 py-3",
-          status.complete
+          isComplete
             ? "border-evergreen/30 bg-evergreen/[0.06]"
             : "border-line bg-card",
         )}
         role="status"
       >
         <p className="font-serif text-sm font-semibold text-ink">
-          {status.complete
-            ? "Required setup complete"
-            : `${requiredDone} of ${requiredCount} required steps done`}
+          {allComplete
+            ? "Setup complete"
+            : isComplete
+              ? "Required setup complete · Optional steps remaining"
+              : "Step 1 required: set your training constraints"}
         </p>
         <p className="mt-1 text-sm text-graphite">
-          {status.complete
-            ? "Daily training is unlocked. Finish the last two steps when you are ready."
-            : "Complete the required steps to unlock daily training."}
+          {allComplete
+            ? "All setup steps are finished. Your daily program is fully personalized."
+            : isComplete
+              ? "Daily training is unlocked. You haven't connected an account or calibrated your rating yet, but you can train anytime or finish them whenever you are ready."
+              : "Set your available time and playing formats to unlock daily training."}
         </p>
       </div>
 

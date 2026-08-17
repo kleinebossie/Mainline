@@ -1,14 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { Check, Clock, Monitor, Sliders, Trophy, Zap } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Clock, Monitor, Sliders, Trophy, Zap } from "lucide-react";
 
 import { trpc } from "@/lib/trpc/react";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { StatusMessage } from "@/components/ui/status-message";
-import { ErrorNotice } from "@/components/ui/error-notice";
 import {
   MAX_MINUTES_PER_DAY,
   MIN_MINUTES_PER_DAY,
@@ -21,6 +20,12 @@ import {
 } from "@/lib/constraints";
 import { errorMessage } from "@/lib/error-presentation";
 import { cn } from "@/lib/utils";
+import {
+  getGuestSession,
+  saveGuestConstraints,
+  generateGuestProgram,
+} from "@/lib/guest-session";
+import { trackFunnelEvent } from "@/lib/telemetry";
 
 const TIME_PRESETS = [15, 20, 30, 45, 60] as const;
 
@@ -92,34 +97,49 @@ const MODALITY_OPTIONS: readonly ModalityOption[] = [
 ];
 
 export function OnboardingConstraintsForm({
-  continueHref = "/onboarding/reveal",
-  continueLabel = "Continue →",
+  continueHref = "/today",
+  continueLabel = "Save & Open Today's Training →",
 }: {
   continueHref?: string;
   continueLabel?: string;
 }) {
-  const current = trpc.constraints.getCurrent.useQuery();
+  const [guestConstraints] = useState(() =>
+    typeof window !== "undefined" ? getGuestSession().constraints : null,
+  );
+  const [hasGuest] = useState(() =>
+    typeof window !== "undefined"
+      ? Boolean(
+          getGuestSession().baseline || getGuestSession().constraints,
+        )
+      : false,
+  );
 
-  if (current.isLoading) {
+  const current = trpc.constraints.getCurrent.useQuery(undefined, {
+    enabled: !hasGuest,
+    retry: false,
+  });
+
+  if (current.isLoading && !guestConstraints) {
     return <StatusMessage tone="loading">Loading your plan…</StatusMessage>;
   }
 
-  if (current.error) {
-    return (
-      <ErrorNotice
-        error={current.error}
-        heading="Training preferences unavailable"
-        message="Mainline could not load your saved preferences. Try this step again."
-        onRetry={() => void current.refetch()}
-        retrying={current.isFetching}
-        retryLabel="Reload preferences"
-      />
-    );
-  }
+  const initial =
+    current.data ??
+    (guestConstraints
+      ? {
+          ...EMPTY_CONSTRAINTS,
+          minutesPerDay: guestConstraints.minutesPerDay,
+          daysPerWeek: guestConstraints.daysPerWeek,
+          formatPrefs: guestConstraints.formatPrefs,
+        }
+      : EMPTY_CONSTRAINTS);
+
+  const isGuestMode = hasGuest || Boolean(current.error);
 
   return (
     <StreamlinedForm
-      initial={current.data ?? EMPTY_CONSTRAINTS}
+      initial={initial}
+      isGuestMode={isGuestMode}
       continueHref={continueHref}
       continueLabel={continueLabel}
     />
@@ -128,13 +148,15 @@ export function OnboardingConstraintsForm({
 
 function StreamlinedForm({
   initial,
+  isGuestMode = false,
   continueHref,
-  continueLabel,
 }: {
   initial: ConstraintsInput;
+  isGuestMode?: boolean;
   continueHref: string;
-  continueLabel: string;
+  continueLabel?: string;
 }) {
+  const router = useRouter();
   const utils = trpc.useUtils();
   const [minutesInput, setMinutesInput] = useState<string>(
     String(initial.minutesPerDay),
@@ -154,21 +176,29 @@ function StreamlinedForm({
   const [targetFocus, setTargetFocus] = useState<TargetFocus>(
     initial.formatPrefs.targetFocus,
   );
-  const [saved, setSaved] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const save = trpc.constraints.save.useMutation({
     onSuccess: () => {
-      setSaved(true);
+      trackFunnelEvent("onboarding_completed", {
+        minutesPerDay: Number(minutesInput) || 20,
+        daysPerWeek: initial.daysPerWeek || 5,
+        primaryFormat: selectedFormat,
+        isGuest: false,
+      });
       void utils.constraints.getCurrent.invalidate();
+      router.push(continueHref);
     },
-    onError: (e) =>
+    onError: (e) => {
+      setSubmitting(false);
       setError(
         errorMessage(
           e,
           "Your preferences were not saved. Check the form and try again.",
         ),
-      ),
+      );
+    },
   });
 
   const parsedMinutes = parseInt(minutesInput.trim(), 10);
@@ -176,39 +206,35 @@ function StreamlinedForm({
 
   const handleMinutesChange = (value: string) => {
     setMinutesInput(value);
-    setSaved(false);
   };
 
   const handlePresetClick = (preset: number) => {
     setMinutesInput(String(preset));
-    setSaved(false);
   };
 
   const handleFormatChange = (format: "blitz" | "rapid" | "classical") => {
     setSelectedFormat(format);
-    setSaved(false);
   };
 
   const handleBulletChange = (checked: boolean) => {
     setIncludeBullet(checked);
-    setSaved(false);
   };
 
   const handleFocusChange = (focus: TargetFocus) => {
     setTargetFocus(focus);
-    setSaved(false);
   };
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setSaved(false);
     setError(null);
+    setSubmitting(true);
 
     if (
       Number.isNaN(parsedMinutes) ||
       parsedMinutes < MIN_MINUTES_PER_DAY ||
       parsedMinutes > MAX_MINUTES_PER_DAY
     ) {
+      setSubmitting(false);
       setError(
         `Please enter a daily time budget between ${MIN_MINUTES_PER_DAY} and ${MAX_MINUTES_PER_DAY} minutes.`,
       );
@@ -229,6 +255,29 @@ function StreamlinedForm({
       new Set([...chosenFormats, ...otherSavedFormats]),
     ).filter((f) => CHESS_FORMATS.includes(f));
 
+    if (isGuestMode) {
+      saveGuestConstraints({
+        minutesPerDay: parsedMinutes,
+        daysPerWeek: initial.daysPerWeek || 5,
+        goals: initial.goals.map((g) => g.kind),
+        ownedResources: initial.ownedResources,
+        formatPrefs: {
+          formats: mergedFormats,
+          preferredVariety: initial.formatPrefs.preferredVariety,
+          targetFocus,
+        },
+      });
+      generateGuestProgram();
+      trackFunnelEvent("onboarding_completed", {
+        minutesPerDay: parsedMinutes,
+        daysPerWeek: initial.daysPerWeek || 5,
+        primaryFormat: selectedFormat,
+        isGuest: true,
+      });
+      router.push(continueHref);
+      return;
+    }
+
     save.mutate({
       minutesPerDay: parsedMinutes,
       daysPerWeek: initial.daysPerWeek || 5,
@@ -243,19 +292,6 @@ function StreamlinedForm({
       ifThenPlan: initial.ifThenPlan,
     });
   };
-
-  const initialPrimaryFormat =
-    initial.formatPrefs.formats.find(
-      (f): f is "blitz" | "rapid" | "classical" =>
-        f === "blitz" || f === "rapid" || f === "classical",
-    ) ?? "rapid";
-  const initialBullet = initial.formatPrefs.formats.includes("bullet");
-
-  const isDirty =
-    currentMinutes !== initial.minutesPerDay ||
-    selectedFormat !== initialPrimaryFormat ||
-    includeBullet !== initialBullet ||
-    targetFocus !== initial.formatPrefs.targetFocus;
 
   return (
     <form className="flex flex-col gap-10 settle" onSubmit={onSubmit}>
@@ -516,48 +552,20 @@ function StreamlinedForm({
         </div>
       </div>
 
-      {/* Save Success Banner */}
-      {saved && (
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 rounded-lg border border-evergreen/40 bg-evergreen/[0.08] p-4 text-ink shadow-sheet">
-          <div className="flex items-center gap-3">
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-evergreen text-primary-foreground">
-              <Check className="h-4 w-4 stroke-[3]" />
-            </span>
-            <div className="flex flex-col">
-              <p className="font-serif text-sm font-semibold text-evergreen">
-                Preferences saved
-              </p>
-              <p className="font-serif text-xs text-graphite">
-                Saved. Your daily program will use these settings.
-              </p>
-            </div>
-          </div>
-          <Link
-            href={continueHref}
-            className={cn(
-              buttonVariants({ variant: "default", size: "sm" }),
-              "shrink-0",
-            )}
-          >
-            {continueLabel}
-          </Link>
-        </div>
-      )}
-
       {/* Actions */}
-      <div className="flex flex-wrap items-center gap-4 border-t border-line/80 pt-6 mt-2">
-        <Button type="submit" disabled={save.isPending}>
-          {save.isPending
-            ? "Saving…"
-            : saved
-              ? "Save again"
-              : "Save constraints"}
+      <div className="flex flex-wrap items-center justify-between gap-4 border-t border-line/80 pt-6 mt-2">
+        <Button
+          type="submit"
+          size="lg"
+          disabled={submitting || save.isPending}
+          className="w-full sm:w-auto"
+        >
+          {submitting || save.isPending
+            ? "Saving & building program…"
+            : isGuestMode
+              ? "Save & Open Today's Training →"
+              : "Save & Continue →"}
         </Button>
-        {isDirty && !saved && (
-          <span className="rounded-sm border border-amber/40 bg-amber/10 px-2.5 py-1 font-mono text-[0.68rem] font-semibold uppercase text-amber">
-            Unsaved changes
-          </span>
-        )}
         {error && <StatusMessage tone="error">{error}</StatusMessage>}
       </div>
     </form>

@@ -513,13 +513,16 @@ export function toTodayItem(
   const params = paramsOf(item.params);
   const def = cfg.activities.find((a) => a.id === item.activityId);
   const theme = params.theme ?? null;
+  const isPlayGame =
+    item.activityType === "play_game" ||
+    item.activityType === "play_games" ||
+    item.activityId === "play_games";
   const delivery =
-    params.bookResource || item.activityType === "book"
+    params.bookResource || item.activityType === "book" || isPlayGame
       ? "external"
       : def?.delivery?.value === "internal"
         ? "internal"
         : "external";
-  const isPlayGame = item.activityType === "play_game";
   const externalUrl = isPlayGame
     ? platformPlayUrl(primaryPlatform)
     : (item.resourceRef?.externalUrl ??

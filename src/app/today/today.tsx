@@ -10,6 +10,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { StatusMessage } from "@/components/ui/status-message";
 import { ErrorNotice } from "@/components/ui/error-notice";
+import { buttonVariants } from "@/components/ui/button";
+import { Sparkles } from "lucide-react";
 import {
   EmptyTodayCard,
   TodayBlockList,
@@ -17,6 +19,18 @@ import {
 } from "@/app/today/today-session";
 import { ProgramArchive } from "@/app/today/program-history";
 import { isSameUtcDay } from "@/app/today/today-copy";
+import type { TodayProgram, TodayItem } from "@/server/program";
+import {
+  getGuestSession,
+  saveGuestConstraints,
+  generateGuestProgram,
+  updateGuestProgramItemStatus,
+  recordGuestActivityEvent,
+  hasSeenAnalysisIntro,
+  DEFAULT_GUEST_CONSTRAINTS,
+  type GuestSessionData,
+} from "@/lib/guest-session";
+import { trackFunnelEvent } from "@/lib/telemetry";
 
 type ProgramNotice = {
   tone: "success" | "error" | "neutral";
@@ -30,10 +44,24 @@ export function Today() {
   const [programNotice, setProgramNotice] = useState<ProgramNotice | null>(
     null,
   );
-  const today = trpc.program.getToday.useQuery();
+  const [guestState, setGuestState] = useState<GuestSessionData | null>(() =>
+    typeof window !== "undefined" ? getGuestSession() : null,
+  );
+  const isGuest = Boolean(
+    guestState?.constraints != null || guestState?.baseline != null,
+  );
+
+  const today = trpc.program.getToday.useQuery(undefined, {
+    enabled: !isGuest,
+    retry: false,
+  });
   const history = trpc.program.history.useInfiniteQuery(
     { limit: 8 },
-    { getNextPageParam: (page) => page.nextCursor ?? undefined },
+    {
+      getNextPageParam: (page) => page.nextCursor ?? undefined,
+      enabled: !isGuest,
+      retry: false,
+    },
   );
   const replan = trpc.program.replan.useMutation({
     onMutate: () => setProgramNotice(null),
@@ -56,7 +84,10 @@ export function Today() {
         message: "Your existing session is unchanged. Try the update again.",
       }),
   });
-  const dueReviews = trpc.tracker.dueReviews.useQuery();
+  const dueReviews = trpc.tracker.dueReviews.useQuery(undefined, {
+    enabled: !isGuest,
+    retry: false,
+  });
   const generate = trpc.program.generate.useMutation({
     onMutate: () => setProgramNotice(null),
     onSuccess: (data) => {
@@ -79,21 +110,6 @@ export function Today() {
         message: "Your time budget was saved. Try building the session again.",
       }),
   });
-  const program = today.data;
-  const staleProgram =
-    program != null && !isSameUtcDay(program.scheduledDate, new Date());
-
-  useEffect(() => {
-    if (
-      !staleProgram ||
-      generate.isPending ||
-      rolloverAttemptedFor.current === program.id
-    ) {
-      return;
-    }
-    rolloverAttemptedFor.current = program.id;
-    generate.mutate();
-  }, [generate, program, staleProgram]);
   const log = trpc.tracker.logOutcome.useMutation({
     onSuccess: (_result, variables) => {
       if (variables.programItemId) {
@@ -160,11 +176,18 @@ export function Today() {
       }),
   });
 
-  const constraints = trpc.constraints.getCurrent.useQuery();
-  const library = trpc.library.get.useQuery();
+  const constraints = trpc.constraints.getCurrent.useQuery(undefined, {
+    enabled: !isGuest,
+    retry: false,
+  });
+  const library = trpc.library.get.useQuery(undefined, {
+    enabled: !isGuest,
+    retry: false,
+  });
   const ownedBooks = library.data?.books.filter((b) => b.owned) ?? [];
-  const supportingError =
-    constraints.error ?? library.error ?? dueReviews.error ?? null;
+  const supportingError = isGuest
+    ? null
+    : constraints.error ?? library.error ?? dueReviews.error ?? null;
 
   const saveConstraints = trpc.constraints.save.useMutation({
     onSuccess: () => {
@@ -180,7 +203,160 @@ export function Today() {
 
   const [timeInput, setTimeInput] = useState("");
 
-  const minutes = constraints.data?.minutesPerDay;
+  const guestAdaptedProgram: TodayProgram | null = guestState?.program
+    ? {
+        id: guestState.program.id,
+        createdAt: new Date(guestState.program.createdAt),
+        scheduledDate: new Date(guestState.program.scheduledDate),
+        methodologyVersion: guestState.program.methodologyVersion,
+        honesty: {
+          expectations:
+            "Mainline adapts your training based on evidence and your games. It will not promise a rating gain.",
+          processGoal:
+            "Focus on consistent deliberate practice and blunder awareness every day.",
+          expectationsEvidence: {
+            evidenceGrade: "A",
+            evidenceTier: 1,
+            citationKey: "de_groot_1965",
+            citationSource: "Thought and Choice in Chess",
+            confidence: "high",
+            soften: false,
+          },
+          processGoalEvidence: {
+            evidenceGrade: "A",
+            evidenceTier: 1,
+            citationKey: "ericsson_1993",
+            citationSource:
+              "The Role of Deliberate Practice in the Acquisition of Expert Performance",
+            confidence: "high",
+            soften: false,
+          },
+        },
+        items: guestState.program.items.map((it) => {
+          const isPlayGame =
+            it.activityType === "play_game" ||
+            it.activityType === "play_games" ||
+            it.activityId === "play_games";
+          const isAnalysis =
+            it.activityType === "analyse" ||
+            it.activityType === "game_analysis" ||
+            it.activityType === "review_games" ||
+            it.activityType === "analyze_mistakes" ||
+            it.label?.toLowerCase().includes("analyse") ||
+            it.label?.toLowerCase().includes("analyze") ||
+            it.label?.toLowerCase().includes("game review");
+          const platform = guestState.baseline?.platform ?? "lichess";
+          const externalUrl = isPlayGame
+            ? platform === "chesscom"
+              ? "https://www.chess.com/play/online"
+              : "https://lichess.org/"
+            : null;
+          const externalLabel = isPlayGame
+            ? `Play on ${platform === "chesscom" ? "Chess.com" : "Lichess"} ↗`
+            : null;
+          const delivery = isPlayGame
+            ? ("external" as const)
+            : ("internal" as const);
+          const hasLinked =
+            (guestState.connections && guestState.connections.length > 0) ||
+            Boolean(guestState.baseline?.username);
+          const url =
+            delivery === "external"
+              ? externalUrl
+              : isAnalysis && hasLinked && hasSeenAnalysisIntro()
+                ? "/analysis"
+                : `/train/${it.id}`;
+
+          return {
+            id: it.id,
+            orderIndex: it.orderIndex,
+            label: it.label,
+            activityType: it.activityType,
+            dimensionLabels: it.dimensionsTargeted ?? [],
+            estMinutes: it.estMinutes,
+            params: (it.params ?? {}) as TodayItem["params"],
+            reviewThemes: [],
+            externalUrl,
+            externalLabel,
+            url,
+            delivery,
+            bookResource: null,
+            rationaleText: it.rationaleText,
+            evidenceGrade: it.evidenceGrade,
+            evidenceTier: it.evidenceTier,
+            citationKey: it.citationKey,
+            citationSource: "Mainline Methodology",
+            confidence: it.confidence ?? "high",
+            soften: Boolean(it.soften),
+            status: it.status,
+          };
+        }),
+      }
+    : null;
+
+  const program = today.data ?? guestAdaptedProgram;
+  const staleProgram =
+    program != null && !isSameUtcDay(program.scheduledDate, new Date());
+
+  useEffect(() => {
+    if (
+      isGuest ||
+      !staleProgram ||
+      generate.isPending ||
+      rolloverAttemptedFor.current === program?.id
+    ) {
+      return;
+    }
+    if (program?.id) {
+      rolloverAttemptedFor.current = program.id;
+      generate.mutate();
+    }
+  }, [generate, isGuest, program, staleProgram]);
+
+  useEffect(() => {
+    if (
+      isGuest &&
+      !guestState?.program &&
+      (guestState?.baseline || guestState?.constraints)
+    ) {
+      generateGuestProgram();
+      setGuestState(getGuestSession());
+    }
+  }, [isGuest, guestState]);
+
+  const startedTrackedRef = useRef(false);
+  const completedTrackedRef = useRef(false);
+
+  useEffect(() => {
+    if (program && !startedTrackedRef.current) {
+      startedTrackedRef.current = true;
+      trackFunnelEvent("day1_session_started", {
+        isGuest,
+      });
+    }
+  }, [program, isGuest]);
+
+  useEffect(() => {
+    if (
+      program &&
+      program.items.length > 0 &&
+      program.items.every((it) => it.status === "done") &&
+      !completedTrackedRef.current
+    ) {
+      completedTrackedRef.current = true;
+      trackFunnelEvent("day1_session_completed", {
+        isGuest,
+        itemsCompleted: program.items.length,
+        totalMinutes: Number(timeInput) || 20,
+      });
+    }
+  }, [program, isGuest, timeInput]);
+
+  const minutes =
+    constraints.data?.minutesPerDay ??
+    guestState?.constraints?.minutesPerDay ??
+    20;
+
   useEffect(() => {
     if (minutes != null) setTimeInput(String(minutes));
   }, [minutes]);
@@ -192,6 +368,18 @@ export function Today() {
     requestedMinutes <= MAX_MINUTES_PER_DAY;
 
   const saveTimeThen = (next: () => void) => {
+    if (isGuest) {
+      const currentConstraints =
+        guestState?.constraints ?? DEFAULT_GUEST_CONSTRAINTS;
+      saveGuestConstraints({
+        ...currentConstraints,
+        minutesPerDay: requestedMinutes,
+      });
+      generateGuestProgram();
+      setGuestState(getGuestSession());
+      next();
+      return;
+    }
     if (!constraints.data || !timeValid) return;
     saveConstraints.mutate(
       { ...constraints.data, minutesPerDay: requestedMinutes },
@@ -201,17 +389,43 @@ export function Today() {
     );
   };
 
-  const handleBuildWithTime = () => saveTimeThen(() => generate.mutate());
-  const handleUpdateWithTime = () => saveTimeThen(() => replan.mutate());
+  const handleBuildWithTime = () => {
+    if (isGuest) {
+      saveTimeThen(() => {
+        setProgramNotice({
+          tone: "success",
+          heading: "Session built",
+          message: "Today is ready.",
+        });
+      });
+      return;
+    }
+    saveTimeThen(() => generate.mutate());
+  };
+
+  const handleUpdateWithTime = () => {
+    if (isGuest) {
+      saveTimeThen(() => {
+        setProgramNotice({
+          tone: "success",
+          heading: "Plan updated",
+          message: "Remaining work now fits the new time budget.",
+        });
+      });
+      return;
+    }
+    saveTimeThen(() => replan.mutate());
+  };
+
   const timeChanged = minutes != null && requestedMinutes !== minutes;
   const timeBusy =
     saveConstraints.isPending || generate.isPending || replan.isPending;
 
-  if (today.isLoading) {
+  if (today.isLoading && !isGuest) {
     return <StatusMessage tone="loading">Loading your session…</StatusMessage>;
   }
 
-  if (today.error) {
+  if (today.error && !isGuest) {
     return (
       <ErrorNotice
         error={today.error}
@@ -232,7 +446,7 @@ export function Today() {
       ? undoSkip.variables?.programItemId
       : undefined;
 
-  if (program && staleProgram) {
+  if (program && staleProgram && !isGuest) {
     return (
       <div className="flex min-w-0 flex-col gap-5">
         {generate.error ? (
@@ -269,6 +483,31 @@ export function Today() {
   if (!program) {
     return (
       <div className="flex min-w-0 flex-col gap-5">
+        {isGuest && (
+          <aside className="rounded-lg border border-evergreen/40 bg-evergreen/[0.06] p-4 shadow-sheet">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-evergreen/15 text-evergreen">
+                  <Sparkles className="h-4 w-4" />
+                </div>
+                <div>
+                  <p className="font-serif text-sm font-semibold text-ink">
+                    Training as Guest
+                  </p>
+                  <p className="font-serif text-xs text-graphite">
+                    Sign in with Lichess or Google to sync your training across devices.
+                  </p>
+                </div>
+              </div>
+              <Link
+                href="/signin"
+                className={buttonVariants({ size: "sm", variant: "default" })}
+              >
+                Sign in to sync →
+              </Link>
+            </div>
+          </aside>
+        )}
         {supportingError && (
           <ErrorNotice
             error={supportingError}
@@ -315,6 +554,32 @@ export function Today() {
 
   return (
     <div className="flex min-w-0 flex-col gap-5">
+      {isGuest && (
+        <aside className="rounded-lg border border-evergreen/40 bg-evergreen/[0.06] p-4 shadow-sheet">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-evergreen/15 text-evergreen">
+                <Sparkles className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="font-serif text-sm font-semibold text-ink">
+                  Training as Guest
+                </p>
+                <p className="font-serif text-xs text-graphite">
+                  Sign in with Lichess or Google to sync your training across devices.
+                </p>
+              </div>
+            </div>
+            <Link
+              href="/signin"
+              className={buttonVariants({ size: "sm", variant: "default" })}
+            >
+              Sign in to sync →
+            </Link>
+          </div>
+        </aside>
+      )}
+
       <TodayHeader
         program={program}
         due={due}
@@ -341,11 +606,13 @@ export function Today() {
         />
       )}
 
-      <TrainingFeedbackPrompt
-        refreshKey={program.items
-          .map((item) => `${item.id}:${item.status}`)
-          .join("|")}
-      />
+      {!isGuest && (
+        <TrainingFeedbackPrompt
+          refreshKey={program.items
+            .map((item) => `${item.id}:${item.status}`)
+            .join("|")}
+        />
+      )}
 
       {supportingError && (
         <ErrorNotice
@@ -372,10 +639,45 @@ export function Today() {
           ownedBooks={ownedBooks}
           libraryLoading={library.isLoading}
           pendingItemId={pendingItemId}
-          onLogOutcome={(input) =>
-            log.mutate({ ...input, requestId: crypto.randomUUID() })
-          }
-          onUndoSkip={(programItemId) => undoSkip.mutate({ programItemId })}
+          onLogOutcome={(input) => {
+            if (isGuest) {
+              if (input.type === "skip") {
+                updateGuestProgramItemStatus(input.programItemId, "skipped");
+                setProgramNotice({
+                  tone: "neutral",
+                  heading: "Block skipped",
+                  message: "It is closed for today. Use Undo skip on the block to restore it.",
+                });
+              } else {
+                recordGuestActivityEvent({
+                  type: input.type,
+                  programItemId: input.programItemId,
+                  payload: { correct: input.correct },
+                });
+                setProgramNotice({
+                  tone: "success",
+                  heading: "Training logged",
+                  message: "Your progress was saved.",
+                });
+              }
+              setGuestState(getGuestSession());
+              return;
+            }
+            log.mutate({ ...input, requestId: crypto.randomUUID() });
+          }}
+          onUndoSkip={(programItemId) => {
+            if (isGuest) {
+              updateGuestProgramItemStatus(programItemId, "pending");
+              setGuestState(getGuestSession());
+              setProgramNotice({
+                tone: "success",
+                heading: "Skip undone",
+                message: "The block is back in your remaining work.",
+              });
+              return;
+            }
+            undoSkip.mutate({ programItemId });
+          }}
           onBookLogged={() => {
             void utils.library.get.invalidate();
             void utils.program.getToday.invalidate();
@@ -414,18 +716,20 @@ export function Today() {
         </p>
       ))}
 
-      <div id="program-history" className="scroll-mt-24">
-        <ProgramArchive
-          entries={historyEntries}
-          currentProgramId={program.id}
-          loading={history.isLoading}
-          error={history.error}
-          hasMore={history.hasNextPage === true}
-          loadingMore={history.isFetching}
-          onRetry={() => void history.refetch()}
-          onLoadMore={() => void history.fetchNextPage()}
-        />
-      </div>
+      {!isGuest && (
+        <div id="program-history" className="scroll-mt-24">
+          <ProgramArchive
+            entries={historyEntries}
+            currentProgramId={program.id}
+            loading={history.isLoading}
+            error={history.error}
+            hasMore={history.hasNextPage === true}
+            loadingMore={history.isFetching}
+            onRetry={() => void history.refetch()}
+            onLoadMore={() => void history.fetchNextPage()}
+          />
+        </div>
+      )}
 
       <p className="text-graphite font-mono text-xs">
         Built {program.createdAt.toLocaleDateString()} ·{" "}

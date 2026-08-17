@@ -46,9 +46,13 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       suppressHydrationWarning
     >
       <body className="bg-paper text-ink min-h-screen antialiased">
-        <TRPCReactProvider>{children}</TRPCReactProvider>
+        <TRPCReactProvider>
+          {children}
+        </TRPCReactProvider>
         <ServiceWorkerRegistration />
-        <Analytics />
+        {(process.env.VERCEL || process.env.NEXT_PUBLIC_VERCEL_ENV) && (
+          <Analytics />
+        )}
       </body>
     </html>
   );

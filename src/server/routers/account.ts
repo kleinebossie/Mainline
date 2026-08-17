@@ -13,7 +13,11 @@ import {
   withdrawResearchConsent,
 } from "@/server/account";
 import { expectedError } from "@/server/errors";
-import { protectedProcedure, router } from "@/server/trpc";
+import { protectedProcedure, publicProcedure, router } from "@/server/trpc";
+import {
+  guestMigrationInputSchema,
+  migrateGuestSession,
+} from "@/server/guest-migration";
 
 export const accountRouter = router({
   exportData: protectedProcedure.query(({ ctx }) =>
@@ -69,4 +73,24 @@ export const accountRouter = router({
       return { ok: true as const, state: "queued" as const };
     }
   }),
+
+  // Seamless guest session migration upon OAuth authentication (Sprint 1 §3.3).
+  migrateGuestSession: publicProcedure
+    .input(guestMigrationInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session?.user?.id;
+      if (!userId) {
+        return {
+          migrated: false as const,
+          itemsMigrated: 0,
+          hasAssessment: false,
+          hasConstraints: false,
+        };
+      }
+      const result = await migrateGuestSession(ctx.prisma, userId, input);
+      return {
+        migrated: true as const,
+        ...result,
+      };
+    }),
 });

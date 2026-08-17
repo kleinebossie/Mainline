@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { trpc } from "@/lib/trpc/react";
@@ -38,6 +38,15 @@ import { cn } from "@/lib/utils";
 import { humanizeTheme } from "@/integrations/puzzles/themes";
 import { GradeMark } from "@/components/evidence";
 import { itemSummary } from "@/app/today/today-copy";
+import {
+  getGuestSession,
+  hasGuestData,
+  updateGuestProgramItemStatus,
+  recordGuestActivityEvent,
+  hasSeenAnalysisIntro,
+  markSeenAnalysisIntro,
+} from "@/lib/guest-session";
+import { getGuestTrainItemData } from "@/lib/guest-solvables";
 
 // One board-solvable item (a Lichess puzzle or a personal blunder drill), as returned by
 // program.getTrainItem. Both render on the same board + redo flow; only the solve-state
@@ -53,9 +62,51 @@ interface TrainItemProps {
 export function TrainItem({ programItemId }: TrainItemProps) {
   const router = useRouter();
   const utils = trpc.useUtils();
+  const [mounted, setMounted] = useState(false);
 
-  const { data, isLoading, error, refetch, isFetching } =
-    trpc.program.getTrainItem.useQuery({ programItemId });
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const guestItem = useMemo(() => {
+    if (!mounted || typeof window === "undefined") return null;
+    return (
+      getGuestSession().program?.items.find((it) => it.id === programItemId) ??
+      null
+    );
+  }, [mounted, programItemId]);
+
+  const hasGuest = useMemo(() => {
+    if (!mounted || typeof window === "undefined") return false;
+    return hasGuestData();
+  }, [mounted]);
+
+  const isGuest = guestItem != null || hasGuest;
+  const guestTrainData = useMemo(() => {
+    return guestItem ? getGuestTrainItemData(guestItem) : null;
+  }, [guestItem]);
+
+  const {
+    data: serverData,
+    isLoading: serverLoading,
+    error: serverError,
+    refetch,
+    isFetching,
+  } = trpc.program.getTrainItem.useQuery(
+    { programItemId },
+    { enabled: mounted && !isGuest, retry: false },
+  );
+
+  const connectionsQuery = trpc.connections.list.useQuery(undefined, {
+    enabled: mounted && !isGuest,
+    retry: false,
+  });
+
+  const data = isGuest
+    ? (guestTrainData as unknown as TrainData)
+    : serverData;
+  const isLoading = !mounted || (isGuest ? false : serverLoading);
+  const error = isGuest ? null : serverError;
 
   const logMutation = trpc.tracker.logOutcome.useMutation({
     onSuccess: () => {
@@ -153,7 +204,10 @@ export function TrainItem({ programItemId }: TrainItemProps) {
       feedbackTimerRef.current = null;
       delayTimerRef.current = null;
       sessionTimerRef.current = null;
-      if (!completionRequestIdRef.current) {
+
+      if (isGuest) {
+        updateGuestProgramItemStatus(programItemId, "done");
+      } else if (!completionRequestIdRef.current) {
         completionRequestIdRef.current = crypto.randomUUID();
         completeProgramItem({
           requestId: completionRequestIdRef.current,
@@ -163,7 +217,7 @@ export function TrainItem({ programItemId }: TrainItemProps) {
       setFinishReason(reason);
       setPhase("complete");
     },
-    [completeProgramItem, programItemId],
+    [completeProgramItem, programItemId, isGuest],
   );
 
   const initSolvable = useCallback((s: Solvable) => {
@@ -276,7 +330,24 @@ export function TrainItem({ programItemId }: TrainItemProps) {
   }, []);
 
   // Log one outcome, routing to the right event type by kind (puzzle_attempt vs drill_done).
-  const logOutcome = (s: Solvable, correct: boolean, solveTimeMs: number) => {
+  const logOutcome = async (
+    s: Solvable,
+    correct: boolean,
+    solveTimeMs: number,
+  ) => {
+    if (isGuest) {
+      recordGuestActivityEvent({
+        type: s.kind === "blunder_drill" ? "drill_done" : "puzzle_attempt",
+        programItemId,
+        payload: {
+          correct,
+          solveTimeMs,
+          solvableId: s.id,
+          fen: s.fen,
+        },
+      });
+      return;
+    }
     if (s.kind === "blunder_drill") {
       return logMutation.mutateAsync({
         requestId: crypto.randomUUID(),
@@ -300,10 +371,12 @@ export function TrainItem({ programItemId }: TrainItemProps) {
     }
   };
 
-  const persistenceState = resultPersistenceState(
-    logMutation.isPending || completionMutation.isPending,
-    logMutation.error ?? completionMutation.error,
-  );
+  const persistenceState = isGuest
+    ? "ready"
+    : resultPersistenceState(
+        logMutation.isPending || completionMutation.isPending,
+        logMutation.error ?? completionMutation.error,
+      );
   const resultBlocked = resultAdvanceBlocked(persistenceState);
 
   useEffect(() => {
@@ -538,6 +611,144 @@ export function TrainItem({ programItemId }: TrainItemProps) {
           </Link>
         }
       />
+    );
+  }
+
+  const isAnalysisActivity =
+    data.item.activityType === "analyse" ||
+    data.item.activityType === "game_analysis" ||
+    data.item.activityType === "review_games" ||
+    data.item.activityType === "analyze_mistakes" ||
+    data.item.label?.toLowerCase().includes("analyse") ||
+    data.item.label?.toLowerCase().includes("analyze") ||
+    data.item.label?.toLowerCase().includes("game review");
+
+  if (isAnalysisActivity) {
+    const session = getGuestSession();
+    const hasLinkedAccount = isGuest
+      ? (session.connections && session.connections.length > 0) ||
+        Boolean(session.baseline?.username)
+      : (connectionsQuery.data && connectionsQuery.data.length > 0) || false;
+
+    if (hasLinkedAccount) {
+      if (hasSeenAnalysisIntro()) {
+        router.replace("/analysis");
+        return (
+          <StatusMessage tone="loading">Opening game analysis…</StatusMessage>
+        );
+      }
+
+      return (
+        <div className="settle mx-auto flex w-full max-w-2xl flex-col gap-5 py-6">
+          <Card className="overflow-hidden p-6 sm:p-8 bg-card shadow-sheet">
+            <div className="flex flex-col gap-4">
+              <p className="eyebrow text-evergreen">Game Analysis</p>
+              <h1 className="font-serif text-2xl sm:text-3xl font-semibold leading-tight text-ink">
+                Review your real games with Stockfish.
+              </h1>
+              <p className="font-serif text-sm leading-relaxed text-graphite">
+                Your chess account is connected. Open Analysis to sync your games, identify critical blunders, and turn them into personal spaced-repetition drills.
+              </p>
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <Link
+                  href="/analysis"
+                  className={buttonVariants({ variant: "default" })}
+                  onClick={() => {
+                    markSeenAnalysisIntro();
+                  }}
+                >
+                  Open Analysis →
+                </Link>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    markSeenAnalysisIntro();
+                    if (isGuest) {
+                      updateGuestProgramItemStatus(programItemId, "done");
+                      recordGuestActivityEvent({
+                        type: "drill_done",
+                        programItemId,
+                        payload: { reason: "game_analysis_completed" },
+                      });
+                    } else if (!completionRequestIdRef.current) {
+                      completionRequestIdRef.current = crypto.randomUUID();
+                      completeProgramItem({
+                        requestId: completionRequestIdRef.current,
+                        programItemId,
+                      });
+                    }
+                    router.push("/today");
+                  }}
+                >
+                  Mark block as done
+                </Button>
+                <Link
+                  href="/today"
+                  className={buttonVariants({ variant: "ghost" })}
+                >
+                  Back to Today
+                </Link>
+              </div>
+            </div>
+          </Card>
+        </div>
+      );
+    }
+
+    return (
+      <div className="settle mx-auto flex w-full max-w-2xl flex-col gap-5 py-6">
+        <Card className="overflow-hidden border-dashed p-6 sm:p-8 bg-card shadow-sheet">
+          <div className="flex flex-col gap-4">
+            <p className="eyebrow text-evergreen">Account Connection Needed</p>
+            <h1 className="font-serif text-2xl sm:text-3xl font-semibold leading-tight text-ink">
+              Connect a chess account to analyze your games.
+            </h1>
+            <p className="font-serif text-sm leading-relaxed text-graphite">
+              Mainline analyzes games directly from your linked Lichess or Chess.com account.
+              Connect your account to discover your tactical blindspots and repair your mistakes.
+            </p>
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <Link
+                href="/connections"
+                className={buttonVariants({ variant: "default" })}
+              >
+                Connect chess account →
+              </Link>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  if (isGuest) {
+                    updateGuestProgramItemStatus(programItemId, "skipped");
+                    recordGuestActivityEvent({
+                      type: "skip",
+                      programItemId,
+                      payload: { reason: "requires_connected_account" },
+                    });
+                  } else {
+                    emptyCloseRequestIdRef.current ??= crypto.randomUUID();
+                    emptyCloseMutation.mutate({
+                      requestId: emptyCloseRequestIdRef.current,
+                      programItemId,
+                      type: "skip",
+                    });
+                  }
+                  router.push("/today");
+                }}
+              >
+                Skip block
+              </Button>
+              <Link
+                href="/today"
+                className={buttonVariants({ variant: "ghost" })}
+              >
+                Back to Today
+              </Link>
+            </div>
+          </div>
+        </Card>
+      </div>
     );
   }
 

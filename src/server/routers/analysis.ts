@@ -22,7 +22,11 @@ import {
 import { resolvePlayingRating } from "@/server/profile";
 import { gameIdentity } from "@/server/game-identity";
 import { systemClock } from "@/lib/clock";
-import { protectedProcedure, router } from "@/server/trpc";
+import { publicProcedure, protectedProcedure, router } from "@/server/trpc";
+import { lichessAdapter } from "@/integrations/lichess/adapter";
+import { chessComAdapter } from "@/integrations/chesscom/adapter";
+import type { ImportedGameInput } from "@/integrations/adapter";
+import { analyzePublicUsername } from "@/server/public-analysis";
 import { captureOperationalEvent } from "@/server/observability";
 import { expectedError } from "@/server/errors";
 import { GAME_ANALYSED_ACTIVITY_EVENT_TYPE } from "@/lib/tracker";
@@ -163,13 +167,12 @@ export const analysisRouter = router({
     analysisCounts(ctx.prisma, ctx.userId),
   ),
 
-  suggestions: protectedProcedure.query(async ({ ctx }) => {
+  suggestions: publicProcedure.query(async ({ ctx }) => {
     const cfg = loadMethodology();
-    const playingRating = await resolvePlayingRating(
-      ctx.prisma,
-      ctx.userId,
-      cfg,
-    );
+    const userId = ctx.session?.user?.id;
+    const playingRating = userId
+      ? await resolvePlayingRating(ctx.prisma, userId, cfg)
+      : 1450;
     const band = bandForRating(playingRating, cfg);
 
     return {
@@ -179,14 +182,23 @@ export const analysisRouter = router({
     };
   }),
 
-  library: protectedProcedure.query(async ({ ctx }) => {
+  library: publicProcedure.query(async ({ ctx }) => {
+    const userId = ctx.session?.user?.id;
+    if (!userId) {
+      return {
+        primaryPlatform: null,
+        effectivePlatform: null,
+        platforms: [],
+        games: [],
+      };
+    }
     const [user, platformGames, manualGames] = await Promise.all([
       ctx.prisma.user.findUnique({
-        where: { id: ctx.userId },
+        where: { id: userId },
         select: { primaryPlatform: true },
       }),
       ctx.prisma.importedGame.findMany({
-        where: { userId: ctx.userId, source: { not: "manual" } },
+        where: { userId, source: { not: "manual" } },
         orderBy: [
           { playedAt: { sort: "desc", nulls: "last" } },
           { importedAt: "desc" },
@@ -195,7 +207,7 @@ export const analysisRouter = router({
         select: libraryGameSelect,
       }),
       ctx.prisma.importedGame.findMany({
-        where: { userId: ctx.userId, source: "manual" },
+        where: { userId, source: "manual" },
         orderBy: { importedAt: "desc" },
         take: 60,
         select: libraryGameSelect,
@@ -234,10 +246,80 @@ export const analysisRouter = router({
           you: id.you ?? null,
           userRating: g.userRatingAtGame,
           analyzed: g.analysis !== null,
+          pgn: g.pgn,
         };
       }),
     };
   }),
+
+  fetchGuestGames: publicProcedure
+    .input(
+      z.object({
+        platform: z.enum(["lichess", "chesscom"]),
+        username: z.string().trim().min(1).max(50),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      if (input.platform === "lichess") {
+        try {
+          const games: ImportedGameInput[] = await lichessAdapter.fetchGames(
+            { platform: "lichess", externalUsername: input.username },
+            undefined,
+            30,
+          );
+          return games.map((g) => {
+            const id = gameIdentity(g.pgn, g.color ?? null);
+            return {
+              id: g.externalGameId,
+              platform: "lichess" as const,
+              playedAt: g.playedAt ? new Date(g.playedAt).toISOString() : null,
+              color: g.color ?? null,
+              result: g.result ?? null,
+              timeControl: g.timeControl ?? null,
+              opening: g.opening ?? null,
+              opponentRating: g.opponentRating ?? null,
+              userRatingAtGame: g.userRatingAtGame ?? null,
+              pgn: g.pgn,
+              opponent: id.opponent ?? id.black ?? id.white ?? "Opponent",
+              event: id.event ?? null,
+              you: input.username,
+              analyzed: false,
+            };
+          });
+        } catch {
+          return [];
+        }
+      } else {
+        try {
+          const games: ImportedGameInput[] = await chessComAdapter.fetchGames(
+            { platform: "chesscom", externalUsername: input.username },
+            undefined,
+            30,
+          );
+          return games.map((g) => {
+            const id = gameIdentity(g.pgn, g.color ?? null);
+            return {
+              id: g.externalGameId,
+              platform: "chesscom" as const,
+              playedAt: g.playedAt ? new Date(g.playedAt).toISOString() : null,
+              color: g.color ?? null,
+              result: g.result ?? null,
+              timeControl: g.timeControl ?? null,
+              opening: g.opening ?? null,
+              opponentRating: g.opponentRating ?? null,
+              userRatingAtGame: g.userRatingAtGame ?? null,
+              pgn: g.pgn,
+              opponent: id.opponent ?? id.black ?? id.white ?? "Opponent",
+              event: id.event ?? null,
+              you: input.username,
+              analyzed: false,
+            };
+          });
+        } catch {
+          return [];
+        }
+      }
+    }),
 
   setPrimaryPlatform: protectedProcedure
     .input(z.object({ platform: z.enum(PLATFORMS) }))
@@ -518,5 +600,17 @@ export const analysisRouter = router({
         );
       }
       return game;
+    }),
+
+  // Public blunder analyzer for homepage visitor lead magnet (Sprint 1 §3.1).
+  analyzePublicUsername: publicProcedure
+    .input(
+      z.object({
+        platform: z.enum(["lichess", "chesscom"]),
+        username: z.string().min(1).max(50),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      return analyzePublicUsername(input.platform, input.username, ctx.prisma);
     }),
 });

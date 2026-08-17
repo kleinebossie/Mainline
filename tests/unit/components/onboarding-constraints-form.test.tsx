@@ -2,6 +2,12 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+  }),
+}));
+
 // Mock TRPC react hooks for static rendering
 vi.mock("@/lib/trpc/react", () => ({
   trpc: {
@@ -78,6 +84,6 @@ describe("OnboardingConstraintsForm", () => {
     );
 
     // Save button
-    expect(html).toContain("Save constraints");
+    expect(html).toContain("Save &amp; Continue →");
   });
 });

@@ -97,4 +97,21 @@ describe("account router privacy orchestration", () => {
       state: "erased",
     });
   });
+
+  it("handles unauthenticated guest migration safely without throwing 401", async () => {
+    const unauthenticatedCaller = accountRouter.createCaller({
+      session: null,
+      prisma: {} as never,
+    } as never);
+
+    const result = await unauthenticatedCaller.migrateGuestSession({
+      activityEvents: [],
+    });
+    expect(result).toEqual({
+      migrated: false,
+      itemsMigrated: 0,
+      hasAssessment: false,
+      hasConstraints: false,
+    });
+  });
 });

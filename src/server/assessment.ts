@@ -267,3 +267,102 @@ export async function applyCalibrationResponse(
 
   return getCalibrationState(db, userId);
 }
+
+/** Pure deterministic calibration state resolution for guest sessions. */
+export async function getGuestCalibrationState(
+  db: Pick<PrismaClient, "lichessPuzzle">,
+  storedResponses: StoredResponse[] = [],
+): Promise<CalibrationState & { guestResponses: StoredResponse[] }> {
+  const cfg = loadMethodology();
+  const startRating = cfg.assessment.calibration.startRating.value;
+
+  const trackStates = buildTrackStates(cfg, storedResponses, startRating);
+  const primary = trackStates[0]!;
+  const activeTrackIndex = trackStates.findIndex((t) => !t.completed);
+  const activeTrack =
+    activeTrackIndex >= 0 ? trackStates[activeTrackIndex]! : null;
+
+  let activePuzzle: LichessPuzzle | null = null;
+  if (activeTrack && !activeTrack.completed) {
+    const excludePuzzleIds = storedResponses
+      .map((r) => r.puzzleId)
+      .filter((id): id is string => !!id);
+
+    const puzzles = await selectPuzzles(db, {
+      theme: activeTrack.theme,
+      ratingTarget: activeTrack.next.ratingTarget,
+      count: 10,
+      excludePuzzleIds,
+    });
+
+    if (puzzles.length > 0) {
+      const seedStr = "guest" + activeTrack.id + activeTrack.next.itemNumber;
+      let hash = 0;
+      for (let i = 0; i < seedStr.length; i++) {
+        hash = seedStr.charCodeAt(i) + ((hash << 5) - hash);
+      }
+      const idx = Math.abs(hash) % puzzles.length;
+      activePuzzle = puzzles[idx] ?? null;
+    }
+  }
+
+  const affordances = interfaceAffordancesFor(
+    { band: bandForRating(startRating, cfg), targetFocus: "online" },
+    cfg,
+  );
+  const restrictionRationale = affordances.restricted
+    ? rationaleFor(affordances.restrictionRationaleKey, cfg)
+    : null;
+
+  const isCompleted = trackStates.every((t) => t.completed);
+
+  return {
+    completed: isCompleted,
+    responseCount: activeTrack?.responseCount ?? primary.responseCount,
+    maxItems: cfg.assessment.calibration.maxItems.value,
+    timeBudgetMin: cfg.assessment.calibration.timeBudgetMin.value,
+    next: activeTrack?.next ?? primary.next,
+    estimate: primary.estimate,
+    trackCount: trackStates.length,
+    activeTrackIndex,
+    activeTrack,
+    tracks: trackStates,
+    activePuzzle,
+    affordances,
+    restrictionRationale,
+    guestResponses: storedResponses,
+  };
+}
+
+/** Record a calibration response for a guest session and return refreshed state. */
+export async function applyGuestCalibrationResponse(
+  db: Pick<PrismaClient, "lichessPuzzle">,
+  input: {
+    ratingShown: number;
+    correct: boolean;
+    puzzleId?: string;
+    guestResponses?: StoredResponse[];
+  },
+): Promise<CalibrationState & { guestResponses: StoredResponse[] }> {
+  const prev = input.guestResponses ?? [];
+  const cfg = loadMethodology();
+  const startRating = cfg.assessment.calibration.startRating.value;
+
+  const states = buildTrackStates(cfg, prev, startRating);
+  const active = states.find((t) => !t.completed) ?? null;
+
+  const updatedResponses: StoredResponse[] =
+    active == null
+      ? prev
+      : [
+          ...prev,
+          {
+            track: active.id,
+            ratingShown: input.ratingShown,
+            correct: input.correct,
+            puzzleId: input.puzzleId,
+          },
+        ];
+
+  return getGuestCalibrationState(db, updatedResponses);
+}

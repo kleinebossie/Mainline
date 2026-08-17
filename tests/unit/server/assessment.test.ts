@@ -1,7 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { loadMethodology, nextCalibrationItem } from "@/methodology";
-import { applyCalibrationResponse } from "@/server/assessment";
+import {
+  applyCalibrationResponse,
+  applyGuestCalibrationResponse,
+} from "@/server/assessment";
 
 describe("calibration response persistence", () => {
   it("rejects a rating that is not the server-selected active target", async () => {
@@ -46,5 +49,25 @@ describe("calibration response persistence", () => {
         "That calibration puzzle changed. Reload the calibration before submitting it.",
     });
     expect(upsert).not.toHaveBeenCalled();
+  });
+
+  it("resolves and advances guest calibration responses deterministically", async () => {
+    const db = {
+      lichessPuzzle: {
+        findMany: vi.fn().mockResolvedValue([]),
+      },
+    };
+
+    const initial = await applyGuestCalibrationResponse(
+      db as never,
+      {
+        ratingShown: 1400,
+        correct: true,
+      },
+    );
+
+    expect(initial.guestResponses.length).toBe(1);
+    expect(initial.guestResponses[0]?.correct).toBe(true);
+    expect(initial.tracks.length).toBeGreaterThan(0);
   });
 });

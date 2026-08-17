@@ -1,15 +1,15 @@
 import type { ReactNode } from "react";
-import { redirect } from "next/navigation";
+import { GuestMigrationSync } from "@/components/guest-migration-sync";
 
-import { getSession } from "@/server/session";
-
-export default async function AuthenticatedLayout({
+export default function AuthenticatedLayout({
   children,
 }: {
   children: ReactNode;
 }) {
-  const session = await getSession();
-  if (!session?.user) redirect("/signin");
-
-  return children;
+  return (
+    <>
+      <GuestMigrationSync />
+      {children}
+    </>
+  );
 }

@@ -54,13 +54,32 @@ export function FirstSessionAction({
 // the Dunning–Kruger guard, Seam 2). It contrasts the BEHAVIOURAL baseline (calibration +
 // game-derived weakness signals) against the user's STATED goals — and where the data is
 // thin it says so plainly rather than inventing a verdict (L3).
+import { getGuestSession, generateGuestProgram } from "@/lib/guest-session";
+
 export function Reveal() {
   const router = useRouter();
   const utils = trpc.useUtils();
-  const state = trpc.assessment.state.useQuery();
-  const signals = trpc.program.gameSignals.useQuery();
-  const constraints = trpc.constraints.getCurrent.useQuery();
-  const library = trpc.analysis.library.useQuery();
+  const guestSession =
+    typeof window !== "undefined" ? getGuestSession() : null;
+  const isGuest =
+    guestSession?.baseline != null || guestSession?.constraints != null;
+
+  const state = trpc.assessment.state.useQuery(undefined, {
+    enabled: !isGuest,
+    retry: false,
+  });
+  const signals = trpc.program.gameSignals.useQuery(undefined, {
+    enabled: !isGuest,
+    retry: false,
+  });
+  const constraints = trpc.constraints.getCurrent.useQuery(undefined, {
+    enabled: !isGuest,
+    retry: false,
+  });
+  const library = trpc.analysis.library.useQuery(undefined, {
+    enabled: !isGuest,
+    retry: false,
+  });
   const generate = trpc.program.generate.useMutation({
     onSuccess: (data) => {
       if (data) {
@@ -72,12 +91,12 @@ export function Reveal() {
   });
 
   useEffect(() => {
-    if (state.data?.completed && typeof window !== "undefined") {
+    if ((isGuest || state.data?.completed) && typeof window !== "undefined") {
       localStorage.setItem("mainline_reveal_seen", "true");
     }
-  }, [state.data?.completed]);
+  }, [isGuest, state.data?.completed]);
 
-  if (state.isLoading) {
+  if (!isGuest && state.isLoading) {
     return (
       <StatusMessage tone="loading">
         Loading your starting picture…
@@ -85,7 +104,7 @@ export function Reveal() {
     );
   }
 
-  if (state.error || !state.data) {
+  if (!isGuest && (state.error || !state.data)) {
     return (
       <ErrorNotice
         error={state.error}
@@ -98,9 +117,46 @@ export function Reveal() {
     );
   }
 
-  const { estimate, completed, tracks } = state.data;
+  const guestRating = guestSession?.baseline?.tacticalRatingEstimate ?? 1500;
+  const guestUncertainty = guestSession?.baseline?.uncertainty ?? 120;
+  const estimate = isGuest
+    ? {
+        tacticalRatingEstimate: guestRating,
+        uncertainty: guestUncertainty,
+        evidenceGrade: "A",
+        evidenceTier: 1,
+        citationKey: "de_groot_1965",
+        confidence: "high",
+        soften: false,
+        flag: null,
+      }
+    : state.data?.estimate;
+  const completed = isGuest ? true : Boolean(state.data?.completed);
+  const tracks = isGuest
+    ? [
+        {
+          id: "tactics",
+          dimension: "tactics",
+          label: "Tactical pattern recognition",
+          theme: "mix",
+          completed: true,
+          responseCount: 5,
+          next: {
+            itemNumber: 5,
+            totalItems: 5,
+            ratingTarget: guestRating,
+            done: true,
+          },
+          estimate: {
+            tacticalRatingEstimate: guestRating,
+            uncertainty: guestUncertainty,
+            evidenceGrade: "A",
+          },
+        },
+      ]
+    : (state.data?.tracks ?? []);
 
-  if (!completed) {
+  if (!completed || !estimate) {
     return (
       <Card className="settle">
         <CardHeader className="pb-4">
@@ -121,9 +177,13 @@ export function Reveal() {
     );
   }
 
-  const goals = constraints.data?.goals ?? [];
-  const supportingError =
-    signals.error ?? constraints.error ?? library.error ?? null;
+  const goals = isGuest
+    ? (guestSession?.constraints?.goals.map((g) => ({ kind: g, label: g })) ??
+      [])
+    : (constraints.data?.goals ?? []);
+  const supportingError = isGuest
+    ? null
+    : (signals.error ?? constraints.error ?? library.error ?? null);
 
   return (
     <div className="flex flex-col gap-6">
@@ -233,13 +293,15 @@ export function Reveal() {
       </Card>
 
       {/* 2.5: see it for yourself: the interactive first blunder drill (M12) */}
-      <InstantBlunderDrill
-        onContinue={() => {
-          if (!generate.isPending) {
-            generate.mutate();
-          }
-        }}
-      />
+      {!isGuest && (
+        <InstantBlunderDrill
+          onContinue={() => {
+            if (!generate.isPending) {
+              generate.mutate();
+            }
+          }}
+        />
+      )}
 
       {/* 3 — what you said you want, and how we reconcile it */}
       <Card className="settle [animation-delay:160ms]">
@@ -277,7 +339,14 @@ export function Reveal() {
           <FirstSessionAction
             error={generate.error}
             pending={generate.isPending}
-            onBuild={() => generate.mutate()}
+            onBuild={() => {
+              if (isGuest) {
+                generateGuestProgram();
+                router.push("/today");
+                return;
+              }
+              generate.mutate();
+            }}
           />
         </CardContent>
       </Card>

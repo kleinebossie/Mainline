@@ -25,10 +25,10 @@ describe("OnboardedLayout", () => {
     vi.clearAllMocks();
   });
 
-  it("returns null when there is no authenticated user session", async () => {
+  it("permits guest access when there is no authenticated user session", async () => {
     mocks.getSession.mockResolvedValue(null);
     const result = await OnboardedLayout({ children: "content" });
-    expect(result).toBeNull();
+    expect(result).toBe("content");
     expect(mocks.requireOnboardingComplete).not.toHaveBeenCalled();
   });
 

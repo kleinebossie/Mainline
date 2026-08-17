@@ -19,6 +19,13 @@ import {
   puzzleToSolveState,
   type BoardOrientation,
 } from "@/engine/interactive/puzzle";
+import {
+  getGuestSession,
+  saveGuestBaseline,
+  saveGuestCalibrationResponses,
+  clearGuestCalibration,
+  type GuestCalibrationResponse,
+} from "@/lib/guest-session";
 import { systemClock } from "@/lib/clock";
 import { cn } from "@/lib/utils";
 
@@ -29,14 +36,45 @@ import { cn } from "@/lib/utils";
 
 export function Calibration() {
   const utils = trpc.useUtils();
-  const state = trpc.assessment.state.useQuery();
+  const [guestResponses, setGuestResponses] = useState<
+    GuestCalibrationResponse[]
+  >(() => {
+    if (typeof window !== "undefined") {
+      return getGuestSession().calibrationResponses ?? [];
+    }
+    return [];
+  });
+
+  const state = trpc.assessment.state.useQuery({ guestResponses });
 
   const submit = trpc.assessment.submit.useMutation({
-    onSuccess: () => void utils.assessment.state.invalidate(),
+    onSuccess: (data) => {
+      void utils.assessment.state.invalidate();
+      if (
+        data &&
+        "guestResponses" in data &&
+        Array.isArray(data.guestResponses)
+      ) {
+        setGuestResponses(data.guestResponses);
+        saveGuestCalibrationResponses(data.guestResponses);
+        if (data.completed && data.estimate) {
+          saveGuestBaseline({
+            tacticalRatingEstimate: data.estimate.tacticalRatingEstimate,
+            uncertainty: data.estimate.uncertainty,
+            topBlindspot: data.tracks[0]?.theme || "Tactics",
+            calibratedAt: new Date().toISOString(),
+          });
+        }
+      }
+    },
     onError: () => setSolveStatus("pending"),
   });
   const reset = trpc.assessment.reset.useMutation({
-    onSuccess: () => void utils.assessment.state.invalidate(),
+    onSuccess: () => {
+      setGuestResponses([]);
+      clearGuestCalibration();
+      void utils.assessment.state.invalidate();
+    },
   });
 
   const [solveState, setSolveState] = useState<SolveState | null>(null);
@@ -83,6 +121,7 @@ export function Calibration() {
         ratingShown: activeTrack.next.ratingTarget,
         correct: true,
         puzzleId: activePuzzle.puzzleId,
+        guestResponses,
       });
     } else if (result.step === "wrong") {
       setSolveStatus("wrong");
@@ -90,6 +129,7 @@ export function Calibration() {
         ratingShown: activeTrack.next.ratingTarget,
         correct: false,
         puzzleId: activePuzzle.puzzleId,
+        guestResponses,
       });
     } else if (result.step === "correct" || result.step === "continue") {
       setSolveStatus("correct");
@@ -105,6 +145,7 @@ export function Calibration() {
       ratingShown: activeTrack.next.ratingTarget,
       correct: false,
       puzzleId: activePuzzle.puzzleId,
+      guestResponses,
     });
   };
 
@@ -125,14 +166,7 @@ export function Calibration() {
     );
   }
 
-  const {
-    completed,
-    maxItems,
-    timeBudgetMin,
-    trackCount,
-    activeTrackIndex,
-    tracks,
-  } = state.data;
+  const { completed, maxItems, activeTrackIndex, tracks } = state.data;
 
   // --- Completed: the multi-dimensional baseline -----------------------------
   if (completed || !activeTrack) {
@@ -172,8 +206,8 @@ export function Calibration() {
           </p>
 
           <div className="flex flex-wrap gap-3 border-t border-line/80 pt-5">
-            <Link href="/onboarding/constraints" className={buttonVariants()}>
-              Continue
+            <Link href="/onboarding/reveal" className={buttonVariants()}>
+              Continue →
             </Link>
             <Button
               type="button"
@@ -191,29 +225,26 @@ export function Calibration() {
 
   // --- In progress: the active track's next item -----------------------------
   const recordFallback = (correct: boolean) =>
-    submit.mutate({ ratingShown: activeTrack.next.ratingTarget, correct });
+    submit.mutate({
+      ratingShown: activeTrack.next.ratingTarget,
+      correct,
+      guestResponses,
+    });
 
   return (
     <Card className="settle">
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between gap-3">
-          <p className="eyebrow !text-[0.65rem]">
-            Track {activeTrackIndex + 1} of {trackCount} · {activeTrack.label}
-          </p>
+          <p className="eyebrow !text-[0.65rem]">Tactical Calibration</p>
           <p className="text-graphite font-mono text-[0.65rem] uppercase tracking-wider">
-            ~{timeBudgetMin} min each
+            3 puzzles
           </p>
         </div>
-        <CardTitle className="font-serif text-3xl font-semibold mt-2">
-          {activeTrack.label}: puzzle {activeTrack.next.itemNumber} of{" "}
-          {maxItems}{" "}
-          <span className="font-mono text-base font-normal text-graphite">
-            (typically 8-15 total)
-          </span>
+        <CardTitle className="font-serif text-2xl sm:text-3xl font-semibold mt-1">
+          Puzzle {activeTrack.next.itemNumber} of {maxItems}
         </CardTitle>
         <p className="text-graphite text-sm leading-relaxed mt-1">
-          Solve a {activeTrack.label.toLowerCase()} puzzle around this strength,
-          then tell us how it went.
+          Solve 3 quick tactical puzzles to build your starting baseline.
         </p>
       </CardHeader>
       <CardContent className="flex flex-col gap-5">
@@ -230,20 +261,19 @@ export function Calibration() {
             }
           />
         )}
-        {/* Track progress dots */}
-        <div className="flex items-center gap-1.5">
-          {tracks.map((t, i) => (
+        {/* Puzzle step progress dots */}
+        <div className="flex items-center gap-1.5" aria-hidden>
+          {Array.from({ length: maxItems }).map((_, i) => (
             <span
-              key={t.id}
-              aria-hidden
-              className={
-                "h-1.5 flex-1 rounded-full " +
-                (t.completed
+              key={i}
+              className={cn(
+                "h-1.5 flex-1 rounded-full transition-colors",
+                i < activeTrack.next.itemNumber - 1
                   ? "bg-evergreen"
-                  : i === activeTrackIndex
-                    ? "bg-evergreen/40"
-                    : "bg-line")
-              }
+                  : i === activeTrack.next.itemNumber - 1
+                    ? "bg-evergreen/50"
+                    : "bg-line",
+              )}
             />
           ))}
         </div>

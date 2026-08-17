@@ -68,7 +68,7 @@ describe("onboarding completion", () => {
   beforeEach(() => redirect.mockClear());
 
   it.each(["error", "revoked"] as const)(
-    "does not accept a %s connection",
+    "marks connections as incomplete for %s status while allowing training with valid constraints",
     async (connectionStatus) => {
       const status = await getOnboardingStatus(
         dbFor({
@@ -83,7 +83,8 @@ describe("onboarding completion", () => {
         "user-1",
       );
 
-      expect(status.complete).toBe(false);
+      // Constraints is the single required step, so complete is true but next optional step is connections
+      expect(status.complete).toBe(true);
       expect(status.nextStep?.href).toBe("/connections");
     },
   );
@@ -106,7 +107,7 @@ describe("onboarding completion", () => {
     expect(status.nextStep?.href).toBe("/onboarding/constraints");
   });
 
-  it("requires a completed assessment and preserves first-incomplete order", async () => {
+  it("tracks completed assessment and preserves first-incomplete order", async () => {
     const status = await getOnboardingStatus(
       dbFor({
         connectionStatus: "active",
@@ -120,10 +121,11 @@ describe("onboarding completion", () => {
       "user-1",
     );
 
+    // Step 0: constraints (true), Step 1: connections (true), Step 2: calibration (false), Step 3: reveal (false), Step 4: today (false)
     expect(status.steps.map((step) => step.done)).toEqual([
       true,
-      false,
       true,
+      false,
       false,
       false,
     ]);

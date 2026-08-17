@@ -8,7 +8,7 @@ export default function CalibrationPage() {
   return (
     <PageShell
       width="wide"
-      eyebrow="Step 2 of setup"
+      eyebrow="Step 3 of setup"
       title="Tactical calibration"
       lede="We don't ask you to rate yourself. This short adaptive puzzle check builds a rough behavioural baseline from how you actually solve."
     >

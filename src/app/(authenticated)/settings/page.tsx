@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { PageShell } from "@/components/app-shell";
 import { ConstraintsForm } from "@/app/onboarding/constraints/constraints-form";
 import { AnalysisRunner } from "@/app/settings/analysis-runner";
@@ -12,7 +13,7 @@ import { loadMethodology, rationaleFor } from "@/methodology";
 // assessment, delivery-fit feedback, analysis, and account controls.
 export default async function SettingsPage() {
   const session = await getSession();
-  if (!session?.user) return null;
+  if (!session?.user) redirect("/signin");
   const account = await prisma.user.findUnique({
     where: { id: session.user.id },
     select: { role: true },
