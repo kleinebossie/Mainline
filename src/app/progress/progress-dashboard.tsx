@@ -219,23 +219,41 @@ function SkillSignals({
     estimate: number;
     uncertainty: number;
     sampleSize: number;
+    isRating?: boolean;
   }[];
 }) {
   if (skills.length === 0) {
     return (
-      <StatusMessage tone="neutral">
-        Complete in-app training blocks to build skill estimates. Empty is
-        better than pretending we know.
-      </StatusMessage>
+      <div className="rounded-lg border bg-card p-5 shadow-sheet flex flex-col justify-between">
+        <div>
+          <p className="eyebrow">Skill signals</p>
+          <p className="mt-2 font-serif text-lg font-semibold">
+            No skill estimates yet
+          </p>
+          <p className="mt-1 text-sm text-graphite font-serif leading-relaxed">
+            Complete the 3-puzzle tactical calibration or in-app training blocks to establish your skill estimates.
+          </p>
+        </div>
+        <div className="mt-4 pt-4 border-t border-line/60">
+          <Link
+            href="/onboarding/calibration"
+            className="inline-flex items-center gap-1 rounded-sm border border-line bg-paper/70 px-3 py-1.5 font-mono text-xs uppercase text-ink transition-colors hover:border-ink/20 hover:bg-paper"
+          >
+            Start calibration →
+          </Link>
+        </div>
+      </div>
     );
   }
 
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
       {skills.map((skill) => {
-        const pct = Math.round(skill.estimate * 100);
-        const band = Math.round(skill.uncertainty * 100);
-        const isLowSample = skill.sampleSize < 5;
+        const isRating = skill.isRating || skill.estimate > 100;
+        const isLowSample = skill.sampleSize < 3;
+        const displayValue = isRating
+          ? `${Math.round(skill.estimate)} ± ${Math.round(skill.uncertainty)}`
+          : `${Math.round(skill.estimate * 100)}% ± ${Math.round(skill.uncertainty * 100)}%`;
 
         return (
           <div
@@ -247,16 +265,31 @@ function SkillSignals({
                 {skill.label}
               </p>
               <span className="font-mono text-sm font-semibold tabular-nums text-ink">
-                {isLowSample ? "Gathering data" : `${pct}% ± ${band}`}
+                {isLowSample ? "Gathering data" : displayValue}
               </span>
             </div>
             <div className="mt-3 h-2 rounded-sm bg-ink/10 overflow-hidden">
               {isLowSample ? (
                 <div className="h-2 w-full rounded-sm bg-[repeating-linear-gradient(135deg,hsl(var(--evergreen)/0.3)_0_4px,transparent_4px_8px)]" />
+              ) : isRating ? (
+                <div
+                  className="h-2 rounded-sm bg-evergreen"
+                  style={{
+                    width: `${Math.max(
+                      10,
+                      Math.min(100, ((skill.estimate - 600) / (2400 - 600)) * 100),
+                    )}%`,
+                  }}
+                />
               ) : (
                 <div
                   className="h-2 rounded-sm bg-evergreen"
-                  style={{ width: `${Math.max(0, Math.min(100, pct))}%` }}
+                  style={{
+                    width: `${Math.max(
+                      0,
+                      Math.min(100, Math.round(skill.estimate * 100)),
+                    )}%`,
+                  }}
                 />
               )}
             </div>
@@ -587,17 +620,24 @@ export function ProgressDashboard() {
         }
       : null);
 
+  const isGuestCalibrated = Boolean(
+    guestSession?.baseline?.calibratedAt ||
+      (guestSession?.calibrationResponses &&
+        guestSession.calibrationResponses.length >= 3),
+  );
+
   const effectiveSkills =
     data.skills.length > 0
       ? data.skills
-      : guestSession?.baseline?.tacticalRatingEstimate
+      : isGuestCalibrated && guestSession?.baseline?.tacticalRatingEstimate
         ? [
             {
-              dimension: "calculation",
-              label: "Tactical Calculation",
+              dimension: "tactics",
+              label: "Tactical Pattern Recognition",
               estimate: guestSession.baseline.tacticalRatingEstimate,
               uncertainty: guestSession.baseline.uncertainty,
-              sampleSize: guestSession.calibrationResponses?.length || 5,
+              sampleSize: guestSession.calibrationResponses?.length || 3,
+              isRating: true,
             },
           ]
         : [];

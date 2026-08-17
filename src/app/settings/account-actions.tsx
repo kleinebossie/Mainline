@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -12,17 +12,23 @@ import { signOutAction } from "@/server/auth-actions";
 import {
   clearGuestSession,
   getGuestSession,
+  hasGuestData,
 } from "@/lib/guest-session";
 
 export function AccountActions() {
   const utils = trpc.useUtils();
   const consent = trpc.account.researchConsent.useQuery();
+  const [hasGuestBrowserData, setHasGuestBrowserData] = useState(false);
   const [affirmOptional, setAffirmOptional] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    setHasGuestBrowserData(hasGuestData());
+  }, []);
 
   const grant = trpc.account.grantResearchConsent.useMutation({
     onSuccess: async () => {
@@ -272,6 +278,35 @@ export function AccountActions() {
           </>
         )}
       </div>
+
+      {hasGuestBrowserData && !isGuestMode && (
+        <div className="bg-card flex flex-col gap-4 rounded-md border p-5">
+          <div>
+            <h3 className="font-serif text-lg font-semibold">
+              Local browser guest data
+            </h3>
+            <p className="text-graphite mt-1 text-sm font-serif leading-relaxed">
+              This browser stores local guest training data. You are currently
+              signed in to your cloud account. Mainline keeps your guest data and
+              your account data separate so no progress is overwritten.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3 pt-1">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                clearGuestSession();
+                setHasGuestBrowserData(false);
+                setNotice("Local browser guest session cleared.");
+              }}
+            >
+              Clear local browser guest data
+            </Button>
+          </div>
+        </div>
+      )}
 
       <div className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center gap-3">

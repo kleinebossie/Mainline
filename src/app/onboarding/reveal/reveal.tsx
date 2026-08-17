@@ -120,7 +120,7 @@ export function Reveal() {
   const isGuestCalibrated = Boolean(
     guestSession?.baseline?.calibratedAt ||
       (guestSession?.calibrationResponses &&
-        guestSession.calibrationResponses.length >= 5),
+        guestSession.calibrationResponses.length >= 3),
   );
   const guestRating = guestSession?.baseline?.tacticalRatingEstimate ?? 1450;
   const guestUncertainty = guestSession?.baseline?.uncertainty ?? 350;
@@ -147,10 +147,10 @@ export function Reveal() {
           label: "Tactical pattern recognition",
           theme: guestSession?.baseline?.topBlindspot || "mix",
           completed: true,
-          responseCount: guestSession?.calibrationResponses?.length ?? 5,
+          responseCount: guestSession?.calibrationResponses?.length ?? 3,
           next: {
-            itemNumber: 5,
-            totalItems: 5,
+            itemNumber: 3,
+            totalItems: 3,
             ratingTarget: guestRating,
             done: true,
           },
@@ -173,7 +173,7 @@ export function Reveal() {
               Tactical calibration not completed yet
             </h2>
             <p className="text-graphite text-sm sm:text-base font-serif leading-relaxed mt-2 max-w-xl">
-              Mainline uses a short 5-puzzle adaptive check to measure pattern
+              Mainline uses a short 3-puzzle adaptive check to measure pattern
               recognition and blunder sensitivity. Complete calibration to
               reveal your starting tactical baseline and blindspots.
             </p>
@@ -183,7 +183,7 @@ export function Reveal() {
               href="/onboarding/calibration"
               className={buttonVariants({ size: "default" })}
             >
-              Start 5-puzzle calibration →
+              Start 3-puzzle calibration →
             </Link>
             <Link
               href="/today"
