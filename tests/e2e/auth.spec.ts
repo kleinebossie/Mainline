@@ -28,13 +28,13 @@ test("sign-in callback errors explain what the user can do next", async ({
   ).toBeVisible();
 });
 
-test("connections page redirects to sign-in when unauthenticated", async ({
+test("connections page opens for unauthenticated visitors in guest mode", async ({
   page,
 }) => {
   await page.goto("/connections");
-  await expect(page).toHaveURL(/\/signin/);
+  await expect(page).toHaveURL(/\/connections/);
   await expect(
-    page.getByRole("button", { name: /Continue with Lichess/i }),
+    page.getByRole("heading", { name: "Connections" }),
   ).toBeVisible();
 });
 

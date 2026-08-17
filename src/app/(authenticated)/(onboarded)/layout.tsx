@@ -15,10 +15,6 @@ export default async function OnboardedLayout({
     return children;
   }
 
-  if (session.user.onboarded === true) {
-    return children;
-  }
-
   await requireOnboardingComplete(prisma, session.user.id);
   return children;
 }

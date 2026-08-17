@@ -68,9 +68,14 @@ export function OnboardingSteps({ status }: { status: OnboardingStatus }) {
   });
 
   const doneCount = steps.filter((step) => step.done).length;
-  const isComplete = steps.filter((step) => step.required).every((step) => step.done);
-  const allComplete = steps.every((step) => step.done);
-  const nextStep = steps.find((step) => step.required && !step.done) ?? steps.find((step) => !step.done);
+  const requiredDone = steps.filter(
+    (step) => step.required && step.done,
+  ).length;
+  const requiredCount = steps.filter((step) => step.required).length;
+  const isComplete = requiredCount > 0 && requiredDone === requiredCount;
+  const nextStep =
+    steps.find((step) => step.required && !step.done) ??
+    steps.find((step) => !step.done);
 
   return (
     <div className="flex flex-col gap-6">
@@ -106,18 +111,14 @@ export function OnboardingSteps({ status }: { status: OnboardingStatus }) {
         role="status"
       >
         <p className="font-serif text-sm font-semibold text-ink">
-          {allComplete
-            ? "Setup complete"
-            : isComplete
-              ? "Required setup complete · Optional steps remaining"
-              : "Step 1 required: set your training constraints"}
+          {isComplete
+            ? "Required setup complete"
+            : `${requiredDone} of ${requiredCount} required steps done`}
         </p>
         <p className="mt-1 text-sm text-graphite">
-          {allComplete
-            ? "All setup steps are finished. Your daily program is fully personalized."
-            : isComplete
-              ? "Daily training is unlocked. You haven't connected an account or calibrated your rating yet, but you can train anytime or finish them whenever you are ready."
-              : "Set your available time and playing formats to unlock daily training."}
+          {isComplete
+            ? "Daily training is unlocked. Finish the last two steps when you are ready."
+            : "Complete the required steps to unlock daily training."}
         </p>
       </div>
 

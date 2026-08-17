@@ -269,11 +269,13 @@ function SkillSignals({
   );
 }
 
+type RatingData = NonNullable<ProgressSummary["rating"]>;
+
 function RatingSignal({
   rating,
   className,
 }: {
-  rating: ProgressSummary["rating"];
+  rating: RatingData | null | undefined;
   className?: string;
 }) {
   if (!rating) {
@@ -332,7 +334,7 @@ function RatingSignal({
         </p>
       ) : (
         <div>
-          {rating.formats.map((format, index) => {
+          {rating.formats.map((format: RatingData["formats"][number], index: number) => {
             const lower = Math.round(format.latest.range.lower);
             const upper = Math.round(format.latest.range.upper);
             const midpoint = Math.round((lower + upper) / 2);
@@ -481,7 +483,7 @@ export function ProgressDashboard() {
 
   const data = summary.data;
   const recoveryEvent = data.consistency.recoveryEvents.find(
-    (event) => !event.seen,
+    (event: { seen: boolean }) => !event.seen,
   );
   const dueDetail =
     data.reviews.dueCount === 0

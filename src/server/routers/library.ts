@@ -11,25 +11,41 @@ import { logOutcome } from "@/server/tracker";
 import { resolveLibraryRating } from "@/server/profile";
 import { getCurrentConstraints, getTargetFocus } from "@/server/constraints";
 import {
+  bandForRating,
   bookDifficultyFeedback,
   loadMethodology,
   rationaleFor,
 } from "@/methodology";
 import { bookPositionSchema } from "@/lib/tracker";
-import { protectedProcedure, router } from "@/server/trpc";
+import { publicProcedure, protectedProcedure, router } from "@/server/trpc";
+import { buildLibrary } from "@/server/library";
 
 export const libraryRouter = router({
-  get: protectedProcedure.query(async ({ ctx }) => {
+  get: publicProcedure.query(async ({ ctx }) => {
     const cfg = loadMethodology();
-    const rating = await resolveLibraryRating(ctx.prisma, ctx.userId, cfg);
-    const targetFocus = await getTargetFocus(ctx.prisma, ctx.userId);
-    const constraints = await getCurrentConstraints(ctx.prisma, ctx.userId);
+    const userId = ctx.session?.user?.id;
+    if (!userId) {
+      const rating = 1450;
+      const band = bandForRating(rating, cfg);
+      return buildLibrary(
+        {
+          band,
+          targetFocus: "online",
+          ownedRefs: [],
+          progress: [],
+        },
+        cfg,
+      );
+    }
+    const rating = await resolveLibraryRating(ctx.prisma, userId, cfg);
+    const targetFocus = await getTargetFocus(ctx.prisma, userId);
+    const constraints = await getCurrentConstraints(ctx.prisma, userId);
     // Owned books/courses (by externalRef or label) let recommendBooks flag what the user has.
     const ownedRefs =
       constraints?.ownedResources.flatMap((r) =>
         r.externalRef ? [r.externalRef, r.label] : [r.label],
       ) ?? [];
-    return getLibrary(ctx.prisma, ctx.userId, rating, targetFocus, ownedRefs);
+    return getLibrary(ctx.prisma, userId, rating, targetFocus, ownedRefs);
   }),
 
   // Log one external book-study session. The self-reported success rate is used ONLY for the

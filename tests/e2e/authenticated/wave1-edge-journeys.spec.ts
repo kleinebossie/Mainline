@@ -379,9 +379,9 @@ test("disconnect preserves history, restores setup gating, and rejects a foreign
     ).toBe(1);
 
     await page.goto("/today");
-    await expect(page).toHaveURL(/\/onboarding$/);
+    await expect(page).toHaveURL(/\/today$/);
     await expect(
-      page.getByText("Connect a chess account", { exact: true }),
+      page.getByRole("heading", { name: "Today", exact: true }),
     ).toBeVisible();
   } finally {
     await deleteEdgeUser(neighbour);
