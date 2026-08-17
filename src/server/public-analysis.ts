@@ -45,6 +45,7 @@ export interface PublicAnalysisResult {
     color: "w" | "b";
     opening?: string;
   }>;
+  ratings?: Record<string, { rating: number; rd?: number; games?: number }>;
 }
 
 interface CacheEntry {
@@ -279,6 +280,7 @@ export async function analyzePublicUsername(
       blindspot,
       drill,
       recentGames,
+      ratings: profile.ratings as Record<string, { rating: number; rd?: number; games?: number }>,
     };
 
     analysisCache.set(cacheKey, {

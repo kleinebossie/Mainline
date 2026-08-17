@@ -4,6 +4,7 @@
 // its Auth.js event can still create a token-backed connection.
 
 import { z } from "zod";
+import type { Prisma } from "@prisma/client";
 
 import { PlatformError, type Platform } from "@/integrations/adapter";
 import { chessComAdapter } from "@/integrations/chesscom/adapter";
@@ -131,6 +132,21 @@ export const connectionsRouter = router({
         platform: "lichess",
         externalUsername: profile.externalUsername,
       });
+
+      if (profile.ratings && Object.keys(profile.ratings).length > 0) {
+        await ctx.prisma.chessProfileSnapshot.create({
+          data: {
+            id: `snapshot_${conn.id}_${Date.now()}`,
+            userId,
+            platform: "lichess",
+            capturedAt: new Date(),
+            ratings: profile.ratings as unknown as Prisma.InputJsonValue,
+            totalGames: profile.totalGames ?? 0,
+            raw: {},
+          },
+        });
+      }
+
       return {
         id: conn.id,
         platform: conn.platform,
@@ -174,6 +190,21 @@ export const connectionsRouter = router({
         platform: "chesscom",
         externalUsername: profile.externalUsername,
       });
+
+      if (profile.ratings && Object.keys(profile.ratings).length > 0) {
+        await ctx.prisma.chessProfileSnapshot.create({
+          data: {
+            id: `snapshot_${conn.id}_${Date.now()}`,
+            userId,
+            platform: "chesscom",
+            capturedAt: new Date(),
+            ratings: profile.ratings as unknown as Prisma.InputJsonValue,
+            totalGames: profile.totalGames ?? 0,
+            raw: {},
+          },
+        });
+      }
+
       return {
         id: conn.id,
         platform: conn.platform,

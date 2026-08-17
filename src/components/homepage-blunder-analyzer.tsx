@@ -17,6 +17,7 @@ import {
 import { stepSolve, type SolveState } from "@/engine/interactive/session";
 import { systemClock } from "@/lib/clock";
 import { trackFunnelEvent } from "@/lib/telemetry";
+import { saveGuestBaseline, saveGuestConnection } from "@/lib/guest-session";
 import { cn } from "@/lib/utils";
 
 const QUICK_EXAMPLES = [
@@ -76,6 +77,25 @@ export function HomepageBlunderAnalyzer() {
       hasGames: result.gamesAnalyzed > 0,
       rating: result.rating,
       blunderCount: result.gamesAnalyzed,
+    });
+
+    saveGuestConnection({
+      id: `guest_conn_${result.platform}_${Date.now()}`,
+      platform: result.platform,
+      externalUsername: result.username,
+      status: "active",
+      connectedAt: new Date().toISOString(),
+      ratings: result.ratings ?? {
+        [result.ratingFormat || "rapid"]: { rating: result.rating, rd: 75 },
+      },
+    });
+
+    saveGuestBaseline({
+      username: result.username,
+      platform: result.platform,
+      tacticalRatingEstimate: result.rating,
+      uncertainty: 100,
+      topBlindspot: result.blindspot.title,
     });
   }, [result]);
 

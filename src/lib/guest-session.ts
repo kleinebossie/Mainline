@@ -73,6 +73,7 @@ export interface GuestConnection {
   status: "active" | "revoked";
   connectedAt: string;
   lastSyncedAt?: string | null;
+  ratings?: Record<string, { rating: number; rd?: number; games?: number }>;
 }
 
 export interface GuestSessionData {

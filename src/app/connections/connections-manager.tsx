@@ -65,6 +65,7 @@ export function ConnectionsManager() {
         externalUsername: data.externalUsername,
         status: "active",
         connectedAt: new Date().toISOString(),
+        ratings: data.ratings as Record<string, { rating: number; rd?: number; games?: number }>,
       };
       const updated = saveGuestConnection(newConn);
       setGuestConnections(updated.connections ?? []);
@@ -90,6 +91,7 @@ export function ConnectionsManager() {
         externalUsername: data.externalUsername,
         status: "active",
         connectedAt: new Date().toISOString(),
+        ratings: data.ratings as Record<string, { rating: number; rd?: number; games?: number }>,
       };
       const updated = saveGuestConnection(newConn);
       setGuestConnections(updated.connections ?? []);

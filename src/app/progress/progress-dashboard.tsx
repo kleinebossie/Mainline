@@ -1,10 +1,12 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc/react";
 import { cn } from "@/lib/utils";
 import { StatusMessage } from "@/components/ui/status-message";
 import { ErrorNotice } from "@/components/ui/error-notice";
+import { getGuestSession, type GuestSessionData } from "@/lib/guest-session";
 import type { AppRouter } from "@/server/routers/_app";
 import type { inferRouterOutputs } from "@trpc/server";
 
@@ -280,14 +282,30 @@ function RatingSignal({
 }) {
   if (!rating) {
     return (
-      <StatusMessage
-        tone="neutral"
-        className={className}
-        heading="No rating data"
+      <div
+        className={cn(
+          "rounded-lg border bg-card p-5 shadow-sheet flex flex-col justify-between",
+          className,
+        )}
       >
-        No rating data available. Set your primary platform and choose time
-        controls in Settings to start tracking rating signals.
-      </StatusMessage>
+        <div>
+          <p className="eyebrow">Rating noise</p>
+          <p className="mt-2 font-serif text-lg font-semibold">
+            No rating data yet
+          </p>
+          <p className="mt-1 text-sm text-graphite">
+            Link a Lichess or Chess.com account to track your rating noise and format signals.
+          </p>
+        </div>
+        <div className="mt-4 pt-4 border-t border-line/60">
+          <Link
+            href="/connections"
+            className="inline-flex items-center gap-1 rounded-sm border border-line bg-paper/70 px-3 py-1.5 font-mono text-xs uppercase text-ink transition-colors hover:border-ink/20 hover:bg-paper"
+          >
+            Connect accounts →
+          </Link>
+        </div>
+      </div>
     );
   }
 
@@ -309,15 +327,15 @@ function RatingSignal({
         <div className="flex flex-wrap gap-2">
           {showPlatformSetup && (
             <Link
-              href="/settings"
+              href="/connections"
               className="inline-flex items-center gap-1 rounded-sm border border-line bg-paper/70 px-2.5 py-1 font-mono text-[0.7rem] uppercase text-graphite transition-colors hover:border-ink/20 hover:bg-paper"
             >
-              Set your platform →
+              Connect accounts →
             </Link>
           )}
           {showFormatsSetup && (
             <Link
-              href="/settings"
+              href="/onboarding/constraints"
               className="inline-flex items-center gap-1 rounded-sm border border-line bg-paper/70 px-2.5 py-1 font-mono text-[0.7rem] uppercase text-graphite transition-colors hover:border-ink/20 hover:bg-paper"
             >
               Choose time controls →
@@ -454,9 +472,15 @@ export function ProgressDashboard() {
     onSuccess: () => void summary.refetch(),
   });
 
+  const [guestSession, setGuestSession] = useState<GuestSessionData | null>(null);
+
+  useEffect(() => {
+    setGuestSession(getGuestSession());
+  }, []);
+
   if (summary.isLoading) {
     return (
-      <StatusMessage tone="loading">Loading training signals…</StatusMessage>
+      <StatusMessage tone="loading">Loading your training signals…</StatusMessage>
     );
   }
 
@@ -485,6 +509,123 @@ export function ProgressDashboard() {
   const recoveryEvent = data.consistency.recoveryEvents.find(
     (event: { seen: boolean }) => !event.seen,
   );
+
+  // Compute guest rating signal if server has no rating snapshot
+  const guestConn = guestSession?.connections?.[0];
+  const primaryPlatform =
+    guestConn?.platform ?? guestSession?.baseline?.platform ?? "lichess";
+  const platformLabel =
+    primaryPlatform === "chesscom" ? "Chess.com" : "Lichess";
+  const formats = guestSession?.constraints?.formatPrefs?.formats ?? [
+    "rapid",
+    "blitz",
+  ];
+
+  const guestFormats: RatingData["formats"] = [];
+  if (guestSession) {
+    for (const fmt of formats) {
+      if (primaryPlatform === "chesscom" && fmt === "classical") continue;
+      const ratingObj = guestConn?.ratings?.[fmt];
+      const ratingValue =
+        ratingObj?.rating ??
+        (fmt === "rapid" && guestSession.baseline?.tacticalRatingEstimate
+          ? guestSession.baseline.tacticalRatingEstimate
+          : null);
+      if (!ratingValue) continue;
+      const rd = ratingObj?.rd ?? guestSession.baseline?.uncertainty ?? 70;
+      const ciMultiplier = 2;
+      const lower = Math.round(ratingValue - ciMultiplier * rd);
+      const upper = Math.round(ratingValue + ciMultiplier * rd);
+      guestFormats.push({
+        format: fmt,
+        label: fmt.charAt(0).toUpperCase() + fmt.slice(1),
+        capturedAt: new Date(
+          guestConn?.connectedAt ?? guestSession.updatedAt ?? Date.now(),
+        ),
+        latestStable: rd <= 80,
+        baseline: {
+          capturedAt: new Date(
+            guestConn?.connectedAt ?? guestSession.updatedAt ?? Date.now(),
+          ),
+          range: { lower, upper },
+        },
+        latest: {
+          range: { lower, upper },
+          rd,
+        },
+        realProgress: false,
+        plateau: { reason: "insufficient" },
+        expectation: {
+          text: "Track your rating noise across sessions. Process consistency matters more than short-term fluctuations.",
+        },
+      });
+    }
+  }
+
+  const effectiveRating: RatingData | null =
+    data.rating ??
+    (guestFormats.length > 0
+      ? {
+          platform: primaryPlatform,
+          platformLabel,
+          platformSet: Boolean(guestConn || guestSession?.baseline?.username),
+          formatsSet: Boolean(
+            guestSession?.constraints?.formatPrefs?.formats?.length,
+          ),
+          formats: guestFormats,
+          ciMultiplier: 2,
+          ciEvidence: {
+            evidenceGrade: (data.evidence.ratingNoise.evidenceGrade as
+              | "A"
+              | "B"
+              | "C"
+              | "D") || "B",
+            evidenceTier: (data.evidence.ratingNoise.evidenceTier as 1 | 2) || 1,
+            citationKey: data.evidence.ratingNoise.citationKey,
+            citationSource: data.evidence.ratingNoise.citationSource,
+          },
+        }
+      : null);
+
+  const effectiveSkills =
+    data.skills.length > 0
+      ? data.skills
+      : guestSession?.baseline?.tacticalRatingEstimate
+        ? [
+            {
+              dimension: "calculation",
+              label: "Tactical Calculation",
+              estimate: guestSession.baseline.tacticalRatingEstimate,
+              uncertainty: guestSession.baseline.uncertainty,
+              sampleSize: guestSession.calibrationResponses?.length || 5,
+            },
+          ]
+        : [];
+
+  const guestCompletedBlocks =
+    guestSession?.program?.items.filter((i) => i.status === "done").length ?? 0;
+  const guestSkippedBlocks =
+    guestSession?.program?.items.filter((i) => i.status === "skipped").length ??
+    0;
+  const guestMinutesLogged =
+    guestSession?.activityEvents.reduce(
+      (sum, e) =>
+        sum +
+        (typeof e.payload?.minutes === "number"
+          ? e.payload.minutes
+          : typeof e.payload?.estMinutes === "number"
+            ? e.payload.estMinutes
+            : 0),
+      0,
+    ) ?? 0;
+
+  const effectiveWork = {
+    windowDays: data.work.windowDays,
+    completedBlocks: data.work.completedBlocks + guestCompletedBlocks,
+    skippedBlocks: data.work.skippedBlocks + guestSkippedBlocks,
+    minutesLogged: data.work.minutesLogged + guestMinutesLogged,
+  };
+
   const dueDetail =
     data.reviews.dueCount === 0
       ? "Review queue clear"
@@ -543,12 +684,12 @@ export function ProgressDashboard() {
         <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <StatTile
             label="Blocks completed"
-            value={String(data.work.completedBlocks)}
-            detail={`Last ${data.work.windowDays}-day cycle; skips stay non-shaming (${data.work.skippedBlocks} skipped).`}
+            value={String(effectiveWork.completedBlocks)}
+            detail={`Last ${effectiveWork.windowDays}-day cycle; skips stay non-shaming (${effectiveWork.skippedBlocks} skipped).`}
           />
           <StatTile
             label="Minutes logged"
-            value={String(data.work.minutesLogged)}
+            value={String(effectiveWork.minutesLogged)}
             detail="Logged process time, not a promise of rating movement."
           />
           <StatTile
@@ -594,7 +735,7 @@ export function ProgressDashboard() {
               <h2 className="eyebrow border-b border-line/80 pb-3">
                 Skill signals
               </h2>
-              <SkillSignals skills={data.skills} />
+              <SkillSignals skills={effectiveSkills} />
             </div>
             <EvidenceNote
               title="Skill estimates"
@@ -605,7 +746,7 @@ export function ProgressDashboard() {
 
         {/* Row 4: Rating Signals & Noise Warnings */}
         <section className="grid grid-cols-1 md:grid-cols-12 gap-6">
-          <RatingSignal rating={data.rating} className="md:col-span-7" />
+          <RatingSignal rating={effectiveRating} className="md:col-span-7" />
           <div className="md:col-span-5 flex flex-col gap-6 justify-between">
             <EvidenceNote
               title="Rating caveat"
