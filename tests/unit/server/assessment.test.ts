@@ -58,13 +58,10 @@ describe("calibration response persistence", () => {
       },
     };
 
-    const initial = await applyGuestCalibrationResponse(
-      db as never,
-      {
-        ratingShown: 1400,
-        correct: true,
-      },
-    );
+    const initial = await applyGuestCalibrationResponse(db as never, {
+      ratingShown: 1400,
+      correct: true,
+    });
 
     expect(initial.guestResponses.length).toBe(1);
     expect(initial.guestResponses[0]?.correct).toBe(true);

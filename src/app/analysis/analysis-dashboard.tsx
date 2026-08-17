@@ -57,7 +57,9 @@ interface AnalysisGameItem {
 export function AnalysisDashboard() {
   const utils = trpc.useUtils();
   const [isGuest, setIsGuest] = useState(false);
-  const [guestConnections, setGuestConnections] = useState<GuestConnection[]>([]);
+  const [guestConnections, setGuestConnections] = useState<GuestConnection[]>(
+    [],
+  );
   const [guestGames, setGuestGames] = useState<AnalysisGameItem[]>([]);
   const [isGuestSyncing, setIsGuestSyncing] = useState(false);
 
@@ -86,40 +88,50 @@ export function AnalysisDashboard() {
   // The id of the single game whose engine analysis is running (per-row "Engine analysis").
   const [analyzingGameId, setAnalyzingGameId] = useState<string | null>(null);
 
-  const syncGuestAccounts = useCallback(async (conns: GuestConnection[]) => {
-    if (conns.length === 0) return;
-    setIsGuestSyncing(true);
-    try {
-      const allFetched: AnalysisGameItem[] = [];
-      for (const conn of conns) {
-        const fetched = await fetchGuestGames.mutateAsync({
-          platform: conn.platform,
-          username: conn.externalUsername,
-        });
-        allFetched.push(...fetched);
-      }
-      setGuestGames((prev) => {
-        const map = new Map<string, AnalysisGameItem>();
-        for (const g of allFetched) map.set(g.id, g);
-        for (const g of prev) {
-          if (map.has(g.id)) {
-            map.set(g.id, { ...map.get(g.id)!, analyzed: g.analyzed, rawFeatures: g.rawFeatures });
-          } else {
-            map.set(g.id, g);
-          }
+  const syncGuestAccounts = useCallback(
+    async (conns: GuestConnection[]) => {
+      if (conns.length === 0) return;
+      setIsGuestSyncing(true);
+      try {
+        const allFetched: AnalysisGameItem[] = [];
+        for (const conn of conns) {
+          const fetched = await fetchGuestGames.mutateAsync({
+            platform: conn.platform,
+            username: conn.externalUsername,
+          });
+          allFetched.push(...fetched);
         }
-        const merged = Array.from(map.values());
-        try {
-          localStorage.setItem("mainline_guest_games", JSON.stringify(merged));
-        } catch {}
-        return merged;
-      });
-    } catch {
-      // Ignored
-    } finally {
-      setIsGuestSyncing(false);
-    }
-  }, [fetchGuestGames]);
+        setGuestGames((prev) => {
+          const map = new Map<string, AnalysisGameItem>();
+          for (const g of allFetched) map.set(g.id, g);
+          for (const g of prev) {
+            if (map.has(g.id)) {
+              map.set(g.id, {
+                ...map.get(g.id)!,
+                analyzed: g.analyzed,
+                rawFeatures: g.rawFeatures,
+              });
+            } else {
+              map.set(g.id, g);
+            }
+          }
+          const merged = Array.from(map.values());
+          try {
+            localStorage.setItem(
+              "mainline_guest_games",
+              JSON.stringify(merged),
+            );
+          } catch {}
+          return merged;
+        });
+      } catch {
+        // Ignored
+      } finally {
+        setIsGuestSyncing(false);
+      }
+    },
+    [fetchGuestGames],
+  );
 
   const syncGuestAccountsRef = useRef(syncGuestAccounts);
   syncGuestAccountsRef.current = syncGuestAccounts;
@@ -166,7 +178,9 @@ export function AnalysisDashboard() {
   const selectedPlatform =
     platformOverride ??
     library?.effectivePlatform ??
-    (guestConnections[0]?.platform ?? (platforms[0] ?? null));
+    guestConnections[0]?.platform ??
+    platforms[0] ??
+    null;
 
   const allGames = [...(library?.games ?? []), ...guestGames];
   const games = allGames.filter(
@@ -201,7 +215,9 @@ export function AnalysisDashboard() {
     } else {
       setGuestGames((prev) => {
         const updated = prev.map((g) =>
-          g.id === game.id ? { ...g, analyzed: true, rawFeatures: features } : g,
+          g.id === game.id
+            ? { ...g, analyzed: true, rawFeatures: features }
+            : g,
         );
         try {
           localStorage.setItem("mainline_guest_games", JSON.stringify(updated));
@@ -448,24 +464,34 @@ export function AnalysisDashboard() {
             <Card className="border-line bg-card shadow-sheet">
               <CardContent className="flex flex-col gap-5 py-6">
                 <div className="flex flex-col gap-2">
-                  <p className="eyebrow text-evergreen">Automatic Game Imports</p>
+                  <p className="eyebrow text-evergreen">
+                    Automatic Game Imports
+                  </p>
                   <h3 className="font-serif text-xl font-semibold text-ink">
                     Connect a chess account to sync your games automatically.
                   </h3>
                   <p className="font-serif text-sm text-graphite leading-relaxed max-w-xl">
-                    Link your Lichess or Chess.com account to automatically import your games, scan for tactical mistakes, and build your daily blunder drills.
+                    Link your Lichess or Chess.com account to automatically
+                    import your games, scan for tactical mistakes, and build
+                    your daily blunder drills.
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-3 border-t border-line/80 pt-4">
                   <Link
                     href="/connections"
-                    className={buttonVariants({ variant: "default", size: "sm" })}
+                    className={buttonVariants({
+                      variant: "default",
+                      size: "sm",
+                    })}
                   >
                     Connect chess account →
                   </Link>
                   <Link
                     href="/signin"
-                    className={buttonVariants({ variant: "outline", size: "sm" })}
+                    className={buttonVariants({
+                      variant: "outline",
+                      size: "sm",
+                    })}
                   >
                     Sign in
                   </Link>
@@ -484,7 +510,9 @@ export function AnalysisDashboard() {
               retryLabel="Reload games"
             />
           ) : isGuestSyncing && games.length === 0 ? (
-            <StatusMessage tone="loading">Fetching your recent games…</StatusMessage>
+            <StatusMessage tone="loading">
+              Fetching your recent games…
+            </StatusMessage>
           ) : games.length === 0 ? (
             <Card gutter="B">
               <CardContent className="flex flex-col gap-6 py-6">

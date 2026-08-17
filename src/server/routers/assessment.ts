@@ -44,12 +44,7 @@ export const assessmentRouter = router({
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session?.user?.id;
       if (userId) {
-        return applyCalibrationResponse(
-          ctx.prisma,
-          userId,
-          input,
-          new Date(),
-        );
+        return applyCalibrationResponse(ctx.prisma, userId, input, new Date());
       }
       return applyGuestCalibrationResponse(ctx.prisma, input);
     }),

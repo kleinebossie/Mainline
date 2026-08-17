@@ -59,8 +59,7 @@ import { getGuestSession, generateGuestProgram } from "@/lib/guest-session";
 export function Reveal() {
   const router = useRouter();
   const utils = trpc.useUtils();
-  const guestSession =
-    typeof window !== "undefined" ? getGuestSession() : null;
+  const guestSession = typeof window !== "undefined" ? getGuestSession() : null;
   const isGuest =
     guestSession?.baseline != null || guestSession?.constraints != null;
 
@@ -119,12 +118,14 @@ export function Reveal() {
 
   const isGuestCalibrated = Boolean(
     guestSession?.baseline?.calibratedAt ||
-      (guestSession?.calibrationResponses &&
-        guestSession.calibrationResponses.length >= 3),
+    (guestSession?.calibrationResponses &&
+      guestSession.calibrationResponses.length >= 3),
   );
   const guestRating = guestSession?.baseline?.tacticalRatingEstimate ?? 1450;
   const guestUncertainty = guestSession?.baseline?.uncertainty ?? 350;
-  const completed = isGuest ? isGuestCalibrated : Boolean(state.data?.completed);
+  const completed = isGuest
+    ? isGuestCalibrated
+    : Boolean(state.data?.completed);
   const estimate = isGuest
     ? isGuestCalibrated
       ? {
@@ -187,7 +188,10 @@ export function Reveal() {
             </Link>
             <Link
               href="/today"
-              className={buttonVariants({ variant: "outline", size: "default" })}
+              className={buttonVariants({
+                variant: "outline",
+                size: "default",
+              })}
             >
               Skip to Today&apos;s training →
             </Link>

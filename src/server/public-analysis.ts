@@ -70,7 +70,8 @@ const STARTER_DRILLS: Record<string, PublicDrillData> = {
     solutionLine: ["d5c7", "e8d8", "c7a8"],
     source: "starter",
     title: "Execute the tactical fork",
-    description: "White can fork the king and rook. Find the winning knight move.",
+    description:
+      "White can fork the king and rook. Find the winning knight move.",
   },
   pin: {
     fen: "r1bqk2r/pppp1ppp/2n5/4p3/2B1P3/3P1N2/PPP2PPP/RNBQK2R w KQkq - 1 6",
@@ -84,7 +85,8 @@ const STARTER_DRILLS: Record<string, PublicDrillData> = {
     solutionLine: ["d3e4"],
     source: "starter",
     title: "Capture the unprotected piece",
-    description: "Black left the knight on e4 unprotected. Spot the capture and win material.",
+    description:
+      "Black left the knight on e4 unprotected. Spot the capture and win material.",
   },
 };
 
@@ -104,7 +106,8 @@ async function determineBlindspot(
 
   // Calculate estimated blunder rate based on sample size and rating band.
   blunderCount = Math.max(1, Math.round(lossCount * 1.4));
-  const blunderRate = games.length > 0 ? (blunderCount / games.length).toFixed(1) : "1.2";
+  const blunderRate =
+    games.length > 0 ? (blunderCount / games.length).toFixed(1) : "1.2";
 
   let blindspot: PublicBlindspot;
   let fallbackDrill: PublicDrillData;
@@ -280,7 +283,10 @@ export async function analyzePublicUsername(
       blindspot,
       drill,
       recentGames,
-      ratings: profile.ratings as Record<string, { rating: number; rd?: number; games?: number }>,
+      ratings: profile.ratings as Record<
+        string,
+        { rating: number; rd?: number; games?: number }
+      >,
     };
 
     analysisCache.set(cacheKey, {
@@ -292,12 +298,18 @@ export async function analyzePublicUsername(
   } catch (error) {
     if (error instanceof PlatformError) {
       if (error.code === "not_found") {
-        throw new Error(`Player "${username}" not found on ${platform === "lichess" ? "Lichess" : "Chess.com"}.`);
+        throw new Error(
+          `Player "${username}" not found on ${platform === "lichess" ? "Lichess" : "Chess.com"}.`,
+        );
       }
       if (error.code === "rate_limited") {
-        throw new Error(`${platform === "lichess" ? "Lichess" : "Chess.com"} rate limit reached. Please wait a moment.`);
+        throw new Error(
+          `${platform === "lichess" ? "Lichess" : "Chess.com"} rate limit reached. Please wait a moment.`,
+        );
       }
     }
-    throw new Error(`Could not load games for "${username}". Please check the username and try again.`);
+    throw new Error(
+      `Could not load games for "${username}". Please check the username and try again.`,
+    );
   }
 }

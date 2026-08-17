@@ -163,10 +163,13 @@ export async function migrateGuestSession(
           goals: goalsJson as unknown as Prisma.InputJsonValue,
           formatPrefs: {
             formats: input.constraints.formatPrefs.formats,
-            preferredVariety: Boolean(input.constraints.formatPrefs.preferredVariety),
+            preferredVariety: Boolean(
+              input.constraints.formatPrefs.preferredVariety,
+            ),
             targetFocus: input.constraints.formatPrefs.targetFocus ?? "online",
           } as unknown as Prisma.InputJsonValue,
-          ownedResources: (input.constraints.ownedResources ?? []) as unknown as Prisma.InputJsonValue,
+          ownedResources: (input.constraints.ownedResources ??
+            []) as unknown as Prisma.InputJsonValue,
           isCurrent: true,
           version: 1,
         },
@@ -186,7 +189,9 @@ export async function migrateGuestSession(
           userId,
           methodologyVersion,
           status: "active",
-          generationInput: { source: "guest_migration" } as unknown as Prisma.InputJsonValue,
+          generationInput: {
+            source: "guest_migration",
+          } as unknown as Prisma.InputJsonValue,
         },
       });
 
@@ -203,7 +208,9 @@ export async function migrateGuestSession(
             params: (item.params ?? {}) as unknown as Prisma.InputJsonValue,
             dimensionsTargeted: item.dimensionsTargeted ?? [],
             rationaleKey: item.rationaleKey ?? "blunder_rate_weakness",
-            rationaleText: item.rationaleText ?? "Personalized based on your blunder analysis.",
+            rationaleText:
+              item.rationaleText ??
+              "Personalized based on your blunder analysis.",
             evidenceGrade: item.evidenceGrade ?? "A",
             evidenceTier: item.evidenceTier ?? 1,
             citationKey: item.citationKey ?? "de_groot_1965",
@@ -221,7 +228,9 @@ export async function migrateGuestSession(
       // 5. Import ActivityEvents if present.
       if (input.activityEvents && input.activityEvents.length > 0) {
         for (const evt of input.activityEvents) {
-          const mappedItemId = evt.programItemId ? idMap.get(evt.programItemId) : undefined;
+          const mappedItemId = evt.programItemId
+            ? idMap.get(evt.programItemId)
+            : undefined;
           await tx.activityEvent.create({
             data: {
               userId,

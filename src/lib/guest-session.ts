@@ -1,4 +1,8 @@
-import { loadMethodology, bandForRating, type MethodologyConfig } from "@/methodology";
+import {
+  loadMethodology,
+  bandForRating,
+  type MethodologyConfig,
+} from "@/methodology";
 import { generateProgram, type ProgramItemDraft } from "@/engine/generator";
 import { systemClock, type Clock } from "@/lib/clock";
 import type { formatPrefsSchema, TargetFocus } from "@/lib/constraints";
@@ -155,14 +159,16 @@ export function hasGuestData(): boolean {
   const session = getGuestSession();
   return Boolean(
     session.baseline ||
-      session.constraints ||
-      session.program ||
-      (session.connections && session.connections.length > 0),
+    session.constraints ||
+    session.program ||
+    (session.connections && session.connections.length > 0),
   );
 }
 
 /** Save or update guest tactical baseline. */
-export function saveGuestBaseline(baseline: Partial<GuestBaseline>): GuestSessionData {
+export function saveGuestBaseline(
+  baseline: Partial<GuestBaseline>,
+): GuestSessionData {
   const current = getGuestSession();
   const nextBaseline: GuestBaseline = {
     ...(current.baseline ?? DEFAULT_GUEST_BASELINE),
@@ -177,7 +183,9 @@ export function saveGuestBaseline(baseline: Partial<GuestBaseline>): GuestSessio
 }
 
 /** Save or update guest training constraints. */
-export function saveGuestConstraints(constraints: GuestConstraints): GuestSessionData {
+export function saveGuestConstraints(
+  constraints: GuestConstraints,
+): GuestSessionData {
   const current = getGuestSession();
   const updated: GuestSessionData = {
     ...current,
@@ -347,24 +355,26 @@ export function generateGuestProgram(
   const now = new Date(clock.now());
   const programId = `guest_program_${now.toISOString().split("T")[0]}`;
 
-  const items: GuestProgramItem[] = rawOutput.items.map((draft: ProgramItemDraft, index: number) => ({
-    id: `guest_item_${index}_${draft.activityId}`,
-    orderIndex: draft.orderIndex,
-    activityId: draft.activityId,
-    activityType: draft.activityType,
-    label: draft.label,
-    estMinutes: draft.estMinutes,
-    params: (draft.params ?? {}) as unknown as Record<string, unknown>,
-    dimensionsTargeted: draft.dimensionsTargeted,
-    rationaleKey: draft.rationaleKey,
-    rationaleText: draft.rationaleText,
-    evidenceGrade: draft.evidenceGrade,
-    evidenceTier: draft.evidenceTier,
-    citationKey: draft.citationKey,
-    confidence: draft.confidence,
-    soften: draft.soften,
-    status: "pending",
-  }));
+  const items: GuestProgramItem[] = rawOutput.items.map(
+    (draft: ProgramItemDraft, index: number) => ({
+      id: `guest_item_${index}_${draft.activityId}`,
+      orderIndex: draft.orderIndex,
+      activityId: draft.activityId,
+      activityType: draft.activityType,
+      label: draft.label,
+      estMinutes: draft.estMinutes,
+      params: (draft.params ?? {}) as unknown as Record<string, unknown>,
+      dimensionsTargeted: draft.dimensionsTargeted,
+      rationaleKey: draft.rationaleKey,
+      rationaleText: draft.rationaleText,
+      evidenceGrade: draft.evidenceGrade,
+      evidenceTier: draft.evidenceTier,
+      citationKey: draft.citationKey,
+      confidence: draft.confidence,
+      soften: draft.soften,
+      status: "pending",
+    }),
+  );
 
   const guestProgram: GuestProgram = {
     id: programId,
@@ -404,4 +414,3 @@ export function markSeenAnalysisIntro(): void {
     // Ignore storage quota errors.
   }
 }
-

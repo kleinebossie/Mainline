@@ -94,8 +94,7 @@ export function ConstraintsForm({
     );
   }
 
-  const guestSession =
-    typeof window !== "undefined" ? getGuestSession() : null;
+  const guestSession = typeof window !== "undefined" ? getGuestSession() : null;
   const initialConstraints =
     current.data ??
     (guestSession?.constraints

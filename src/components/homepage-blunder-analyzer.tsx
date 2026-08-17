@@ -21,9 +21,17 @@ import { saveGuestBaseline, saveGuestConnection } from "@/lib/guest-session";
 import { cn } from "@/lib/utils";
 
 const QUICK_EXAMPLES = [
-  { platform: "lichess" as const, username: "DrNykterstein", label: "DrNykterstein" },
+  {
+    platform: "lichess" as const,
+    username: "DrNykterstein",
+    label: "DrNykterstein",
+  },
   { platform: "chesscom" as const, username: "Hikaru", label: "Hikaru" },
-  { platform: "chesscom" as const, username: "MagnusCarlsen", label: "MagnusCarlsen" },
+  {
+    platform: "chesscom" as const,
+    username: "MagnusCarlsen",
+    label: "MagnusCarlsen",
+  },
 ];
 
 export function HomepageBlunderAnalyzer() {
@@ -43,13 +51,10 @@ export function HomepageBlunderAnalyzer() {
   const [attempts, setAttempts] = useState<number>(0);
   const [startTime, setStartTime] = useState<number>(0);
 
-  const query = trpc.analysis.analyzePublicUsername.useQuery(
-    activeQuery!,
-    {
-      enabled: activeQuery !== null && Boolean(activeQuery.username.trim()),
-      retry: false,
-    },
-  );
+  const query = trpc.analysis.analyzePublicUsername.useQuery(activeQuery!, {
+    enabled: activeQuery !== null && Boolean(activeQuery.username.trim()),
+    retry: false,
+  });
 
   const result = query.data;
 
@@ -256,7 +261,9 @@ export function HomepageBlunderAnalyzer() {
         {query.isFetching && (
           <div className="mt-6">
             <StatusMessage tone="loading">
-              Fetching games from {platform === "lichess" ? "Lichess" : "Chess.com"} and detecting tactical patterns…
+              Fetching games from{" "}
+              {platform === "lichess" ? "Lichess" : "Chess.com"} and detecting
+              tactical patterns…
             </StatusMessage>
           </div>
         )}
@@ -266,7 +273,10 @@ export function HomepageBlunderAnalyzer() {
             <ErrorNotice
               error={query.error}
               heading="Analysis unavailable"
-              message={query.error.message || "Could not analyze that account. Please check the username and try again."}
+              message={
+                query.error.message ||
+                "Could not analyze that account. Please check the username and try again."
+              }
             />
           </div>
         )}
@@ -288,7 +298,9 @@ export function HomepageBlunderAnalyzer() {
                   </h3>
                 </div>
                 <div className="flex items-center gap-2 rounded-md border border-line bg-paper-raised px-3 py-1 font-mono text-xs">
-                  <span className="text-graphite">{result.ratingFormat} Rating:</span>
+                  <span className="text-graphite">
+                    {result.ratingFormat} Rating:
+                  </span>
                   <span className="font-bold text-ink">{result.rating}</span>
                 </div>
               </div>
@@ -321,7 +333,8 @@ export function HomepageBlunderAnalyzer() {
               <div className="border-l-2 border-evergreen/60 pl-4">
                 <p className="font-serif text-sm leading-relaxed text-graphite">
                   We turned your mistake pattern into an interactive fix puzzle.
-                  Find the winning tactical move on the board to clear this blindspot.
+                  Find the winning tactical move on the board to clear this
+                  blindspot.
                 </p>
               </div>
 
@@ -331,8 +344,8 @@ export function HomepageBlunderAnalyzer() {
                   Ready to fix this pattern every day?
                 </h4>
                 <p className="mt-1 font-serif text-sm leading-relaxed text-graphite">
-                  Mainline generates a complete daily training program adapted to
-                  your time budget and tactical weaknesses.
+                  Mainline generates a complete daily training program adapted
+                  to your time budget and tactical weaknesses.
                 </p>
                 <div className="mt-4">
                   <Button
@@ -405,8 +418,8 @@ export function HomepageBlunderAnalyzer() {
                       <span>Tactical Blindspot Solved!</span>
                     </div>
                     <p className="font-serif text-xs text-graphite">
-                      Great calculation! Mainline builds these daily drills directly
-                      from your games.
+                      Great calculation! Mainline builds these daily drills
+                      directly from your games.
                     </p>
                   </div>
                 )}

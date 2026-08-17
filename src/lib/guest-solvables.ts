@@ -142,9 +142,9 @@ export function getGuestTrainItemData(item: GuestProgramItem): GuestTrainData {
 
   const solvables = isAnalysis
     ? []
-    : GUEST_FIXTURES[item.activityType] ??
+    : (GUEST_FIXTURES[item.activityType] ??
       GUEST_FIXTURES[item.activityId] ??
-      GUEST_FIXTURES.tactics_drill!;
+      GUEST_FIXTURES.tactics_drill!);
 
   return {
     item: {

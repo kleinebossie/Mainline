@@ -1,7 +1,10 @@
 import { prisma } from "@/db/client";
 import { PageShell } from "@/components/app-shell";
 import { OnboardingSteps } from "@/app/onboarding/onboarding-steps";
-import { getGuestOnboardingStatus, getOnboardingStatus } from "@/server/onboarding";
+import {
+  getGuestOnboardingStatus,
+  getOnboardingStatus,
+} from "@/server/onboarding";
 import { getSession } from "@/server/session";
 
 // Onboarding overview (BUILD.md §8). A linear, resumable flow: connect →

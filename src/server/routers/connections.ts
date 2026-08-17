@@ -98,7 +98,12 @@ export const connectionsRouter = router({
           externalUsername: input.username,
           beforeRequest: () => {
             if (userId) {
-              return assertApiCallBudget(ctx.prisma, userId, "lichess", new Date());
+              return assertApiCallBudget(
+                ctx.prisma,
+                userId,
+                "lichess",
+                new Date(),
+              );
             }
             return Promise.resolve();
           },
@@ -167,7 +172,12 @@ export const connectionsRouter = router({
           externalUsername: input.username,
           beforeRequest: () => {
             if (userId) {
-              return assertApiCallBudget(ctx.prisma, userId, "chesscom", new Date());
+              return assertApiCallBudget(
+                ctx.prisma,
+                userId,
+                "chesscom",
+                new Date(),
+              );
             }
             return Promise.resolve();
           },

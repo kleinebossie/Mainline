@@ -231,7 +231,8 @@ function SkillSignals({
             No skill estimates yet
           </p>
           <p className="mt-1 text-sm text-graphite font-serif leading-relaxed">
-            Complete the 3-puzzle tactical calibration or in-app training blocks to establish your skill estimates.
+            Complete the 3-puzzle tactical calibration or in-app training blocks
+            to establish your skill estimates.
           </p>
         </div>
         <div className="mt-4 pt-4 border-t border-line/60">
@@ -277,7 +278,10 @@ function SkillSignals({
                   style={{
                     width: `${Math.max(
                       10,
-                      Math.min(100, ((skill.estimate - 600) / (2400 - 600)) * 100),
+                      Math.min(
+                        100,
+                        ((skill.estimate - 600) / (2400 - 600)) * 100,
+                      ),
                     )}%`,
                   }}
                 />
@@ -327,7 +331,8 @@ function RatingSignal({
             No rating data yet
           </p>
           <p className="mt-1 text-sm text-graphite">
-            Link a Lichess or Chess.com account to track your rating noise and format signals.
+            Link a Lichess or Chess.com account to track your rating noise and
+            format signals.
           </p>
         </div>
         <div className="mt-4 pt-4 border-t border-line/60">
@@ -385,114 +390,124 @@ function RatingSignal({
         </p>
       ) : (
         <div>
-          {rating.formats.map((format: RatingData["formats"][number], index: number) => {
-            const lower = Math.round(format.latest.range.lower);
-            const upper = Math.round(format.latest.range.upper);
-            const midpoint = Math.round((lower + upper) / 2);
-            const ciWidth = upper - lower;
-            // Band width: ~0.5px per point of uncertainty, clamped to 24–160px
-            const bandWidth = Math.min(Math.max(ciWidth * 0.5, 24), 160);
+          {rating.formats.map(
+            (format: RatingData["formats"][number], index: number) => {
+              const lower = Math.round(format.latest.range.lower);
+              const upper = Math.round(format.latest.range.upper);
+              const midpoint = Math.round((lower + upper) / 2);
+              const ciWidth = upper - lower;
+              // Band width: ~0.5px per point of uncertainty, clamped to 24–160px
+              const bandWidth = Math.min(Math.max(ciWidth * 0.5, 24), 160);
 
-            const baselineText = format.baseline
-              ? `${Math.round(format.baseline.range.lower)} – ${Math.round(format.baseline.range.upper)}`
-              : null;
+              const baselineText = format.baseline
+                ? `${Math.round(format.baseline.range.lower)} – ${Math.round(format.baseline.range.upper)}`
+                : null;
 
-            const progressLabel = format.realProgress
-              ? "Signal cleared old range"
-              : format.plateau.reason === "plateau"
-                ? "Plateau: no recent improvement"
-                : format.plateau.reason === "new_high"
-                  ? "New peak: range shifted up"
-                  : "Calibrating: need more games";
+              const progressLabel = format.realProgress
+                ? "Signal cleared old range"
+                : format.plateau.reason === "plateau"
+                  ? "Plateau: no recent improvement"
+                  : format.plateau.reason === "new_high"
+                    ? "New peak: range shifted up"
+                    : "Calibrating: need more games";
 
-            return (
-              <div
-                key={format.format}
-                className={cn(index > 0 && "border-t border-line/40", "py-4")}
-              >
-                {/* Row 1: label, rating + rd, CI */}
-                <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-                  {/* Time control */}
-                  <span className="font-serif text-base font-semibold min-w-[4.5rem]">
-                    {format.label}
-                  </span>
+              return (
+                <div
+                  key={format.format}
+                  className={cn(index > 0 && "border-t border-line/40", "py-4")}
+                >
+                  {/* Row 1: label, rating + rd, CI */}
+                  <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+                    {/* Time control */}
+                    <span className="font-serif text-base font-semibold min-w-[4.5rem]">
+                      {format.label}
+                    </span>
 
-                  {/* Rating estimate */}
-                  <span className="font-mono text-xl font-semibold tabular-nums text-ink">
-                    ~{midpoint}
-                  </span>
-                  <span className="font-mono text-[0.65rem] text-graphite tabular-nums">
-                    ± {format.latest.rd} RD
-                  </span>
+                    {/* Rating estimate */}
+                    <span className="font-mono text-xl font-semibold tabular-nums text-ink">
+                      ~{midpoint}
+                    </span>
+                    <span className="font-mono text-[0.65rem] text-graphite tabular-nums">
+                      ± {format.latest.rd} RD
+                    </span>
 
-                  {/* CI band */}
-                  <div className="flex items-center gap-2">
-                    <div className="relative flex items-center">
-                      <div
-                        className="h-[4px] rounded-full bg-graphite/25"
-                        style={{ width: `${bandWidth}px` }}
-                      />
-                      <div className="absolute left-1/2 top-1/2 h-[6px] w-[6px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-ink/60" />
+                    {/* CI band */}
+                    <div className="flex items-center gap-2">
+                      <div className="relative flex items-center">
+                        <div
+                          className="h-[4px] rounded-full bg-graphite/25"
+                          style={{ width: `${bandWidth}px` }}
+                        />
+                        <div className="absolute left-1/2 top-1/2 h-[6px] w-[6px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-ink/60" />
+                      </div>
                     </div>
+
+                    {/* CI range with label */}
+                    <span className="font-mono text-[0.7rem] tabular-nums">
+                      <span className="text-graphite/60">95% CI </span>
+                      <span className="text-graphite">
+                        {lower} – {upper}
+                      </span>
+                    </span>
+
+                    {/* Baseline with label — right side on desktop */}
+                    <span className="ml-auto hidden font-mono text-[0.68rem] tabular-nums sm:inline">
+                      {baselineText ? (
+                        <>
+                          <span className="text-graphite/60">baseline </span>
+                          <span className="text-graphite/75">
+                            {baselineText}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-graphite/45">
+                          no baseline yet
+                        </span>
+                      )}
+                    </span>
                   </div>
 
-                  {/* CI range with label */}
-                  <span className="font-mono text-[0.7rem] tabular-nums">
-                    <span className="text-graphite/60">95% CI </span>
-                    <span className="text-graphite">
-                      {lower} – {upper}
+                  {/* Row 2: baseline (mobile) + progress status */}
+                  <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
+                    {/* Baseline — mobile only (hidden on sm+) */}
+                    <span className="font-mono text-[0.68rem] tabular-nums sm:hidden">
+                      {baselineText ? (
+                        <>
+                          <span className="text-graphite/60">baseline </span>
+                          <span className="text-graphite/75">
+                            {baselineText}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-graphite/45">
+                          no baseline yet
+                        </span>
+                      )}
                     </span>
-                  </span>
 
-                  {/* Baseline with label — right side on desktop */}
-                  <span className="ml-auto hidden font-mono text-[0.68rem] tabular-nums sm:inline">
-                    {baselineText ? (
-                      <>
-                        <span className="text-graphite/60">baseline </span>
-                        <span className="text-graphite/75">{baselineText}</span>
-                      </>
-                    ) : (
-                      <span className="text-graphite/45">no baseline yet</span>
-                    )}
-                  </span>
+                    {/* Progress signal */}
+                    <span
+                      className={cn(
+                        "font-mono text-[0.68rem]",
+                        format.realProgress
+                          ? "text-evergreen"
+                          : "text-graphite/65",
+                      )}
+                    >
+                      {progressLabel}
+                    </span>
+                  </div>
+
+                  {/* Expectation text */}
+                  {format.expectation && (
+                    <p className="mt-2 border-l-2 border-line/60 pl-3 text-sm leading-relaxed text-graphite/75">
+                      {format.expectation.text}
+                    </p>
+                  )}
                 </div>
-
-                {/* Row 2: baseline (mobile) + progress status */}
-                <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
-                  {/* Baseline — mobile only (hidden on sm+) */}
-                  <span className="font-mono text-[0.68rem] tabular-nums sm:hidden">
-                    {baselineText ? (
-                      <>
-                        <span className="text-graphite/60">baseline </span>
-                        <span className="text-graphite/75">{baselineText}</span>
-                      </>
-                    ) : (
-                      <span className="text-graphite/45">no baseline yet</span>
-                    )}
-                  </span>
-
-                  {/* Progress signal */}
-                  <span
-                    className={cn(
-                      "font-mono text-[0.68rem]",
-                      format.realProgress
-                        ? "text-evergreen"
-                        : "text-graphite/65",
-                    )}
-                  >
-                    {progressLabel}
-                  </span>
-                </div>
-
-                {/* Expectation text */}
-                {format.expectation && (
-                  <p className="mt-2 border-l-2 border-line/60 pl-3 text-sm leading-relaxed text-graphite/75">
-                    {format.expectation.text}
-                  </p>
-                )}
-              </div>
-            );
-          })}
+              );
+            },
+          )}
         </div>
       )}
     </div>
@@ -505,7 +520,9 @@ export function ProgressDashboard() {
     onSuccess: () => void summary.refetch(),
   });
 
-  const [guestSession, setGuestSession] = useState<GuestSessionData | null>(null);
+  const [guestSession, setGuestSession] = useState<GuestSessionData | null>(
+    null,
+  );
 
   useEffect(() => {
     setGuestSession(getGuestSession());
@@ -513,7 +530,9 @@ export function ProgressDashboard() {
 
   if (summary.isLoading) {
     return (
-      <StatusMessage tone="loading">Loading your training signals…</StatusMessage>
+      <StatusMessage tone="loading">
+        Loading your training signals…
+      </StatusMessage>
     );
   }
 
@@ -608,12 +627,14 @@ export function ProgressDashboard() {
           formats: guestFormats,
           ciMultiplier: 2,
           ciEvidence: {
-            evidenceGrade: (data.evidence.ratingNoise.evidenceGrade as
-              | "A"
-              | "B"
-              | "C"
-              | "D") || "B",
-            evidenceTier: (data.evidence.ratingNoise.evidenceTier as 1 | 2) || 1,
+            evidenceGrade:
+              (data.evidence.ratingNoise.evidenceGrade as
+                | "A"
+                | "B"
+                | "C"
+                | "D") || "B",
+            evidenceTier:
+              (data.evidence.ratingNoise.evidenceTier as 1 | 2) || 1,
             citationKey: data.evidence.ratingNoise.citationKey,
             citationSource: data.evidence.ratingNoise.citationSource,
           },
@@ -622,8 +643,8 @@ export function ProgressDashboard() {
 
   const isGuestCalibrated = Boolean(
     guestSession?.baseline?.calibratedAt ||
-      (guestSession?.calibrationResponses &&
-        guestSession.calibrationResponses.length >= 3),
+    (guestSession?.calibrationResponses &&
+      guestSession.calibrationResponses.length >= 3),
   );
 
   const effectiveSkills =

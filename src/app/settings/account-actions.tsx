@@ -169,8 +169,8 @@ export function AccountActions() {
               Optional aggregate observational research
             </h3>
             <p className="text-graphite mt-2 text-sm leading-relaxed font-serif">
-              Research participation and multi-device sync are available when you
-              sign in with your Lichess account. Personal training and local
+              Research participation and multi-device sync are available when
+              you sign in with your Lichess account. Personal training and local
               progress never require sign-in or research consent.
             </p>
             <div className="pt-3">
@@ -234,8 +234,8 @@ export function AccountActions() {
                     type="checkbox"
                   />
                   <span>
-                    I voluntarily opt in to the scope described above. This is not
-                    required for training.
+                    I voluntarily opt in to the scope described above. This is
+                    not required for training.
                   </span>
                 </label>
                 <Button
@@ -287,8 +287,8 @@ export function AccountActions() {
             </h3>
             <p className="text-graphite mt-1 text-sm font-serif leading-relaxed">
               This browser stores local guest training data. You are currently
-              signed in to your cloud account. Mainline keeps your guest data and
-              your account data separate so no progress is overwritten.
+              signed in to your cloud account. Mainline keeps your guest data
+              and your account data separate so no progress is overwritten.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3 pt-1">

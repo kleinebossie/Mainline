@@ -38,8 +38,21 @@ const P9_MIGRATION = readFileSync(
   "utf8",
 );
 const P9_RESEARCH_SERVICE = readFileSync("src/server/research.ts", "utf8");
+const RLS_MIGRATION = readFileSync(
+  "prisma/migrations/20260817180000_enable_row_level_security/migration.sql",
+  "utf8",
+);
 
 describe("privacy schema guards", () => {
+  it("enables row level security on every database table", () => {
+    for (const model of Prisma.dmmf.datamodel.models) {
+      expect(
+        RLS_MIGRATION,
+        `Table "${model.name}" must have Row Level Security enabled.`,
+      ).toContain(`ALTER TABLE "${model.name}" ENABLE ROW LEVEL SECURITY;`);
+    }
+  });
+
   it("derives complete user-export coverage from Prisma's generated model", () => {
     const directUserRelations = Prisma.dmmf.datamodel.models
       .flatMap((model) =>

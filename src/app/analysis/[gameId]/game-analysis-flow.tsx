@@ -97,7 +97,9 @@ export function GameAnalysisFlow() {
     const parsedGame = {
       id: guestGameItem.id,
       pgn: guestGameItem.pgn,
-      playedAt: guestGameItem.playedAt ? new Date(guestGameItem.playedAt) : null,
+      playedAt: guestGameItem.playedAt
+        ? new Date(guestGameItem.playedAt)
+        : null,
       result: guestGameItem.result,
       color: guestGameItem.color,
       userRatingAtGame: guestGameItem.userRating ?? null,
@@ -109,7 +111,9 @@ export function GameAnalysisFlow() {
     const game = {
       id: guestGameItem.id,
       pgn: guestGameItem.pgn,
-      playedAt: guestGameItem.playedAt ? new Date(guestGameItem.playedAt) : null,
+      playedAt: guestGameItem.playedAt
+        ? new Date(guestGameItem.playedAt)
+        : null,
       result: guestGameItem.result,
       color: guestGameItem.color,
       platform: guestGameItem.platform,

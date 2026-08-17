@@ -187,7 +187,7 @@ export function Today() {
   const ownedBooks = library.data?.books.filter((b) => b.owned) ?? [];
   const supportingError = isGuest
     ? null
-    : constraints.error ?? library.error ?? dueReviews.error ?? null;
+    : (constraints.error ?? library.error ?? dueReviews.error ?? null);
 
   const saveConstraints = trpc.constraints.save.useMutation({
     onSuccess: () => {
@@ -495,7 +495,8 @@ export function Today() {
                     Training as Guest
                   </p>
                   <p className="font-serif text-xs text-graphite">
-                    Sign in with Lichess or Google to sync your training across devices.
+                    Sign in with Lichess or Google to sync your training across
+                    devices.
                   </p>
                 </div>
               </div>
@@ -566,7 +567,8 @@ export function Today() {
                   Training as Guest
                 </p>
                 <p className="font-serif text-xs text-graphite">
-                  Sign in with Lichess or Google to sync your training across devices.
+                  Sign in with Lichess or Google to sync your training across
+                  devices.
                 </p>
               </div>
             </div>
@@ -646,7 +648,8 @@ export function Today() {
                 setProgramNotice({
                   tone: "neutral",
                   heading: "Block skipped",
-                  message: "It is closed for today. Use Undo skip on the block to restore it.",
+                  message:
+                    "It is closed for today. Use Undo skip on the block to restore it.",
                 });
               } else {
                 recordGuestActivityEvent({

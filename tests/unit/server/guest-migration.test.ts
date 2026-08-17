@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import { migrateGuestSession, type GuestMigrationInput } from "@/server/guest-migration";
+import {
+  migrateGuestSession,
+  type GuestMigrationInput,
+} from "@/server/guest-migration";
 import type { PrismaClient } from "@prisma/client";
 
 describe("guest-migration", () => {
@@ -15,48 +18,70 @@ describe("guest-migration", () => {
     const mockTx = {
       platformConnection: {
         findFirst: vi.fn().mockResolvedValue(null),
-        create: vi.fn().mockImplementation((args: { data: Record<string, unknown> }) => {
-          createdConnections.push(args.data);
-          return Promise.resolve({ id: "conn_1", ...args.data });
-        }),
+        create: vi
+          .fn()
+          .mockImplementation((args: { data: Record<string, unknown> }) => {
+            createdConnections.push(args.data);
+            return Promise.resolve({ id: "conn_1", ...args.data });
+          }),
       },
       user: {
-        update: vi.fn().mockImplementation((args: { where: { id: string }; data: Record<string, unknown> }) => {
-          updatedUsers.push(args.data);
-          return Promise.resolve({ id: args.where.id, ...args.data });
-        }),
+        update: vi
+          .fn()
+          .mockImplementation(
+            (args: {
+              where: { id: string };
+              data: Record<string, unknown>;
+            }) => {
+              updatedUsers.push(args.data);
+              return Promise.resolve({ id: args.where.id, ...args.data });
+            },
+          ),
       },
       assessment: {
-        upsert: vi.fn().mockImplementation((args: { create: Record<string, unknown> }) => {
-          upsertedAssessments.push(args.create);
-          return Promise.resolve({ id: "assess_1", ...args.create });
-        }),
+        upsert: vi
+          .fn()
+          .mockImplementation((args: { create: Record<string, unknown> }) => {
+            upsertedAssessments.push(args.create);
+            return Promise.resolve({ id: "assess_1", ...args.create });
+          }),
       },
       constraintSet: {
         updateMany: vi.fn().mockResolvedValue({ count: 1 }),
-        create: vi.fn().mockImplementation((args: { data: Record<string, unknown> }) => {
-          createdConstraints.push(args.data);
-          return Promise.resolve({ id: "cs_1", ...args.data });
-        }),
+        create: vi
+          .fn()
+          .mockImplementation((args: { data: Record<string, unknown> }) => {
+            createdConstraints.push(args.data);
+            return Promise.resolve({ id: "cs_1", ...args.data });
+          }),
       },
       program: {
         updateMany: vi.fn().mockResolvedValue({ count: 1 }),
-        create: vi.fn().mockImplementation((args: { data: Record<string, unknown> }) => {
-          createdPrograms.push(args.data);
-          return Promise.resolve({ id: "prog_1", ...args.data });
-        }),
+        create: vi
+          .fn()
+          .mockImplementation((args: { data: Record<string, unknown> }) => {
+            createdPrograms.push(args.data);
+            return Promise.resolve({ id: "prog_1", ...args.data });
+          }),
       },
       programItem: {
-        create: vi.fn().mockImplementation((args: { data: Record<string, unknown> }) => {
-          createdProgramItems.push(args.data);
-          return Promise.resolve({ id: `item_${createdProgramItems.length}`, ...args.data });
-        }),
+        create: vi
+          .fn()
+          .mockImplementation((args: { data: Record<string, unknown> }) => {
+            createdProgramItems.push(args.data);
+            return Promise.resolve({
+              id: `item_${createdProgramItems.length}`,
+              ...args.data,
+            });
+          }),
       },
       activityEvent: {
-        create: vi.fn().mockImplementation((args: { data: Record<string, unknown> }) => {
-          createdActivityEvents.push(args.data);
-          return Promise.resolve({ id: "evt_1", ...args.data });
-        }),
+        create: vi
+          .fn()
+          .mockImplementation((args: { data: Record<string, unknown> }) => {
+            createdActivityEvents.push(args.data);
+            return Promise.resolve({ id: "evt_1", ...args.data });
+          }),
       },
     };
 

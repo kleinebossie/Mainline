@@ -108,9 +108,7 @@ export function OnboardingConstraintsForm({
   );
   const [hasGuest] = useState(() =>
     typeof window !== "undefined"
-      ? Boolean(
-          getGuestSession().baseline || getGuestSession().constraints,
-        )
+      ? Boolean(getGuestSession().baseline || getGuestSession().constraints)
       : false,
   );
 

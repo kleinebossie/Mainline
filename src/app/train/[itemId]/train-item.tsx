@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { trpc } from "@/lib/trpc/react";
@@ -102,9 +108,7 @@ export function TrainItem({ programItemId }: TrainItemProps) {
     retry: false,
   });
 
-  const data = isGuest
-    ? (guestTrainData as unknown as TrainData)
-    : serverData;
+  const data = isGuest ? (guestTrainData as unknown as TrainData) : serverData;
   const isLoading = !mounted || (isGuest ? false : serverLoading);
   const error = isGuest ? null : serverError;
 
@@ -647,7 +651,9 @@ export function TrainItem({ programItemId }: TrainItemProps) {
                 Review your real games with Stockfish.
               </h1>
               <p className="font-serif text-sm leading-relaxed text-graphite">
-                Your chess account is connected. Open Analysis to sync your games, identify critical blunders, and turn them into personal spaced-repetition drills.
+                Your chess account is connected. Open Analysis to sync your
+                games, identify critical blunders, and turn them into personal
+                spaced-repetition drills.
               </p>
               <div className="mt-4 flex flex-wrap items-center gap-3">
                 <Link
@@ -705,8 +711,9 @@ export function TrainItem({ programItemId }: TrainItemProps) {
               Connect a chess account to analyze your games.
             </h1>
             <p className="font-serif text-sm leading-relaxed text-graphite">
-              Mainline analyzes games directly from your linked Lichess or Chess.com account.
-              Connect your account to discover your tactical blindspots and repair your mistakes.
+              Mainline analyzes games directly from your linked Lichess or
+              Chess.com account. Connect your account to discover your tactical
+              blindspots and repair your mistakes.
             </p>
             <div className="mt-4 flex flex-wrap items-center gap-3">
               <Link

@@ -28,7 +28,9 @@ type ConnectionError = {
 export function ConnectionsManager() {
   const utils = trpc.useUtils();
   const [mounted, setMounted] = useState(false);
-  const [guestConnections, setGuestConnections] = useState<GuestConnection[]>([]);
+  const [guestConnections, setGuestConnections] = useState<GuestConnection[]>(
+    [],
+  );
 
   useEffect(() => {
     setMounted(true);
@@ -65,7 +67,10 @@ export function ConnectionsManager() {
         externalUsername: data.externalUsername,
         status: "active",
         connectedAt: new Date().toISOString(),
-        ratings: data.ratings as Record<string, { rating: number; rd?: number; games?: number }>,
+        ratings: data.ratings as Record<
+          string,
+          { rating: number; rd?: number; games?: number }
+        >,
       };
       const updated = saveGuestConnection(newConn);
       setGuestConnections(updated.connections ?? []);
@@ -91,7 +96,10 @@ export function ConnectionsManager() {
         externalUsername: data.externalUsername,
         status: "active",
         connectedAt: new Date().toISOString(),
-        ratings: data.ratings as Record<string, { rating: number; rd?: number; games?: number }>,
+        ratings: data.ratings as Record<
+          string,
+          { rating: number; rd?: number; games?: number }
+        >,
       };
       const updated = saveGuestConnection(newConn);
       setGuestConnections(updated.connections ?? []);

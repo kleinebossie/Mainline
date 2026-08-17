@@ -22,7 +22,9 @@ interface Step {
 }
 
 export function OnboardingSteps({ status }: { status: OnboardingStatus }) {
-  const [guestSession, setGuestSession] = useState<GuestSessionData | null>(null);
+  const [guestSession, setGuestSession] = useState<GuestSessionData | null>(
+    null,
+  );
 
   useEffect(() => {
     setGuestSession(getGuestSession());
@@ -39,7 +41,10 @@ export function OnboardingSteps({ status }: { status: OnboardingStatus }) {
 
   const steps: Step[] = status.steps.map((step) => {
     let done = step.done;
-    if (step.href === "/onboarding/constraints" && guestSession?.constraints != null) {
+    if (
+      step.href === "/onboarding/constraints" &&
+      guestSession?.constraints != null
+    ) {
       done = true;
     }
     if (
@@ -109,8 +114,8 @@ export function OnboardingSteps({ status }: { status: OnboardingStatus }) {
               Your first daily training session is ready
             </p>
             <p className="text-graphite font-serif text-sm mt-0.5 max-w-lg">
-              You can start training right now, or finish connecting your accounts
-              and calibration below to refine your starting signals.
+              You can start training right now, or finish connecting your
+              accounts and calibration below to refine your starting signals.
             </p>
           </div>
           <Link
@@ -121,7 +126,10 @@ export function OnboardingSteps({ status }: { status: OnboardingStatus }) {
           </Link>
         </div>
       ) : (
-        <div className="rounded-lg border border-line bg-card px-4 py-3" role="status">
+        <div
+          className="rounded-lg border border-line bg-card px-4 py-3"
+          role="status"
+        >
           <p className="font-serif text-sm font-semibold text-ink">
             {`${requiredDone} of ${requiredCount} required steps done`}
           </p>
