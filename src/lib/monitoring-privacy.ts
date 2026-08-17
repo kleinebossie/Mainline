@@ -48,6 +48,32 @@ function safeErrorType(value: unknown): string {
   return type && SAFE_ERROR_TYPES.has(type) ? type : "error";
 }
 
+function safePath(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const clean = value.split("?")[0]?.split("#")[0]?.trim();
+  if (!clean || clean.length > 256) return undefined;
+  if (/[\r\n\t\0]/.test(clean)) return undefined;
+  return clean;
+}
+
+function safeFunctionName(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  if (/^[a-zA-Z0-9_$.<>[\]\s/:@-]{1,120}$/.test(trimmed)) {
+    return trimmed;
+  }
+  return undefined;
+}
+
+function safeModule(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  if (/^[a-zA-Z0-9_@/.:-]{1,100}$/.test(trimmed)) {
+    return trimmed;
+  }
+  return undefined;
+}
+
 /**
  * Fail-closed monitoring filter. Stack frames and safe operational tags remain useful,
  * while request payloads, credentials, user identity, free text, and upstream error
@@ -90,6 +116,10 @@ export function scrubMonitoringEvent(event: ErrorEvent): ErrorEvent {
             stacktrace: value.stacktrace
               ? {
                   frames: value.stacktrace.frames?.map((frame) => ({
+                    filename: safePath(frame.filename),
+                    abs_path: safePath(frame.abs_path),
+                    function: safeFunctionName(frame.function),
+                    module: safeModule(frame.module),
                     lineno: frame.lineno,
                     colno: frame.colno,
                     in_app: frame.in_app,

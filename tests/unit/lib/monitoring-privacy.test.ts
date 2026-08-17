@@ -35,10 +35,10 @@ describe("monitoring privacy", () => {
             stacktrace: {
               frames: [
                 {
-                  filename: "https://mainline.test/private?token=secret",
-                  abs_path: "/private/secret.ts",
-                  function: "secretFunction",
-                  module: "secret-module",
+                  filename: "https://mainline.test/today?token=secret",
+                  abs_path: "/src/app/today/page.tsx?token=secret",
+                  function: "TodayDashboard",
+                  module: "@/app/today/page",
                   lineno: 12,
                   colno: 4,
                   in_app: true,
@@ -68,7 +68,17 @@ describe("monitoring privacy", () => {
       type: "error",
       value: "error",
       stacktrace: {
-        frames: [{ lineno: 12, colno: 4, in_app: true }],
+        frames: [
+          {
+            filename: "https://mainline.test/today",
+            abs_path: "/src/app/today/page.tsx",
+            function: "TodayDashboard",
+            module: "@/app/today/page",
+            lineno: 12,
+            colno: 4,
+            in_app: true,
+          },
+        ],
         frames_omitted: undefined,
       },
       mechanism: {
@@ -84,7 +94,7 @@ describe("monitoring privacy", () => {
     expect(result.extra).toEqual({ count: 1 });
     expect(result.contexts).toBeUndefined();
     expect(JSON.stringify(result)).not.toMatch(
-      /secret|person@example|1\. e4|private feedback|upstream response|private\/secret/i,
+      /secret|person@example|1\. e4|private feedback|upstream response/i,
     );
   });
 
