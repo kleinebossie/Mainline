@@ -273,6 +273,16 @@ test("normal core loop persists outcomes, adaptation, history, replan, and feedb
     await coreLoopPage
       .getByRole("button", { name: /Continue setup/i })
       .click();
+    await expect(coreLoopPage).toHaveURL(/\/connections$/);
+
+    await coreLoopPage
+      .getByRole("link", { name: /Continue to calibration/i })
+      .click();
+    await expect(coreLoopPage).toHaveURL(/\/onboarding\/calibration$/);
+
+    await coreLoopPage
+      .getByRole("link", { name: /^Continue/i })
+      .click();
     await expect(coreLoopPage).toHaveURL(/\/onboarding\/reveal$/);
 
     const savedConstraints = await db.constraintSet.findFirstOrThrow({

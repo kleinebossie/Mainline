@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+import Link from "next/link";
 import { trpc } from "@/lib/trpc/react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { StatusMessage } from "@/components/ui/status-message";
 import { ErrorNotice } from "@/components/ui/error-notice";
@@ -313,6 +314,21 @@ export function ConnectionsManager() {
           </StatusMessage>
         )}
       </section>
+
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 border-t border-line/80 pt-6">
+        <Link
+          href="/onboarding/calibration"
+          className={buttonVariants({ size: "lg" })}
+        >
+          Continue to calibration →
+        </Link>
+        <Link
+          href="/onboarding/calibration"
+          className="text-graphite font-serif text-sm hover:text-ink underline decoration-line underline-offset-4 text-center sm:text-left"
+        >
+          Skip connecting accounts for now →
+        </Link>
+      </div>
     </div>
   );
 }
