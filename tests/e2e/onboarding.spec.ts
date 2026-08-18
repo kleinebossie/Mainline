@@ -23,7 +23,7 @@ test("guest can build first session directly from constraints", async ({
   await page.goto("/onboarding/constraints");
   await page.getByRole("button", { name: "Build my first session →" }).click();
   await expect(page).toHaveURL(/\/today$/);
-  await expect(page.getByRole("heading", { name: "Today" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Today", exact: true })).toBeVisible();
   await expect(page.getByText(/Training as Guest/i)).toBeVisible();
   await expect(page.getByText(/SIGN-IN EXPIRED/i)).not.toBeVisible();
 });

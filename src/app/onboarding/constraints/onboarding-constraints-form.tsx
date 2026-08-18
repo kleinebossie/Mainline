@@ -139,7 +139,7 @@ export function OnboardingConstraintsForm({
         }
       : EMPTY_CONSTRAINTS);
 
-  const isGuestMode = hasGuest || Boolean(current.error) || !current.data;
+  const isGuestMode = hasGuest || Boolean(current.error);
 
   return (
     <StreamlinedForm
@@ -194,6 +194,10 @@ function StreamlinedForm({
     },
     onError: (e) => {
       setSubmitting(false);
+      if (isGuestMode) {
+        router.push(nextDestination || continueHref);
+        return;
+      }
       setError(
         errorMessage(
           e,
@@ -203,7 +207,7 @@ function StreamlinedForm({
     },
   });
 
-  const parsedMinutes = parseInt(minutesInput.trim(), 10);
+  const parsedMinutes = Number.parseInt(minutesInput.trim(), 10);
   const currentMinutes = Number.isNaN(parsedMinutes) ? 0 : parsedMinutes;
 
   const handleMinutesChange = (value: string) => {
@@ -228,9 +232,10 @@ function StreamlinedForm({
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
     setSubmitting(true);
+    setError(null);
 
+    const parsedMinutes = Number.parseInt(minutesInput, 10);
     if (
       Number.isNaN(parsedMinutes) ||
       parsedMinutes < MIN_MINUTES_PER_DAY ||
@@ -283,24 +288,41 @@ function StreamlinedForm({
       isGuest: isGuestMode,
     });
 
-    if (isGuestMode) {
-      router.push(destination);
-      return;
-    }
-
-    save.mutate({
-      minutesPerDay: parsedMinutes,
-      daysPerWeek: initial.daysPerWeek || 5,
-      goals: initial.goals,
-      ownedResources: initial.ownedResources,
-      formatPrefs: {
-        formats: mergedFormats,
-        preferredVariety: initial.formatPrefs.preferredVariety,
-        targetFocus,
+    save.mutate(
+      {
+        minutesPerDay: parsedMinutes,
+        daysPerWeek: initial.daysPerWeek || 5,
+        goals: initial.goals,
+        ownedResources: initial.ownedResources,
+        formatPrefs: {
+          formats: mergedFormats,
+          preferredVariety: initial.formatPrefs.preferredVariety,
+          targetFocus,
+        },
+        sessionStyle: initial.sessionStyle,
+        ifThenPlan: initial.ifThenPlan,
       },
-      sessionStyle: initial.sessionStyle,
-      ifThenPlan: initial.ifThenPlan,
-    });
+      {
+        onSuccess: () => {
+          setSubmitting(false);
+          void utils.constraints.getCurrent.invalidate();
+          router.push(destination);
+        },
+        onError: (e) => {
+          setSubmitting(false);
+          if (isGuestMode) {
+            router.push(destination);
+            return;
+          }
+          setError(
+            errorMessage(
+              e,
+              "Your preferences were not saved. Check the form and try again.",
+            ),
+          );
+        },
+      },
+    );
   };
 
   return (
