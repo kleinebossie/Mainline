@@ -87,11 +87,6 @@ export function TrainItem({ programItemId }: TrainItemProps) {
     return hasGuestData();
   }, [mounted]);
 
-  const isGuest = guestItem != null || hasGuest;
-  const guestTrainData = useMemo(() => {
-    return guestItem ? getGuestTrainItemData(guestItem) : null;
-  }, [guestItem]);
-
   const {
     data: serverData,
     isLoading: serverLoading,
@@ -100,16 +95,23 @@ export function TrainItem({ programItemId }: TrainItemProps) {
     isFetching,
   } = trpc.program.getTrainItem.useQuery(
     { programItemId },
-    { enabled: mounted && !isGuest, retry: false },
+    { retry: false },
   );
 
   const connectionsQuery = trpc.connections.list.useQuery(undefined, {
-    enabled: mounted && !isGuest,
     retry: false,
   });
 
-  const data = isGuest ? (guestTrainData as unknown as TrainData) : serverData;
-  const isLoading = !mounted || (isGuest ? false : serverLoading);
+  const guestTrainData = useMemo(() => {
+    return guestItem ? getGuestTrainItemData(guestItem) : null;
+  }, [guestItem]);
+
+  const isGuest = Boolean(
+    !serverLoading && (serverError != null || !serverData) && guestTrainData != null
+  );
+
+  const data = serverData ?? (isGuest ? (guestTrainData as unknown as TrainData) : null);
+  const isLoading = !mounted || (serverLoading && !guestTrainData);
   const error = isGuest ? null : serverError;
 
   const logMutation = trpc.tracker.logOutcome.useMutation({

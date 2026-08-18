@@ -264,22 +264,20 @@ function StreamlinedForm({
 
     const destination = nextDestination || continueHref;
 
-    if (isGuestMode) {
-      saveGuestConstraints({
-        minutesPerDay: parsedMinutes,
-        daysPerWeek: initial.daysPerWeek || 5,
-        goals: initial.goals.map((g) => g.kind),
-        ownedResources: initial.ownedResources,
-        formatPrefs: {
-          formats: mergedFormats,
-          preferredVariety: initial.formatPrefs.preferredVariety,
-          targetFocus,
-        },
-      });
+    saveGuestConstraints({
+      minutesPerDay: parsedMinutes,
+      daysPerWeek: initial.daysPerWeek || 5,
+      goals: initial.goals.map((g) => g.kind),
+      ownedResources: initial.ownedResources,
+      formatPrefs: {
+        formats: mergedFormats,
+        preferredVariety: initial.formatPrefs.preferredVariety,
+        targetFocus,
+      },
+    });
 
-      if (destination === "/today") {
-        generateGuestProgram();
-      }
+    if (destination === "/today") {
+      generateGuestProgram();
     }
 
     trackFunnelEvent("onboarding_completed", {

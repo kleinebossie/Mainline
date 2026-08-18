@@ -82,12 +82,6 @@ export function GameAnalysisFlow() {
     return null;
   }, [mounted, gameId]);
 
-  const hasGuest = useMemo(() => {
-    if (!mounted || typeof window === "undefined") return false;
-    return hasGuestData();
-  }, [mounted]);
-
-  const isGuest = guestGameItem != null || hasGuest;
 
   const guestData = useMemo(() => {
     if (!guestGameItem) return null;
@@ -134,17 +128,19 @@ export function GameAnalysisFlow() {
     return { session, game, rationales };
   }, [guestGameItem]);
 
-  // Refetching during a sitting must not reset in-progress attempts or board state.
   const sessionQuery = trpc.analysis.session.useQuery(
     { gameId },
     {
-      enabled: mounted && !isGuest,
       refetchOnWindowFocus: false,
       staleTime: Infinity,
       retry: false,
     },
   );
   const saveSessionMutation = trpc.analysis.saveSession.useMutation();
+
+  const isGuest = Boolean(
+    !sessionQuery.isLoading && (sessionQuery.error != null || !sessionQuery.data) && guestData != null
+  );
 
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [reflectionNote, setReflectionNote] = useState("");
@@ -170,12 +166,10 @@ export function GameAnalysisFlow() {
   const engineQueueRef = useRef<Promise<unknown>>(Promise.resolve());
   const saveRequestIdRef = useRef<string | null>(null);
 
-  const session = isGuest ? guestData?.session : sessionQuery.data?.session;
-  const game = isGuest ? guestData?.game : sessionQuery.data?.game;
-  const rationales = isGuest
-    ? guestData?.rationales
-    : sessionQuery.data?.rationales;
-  const isLoading = !mounted || (isGuest ? false : sessionQuery.isLoading);
+  const session = sessionQuery.data?.session ?? (isGuest ? guestData?.session : null);
+  const game = sessionQuery.data?.game ?? (isGuest ? guestData?.game : null);
+  const rationales = sessionQuery.data?.rationales ?? (isGuest ? guestData?.rationales : null);
+  const isLoading = !mounted || (sessionQuery.isLoading && !guestData);
   const error = isGuest ? null : sessionQuery.error;
 
   const getEngine = useCallback(async (): Promise<AnalysisEngine> => {
