@@ -29,10 +29,10 @@ import { errorMessage } from "@/lib/error-presentation";
 import { DEFAULT_ANALYSIS_DEPTH } from "@/analysis/worker-config";
 import {
   getGuestSession,
-  hasGuestData,
   recordGuestActivityEvent,
   DEFAULT_GUEST_BASELINE,
 } from "@/lib/guest-session";
+
 import {
   bandForRating,
   gameAnalysisProtocol,

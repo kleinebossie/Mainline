@@ -28,3 +28,9 @@ export {
 } from "@/analysis/worker-config";
 
 export { StockfishAnalysisEngine } from "@/analysis/stockfish-adapter";
+
+export {
+  detectTacticalMotif,
+  TACTICAL_MOTIFS,
+  type TacticalMotif,
+} from "@/analysis/motif-detector";

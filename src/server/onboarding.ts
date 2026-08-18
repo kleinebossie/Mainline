@@ -159,9 +159,10 @@ export function getGuestOnboardingStatus(
     {
       href: "/onboarding/reveal",
       label: "See where you stand",
-      done: hasProgram,
+      done: hasBaseline || hasProgram,
       required: false,
     },
+
     {
       href: "/today",
       label: "Build your first session",

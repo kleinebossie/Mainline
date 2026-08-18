@@ -318,17 +318,21 @@ export function ConnectionsManager() {
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 border-t border-line/80 pt-6">
         <Link
           href="/onboarding/calibration"
-          className={buttonVariants({ size: "lg" })}
+          className={buttonVariants({
+            size: "lg",
+            variant: displayedConnections.length > 0 ? "default" : "secondary",
+          })}
         >
           Continue to calibration →
         </Link>
         <Link
-          href="/onboarding/calibration"
+          href="/today"
           className="text-graphite font-serif text-sm hover:text-ink underline decoration-line underline-offset-4 text-center sm:text-left"
         >
-          Skip connecting accounts for now →
+          Skip connecting accounts and go to Today →
         </Link>
       </div>
     </div>
   );
 }
+

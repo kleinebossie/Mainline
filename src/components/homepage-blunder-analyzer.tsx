@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Chess } from "chess.js";
-import { Check, RotateCcw, Target } from "lucide-react";
+import { Check, RotateCcw, Sparkles, Target } from "lucide-react";
 
 import { trpc } from "@/lib/trpc/react";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import { stepSolve, type SolveState } from "@/engine/interactive/session";
 import { systemClock } from "@/lib/clock";
 import { trackFunnelEvent } from "@/lib/telemetry";
 import { saveGuestBaseline, saveGuestConnection } from "@/lib/guest-session";
+import { detectTacticalMotif, type TacticalMotif } from "@/analysis/motif-detector";
 import { cn } from "@/lib/utils";
 
 const QUICK_EXAMPLES = [
@@ -33,6 +34,25 @@ const QUICK_EXAMPLES = [
     label: "MagnusCarlsen",
   },
 ];
+
+interface DisplayBlindspot {
+  title: string;
+  description: string;
+  evidenceGrade: "A" | "B" | "C" | "D";
+  evidenceTier: number;
+  citationKey: string;
+  mistakeFrequency: string;
+  theme: string;
+}
+
+interface DisplayDrill {
+  fen: string;
+  solutionLine: string[];
+  source: "game" | "starter";
+  title: string;
+  description: string;
+  gameInfo?: string;
+}
 
 export function HomepageBlunderAnalyzer() {
   const router = useRouter();
@@ -51,6 +71,13 @@ export function HomepageBlunderAnalyzer() {
   const [attempts, setAttempts] = useState<number>(0);
   const [startTime, setStartTime] = useState<number>(0);
 
+  const [activeBlindspot, setActiveBlindspot] = useState<DisplayBlindspot | null>(null);
+  const [activeDrill, setActiveDrill] = useState<DisplayDrill | null>(null);
+  const [isWasmScanning, setIsWasmScanning] = useState<boolean>(false);
+  const [scanStatusMessage, setScanStatusMessage] = useState<string>("");
+
+  const scanSessionIdRef = useRef<number>(0);
+
   const query = trpc.analysis.analyzePublicUsername.useQuery(activeQuery!, {
     enabled: activeQuery !== null && Boolean(activeQuery.username.trim()),
     retry: false,
@@ -58,13 +85,16 @@ export function HomepageBlunderAnalyzer() {
 
   const result = query.data;
 
-  // Initialize interactive blunder drill when analysis data loads.
+  // Initialize and run client-side Stockfish WASM analysis when data loads.
   useEffect(() => {
     if (!result) return;
 
+    const currentSession = ++scanSessionIdRef.current;
     const drill = result.drill;
     const now = systemClock.now();
 
+    setActiveBlindspot(result.blindspot);
+    setActiveDrill(drill);
     setBoardFen(drill.fen);
     setSolveState({
       position: drill.fen,
@@ -102,6 +132,135 @@ export function HomepageBlunderAnalyzer() {
       uncertainty: 100,
       topBlindspot: result.blindspot.title,
     });
+
+    // Run client-side Stockfish WASM to scan recent games and extract real blunders.
+    if (
+      typeof window === "undefined" ||
+      typeof Worker === "undefined" ||
+      !result.recentGames ||
+      result.recentGames.length === 0
+    ) {
+      return;
+    }
+
+    async function runClientAnalysis() {
+      setIsWasmScanning(true);
+      setScanStatusMessage("Starting Stockfish WASM in browser…");
+
+      try {
+        const { StockfishAnalysisEngine } = await import("@/analysis");
+        const engine = new StockfishAnalysisEngine();
+        await engine.init();
+
+        try {
+          const gamesToScan = result!.recentGames.slice(0, 2);
+          let totalBlunders = 0;
+          const foundBlunders: Array<{
+            fen: string;
+            cpLoss: number;
+            ply: number;
+            gamePgn: string;
+            gameOpening?: string;
+            color: "w" | "b";
+          }> = [];
+
+          for (let i = 0; i < gamesToScan.length; i++) {
+            if (scanSessionIdRef.current !== currentSession) return;
+            const game = gamesToScan[i]!;
+            setScanStatusMessage(
+              `Scanning game ${i + 1} of ${gamesToScan.length} with Stockfish WASM…`,
+            );
+
+            const features = await engine.analyzeGame(
+              game.pgn,
+              { depth: 10 },
+              { userColor: game.color },
+            );
+
+            const majorBlunders = features.blunders.filter(
+              (b) => b.cpLoss >= 150,
+            );
+            totalBlunders += majorBlunders.length;
+
+            for (const b of majorBlunders) {
+              foundBlunders.push({
+                fen: b.fen,
+                cpLoss: b.cpLoss,
+                ply: b.ply,
+                gamePgn: game.pgn,
+                gameOpening: game.opening,
+                color: game.color,
+              });
+            }
+          }
+
+          if (scanSessionIdRef.current !== currentSession) return;
+
+          if (foundBlunders.length > 0) {
+            // Sort by highest cp loss to pick the most instructive turning point.
+            foundBlunders.sort((a, b) => b.cpLoss - a.cpLoss);
+            const topBlunder = foundBlunders[0]!;
+
+            setScanStatusMessage("Calculating winning move for your blunder…");
+            const evalResult = await engine.analyzePosition(topBlunder.fen, {
+              depth: 10,
+            });
+
+            if (evalResult.bestMove && scanSessionIdRef.current === currentSession) {
+              const motif: TacticalMotif = detectTacticalMotif(
+                topBlunder.fen,
+                evalResult.bestMove,
+              );
+
+              const measuredRate = (totalBlunders / gamesToScan.length).toFixed(1);
+              const upgradedBlindspot: DisplayBlindspot = {
+                title: motif.title,
+                description: motif.description,
+                evidenceGrade: motif.evidenceGrade,
+                evidenceTier: motif.evidenceTier,
+                citationKey: motif.citationKey,
+                mistakeFrequency: `${measuredRate} mistakes per game`,
+                theme: motif.key,
+              };
+
+              const upgradedDrill: DisplayDrill = {
+                fen: topBlunder.fen,
+                solutionLine: [evalResult.bestMove],
+                source: "game",
+                title: `${motif.title} (Your Game)`,
+                description: topBlunder.gameOpening
+                  ? `From your recent game in the ${topBlunder.gameOpening}. Find the winning move.`
+                  : `From your recent game as ${topBlunder.color === "w" ? "White" : "Black"}. Find the winning move.`,
+                gameInfo: topBlunder.gameOpening ?? "Recent game",
+              };
+
+              setActiveBlindspot(upgradedBlindspot);
+              setActiveDrill(upgradedDrill);
+              setBoardFen(upgradedDrill.fen);
+              setSolveState({
+                position: upgradedDrill.fen,
+                solutionLine: upgradedDrill.solutionLine,
+                cursor: 0,
+                startedMs: systemClock.now(),
+                attempts: 0,
+              });
+              setSolveStatus("pending");
+            }
+          }
+        } finally {
+          engine.dispose();
+        }
+      } catch {
+        // Retain server fallback if client WASM encounters an error
+      } finally {
+        if (scanSessionIdRef.current === currentSession) {
+          setIsWasmScanning(false);
+          setScanStatusMessage("");
+        }
+      }
+    }
+
+    void runClientAnalysis();
   }, [result]);
 
   const handleAnalyze = (e: React.FormEvent) => {
@@ -137,7 +296,7 @@ export function HomepageBlunderAnalyzer() {
         trackFunnelEvent("sample_drill_solved", {
           attempts: nextAttempts,
           solveTimeMs: Math.max(0, now - startTime),
-          source: result?.drill.source ?? "starter",
+          source: activeDrill?.source ?? "starter",
         });
       } else if (res.step === "wrong") {
         setSolveStatus("wrong");
@@ -148,17 +307,16 @@ export function HomepageBlunderAnalyzer() {
         }, 800);
       }
     },
-    [solveState, solveStatus, attempts, startTime, result],
+    [solveState, solveStatus, attempts, startTime, activeDrill],
   );
 
   const handleResetPuzzle = () => {
-    if (!result) return;
-    const drill = result.drill;
+    if (!activeDrill) return;
     const now = systemClock.now();
-    setBoardFen(drill.fen);
+    setBoardFen(activeDrill.fen);
     setSolveState({
-      position: drill.fen,
-      solutionLine: drill.solutionLine,
+      position: activeDrill.fen,
+      solutionLine: activeDrill.solutionLine,
       cursor: 0,
       startedMs: now,
       attempts: 0,
@@ -179,6 +337,9 @@ export function HomepageBlunderAnalyzer() {
     }
   }, [boardFen]);
 
+  const blindspot = activeBlindspot ?? result?.blindspot;
+  const drill = activeDrill ?? result?.drill;
+
   return (
     <div className="w-full">
       {/* Input Search Hero Card */}
@@ -189,8 +350,8 @@ export function HomepageBlunderAnalyzer() {
             Find the tactical blindspots hiding in your games.
           </h2>
           <p className="mt-2 max-w-2xl font-serif text-sm leading-relaxed text-graphite sm:text-base">
-            Enter your public chess username. We analyze your recent games and
-            extract the tactical pattern that costs you rating points.
+            Enter your public chess username. We analyze your recent games with
+            Stockfish WASM to find the tactical patterns that cost you rating points.
           </p>
         </div>
 
@@ -235,11 +396,15 @@ export function HomepageBlunderAnalyzer() {
             />
             <Button
               type="submit"
-              disabled={query.isFetching || !usernameInput.trim()}
+              disabled={query.isFetching || isWasmScanning || !usernameInput.trim()}
               className="w-full shrink-0 sm:w-auto"
               size="lg"
             >
-              {query.isFetching ? "Analyzing Games…" : "Analyze My Games"}
+              {query.isFetching
+                ? "Fetching Games…"
+                : isWasmScanning
+                  ? "Analyzing with Stockfish…"
+                  : "Analyze My Games"}
             </Button>
           </div>
 
@@ -262,9 +427,15 @@ export function HomepageBlunderAnalyzer() {
           <div className="mt-6">
             <StatusMessage tone="loading">
               Fetching games from{" "}
-              {platform === "lichess" ? "Lichess" : "Chess.com"} and detecting
-              tactical patterns…
+              {platform === "lichess" ? "Lichess" : "Chess.com"}…
             </StatusMessage>
+          </div>
+        )}
+
+        {isWasmScanning && (
+          <div className="mt-6 flex items-center gap-2 rounded-md border border-evergreen/30 bg-evergreen/[0.06] p-3 text-xs font-mono text-evergreen">
+            <Sparkles className="h-4 w-4 animate-pulse shrink-0" />
+            <span>{scanStatusMessage}</span>
           </div>
         )}
 
@@ -283,7 +454,7 @@ export function HomepageBlunderAnalyzer() {
       </div>
 
       {/* Analysis Result & Interactive Drill */}
-      {result && (
+      {result && blindspot && drill && (
         <div className="mt-8 flex flex-col gap-8 rounded-xl border border-line bg-paper p-6 shadow-sheet sm:p-8">
           <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-start">
             {/* Left: Tactical Blindspot Summary */}
@@ -311,19 +482,26 @@ export function HomepageBlunderAnalyzer() {
                     <Target className="h-5 w-5" />
                   </div>
                   <div>
-                    <h4 className="font-serif text-lg font-semibold text-ink">
-                      {result.blindspot.title}
-                    </h4>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h4 className="font-serif text-lg font-semibold text-ink">
+                        {blindspot.title}
+                      </h4>
+                      {drill.source === "game" && (
+                        <span className="rounded bg-evergreen/15 px-2 py-0.5 font-mono text-[0.65rem] font-bold text-evergreen uppercase">
+                          From Your Game
+                        </span>
+                      )}
+                    </div>
                     <p className="mt-1.5 font-serif text-sm leading-relaxed text-graphite">
-                      {result.blindspot.description}
+                      {blindspot.description}
                     </p>
                     <div className="mt-3 flex flex-wrap items-center gap-3">
                       <span className="rounded bg-paper px-2 py-0.5 font-mono text-[0.68rem] text-graphite border border-line">
-                        Frequency: {result.blindspot.mistakeFrequency}
+                        Frequency: {blindspot.mistakeFrequency}
                       </span>
                       <GradeMark
-                        grade={result.blindspot.evidenceGrade}
-                        tier={result.blindspot.evidenceTier}
+                        grade={blindspot.evidenceGrade}
+                        tier={blindspot.evidenceTier}
                       />
                     </div>
                   </div>
@@ -332,9 +510,9 @@ export function HomepageBlunderAnalyzer() {
 
               <div className="border-l-2 border-evergreen/60 pl-4">
                 <p className="font-serif text-sm leading-relaxed text-graphite">
-                  We turned your mistake pattern into an interactive fix puzzle.
-                  Find the winning tactical move on the board to clear this
-                  blindspot.
+                  {drill.source === "game"
+                    ? "We extracted an actual blunder from your games. Find the winning tactical move on the board to repair this blindspot."
+                    : "We turned this pattern into an interactive practice puzzle. Find the winning tactical move on the board to clear this blindspot."}
                 </p>
               </div>
 

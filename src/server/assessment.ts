@@ -22,11 +22,19 @@ import {
 import { selectPuzzles } from "@/db/puzzles";
 import { getTargetFocus } from "@/server/constraints";
 import { expectedError } from "@/server/errors";
-import { calibrationRatingFromSnapshot } from "@/lib/rating-snapshot";
+import { resolveCalibrationSeedRating } from "@/lib/rating-snapshot";
+import { formatPrefsSchema } from "@/lib/constraints";
+
+
+
 
 type Db = Pick<
   PrismaClient,
-  "assessment" | "chessProfileSnapshot" | "lichessPuzzle" | "constraintSet"
+  | "assessment"
+  | "chessProfileSnapshot"
+  | "lichessPuzzle"
+  | "constraintSet"
+  | "platformConnection"
 >;
 
 // Legacy single-track responses have no track and belong to the first configured track.
@@ -37,6 +45,12 @@ const calibrationResponseSchema = z.object({
   puzzleId: z.string().optional(),
 });
 type StoredResponse = z.infer<typeof calibrationResponseSchema>;
+
+export interface GuestConnectionInfo {
+  platform: "lichess" | "chesscom";
+  externalUsername?: string;
+  ratings?: Record<string, { rating?: number; rd?: number; games?: number }>;
+}
 
 const responsesSchema = z.array(calibrationResponseSchema);
 
@@ -59,16 +73,42 @@ async function resolveStartRating(
   db: Db,
   userId: string,
   cfg: MethodologyConfig,
-): Promise<number> {
-  const snap = await db.chessProfileSnapshot.findFirst({
-    where: { userId },
-    orderBy: { capturedAt: "desc" },
-    select: { ratings: true },
+): Promise<{ startRating: number; hasConnectedAccount: boolean }> {
+  const [connections, snapshots, constraintRow] = await Promise.all([
+    db.platformConnection.findMany({
+      where: { userId, status: "active" },
+      select: { platform: true },
+    }),
+    db.chessProfileSnapshot.findMany({
+      where: { userId },
+      orderBy: { capturedAt: "desc" },
+      select: { platform: true, ratings: true },
+    }),
+    db.constraintSet.findFirst({
+      where: { userId, isCurrent: true },
+      orderBy: { version: "desc" },
+      select: { formatPrefs: true },
+    }),
+  ]);
+
+  const hasConnectedAccount = connections.length > 0;
+  const lichessSnap = snapshots.find((s) => s.platform === "lichess");
+  const chesscomSnap = snapshots.find((s) => s.platform === "chesscom");
+
+  let primaryFormat: string | null = null;
+  const parsedPrefs = formatPrefsSchema.safeParse(constraintRow?.formatPrefs);
+  if (parsedPrefs.success && parsedPrefs.data.formats.length > 0) {
+    primaryFormat = parsedPrefs.data.formats[0] ?? null;
+  }
+
+  const startRating = resolveCalibrationSeedRating({
+    lichessRatings: lichessSnap?.ratings,
+    chesscomRatings: chesscomSnap?.ratings,
+    primaryFormat,
+    defaultStartRating: cfg.assessment.calibration.startRating.value,
   });
-  return (
-    calibrationRatingFromSnapshot(snap?.ratings) ??
-    cfg.assessment.calibration.startRating.value
-  );
+
+  return { startRating, hasConnectedAccount };
 }
 
 interface CalibrationTrackState {
@@ -84,6 +124,7 @@ interface CalibrationTrackState {
 
 export interface CalibrationState {
   completed: boolean;
+  locked?: boolean;
   responseCount: number;
   maxItems: number;
   timeBudgetMin: number;
@@ -97,6 +138,7 @@ export interface CalibrationState {
   affordances: BoardAffordances;
   restrictionRationale: RationaleEntry | null;
 }
+
 
 function buildTrackStates(
   cfg: MethodologyConfig,
@@ -129,7 +171,11 @@ export async function getCalibrationState(
   // Existing assessments stay pinned to the methodology release that created them.
   const cfg = loadMethodology(row?.methodologyVersion ?? undefined);
   const all = parseResponses(row?.calibrationResponses);
-  const startRating = await resolveStartRating(db, userId, cfg);
+  const { startRating, hasConnectedAccount } = await resolveStartRating(
+    db,
+    userId,
+    cfg,
+  );
 
   const trackStates = buildTrackStates(cfg, all, startRating);
   const primary = trackStates[0]!;
@@ -138,7 +184,7 @@ export async function getCalibrationState(
     activeTrackIndex >= 0 ? trackStates[activeTrackIndex]! : null;
 
   let activePuzzle: LichessPuzzle | null = null;
-  if (activeTrack && !activeTrack.completed) {
+  if (activeTrack && !activeTrack.completed && hasConnectedAccount) {
     const excludePuzzleIds = all
       .map((r) => r.puzzleId)
       .filter((id): id is string => !!id);
@@ -173,6 +219,7 @@ export async function getCalibrationState(
 
   return {
     completed: Boolean(row?.completedAt),
+    locked: !hasConnectedAccount,
     responseCount: activeTrack?.responseCount ?? primary.responseCount,
     maxItems: cfg.assessment.calibration.maxItems.value,
     timeBudgetMin: cfg.assessment.calibration.timeBudgetMin.value,
@@ -201,7 +248,17 @@ export async function applyCalibrationResponse(
   if (row?.completedAt) return getCalibrationState(db, userId);
 
   const prev = parseResponses(row?.calibrationResponses);
-  const startRating = await resolveStartRating(db, userId, cfg);
+  const { startRating, hasConnectedAccount } = await resolveStartRating(
+    db,
+    userId,
+    cfg,
+  );
+
+  if (!hasConnectedAccount) {
+    throw expectedError.badRequest(
+      "Connect a chess account before completing calibration.",
+    );
+  }
 
   const states = buildTrackStates(cfg, prev, startRating);
   const active = states.find((t) => !t.completed) ?? null;
@@ -272,9 +329,21 @@ export async function applyCalibrationResponse(
 export async function getGuestCalibrationState(
   db: Pick<PrismaClient, "lichessPuzzle">,
   storedResponses: StoredResponse[] = [],
+  guestConnections: GuestConnectionInfo[] = [],
+  primaryFormat?: string | null,
 ): Promise<CalibrationState & { guestResponses: StoredResponse[] }> {
   const cfg = loadMethodology();
-  const startRating = cfg.assessment.calibration.startRating.value;
+  const hasConnectedAccount = guestConnections.length > 0;
+
+  const lichessConn = guestConnections.find((c) => c.platform === "lichess");
+  const chesscomConn = guestConnections.find((c) => c.platform === "chesscom");
+
+  const startRating = resolveCalibrationSeedRating({
+    lichessRatings: lichessConn?.ratings,
+    chesscomRatings: chesscomConn?.ratings,
+    primaryFormat,
+    defaultStartRating: cfg.assessment.calibration.startRating.value,
+  });
 
   const trackStates = buildTrackStates(cfg, storedResponses, startRating);
   const primary = trackStates[0]!;
@@ -283,7 +352,7 @@ export async function getGuestCalibrationState(
     activeTrackIndex >= 0 ? trackStates[activeTrackIndex]! : null;
 
   let activePuzzle: LichessPuzzle | null = null;
-  if (activeTrack && !activeTrack.completed) {
+  if (activeTrack && !activeTrack.completed && hasConnectedAccount) {
     const excludePuzzleIds = storedResponses
       .map((r) => r.puzzleId)
       .filter((id): id is string => !!id);
@@ -318,6 +387,7 @@ export async function getGuestCalibrationState(
 
   return {
     completed: isCompleted,
+    locked: !hasConnectedAccount,
     responseCount: activeTrack?.responseCount ?? primary.responseCount,
     maxItems: cfg.assessment.calibration.maxItems.value,
     timeBudgetMin: cfg.assessment.calibration.timeBudgetMin.value,
@@ -342,11 +412,29 @@ export async function applyGuestCalibrationResponse(
     correct: boolean;
     puzzleId?: string;
     guestResponses?: StoredResponse[];
+    guestConnections?: GuestConnectionInfo[];
+    primaryFormat?: string | null;
   },
 ): Promise<CalibrationState & { guestResponses: StoredResponse[] }> {
   const prev = input.guestResponses ?? [];
   const cfg = loadMethodology();
-  const startRating = cfg.assessment.calibration.startRating.value;
+  const guestConnections = input.guestConnections ?? [];
+
+  if (guestConnections.length === 0) {
+    throw expectedError.badRequest(
+      "Connect a chess account before completing calibration.",
+    );
+  }
+
+  const lichessConn = guestConnections.find((c) => c.platform === "lichess");
+  const chesscomConn = guestConnections.find((c) => c.platform === "chesscom");
+
+  const startRating = resolveCalibrationSeedRating({
+    lichessRatings: lichessConn?.ratings,
+    chesscomRatings: chesscomConn?.ratings,
+    primaryFormat: input.primaryFormat,
+    defaultStartRating: cfg.assessment.calibration.startRating.value,
+  });
 
   const states = buildTrackStates(cfg, prev, startRating);
   const active = states.find((t) => !t.completed) ?? null;
@@ -364,5 +452,11 @@ export async function applyGuestCalibrationResponse(
           },
         ];
 
-  return getGuestCalibrationState(db, updatedResponses);
+  return getGuestCalibrationState(
+    db,
+    updatedResponses,
+    guestConnections,
+    input.primaryFormat,
+  );
 }
+

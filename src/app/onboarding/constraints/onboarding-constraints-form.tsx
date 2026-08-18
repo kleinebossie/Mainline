@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Clock, Monitor, Sliders, Trophy, Zap } from "lucide-react";
+import { Clock, Monitor, SlidersHorizontal, Trophy, Zap } from "lucide-react";
+
 
 import { trpc } from "@/lib/trpc/react";
 import { Button } from "@/components/ui/button";
@@ -14,8 +15,10 @@ import {
 } from "@/lib/constraint-limits";
 import {
   CHESS_FORMATS,
-  EMPTY_CONSTRAINTS,
+  DEFAULT_SESSION_STYLE,
   type ConstraintsInput,
+  type Goal,
+  type OwnedResource,
   type TargetFocus,
 } from "@/lib/constraints";
 import { errorMessage } from "@/lib/error-presentation";
@@ -104,9 +107,10 @@ export function OnboardingConstraintsForm({
   continueHref?: string;
   continueLabel?: string;
 }) {
-  const [guestConstraints, setGuestConstraints] = useState<GuestConstraints | null>(() =>
-    typeof window !== "undefined" ? getGuestSession().constraints : null,
-  );
+  const [guestConstraints, setGuestConstraints] =
+    useState<GuestConstraints | null>(() =>
+      typeof window !== "undefined" ? getGuestSession().constraints : null,
+    );
   const [hasGuest, setHasGuest] = useState(() =>
     typeof window !== "undefined"
       ? Boolean(getGuestSession().baseline || getGuestSession().constraints)
@@ -115,7 +119,7 @@ export function OnboardingConstraintsForm({
 
   useEffect(() => {
     const session = getGuestSession();
-    setGuestConstraints(session.constraints);
+    setGuestConstraints(session.constraints ?? null);
     setHasGuest(Boolean(session.baseline || session.constraints));
   }, []);
 
@@ -128,18 +132,49 @@ export function OnboardingConstraintsForm({
     return <StatusMessage tone="loading">Loading your plan…</StatusMessage>;
   }
 
-  const initial =
-    current.data ??
-    (guestConstraints
-      ? {
-          ...EMPTY_CONSTRAINTS,
-          minutesPerDay: guestConstraints.minutesPerDay,
-          daysPerWeek: guestConstraints.daysPerWeek,
-          formatPrefs: guestConstraints.formatPrefs,
-        }
-      : EMPTY_CONSTRAINTS);
 
-  const isGuestMode = hasGuest || Boolean(current.error);
+  const initial: ConstraintsInput = {
+    minutesPerDay:
+      guestConstraints?.minutesPerDay ?? current.data?.minutesPerDay ?? 20,
+    daysPerWeek:
+      guestConstraints?.daysPerWeek ?? current.data?.daysPerWeek ?? 5,
+    goals:
+      current.data?.goals ??
+      (guestConstraints?.goals
+        ? guestConstraints.goals.map((g: string) => ({
+            kind: g as Goal["kind"],
+            label: g,
+          }))
+        : []),
+    ownedResources:
+      current.data?.ownedResources ??
+      (guestConstraints?.ownedResources
+        ? guestConstraints.ownedResources.map((r) => ({
+            label: r.label,
+            kind: r.kind as OwnedResource["kind"],
+            externalRef: r.externalRef,
+          }))
+        : []),
+    formatPrefs: {
+      formats:
+        guestConstraints?.formatPrefs?.formats ??
+        current.data?.formatPrefs?.formats ??
+        ["rapid"],
+      preferredVariety:
+        guestConstraints?.formatPrefs?.preferredVariety ??
+        current.data?.formatPrefs?.preferredVariety ??
+        false,
+      targetFocus:
+        guestConstraints?.formatPrefs?.targetFocus ??
+        current.data?.formatPrefs?.targetFocus ??
+        "online",
+    },
+    sessionStyle: current.data?.sessionStyle ?? DEFAULT_SESSION_STYLE,
+    ifThenPlan: current.data?.ifThenPlan ?? null,
+  };
+
+  const isGuestMode = hasGuest || Boolean(current.error) || !current.data;
+
 
   return (
     <StreamlinedForm
@@ -164,27 +199,30 @@ function StreamlinedForm({
 }) {
   const router = useRouter();
   const utils = trpc.useUtils();
+  const formatsList = initial.formatPrefs?.formats ?? ["rapid"];
+
   const [minutesInput, setMinutesInput] = useState<string>(
-    String(initial.minutesPerDay),
+    String(initial.minutesPerDay || 20),
   );
   const [selectedFormat, setSelectedFormat] = useState<
     "blitz" | "rapid" | "classical"
   >(() => {
-    const first = initial.formatPrefs.formats.find(
+    const first = formatsList.find(
       (f): f is "blitz" | "rapid" | "classical" =>
         f === "blitz" || f === "rapid" || f === "classical",
     );
     return first ?? "rapid";
   });
   const [includeBullet, setIncludeBullet] = useState(() =>
-    initial.formatPrefs.formats.includes("bullet"),
+    formatsList.includes("bullet"),
   );
   const [targetFocus, setTargetFocus] = useState<TargetFocus>(
-    initial.formatPrefs.targetFocus,
+    initial.formatPrefs?.targetFocus ?? "online",
   );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [nextDestination, setNextDestination] = useState<string>(continueHref);
+
 
   const save = trpc.constraints.save.useMutation({
     onSuccess: () => {
@@ -267,7 +305,7 @@ function StreamlinedForm({
     saveGuestConstraints({
       minutesPerDay: parsedMinutes,
       daysPerWeek: initial.daysPerWeek || 5,
-      goals: initial.goals.map((g) => g.kind),
+      goals: initial.goals.map((g) => (typeof g === "string" ? g : g.kind)),
       ownedResources: initial.ownedResources,
       formatPrefs: {
         formats: mergedFormats,
@@ -275,6 +313,7 @@ function StreamlinedForm({
         targetFocus,
       },
     });
+
 
     if (destination === "/today") {
       generateGuestProgram();
@@ -562,8 +601,9 @@ function StreamlinedForm({
       <div className="bg-paper-raised/80 rounded-lg border border-line/80 p-4 shadow-sheet">
         <div className="flex items-start gap-3">
           <div className="rounded-md border border-line bg-paper p-2 text-graphite shrink-0">
-            <Sliders className="h-4 w-4" />
+            <SlidersHorizontal className="h-4 w-4" />
           </div>
+
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2">
               <p className="font-serif text-sm font-semibold text-ink">

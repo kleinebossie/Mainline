@@ -8,7 +8,9 @@ import { PendingSubmitButton } from "@/components/pending-submit-button";
 import { buttonVariants } from "@/components/ui/button";
 import { HomepageBlunderAnalyzer } from "@/components/homepage-blunder-analyzer";
 import { LandingTelemetry } from "@/components/landing-telemetry";
+import { GuestLandingButton } from "@/components/guest-landing-button";
 import { prisma } from "@/db/client";
+
 import { auth } from "@/server/auth";
 import { getPostAuthDestination } from "@/server/onboarding";
 
@@ -407,19 +409,10 @@ export default async function Home() {
                   or
                 </span>
               </div>
-              <Link
-                href="/onboarding/constraints"
-                className={buttonVariants({
-                  variant: "ghost",
-                  size: "lg",
-                  className:
-                    "w-full border border-line text-ink hover:bg-paper-raised font-serif",
-                })}
-              >
-                Continue as guest →
-              </Link>
+              <GuestLandingButton />
             </div>
             <p className="mt-6 border-t border-line pt-5 text-center font-mono text-[0.68rem] leading-relaxed text-graphite">
+
               Read-only connections · no password stored · export or delete your
               data at any time
             </p>

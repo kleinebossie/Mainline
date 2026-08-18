@@ -46,12 +46,12 @@ import { GradeMark } from "@/components/evidence";
 import { itemSummary } from "@/app/today/today-copy";
 import {
   getGuestSession,
-  hasGuestData,
   updateGuestProgramItemStatus,
   recordGuestActivityEvent,
   hasSeenAnalysisIntro,
   markSeenAnalysisIntro,
 } from "@/lib/guest-session";
+
 import { getGuestTrainItemData } from "@/lib/guest-solvables";
 
 // One board-solvable item (a Lichess puzzle or a personal blunder drill), as returned by
@@ -82,12 +82,8 @@ export function TrainItem({ programItemId }: TrainItemProps) {
     );
   }, [mounted, programItemId]);
 
-  const hasGuest = useMemo(() => {
-    if (!mounted || typeof window === "undefined") return false;
-    return hasGuestData();
-  }, [mounted]);
-
   const {
+
     data: serverData,
     isLoading: serverLoading,
     error: serverError,

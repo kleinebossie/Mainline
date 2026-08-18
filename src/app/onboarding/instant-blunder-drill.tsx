@@ -37,23 +37,59 @@ export interface BlunderDrillData {
 }
 
 export const STARTER_BLUNDER_DRILL: BlunderDrillData = {
-  fen: "3r2k1/5ppp/8/8/8/8/5PPP/3R2K1 w - - 0 1",
-  solutionLine: ["d1d8"],
+  fen: "r3k2r/pppb1ppp/8/3N4/8/8/PPP2PPP/R1B1K2R w KQkq - 0 1",
+  solutionLine: ["d5c7", "e8d8", "c7a8"],
   source: "starter",
-  title: "Punish the back-rank mistake",
+  title: "Execute the tactical fork",
   description:
-    "Black left the back rank undefended. Find the winning tactical move.",
+    "White can fork the king and rook. Find the winning knight move.",
+};
+
+const TIERED_FALLBACK_DRILLS: Record<string, BlunderDrillData> = {
+  fork: {
+    fen: "r3k2r/pppb1ppp/8/3N4/8/8/PPP2PPP/R1B1K2R w KQkq - 0 1",
+    solutionLine: ["d5c7", "e8d8", "c7a8"],
+    source: "starter",
+    title: "Execute the tactical fork",
+    description: "White can fork the king and rook. Find the winning knight move.",
+  },
+  pin: {
+    fen: "r1bqk2r/pppp1ppp/2n5/4p3/2B1P3/3P1N2/PPP2PPP/RNBQK2R w KQkq - 1 6",
+    solutionLine: ["c4f7", "e8f7", "f3g5"],
+    source: "starter",
+    title: "Exploit the weak f7 square",
+    description: "Disrupt Black's king and launch a decisive attack.",
+  },
+  hangingPiece: {
+    fen: "r1bqkb1r/pppp1ppp/2n5/4p3/4n3/2NP1N2/PPP1BPPP/R1BQK2R w KQkq - 0 6",
+    solutionLine: ["d3e4"],
+    source: "starter",
+    title: "Capture the unprotected piece",
+    description:
+      "Black left the knight on e4 unprotected. Spot the capture and win material.",
+  },
+  backrank: {
+    fen: "3r2k1/5ppp/8/8/8/8/5PPP/3R2K1 w - - 0 1",
+    solutionLine: ["d1d8"],
+    source: "starter",
+    title: "Punish the back-rank mistake",
+    description: "Black left the back rank undefended. Find the winning tactical move.",
+  },
 };
 
 export interface InstantBlunderDrillProps {
   onContinue?: () => void;
   initialDrill?: BlunderDrillData;
+  targetRating?: number;
+  theme?: string;
   className?: string;
 }
 
 export function InstantBlunderDrill({
   onContinue,
   initialDrill,
+  targetRating,
+  theme,
   className,
 }: InstantBlunderDrillProps) {
   const pendingGames = trpc.analysis.pending.useQuery(
@@ -64,28 +100,69 @@ export function InstantBlunderDrill({
     enabled: !initialDrill,
     staleTime: Infinity,
   });
+  const personalizedQuery = trpc.analysis.getPersonalizedDrill.useQuery(
+    { ratingTarget: targetRating ?? 1200, theme },
+    { enabled: !initialDrill && Boolean(targetRating), staleTime: Infinity },
+  );
+
+  const defaultStarter = useMemo(() => {
+    if (targetRating && targetRating < 1000) {
+      return TIERED_FALLBACK_DRILLS.hangingPiece!;
+    }
+    if (theme && TIERED_FALLBACK_DRILLS[theme]) {
+      return TIERED_FALLBACK_DRILLS[theme]!;
+    }
+    return TIERED_FALLBACK_DRILLS.fork!;
+  }, [targetRating, theme]);
 
   const [drill, setDrill] = useState<BlunderDrillData>(
-    initialDrill ?? STARTER_BLUNDER_DRILL,
+    initialDrill ?? defaultStarter,
   );
   const [loading, setLoading] = useState<boolean>(!initialDrill);
   const [solveStatus, setSolveStatus] = useState<
     "pending" | "correct" | "wrong" | "solved"
   >("pending");
   const [boardFen, setBoardFen] = useState<string>(
-    initialDrill?.fen ?? STARTER_BLUNDER_DRILL.fen,
+    initialDrill?.fen ?? defaultStarter.fen,
   );
 
   const [solveState, setSolveState] = useState<SolveState>(() => ({
-    position: initialDrill?.fen ?? STARTER_BLUNDER_DRILL.fen,
+    position: initialDrill?.fen ?? defaultStarter.fen,
     solutionLine:
-      initialDrill?.solutionLine ?? STARTER_BLUNDER_DRILL.solutionLine,
+      initialDrill?.solutionLine ?? defaultStarter.solutionLine,
     cursor: 0,
     startedMs: systemClock.now(),
     attempts: 0,
   }));
 
   const scanStartedRef = useRef(false);
+
+  // When personalized query returns a rated puzzle and we are on starter drill, upgrade it
+  useEffect(() => {
+    if (initialDrill || !personalizedQuery.data) return;
+    if (drill.source === "starter") {
+      const pz = personalizedQuery.data;
+      const upgraded: BlunderDrillData = {
+        fen: pz.fen,
+        solutionLine: pz.solutionLine,
+        source: "starter",
+        title: pz.title,
+        description: pz.description,
+        gameInfo: pz.gameInfo,
+      };
+      setDrill(upgraded);
+      setBoardFen(upgraded.fen);
+      setSolveState({
+        position: upgraded.fen,
+        solutionLine: upgraded.solutionLine,
+        cursor: 0,
+        startedMs: systemClock.now(),
+        attempts: 0,
+      });
+      setSolveStatus("pending");
+      setLoading(false);
+    }
+  }, [personalizedQuery.data, initialDrill, drill.source]);
 
   // Sync state if initialDrill changes externally.
   useEffect(() => {
@@ -115,18 +192,32 @@ export function InstantBlunderDrill({
       const candidates = pendingGames.data ?? [];
 
       if (candidates.length === 0) {
-        setDrill(STARTER_BLUNDER_DRILL);
-        setBoardFen(STARTER_BLUNDER_DRILL.fen);
-        setSolveState({
-          position: STARTER_BLUNDER_DRILL.fen,
-          solutionLine: STARTER_BLUNDER_DRILL.solutionLine,
-          cursor: 0,
-          startedMs: systemClock.now(),
-          attempts: 0,
-        });
+        if (personalizedQuery.data) {
+          const pz = personalizedQuery.data;
+          setDrill(pz);
+          setBoardFen(pz.fen);
+          setSolveState({
+            position: pz.fen,
+            solutionLine: pz.solutionLine,
+            cursor: 0,
+            startedMs: systemClock.now(),
+            attempts: 0,
+          });
+        } else {
+          setDrill(defaultStarter);
+          setBoardFen(defaultStarter.fen);
+          setSolveState({
+            position: defaultStarter.fen,
+            solutionLine: defaultStarter.solutionLine,
+            cursor: 0,
+            startedMs: systemClock.now(),
+            attempts: 0,
+          });
+        }
         setLoading(false);
         return;
       }
+
 
       if (typeof window === "undefined" || typeof Worker === "undefined") {
         setDrill(STARTER_BLUNDER_DRILL);
@@ -242,7 +333,10 @@ export function InstantBlunderDrill({
     pendingGames.data,
     pendingGames.isLoading,
     library.isLoading,
+    defaultStarter,
+    personalizedQuery.data,
   ]);
+
 
   const playerColor = useMemo(() => {
     try {

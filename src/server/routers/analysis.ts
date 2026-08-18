@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
+import { Chess } from "chess.js";
 
 import {
   analysisCounts,
@@ -8,6 +9,7 @@ import {
   saveAnalysisResult,
   userOwnsGame,
 } from "@/db/analysis";
+import { selectPuzzles } from "@/db/puzzles";
 import { rawGameFeaturesSchema } from "@/lib/raw-features";
 import { fsrsStateSchema } from "@/lib/tracker";
 import {
@@ -30,6 +32,7 @@ import { analyzePublicUsername } from "@/server/public-analysis";
 import { captureOperationalEvent } from "@/server/observability";
 import { expectedError } from "@/server/errors";
 import { GAME_ANALYSED_ACTIVITY_EVENT_TYPE } from "@/lib/tracker";
+
 
 const PLATFORMS = ["lichess", "chesscom"] as const;
 const ANALYSIS_SOURCES = ["lichess", "chesscom", "manual"] as const;
@@ -613,4 +616,45 @@ export const analysisRouter = router({
     .query(async ({ ctx, input }) => {
       return analyzePublicUsername(input.platform, input.username, ctx.prisma);
     }),
+
+  // Rated drill for reveal and onboarding fallback
+  getPersonalizedDrill: publicProcedure
+    .input(
+      z.object({
+        ratingTarget: z.number().int().min(400).max(3000),
+        theme: z.string().optional(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      try {
+        const candidates = await selectPuzzles(ctx.prisma, {
+          theme: input.theme || "mix",
+          ratingTarget: input.ratingTarget,
+          count: 5,
+        });
+
+        for (const pz of candidates) {
+          const rawMoves = pz.moves.trim().split(/\s+/);
+          if (rawMoves.length >= 2) {
+            const chess = new Chess(pz.fen);
+            const oppMove = chess.move(rawMoves[0]!);
+            if (oppMove) {
+              return {
+                fen: chess.fen(),
+                solutionLine: rawMoves.slice(1),
+                source: "starter" as const,
+                title: `Tactical Drill (${pz.rating} rated)`,
+                description: `A puzzle calibrated to your tactical level (${pz.rating}). Find the winning move.`,
+                gameInfo: pz.gameUrl ?? undefined,
+                rating: pz.rating,
+              };
+            }
+          }
+        }
+        return null;
+      } catch {
+        return null;
+      }
+    }),
 });
+

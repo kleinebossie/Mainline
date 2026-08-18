@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import { analyzePublicUsername } from "@/server/public-analysis";
+import {
+  analyzePublicUsername,
+  expectedMistakesPerGame,
+} from "@/server/public-analysis";
 import * as lichess from "@/integrations/lichess/adapter";
 import * as chesscom from "@/integrations/chesscom/adapter";
 
@@ -8,6 +11,15 @@ describe("analyzePublicUsername", () => {
     await expect(analyzePublicUsername("lichess", "")).rejects.toThrow(
       "Username must not be empty.",
     );
+  });
+
+  it("calculates realistic expected mistake frequencies based on rating", () => {
+    expect(expectedMistakesPerGame(600)).toBe(7.5);
+    expect(expectedMistakesPerGame(1000)).toBe(5.1);
+    expect(expectedMistakesPerGame(1400)).toBe(3.3);
+    expect(expectedMistakesPerGame(1800)).toBe(1.8);
+    expect(expectedMistakesPerGame(2200)).toBe(0.7);
+    expect(expectedMistakesPerGame(2500)).toBe(0.2);
   });
 
   it("analyzes lichess account and returns blindspot and starter drill", async () => {
@@ -40,6 +52,7 @@ describe("analyzePublicUsername", () => {
     expect(res.blindspot.title).toBeDefined();
     expect(res.drill.fen).toBeDefined();
     expect(res.drill.solutionLine.length).toBeGreaterThan(0);
+    expect(res.recentGames.length).toBe(1);
   });
 
   it("analyzes chess.com account and returns blindspot", async () => {
@@ -47,7 +60,7 @@ describe("analyzePublicUsername", () => {
       platform: "chesscom",
       externalUsername: "chessmaster",
       ratings: {
-        blitz: { rating: 1100, games: 50 },
+        blitz: { rating: 1050, games: 50 },
       },
       totalGames: 50,
       capturedAt: Date.now(),
@@ -57,8 +70,9 @@ describe("analyzePublicUsername", () => {
 
     const res = await analyzePublicUsername("chesscom", "chessmaster");
     expect(res.username).toBe("chessmaster");
-    expect(res.rating).toBe(1100);
+    expect(res.rating).toBe(1050);
     expect(res.ratingFormat).toBe("Blitz");
-    expect(res.blindspot.title).toContain("Undefended Pieces");
+    expect(res.blindspot.title).toBe("Hanging Pieces");
+    expect(res.blindspot.mistakeFrequency).toContain("mistakes per game");
   });
 });

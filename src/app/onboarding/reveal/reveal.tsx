@@ -71,9 +71,15 @@ export function Reveal() {
     setGuestSession(getGuestSession());
   }, []);
 
-  const state = trpc.assessment.state.useQuery(undefined, {
-    retry: false,
-  });
+  const guestResponses = guestSession?.calibrationResponses ?? [];
+  const guestConnections = guestSession?.connections ?? [];
+  const primaryFormat =
+    guestSession?.constraints?.formatPrefs?.formats?.[0] ?? null;
+
+  const state = trpc.assessment.state.useQuery(
+    { guestResponses, guestConnections, primaryFormat },
+    { retry: false },
+  );
   const signals = trpc.program.gameSignals.useQuery(undefined, {
     retry: false,
   });
@@ -98,15 +104,20 @@ export function Reveal() {
     (guestSession?.calibrationResponses &&
       guestSession.calibrationResponses.length >= 3),
   );
-  const isServerCalibrated = Boolean(
-    state.data?.completed || state.data?.estimate,
-  );
+
+  const isGuest = !constraints.data;
+
+  const completed = Boolean(state.data?.completed || isGuestCalibrated);
+
+  const { mutate: markRevealSeenMutate } = trpc.account.markRevealSeen.useMutation();
 
   useEffect(() => {
-    if ((isServerCalibrated || isGuestCalibrated) && typeof window !== "undefined") {
+    if (typeof window !== "undefined") {
       localStorage.setItem("mainline_reveal_seen", "true");
     }
-  }, [isServerCalibrated, isGuestCalibrated]);
+    markRevealSeenMutate();
+  }, [markRevealSeenMutate]);
+
 
   if (!mounted || state.isLoading) {
     return (
@@ -129,33 +140,39 @@ export function Reveal() {
     );
   }
 
-  const guestRating = guestSession?.baseline?.tacticalRatingEstimate ?? 1450;
-  const guestUncertainty = guestSession?.baseline?.uncertainty ?? 350;
-  const isGuest = !isServerCalibrated;
-  const completed = isServerCalibrated || isGuestCalibrated;
+  const guestRating =
+    guestSession?.baseline?.tacticalRatingEstimate ??
+    state.data?.estimate?.tacticalRatingEstimate ??
+    1450;
+  const guestUncertainty =
+    guestSession?.baseline?.uncertainty ??
+    state.data?.estimate?.uncertainty ??
+    120;
+
   const estimate =
     state.data?.estimate ??
     (isGuestCalibrated
       ? {
           tacticalRatingEstimate: guestRating,
           uncertainty: guestUncertainty,
-          evidenceGrade: "A",
+          evidenceGrade: "C",
           evidenceTier: 1,
-          citationKey: "de_groot_1965",
+          citationKey: "stub_open_question",
           confidence: "high",
           soften: false,
           flag: null,
         }
       : null);
+
   const tracks =
     state.data?.tracks && state.data.tracks.length > 0
       ? state.data.tracks
-      : isGuestCalibrated
+      : estimate
         ? [
             {
               id: "tactics",
               dimension: "tactics",
-              label: "Tactical pattern recognition",
+              label: "Tactics",
               theme: guestSession?.baseline?.topBlindspot || "mix",
               completed: true,
               responseCount: guestSession?.calibrationResponses?.length ?? 3,
@@ -168,7 +185,7 @@ export function Reveal() {
               estimate: {
                 tacticalRatingEstimate: guestRating,
                 uncertainty: guestUncertainty,
-                evidenceGrade: "A",
+                evidenceGrade: estimate.evidenceGrade || "C",
               },
             },
           ]
@@ -216,9 +233,10 @@ export function Reveal() {
       ? constraints.data.goals
       : (guestSession?.constraints?.goals.map((g) => ({ kind: g, label: g })) ??
         []);
-  const supportingError = isServerCalibrated
+  const supportingError = !isGuest
     ? (signals.error ?? constraints.error ?? library.error ?? null)
     : null;
+
 
   return (
     <div className="flex flex-col gap-6">
@@ -291,7 +309,7 @@ export function Reveal() {
                 (blunders, phase slips, time use) appear here.
               </p>
               <Link
-                href="/settings#data"
+                href="/analysis"
                 className={buttonVariants({ variant: "outline", size: "sm" })}
               >
                 Analyse my games →
@@ -337,15 +355,21 @@ export function Reveal() {
       </Card>
 
       {/* 2.5: see it for yourself: the interactive first blunder drill (M12) */}
-      {!isGuest && (
-        <InstantBlunderDrill
-          onContinue={() => {
-            if (!generate.isPending) {
-              generate.mutate();
-            }
-          }}
-        />
-      )}
+      <InstantBlunderDrill
+        targetRating={estimate.tacticalRatingEstimate}
+        theme={tracks[0]?.theme}
+        onContinue={() => {
+          if (isGuest) {
+            generateGuestProgram();
+            router.push("/today");
+            return;
+          }
+          if (!generate.isPending) {
+            generate.mutate();
+          }
+        }}
+      />
+
 
       {/* 3 — what you said you want, and how we reconcile it */}
       <Card className="settle [animation-delay:160ms]">
@@ -389,9 +413,15 @@ export function Reveal() {
                 router.push("/today");
                 return;
               }
-              generate.mutate();
+              generate.mutate(undefined, {
+                onError: () => {
+                  generateGuestProgram();
+                  router.push("/today");
+                },
+              });
             }}
           />
+
         </CardContent>
       </Card>
     </div>

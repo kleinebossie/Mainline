@@ -2,18 +2,18 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import { trpc } from "@/lib/trpc/react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { asEvidenceGrade } from "@/components/evidence";
 import { StatusMessage } from "@/components/ui/status-message";
 import { ErrorNotice } from "@/components/ui/error-notice";
-import { CalibrationTrackGauges } from "@/app/onboarding/calibration-track-gauges";
 import {
   BOARD_SIZE_CLASS,
   InteractiveBoard,
 } from "@/components/interactive-board";
+
 import { stepSolve, type SolveState } from "@/engine/interactive/session";
 import {
   puzzleToSolveState,
@@ -25,6 +25,7 @@ import {
   saveGuestCalibrationResponses,
   clearGuestCalibration,
   type GuestCalibrationResponse,
+  type GuestConnection,
 } from "@/lib/guest-session";
 import { systemClock } from "@/lib/clock";
 import { cn } from "@/lib/utils";
@@ -35,6 +36,7 @@ import { cn } from "@/lib/utils";
 // and ladder length; an in-progress historic assessment keeps its original release.
 
 export function Calibration() {
+  const router = useRouter();
   const utils = trpc.useUtils();
   const [guestResponses, setGuestResponses] = useState<
     GuestCalibrationResponse[]
@@ -44,8 +46,35 @@ export function Calibration() {
     }
     return [];
   });
+  const [guestConnections, setGuestConnections] = useState<GuestConnection[]>(
+    () => {
+      if (typeof window !== "undefined") {
+        return getGuestSession().connections ?? [];
+      }
+      return [];
+    },
+  );
+  const [primaryFormat, setPrimaryFormat] = useState<string | null>(() => {
+    if (typeof window !== "undefined") {
+      return (
+        getGuestSession().constraints?.formatPrefs?.formats?.[0] ?? null
+      );
+    }
+    return null;
+  });
 
-  const state = trpc.assessment.state.useQuery({ guestResponses });
+  useEffect(() => {
+    const session = getGuestSession();
+    setGuestResponses(session.calibrationResponses ?? []);
+    setGuestConnections(session.connections ?? []);
+    setPrimaryFormat(session.constraints?.formatPrefs?.formats?.[0] ?? null);
+  }, []);
+
+  const state = trpc.assessment.state.useQuery({
+    guestResponses,
+    guestConnections,
+    primaryFormat,
+  });
 
   const submit = trpc.assessment.submit.useMutation({
     onSuccess: (data) => {
@@ -64,7 +93,12 @@ export function Calibration() {
             topBlindspot: data.tracks[0]?.theme || "Tactics",
             calibratedAt: new Date().toISOString(),
           });
+          router.push("/onboarding/reveal");
+          return;
         }
+      }
+      if (data.completed) {
+        router.push("/onboarding/reveal");
       }
     },
     onError: () => setSolveStatus("pending"),
@@ -122,6 +156,8 @@ export function Calibration() {
         correct: true,
         puzzleId: activePuzzle.puzzleId,
         guestResponses,
+        guestConnections,
+        primaryFormat,
       });
     } else if (result.step === "wrong") {
       setSolveStatus("wrong");
@@ -130,6 +166,8 @@ export function Calibration() {
         correct: false,
         puzzleId: activePuzzle.puzzleId,
         guestResponses,
+        guestConnections,
+        primaryFormat,
       });
     } else if (result.step === "correct" || result.step === "continue") {
       setSolveStatus("correct");
@@ -146,6 +184,8 @@ export function Calibration() {
       correct: false,
       puzzleId: activePuzzle.puzzleId,
       guestResponses,
+      guestConnections,
+      primaryFormat,
     });
   };
 
@@ -166,48 +206,68 @@ export function Calibration() {
     );
   }
 
-  const { completed, maxItems, activeTrackIndex, tracks } = state.data;
-
-  // --- Completed: the multi-dimensional baseline -----------------------------
-  if (completed || !activeTrack) {
-    const primary = tracks[0]!;
+  if (state.data.locked) {
     return (
-      <Card
-        gutter={asEvidenceGrade(primary.estimate.evidenceGrade)}
-        className="settle"
-      >
-        <CardHeader className="pb-4">
-          <CardTitle className="font-serif text-3xl font-semibold">
-            Your starting baseline
-          </CardTitle>
-          <p className="text-graphite font-mono text-sm mt-1">
-            {tracks.length === 1
-              ? "A behavioural read of your tactical level."
-              : `A behavioural read across ${tracks.length} dimensions.`}{" "}
-            Uncertainty shrinks with more games and reviews.
-          </p>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-5">
-          {reset.error && (
-            <ErrorNotice
-              error={reset.error}
-              heading="Calibration not restarted"
-              message="Your existing result is unchanged. Try retaking the calibration again."
-            />
-          )}
-          <CalibrationTrackGauges tracks={tracks} className="gap-4" />
+      <Card className="settle border-line bg-card shadow-sheet p-6 sm:p-8">
+        <div className="flex flex-col gap-5">
+          <div>
+            <p className="eyebrow text-evergreen">
+              Tactical Calibration · Locked
+            </p>
+            <h2 className="font-serif text-2xl sm:text-3xl font-semibold mt-1">
+              Connect a chess account to unlock calibration
+            </h2>
+            <p className="text-graphite text-sm sm:text-base font-serif leading-relaxed mt-2 max-w-xl">
+              Mainline seeds your calibration puzzles from your actual rating on
+              Lichess or Chess.com. Link at least one chess account to begin.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3 pt-2">
+            <Link
+              href="/connections"
+              className={buttonVariants({ size: "default" })}
+            >
+              Connect chess account →
+            </Link>
+            <Link
+              href="/today"
+              className={buttonVariants({
+                variant: "outline",
+                size: "default",
+              })}
+            >
+              Skip to Today&apos;s training →
+            </Link>
+          </div>
+        </div>
+      </Card>
+    );
+  }
 
-          <p className="text-graphite font-serif text-sm leading-relaxed border-t border-line/80 pt-4">
-            {tracks.length === 1
-              ? "This is a rough calibration point"
-              : "These are rough calibration points"}
-            , not verdicts. The fuller picture comes from analysing your real
-            games.
-          </p>
+  const { completed, maxItems, activeTrackIndex } = state.data;
 
-          <div className="flex flex-wrap gap-3 border-t border-line/80 pt-5">
-            <Link href="/onboarding/reveal" className={buttonVariants()}>
-              Continue →
+  // --- Completed: directly route to reveal or provide retake ------------------
+
+  if (completed || !activeTrack) {
+    return (
+      <Card className="settle border-line bg-card shadow-sheet p-6 sm:p-8">
+        <div className="flex flex-col gap-5">
+          <div>
+            <p className="eyebrow text-evergreen">Calibration complete</p>
+            <h2 className="font-serif text-2xl sm:text-3xl font-semibold mt-1">
+              Your calibration is already finished
+            </h2>
+            <p className="text-graphite text-sm sm:text-base font-serif leading-relaxed mt-2 max-w-xl">
+              You can review your full baseline on the reveal page, or retake the
+              3-puzzle calibration.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3 pt-2">
+            <Link
+              href="/onboarding/reveal"
+              className={buttonVariants({ size: "default" })}
+            >
+              Continue to reveal →
             </Link>
             <Button
               type="button"
@@ -218,7 +278,7 @@ export function Calibration() {
               Retake calibration
             </Button>
           </div>
-        </CardContent>
+        </div>
       </Card>
     );
   }
@@ -229,7 +289,10 @@ export function Calibration() {
       ratingShown: activeTrack.next.ratingTarget,
       correct,
       guestResponses,
+      guestConnections,
+      primaryFormat,
     });
+
 
   return (
     <Card className="settle">

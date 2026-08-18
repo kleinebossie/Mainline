@@ -15,12 +15,28 @@ const guestResponseSchema = z.object({
   puzzleId: z.string().optional(),
 });
 
+const guestConnectionSchema = z.object({
+  platform: z.enum(["lichess", "chesscom"]),
+  externalUsername: z.string().optional(),
+  ratings: z
+    .record(
+      z.object({
+        rating: z.number().optional(),
+        rd: z.number().optional(),
+        games: z.number().optional(),
+      }),
+    )
+    .optional(),
+});
+
 export const assessmentRouter = router({
   state: publicProcedure
     .input(
       z
         .object({
           guestResponses: z.array(guestResponseSchema).optional(),
+          guestConnections: z.array(guestConnectionSchema).optional(),
+          primaryFormat: z.string().nullable().optional(),
         })
         .optional(),
     )
@@ -29,7 +45,12 @@ export const assessmentRouter = router({
       if (userId) {
         return getCalibrationState(ctx.prisma, userId);
       }
-      return getGuestCalibrationState(ctx.prisma, input?.guestResponses ?? []);
+      return getGuestCalibrationState(
+        ctx.prisma,
+        input?.guestResponses ?? [],
+        input?.guestConnections ?? [],
+        input?.primaryFormat,
+      );
     }),
 
   submit: publicProcedure
@@ -39,6 +60,8 @@ export const assessmentRouter = router({
         correct: z.boolean(),
         puzzleId: z.string().optional(),
         guestResponses: z.array(guestResponseSchema).optional(),
+        guestConnections: z.array(guestConnectionSchema).optional(),
+        primaryFormat: z.string().nullable().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -55,6 +78,7 @@ export const assessmentRouter = router({
       await ctx.prisma.assessment.deleteMany({ where: { userId } });
       return getCalibrationState(ctx.prisma, userId);
     }
-    return getGuestCalibrationState(ctx.prisma, []);
+    return getGuestCalibrationState(ctx.prisma, [], []);
   }),
 });
+

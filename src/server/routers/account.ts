@@ -114,4 +114,16 @@ export const accountRouter = router({
         ...result,
       };
     }),
+
+  markRevealSeen: publicProcedure.mutation(async ({ ctx }) => {
+    const userId = ctx.session?.user?.id;
+    if (userId) {
+      await ctx.prisma.user.updateMany({
+        where: { id: userId, setupRevealSeenAt: null },
+        data: { setupRevealSeenAt: new Date() },
+      });
+    }
+    return { ok: true as const };
+  }),
 });
+

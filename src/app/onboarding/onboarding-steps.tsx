@@ -25,9 +25,14 @@ export function OnboardingSteps({ status }: { status: OnboardingStatus }) {
   const [guestSession, setGuestSession] = useState<GuestSessionData | null>(
     null,
   );
+  const [revealSeen, setRevealSeen] = useState(false);
 
   useEffect(() => {
     setGuestSession(getGuestSession());
+    setRevealSeen(
+      typeof window !== "undefined" &&
+        localStorage.getItem("mainline_reveal_seen") === "true",
+    );
   }, []);
 
   const details: Record<string, string> = {
@@ -56,7 +61,19 @@ export function OnboardingSteps({ status }: { status: OnboardingStatus }) {
     }
     if (
       step.href === "/onboarding/calibration" &&
-      Boolean(guestSession?.baseline?.calibratedAt)
+      (Boolean(guestSession?.baseline?.calibratedAt) ||
+        (guestSession?.calibrationResponses &&
+          guestSession.calibrationResponses.length >= 3))
+    ) {
+      done = true;
+    }
+    if (
+      step.href === "/onboarding/reveal" &&
+      (revealSeen ||
+        guestSession?.program != null ||
+        Boolean(guestSession?.baseline?.calibratedAt) ||
+        (guestSession?.calibrationResponses &&
+          guestSession.calibrationResponses.length >= 3))
     ) {
       done = true;
     }
@@ -71,6 +88,7 @@ export function OnboardingSteps({ status }: { status: OnboardingStatus }) {
       required: step.required,
     };
   });
+
 
   const doneCount = steps.filter((step) => step.done).length;
   const requiredDone = steps.filter(
