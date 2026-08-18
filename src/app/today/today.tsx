@@ -44,22 +44,32 @@ export function Today() {
   const [programNotice, setProgramNotice] = useState<ProgramNotice | null>(
     null,
   );
+  const [mounted, setMounted] = useState(false);
   const [guestState, setGuestState] = useState<GuestSessionData | null>(() =>
     typeof window !== "undefined" ? getGuestSession() : null,
   );
+
+  useEffect(() => {
+    setMounted(true);
+    setGuestState(getGuestSession());
+  }, []);
+
   const isGuest = Boolean(
-    guestState?.constraints != null || guestState?.baseline != null,
+    guestState?.constraints != null ||
+      guestState?.baseline != null ||
+      guestState?.program != null ||
+      (guestState?.connections && guestState.connections.length > 0),
   );
 
   const today = trpc.program.getToday.useQuery(undefined, {
-    enabled: !isGuest,
+    enabled: mounted && !isGuest,
     retry: false,
   });
   const history = trpc.program.history.useInfiniteQuery(
     { limit: 8 },
     {
       getNextPageParam: (page) => page.nextCursor ?? undefined,
-      enabled: !isGuest,
+      enabled: mounted && !isGuest,
       retry: false,
     },
   );
@@ -85,7 +95,7 @@ export function Today() {
       }),
   });
   const dueReviews = trpc.tracker.dueReviews.useQuery(undefined, {
-    enabled: !isGuest,
+    enabled: mounted && !isGuest,
     retry: false,
   });
   const generate = trpc.program.generate.useMutation({
@@ -177,11 +187,11 @@ export function Today() {
   });
 
   const constraints = trpc.constraints.getCurrent.useQuery(undefined, {
-    enabled: !isGuest,
+    enabled: mounted && !isGuest,
     retry: false,
   });
   const library = trpc.library.get.useQuery(undefined, {
-    enabled: !isGuest,
+    enabled: mounted && !isGuest,
     retry: false,
   });
   const ownedBooks = library.data?.books.filter((b) => b.owned) ?? [];
@@ -315,6 +325,7 @@ export function Today() {
 
   useEffect(() => {
     if (
+      mounted &&
       isGuest &&
       !guestState?.program &&
       (guestState?.baseline || guestState?.constraints)
@@ -322,7 +333,7 @@ export function Today() {
       generateGuestProgram();
       setGuestState(getGuestSession());
     }
-  }, [isGuest, guestState]);
+  }, [mounted, isGuest, guestState]);
 
   const startedTrackedRef = useRef(false);
   const completedTrackedRef = useRef(false);
@@ -421,7 +432,7 @@ export function Today() {
   const timeBusy =
     saveConstraints.isPending || generate.isPending || replan.isPending;
 
-  if (today.isLoading && !isGuest) {
+  if (!mounted || (today.isLoading && !isGuest)) {
     return <StatusMessage tone="loading">Loading your session…</StatusMessage>;
   }
 

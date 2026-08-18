@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import { trpc } from "@/lib/trpc/react";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -52,31 +52,43 @@ export function FirstSessionAction({
 
 // The reveal: the honest "what your games say vs. what you assumed" moment (VISION §2;
 // the Dunning–Kruger guard, Seam 2). It contrasts the BEHAVIOURAL baseline (calibration +
-// game-derived weakness signals) against the user's STATED goals — and where the data is
+// game-derived weakness signals) against the user's STATED goals, and where the data is
 // thin it says so plainly rather than inventing a verdict (L3).
-import { getGuestSession, generateGuestProgram } from "@/lib/guest-session";
+import {
+  getGuestSession,
+  generateGuestProgram,
+  type GuestSessionData,
+} from "@/lib/guest-session";
 
 export function Reveal() {
   const router = useRouter();
   const utils = trpc.useUtils();
-  const guestSession = typeof window !== "undefined" ? getGuestSession() : null;
-  const isGuest =
-    guestSession?.baseline != null || guestSession?.constraints != null;
+  const [mounted, setMounted] = useState(false);
+  const [guestSession, setGuestSession] = useState<GuestSessionData | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+    setGuestSession(getGuestSession());
+  }, []);
+
+  const isGuest = mounted
+    ? Boolean(guestSession?.baseline != null || guestSession?.constraints != null)
+    : false;
 
   const state = trpc.assessment.state.useQuery(undefined, {
-    enabled: !isGuest,
+    enabled: mounted && !isGuest,
     retry: false,
   });
   const signals = trpc.program.gameSignals.useQuery(undefined, {
-    enabled: !isGuest,
+    enabled: mounted && !isGuest,
     retry: false,
   });
   const constraints = trpc.constraints.getCurrent.useQuery(undefined, {
-    enabled: !isGuest,
+    enabled: mounted && !isGuest,
     retry: false,
   });
   const library = trpc.analysis.library.useQuery(undefined, {
-    enabled: !isGuest,
+    enabled: mounted && !isGuest,
     retry: false,
   });
   const generate = trpc.program.generate.useMutation({
@@ -95,7 +107,7 @@ export function Reveal() {
     }
   }, [isGuest, state.data?.completed]);
 
-  if (!isGuest && state.isLoading) {
+  if (!mounted || (!isGuest && state.isLoading)) {
     return (
       <StatusMessage tone="loading">
         Loading your starting picture…

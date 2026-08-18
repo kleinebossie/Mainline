@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Clock, Monitor, Sliders, Trophy, Zap } from "lucide-react";
 
@@ -24,6 +24,7 @@ import {
   getGuestSession,
   saveGuestConstraints,
   generateGuestProgram,
+  type GuestConstraints,
 } from "@/lib/guest-session";
 import { trackFunnelEvent } from "@/lib/telemetry";
 
@@ -97,27 +98,33 @@ const MODALITY_OPTIONS: readonly ModalityOption[] = [
 ];
 
 export function OnboardingConstraintsForm({
-  continueHref = "/today",
-  continueLabel = "Save & Open Today's Training →",
+  continueHref = "/connections",
+  continueLabel = "Continue setup →",
 }: {
   continueHref?: string;
   continueLabel?: string;
 }) {
-  const [guestConstraints] = useState(() =>
+  const [guestConstraints, setGuestConstraints] = useState<GuestConstraints | null>(() =>
     typeof window !== "undefined" ? getGuestSession().constraints : null,
   );
-  const [hasGuest] = useState(() =>
+  const [hasGuest, setHasGuest] = useState(() =>
     typeof window !== "undefined"
       ? Boolean(getGuestSession().baseline || getGuestSession().constraints)
       : false,
   );
+
+  useEffect(() => {
+    const session = getGuestSession();
+    setGuestConstraints(session.constraints);
+    setHasGuest(Boolean(session.baseline || session.constraints));
+  }, []);
 
   const current = trpc.constraints.getCurrent.useQuery(undefined, {
     enabled: !hasGuest,
     retry: false,
   });
 
-  if (current.isLoading && !guestConstraints) {
+  if (current.isLoading && !guestConstraints && !current.data) {
     return <StatusMessage tone="loading">Loading your plan…</StatusMessage>;
   }
 
@@ -132,7 +139,7 @@ export function OnboardingConstraintsForm({
         }
       : EMPTY_CONSTRAINTS);
 
-  const isGuestMode = hasGuest || Boolean(current.error);
+  const isGuestMode = hasGuest || Boolean(current.error) || !current.data;
 
   return (
     <StreamlinedForm
@@ -250,26 +257,34 @@ function StreamlinedForm({
       new Set([...chosenFormats, ...otherSavedFormats]),
     ).filter((f) => CHESS_FORMATS.includes(f));
 
-    if (isGuestMode) {
-      saveGuestConstraints({
-        minutesPerDay: parsedMinutes,
-        daysPerWeek: initial.daysPerWeek || 5,
-        goals: initial.goals.map((g) => g.kind),
-        ownedResources: initial.ownedResources,
-        formatPrefs: {
-          formats: mergedFormats,
-          preferredVariety: initial.formatPrefs.preferredVariety,
-          targetFocus,
-        },
-      });
+    const destination = nextDestination || continueHref;
+
+    // Always update local guest state so that guest mode and localStorage are immediately populated
+    saveGuestConstraints({
+      minutesPerDay: parsedMinutes,
+      daysPerWeek: initial.daysPerWeek || 5,
+      goals: initial.goals.map((g) => g.kind),
+      ownedResources: initial.ownedResources,
+      formatPrefs: {
+        formats: mergedFormats,
+        preferredVariety: initial.formatPrefs.preferredVariety,
+        targetFocus,
+      },
+    });
+
+    if (destination === "/today") {
       generateGuestProgram();
-      trackFunnelEvent("onboarding_completed", {
-        minutesPerDay: parsedMinutes,
-        daysPerWeek: initial.daysPerWeek || 5,
-        primaryFormat: selectedFormat,
-        isGuest: true,
-      });
-      router.push(nextDestination || continueHref);
+    }
+
+    trackFunnelEvent("onboarding_completed", {
+      minutesPerDay: parsedMinutes,
+      daysPerWeek: initial.daysPerWeek || 5,
+      primaryFormat: selectedFormat,
+      isGuest: isGuestMode,
+    });
+
+    if (isGuestMode) {
+      router.push(destination);
       return;
     }
 
@@ -557,8 +572,8 @@ function StreamlinedForm({
             onClick={() => setNextDestination("/today")}
             className="w-full sm:w-auto"
           >
-            {submitting || save.isPending
-              ? "Saving & building program…"
+            {submitting || (save.isPending && nextDestination === "/today")
+              ? "Saving & building session…"
               : "Build my first session →"}
           </Button>
           <Button
@@ -573,7 +588,7 @@ function StreamlinedForm({
             }
             className="w-full sm:w-auto"
           >
-            {continueLabel ?? "Save & Continue setup →"}
+            {continueLabel ?? "Continue setup →"}
           </Button>
         </div>
         {error && <StatusMessage tone="error">{error}</StatusMessage>}

@@ -12,8 +12,8 @@ export default function ConstraintsPage() {
       lede="Three simple choices to shape your daily training. You can customize books, interleaving, and habit cues in Settings at any time."
     >
       <OnboardingConstraintsForm
-        continueHref="/onboarding/reveal"
-        continueLabel="Save & Continue →"
+        continueHref="/connections"
+        continueLabel="Continue setup →"
       />
     </PageShell>
   );

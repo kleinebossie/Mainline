@@ -83,7 +83,8 @@ describe("OnboardingConstraintsForm", () => {
       'You can add your owned chess books, customize habit cues, and adjust topic mixing in <span class="text-ink font-medium">Settings</span> at any time.',
     );
 
-    // Save button
+    // Action buttons
     expect(html).toContain("Build my first session →");
+    expect(html).toContain("Continue setup →");
   });
 });
