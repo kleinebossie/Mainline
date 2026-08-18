@@ -11,7 +11,7 @@ import {
   toTodayItem,
 } from "@/server/program";
 import { resolveTacticalRating } from "@/server/profile";
-import { protectedProcedure, router } from "@/server/trpc";
+import { protectedProcedure, publicProcedure, router } from "@/server/trpc";
 import {
   loadMethodology,
   bandForRating,
@@ -287,9 +287,11 @@ export const programRouter = router({
       };
     }),
 
-  gameSignals: protectedProcedure.query(({ ctx }) =>
-    getGameSignals(ctx.prisma, ctx.userId),
-  ),
+  gameSignals: publicProcedure.query(async ({ ctx }) => {
+    const userId = ctx.session?.user?.id;
+    if (!userId) return null;
+    return getGameSignals(ctx.prisma, userId);
+  }),
 
   generate: protectedProcedure.mutation(async ({ ctx }) => {
     await generateAndSaveProgram(ctx.prisma, ctx.userId, undefined, {

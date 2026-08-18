@@ -54,22 +54,13 @@ export function Today() {
     setGuestState(getGuestSession());
   }, []);
 
-  const isGuest = Boolean(
-    guestState?.constraints != null ||
-      guestState?.baseline != null ||
-      guestState?.program != null ||
-      (guestState?.connections && guestState.connections.length > 0),
-  );
-
   const today = trpc.program.getToday.useQuery(undefined, {
-    enabled: mounted && !isGuest,
     retry: false,
   });
   const history = trpc.program.history.useInfiniteQuery(
     { limit: 8 },
     {
       getNextPageParam: (page) => page.nextCursor ?? undefined,
-      enabled: mounted && !isGuest,
       retry: false,
     },
   );
@@ -95,7 +86,6 @@ export function Today() {
       }),
   });
   const dueReviews = trpc.tracker.dueReviews.useQuery(undefined, {
-    enabled: mounted && !isGuest,
     retry: false,
   });
   const generate = trpc.program.generate.useMutation({
@@ -187,14 +177,18 @@ export function Today() {
   });
 
   const constraints = trpc.constraints.getCurrent.useQuery(undefined, {
-    enabled: mounted && !isGuest,
     retry: false,
   });
   const library = trpc.library.get.useQuery(undefined, {
-    enabled: mounted && !isGuest,
     retry: false,
   });
   const ownedBooks = library.data?.books.filter((b) => b.owned) ?? [];
+
+  const isGuest = Boolean(
+    (!today.isLoading && (today.error != null || !today.data) && (guestState?.program != null || guestState?.constraints != null)) ||
+    (!mounted && (guestState?.program != null || guestState?.constraints != null))
+  );
+
   const supportingError = isGuest
     ? null
     : (constraints.error ?? library.error ?? dueReviews.error ?? null);

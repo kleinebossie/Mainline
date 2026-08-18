@@ -71,24 +71,16 @@ export function Reveal() {
     setGuestSession(getGuestSession());
   }, []);
 
-  const isGuest = mounted
-    ? Boolean(guestSession?.baseline != null || guestSession?.constraints != null)
-    : false;
-
   const state = trpc.assessment.state.useQuery(undefined, {
-    enabled: mounted && !isGuest,
     retry: false,
   });
   const signals = trpc.program.gameSignals.useQuery(undefined, {
-    enabled: mounted && !isGuest,
     retry: false,
   });
   const constraints = trpc.constraints.getCurrent.useQuery(undefined, {
-    enabled: mounted && !isGuest,
     retry: false,
   });
   const library = trpc.analysis.library.useQuery(undefined, {
-    enabled: mounted && !isGuest,
     retry: false,
   });
   const generate = trpc.program.generate.useMutation({
@@ -101,13 +93,22 @@ export function Reveal() {
     },
   });
 
+  const isGuestCalibrated = Boolean(
+    guestSession?.baseline?.calibratedAt ||
+    (guestSession?.calibrationResponses &&
+      guestSession.calibrationResponses.length >= 3),
+  );
+  const isServerCalibrated = Boolean(
+    state.data?.completed || state.data?.estimate,
+  );
+
   useEffect(() => {
-    if ((isGuest || state.data?.completed) && typeof window !== "undefined") {
+    if ((isServerCalibrated || isGuestCalibrated) && typeof window !== "undefined") {
       localStorage.setItem("mainline_reveal_seen", "true");
     }
-  }, [isGuest, state.data?.completed]);
+  }, [isServerCalibrated, isGuestCalibrated]);
 
-  if (!mounted || (!isGuest && state.isLoading)) {
+  if (!mounted || state.isLoading) {
     return (
       <StatusMessage tone="loading">
         Loading your starting picture…
@@ -115,7 +116,7 @@ export function Reveal() {
     );
   }
 
-  if (!isGuest && (state.error || !state.data)) {
+  if (state.error) {
     return (
       <ErrorNotice
         error={state.error}
@@ -128,18 +129,13 @@ export function Reveal() {
     );
   }
 
-  const isGuestCalibrated = Boolean(
-    guestSession?.baseline?.calibratedAt ||
-    (guestSession?.calibrationResponses &&
-      guestSession.calibrationResponses.length >= 3),
-  );
   const guestRating = guestSession?.baseline?.tacticalRatingEstimate ?? 1450;
   const guestUncertainty = guestSession?.baseline?.uncertainty ?? 350;
-  const completed = isGuest
-    ? isGuestCalibrated
-    : Boolean(state.data?.completed);
-  const estimate = isGuest
-    ? isGuestCalibrated
+  const isGuest = !isServerCalibrated;
+  const completed = isServerCalibrated || isGuestCalibrated;
+  const estimate =
+    state.data?.estimate ??
+    (isGuestCalibrated
       ? {
           tacticalRatingEstimate: guestRating,
           uncertainty: guestUncertainty,
@@ -150,31 +146,33 @@ export function Reveal() {
           soften: false,
           flag: null,
         }
-      : null
-    : state.data?.estimate;
-  const tracks = isGuest
-    ? [
-        {
-          id: "tactics",
-          dimension: "tactics",
-          label: "Tactical pattern recognition",
-          theme: guestSession?.baseline?.topBlindspot || "mix",
-          completed: true,
-          responseCount: guestSession?.calibrationResponses?.length ?? 3,
-          next: {
-            itemNumber: 3,
-            totalItems: 3,
-            ratingTarget: guestRating,
-            done: true,
-          },
-          estimate: {
-            tacticalRatingEstimate: guestRating,
-            uncertainty: guestUncertainty,
-            evidenceGrade: "A",
-          },
-        },
-      ]
-    : (state.data?.tracks ?? []);
+      : null);
+  const tracks =
+    state.data?.tracks && state.data.tracks.length > 0
+      ? state.data.tracks
+      : isGuestCalibrated
+        ? [
+            {
+              id: "tactics",
+              dimension: "tactics",
+              label: "Tactical pattern recognition",
+              theme: guestSession?.baseline?.topBlindspot || "mix",
+              completed: true,
+              responseCount: guestSession?.calibrationResponses?.length ?? 3,
+              next: {
+                itemNumber: 3,
+                totalItems: 3,
+                ratingTarget: guestRating,
+                done: true,
+              },
+              estimate: {
+                tacticalRatingEstimate: guestRating,
+                uncertainty: guestUncertainty,
+                evidenceGrade: "A",
+              },
+            },
+          ]
+        : [];
 
   if (!completed || !estimate) {
     return (
@@ -213,13 +211,14 @@ export function Reveal() {
     );
   }
 
-  const goals = isGuest
-    ? (guestSession?.constraints?.goals.map((g) => ({ kind: g, label: g })) ??
-      [])
-    : (constraints.data?.goals ?? []);
-  const supportingError = isGuest
-    ? null
-    : (signals.error ?? constraints.error ?? library.error ?? null);
+  const goals =
+    constraints.data?.goals && constraints.data.goals.length > 0
+      ? constraints.data.goals
+      : (guestSession?.constraints?.goals.map((g) => ({ kind: g, label: g })) ??
+        []);
+  const supportingError = isServerCalibrated
+    ? (signals.error ?? constraints.error ?? library.error ?? null)
+    : null;
 
   return (
     <div className="flex flex-col gap-6">
@@ -312,7 +311,16 @@ export function Reveal() {
                 {signals.data.gamesAnalysed === 1 ? "" : "s"}:
               </p>
               <TransparencyCardGroup
-                items={signals.data.signals.map((signal) => ({
+                items={signals.data.signals.map((signal: {
+                  dimensionLabel: string;
+                  rationaleText: string;
+                  evidenceGrade: string;
+                  evidenceTier: number;
+                  citationKey: string;
+                  citationSource: string | null;
+                  confidence: string;
+                  soften: boolean;
+                }) => ({
                   title: signal.dimensionLabel,
                   rationaleText: signal.rationaleText,
                   evidenceGrade: signal.evidenceGrade,
