@@ -98,7 +98,7 @@ const MODALITY_OPTIONS: readonly ModalityOption[] = [
 ];
 
 export function OnboardingConstraintsForm({
-  continueHref = "/connections",
+  continueHref = "/onboarding/reveal",
   continueLabel = "Continue setup →",
 }: {
   continueHref?: string;
@@ -583,7 +583,7 @@ function StreamlinedForm({
             disabled={submitting || save.isPending}
             onClick={() =>
               setNextDestination(
-                continueHref === "/today" ? "/connections" : continueHref,
+                continueHref === "/today" ? "/onboarding/reveal" : continueHref,
               )
             }
             className="w-full sm:w-auto"

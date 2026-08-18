@@ -271,7 +271,7 @@ test("normal core loop persists outcomes, adaptation, history, replan, and feedb
     await coreLoopPage.getByLabel("Rapid", { exact: false }).check();
     await coreLoopPage.getByLabel("Screen only", { exact: false }).check();
     await coreLoopPage
-      .getByRole("button", { name: /Save & Continue/i })
+      .getByRole("button", { name: /Continue setup/i })
       .click();
     await expect(coreLoopPage).toHaveURL(/\/onboarding\/reveal$/);
 
