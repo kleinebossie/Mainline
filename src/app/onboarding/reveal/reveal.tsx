@@ -78,7 +78,7 @@ export function Reveal() {
 
   const state = trpc.assessment.state.useQuery(
     { guestResponses, guestConnections, primaryFormat },
-    { retry: false },
+    { retry: false, placeholderData: (prev) => prev },
   );
   const signals = trpc.program.gameSignals.useQuery(undefined, {
     retry: false,

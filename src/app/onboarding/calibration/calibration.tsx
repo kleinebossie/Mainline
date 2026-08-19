@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
 
 import { trpc } from "@/lib/trpc/react";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -70,11 +71,16 @@ export function Calibration() {
     setPrimaryFormat(session.constraints?.formatPrefs?.formats?.[0] ?? null);
   }, []);
 
-  const state = trpc.assessment.state.useQuery({
-    guestResponses,
-    guestConnections,
-    primaryFormat,
-  });
+  const state = trpc.assessment.state.useQuery(
+    {
+      guestResponses,
+      guestConnections,
+      primaryFormat,
+    },
+    {
+      placeholderData: (previousData) => previousData,
+    },
+  );
 
   const submit = trpc.assessment.submit.useMutation({
     onSuccess: (data) => {
@@ -121,6 +127,7 @@ export function Calibration() {
   const activeTrack = state.data?.activeTrack;
   const affordances = state.data?.affordances;
   const pending = submit.isPending || reset.isPending;
+  const isAdvancing = pending || state.isFetching;
 
   useEffect(() => {
     if (activePuzzle) {
@@ -189,11 +196,11 @@ export function Calibration() {
     });
   };
 
-  if (state.isLoading) {
+  if (state.isLoading && !state.data) {
     return <StatusMessage tone="loading">Loading calibration…</StatusMessage>;
   }
 
-  if (state.error || !state.data) {
+  if (state.error && !state.data) {
     return (
       <ErrorNotice
         error={state.error}
@@ -204,6 +211,10 @@ export function Calibration() {
         retryLabel="Reload calibration"
       />
     );
+  }
+
+  if (!state.data) {
+    return null;
   }
 
   if (state.data.locked) {
@@ -351,16 +362,23 @@ export function Calibration() {
                 <span className="eyebrow !text-[0.6rem]">
                   {orientation === "white" ? "White" : "Black"} to move
                 </span>
-                <span className="text-graphite font-mono text-xs">
-                  You play {orientation}
-                </span>
+                {isAdvancing ? (
+                  <span className="inline-flex items-center gap-1.5 font-mono text-xs font-semibold text-evergreen animate-pulse">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    Loading next puzzle…
+                  </span>
+                ) : (
+                  <span className="text-graphite font-mono text-xs">
+                    You play {orientation}
+                  </span>
+                )}
               </div>
               <InteractiveBoard
                 fen={solveState.position}
                 onMove={handleMove}
                 orientation={orientation}
                 disabled={
-                  pending || solveStatus === "solved" || solveStatus === "wrong"
+                  pending || isAdvancing || solveStatus === "solved" || solveStatus === "wrong"
                 }
                 showEvalBar={affordances?.showEvalBar ?? false}
                 showLegalMoveDots={affordances?.showLegalMoveDots ?? false}
@@ -381,32 +399,56 @@ export function Calibration() {
             {/* Info Sidebar */}
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-2 rounded-md border border-line bg-paper/50 p-4">
-                <span className="text-ink font-mono text-xs font-semibold uppercase tracking-wider">
-                  Solve State:
-                </span>
-                <span
+                <div className="flex items-center justify-between">
+                  <span className="text-ink font-mono text-xs font-semibold uppercase tracking-wider">
+                    Solve State:
+                  </span>
+                  {isAdvancing && (
+                    <span className="inline-flex items-center gap-1 font-mono text-[0.65rem] text-evergreen animate-pulse">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Loading next…
+                    </span>
+                  )}
+                </div>
+                <div
                   className={cn(
-                    "font-serif text-lg font-semibold",
+                    "font-serif text-lg font-semibold flex flex-col gap-1",
                     solveStatus === "solved" && "text-evergreen-bright",
                     solveStatus === "wrong" && "text-destructive",
                     solveStatus === "correct" && "text-evergreen",
                     solveStatus === "pending" && "text-graphite",
                   )}
                 >
-                  {solveStatus === "solved" && "✓ Correct!"}
-                  {solveStatus === "wrong" && "✗ Incorrect!"}
-                  {solveStatus === "correct" && "✓ Correct Move!"}
-                  {solveStatus === "pending" && "Solve the puzzle..."}
-                </span>
+                  <div>
+                    {solveStatus === "solved" && "✓ Correct!"}
+                    {solveStatus === "wrong" && "✗ Incorrect!"}
+                    {solveStatus === "correct" && "✓ Correct Move!"}
+                    {solveStatus === "pending" && (isAdvancing ? "Loading next puzzle…" : "Solve the puzzle...")}
+                  </div>
+                  {isAdvancing && (
+                    <p className="text-xs font-mono font-normal text-graphite flex items-center gap-1.5 pt-0.5">
+                      <Loader2 className="h-3 w-3 animate-spin text-evergreen shrink-0" />
+                      Next puzzle on its way…
+                    </p>
+                  )}
+                </div>
               </div>
 
               <div className="flex flex-col gap-2 border-t border-line/80 pt-4">
                 <Button
                   variant="outline"
                   onClick={handleSkip}
-                  disabled={pending}
+                  disabled={pending || isAdvancing}
+                  className="inline-flex items-center justify-center gap-2"
                 >
-                  Skip / Give Up
+                  {isAdvancing ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin text-evergreen" />
+                      <span>Loading next puzzle…</span>
+                    </>
+                  ) : (
+                    "Skip / Give Up"
+                  )}
                 </Button>
               </div>
             </div>
@@ -428,19 +470,19 @@ export function Calibration() {
               <Button
                 type="button"
                 className="flex-1"
-                disabled={pending}
+                disabled={pending || isAdvancing}
                 onClick={() => recordFallback(true)}
               >
-                I solved it
+                {isAdvancing ? "Loading next…" : "I solved it"}
               </Button>
               <Button
                 type="button"
                 variant="outline"
                 className="flex-1"
-                disabled={pending}
+                disabled={pending || isAdvancing}
                 onClick={() => recordFallback(false)}
               >
-                I missed it
+                {isAdvancing ? "Loading next…" : "I missed it"}
               </Button>
             </div>
           </>

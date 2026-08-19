@@ -7,7 +7,6 @@ import { Check, RotateCcw, Sparkles, Target } from "lucide-react";
 
 import { trpc } from "@/lib/trpc/react";
 import { Button } from "@/components/ui/button";
-import { StatusMessage } from "@/components/ui/status-message";
 import { ErrorNotice } from "@/components/ui/error-notice";
 import { GradeMark } from "@/components/evidence";
 import {
@@ -423,22 +422,6 @@ export function HomepageBlunderAnalyzer() {
           </div>
         </form>
 
-        {query.isFetching && (
-          <div className="mt-6">
-            <StatusMessage tone="loading">
-              Fetching games from{" "}
-              {platform === "lichess" ? "Lichess" : "Chess.com"}…
-            </StatusMessage>
-          </div>
-        )}
-
-        {isWasmScanning && (
-          <div className="mt-6 flex items-center gap-2 rounded-md border border-evergreen/30 bg-evergreen/[0.06] p-3 text-xs font-mono text-evergreen">
-            <Sparkles className="h-4 w-4 animate-pulse shrink-0" />
-            <span>{scanStatusMessage}</span>
-          </div>
-        )}
-
         {query.error && (
           <div className="mt-6">
             <ErrorNotice
@@ -453,9 +436,143 @@ export function HomepageBlunderAnalyzer() {
         )}
       </div>
 
-      {/* Analysis Result & Interactive Drill */}
-      {result && blindspot && drill && (
-        <div className="mt-8 flex flex-col gap-8 rounded-xl border border-line bg-paper p-6 shadow-sheet sm:p-8">
+      {/* Pretty Stockfish WASM Scanning Loading Screen */}
+      {(query.isFetching || isWasmScanning) && (
+        <div className="settle mt-8 flex flex-col items-center justify-center rounded-xl border border-line bg-paper-raised/90 p-8 sm:p-12 text-center shadow-sheet">
+          {/* Animated Tactical Radar / Chess Grid Scanner */}
+          <div className="relative mb-6 flex h-24 w-24 sm:h-28 sm:w-28 items-center justify-center rounded-2xl border border-evergreen/30 bg-evergreen/[0.06] p-2 shadow-inner">
+            <div className="absolute inset-0 rounded-2xl bg-gradient-to-tr from-evergreen/10 via-transparent to-evergreen/5 animate-pulse" />
+            
+            {/* 4x4 Mini Tactical Board Grid */}
+            <div className="grid grid-cols-4 grid-rows-4 gap-1 h-full w-full p-1.5 opacity-80" aria-hidden="true">
+              {Array.from({ length: 16 }).map((_, i) => (
+                <div
+                  key={i}
+                  className={cn(
+                    "rounded-[2px] transition-all duration-700",
+                    (i + Math.floor(i / 4)) % 2 === 0
+                      ? "bg-evergreen/20"
+                      : "bg-paper/80",
+                    (i === 5 || i === 10 || i === 6 || i === 9) &&
+                      "animate-pulse bg-evergreen-bright/40",
+                  )}
+                />
+              ))}
+            </div>
+
+            {/* Central scanning icon */}
+            <div className="absolute flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl bg-ink text-paper shadow-md">
+              <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-evergreen-bright animate-spin [animation-duration:4s]" />
+            </div>
+          </div>
+
+          <div className="max-w-md space-y-2">
+            <span className="font-mono text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-evergreen">
+              {query.isFetching
+                ? "Connecting to Platform"
+                : "Stockfish WASM Engine"}
+            </span>
+            <h3 className="font-serif text-xl sm:text-2xl font-semibold text-ink">
+              {query.isFetching
+                ? `Fetching games for ${usernameInput.trim()}…`
+                : "Scanning your games for turning points…"}
+            </h3>
+            <p className="font-mono text-xs sm:text-sm text-graphite leading-relaxed">
+              {scanStatusMessage ||
+                (query.isFetching
+                  ? `Downloading public game history from ${platform === "lichess" ? "Lichess" : "Chess.com"} API…`
+                  : "Running depth-10 tactical analysis in your browser…")}
+            </p>
+          </div>
+
+          {/* Progress Steps Checklist */}
+          <div className="mt-8 grid w-full max-w-md grid-cols-1 sm:grid-cols-3 gap-2.5 text-left font-mono text-[0.68rem]">
+            <div
+              className={cn(
+                "flex items-center gap-2 rounded-md border p-2.5 transition-colors",
+                !query.isFetching
+                  ? "border-evergreen/40 bg-evergreen/[0.08] text-evergreen font-semibold"
+                  : "border-line bg-paper text-ink animate-pulse",
+              )}
+            >
+              <div
+                className={cn(
+                  "flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px]",
+                  !query.isFetching
+                    ? "bg-evergreen text-paper"
+                    : "border border-line bg-paper-raised",
+                )}
+              >
+                {!query.isFetching ? "✓" : "1"}
+              </div>
+              <span className="truncate">Fetch games</span>
+            </div>
+
+            <div
+              className={cn(
+                "flex items-center gap-2 rounded-md border p-2.5 transition-colors",
+                isWasmScanning
+                  ? "border-evergreen/40 bg-evergreen/[0.08] text-evergreen font-semibold animate-pulse"
+                  : !query.isFetching && !isWasmScanning && result
+                    ? "border-evergreen/40 bg-evergreen/[0.08] text-evergreen font-semibold"
+                    : "border-line bg-paper text-graphite/60",
+              )}
+            >
+              <div
+                className={cn(
+                  "flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px]",
+                  !query.isFetching && !isWasmScanning && result
+                    ? "bg-evergreen text-paper"
+                    : isWasmScanning
+                      ? "bg-evergreen-bright text-ink font-bold"
+                      : "border border-line bg-paper-raised",
+                )}
+              >
+                {!query.isFetching && !isWasmScanning && result ? "✓" : "2"}
+              </div>
+              <span className="truncate">Stockfish WASM</span>
+            </div>
+
+            <div
+              className={cn(
+                "flex items-center gap-2 rounded-md border p-2.5 transition-colors",
+                !query.isFetching && !isWasmScanning && result
+                  ? "border-evergreen/40 bg-evergreen/[0.08] text-evergreen font-semibold"
+                  : "border-line bg-paper text-graphite/60",
+              )}
+            >
+              <div
+                className={cn(
+                  "flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px]",
+                  !query.isFetching && !isWasmScanning && result
+                    ? "bg-evergreen text-paper"
+                    : "border border-line bg-paper-raised",
+                )}
+              >
+                {!query.isFetching && !isWasmScanning && result ? "✓" : "3"}
+              </div>
+              <span className="truncate">Build drill</span>
+            </div>
+          </div>
+
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-2 font-mono text-[0.65rem] text-graphite">
+            <span className="inline-flex items-center gap-1 rounded bg-paper px-2 py-0.5 border border-line">
+              <span className="h-1.5 w-1.5 rounded-full bg-evergreen" />
+              100% In-Browser WASM
+            </span>
+            <span className="inline-flex items-center gap-1 rounded bg-paper px-2 py-0.5 border border-line">
+              Zero Server Compute
+            </span>
+            <span className="inline-flex items-center gap-1 rounded bg-paper px-2 py-0.5 border border-line">
+              Read-Only
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Analysis Result & Interactive Drill — Shown ONLY when scanning has completed */}
+      {!query.isFetching && !isWasmScanning && result && blindspot && drill && (
+        <div className="settle mt-8 flex flex-col gap-8 rounded-xl border border-line bg-paper p-6 shadow-sheet sm:p-8">
           <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-start">
             {/* Left: Tactical Blindspot Summary */}
             <div className="flex flex-col gap-6">

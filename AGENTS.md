@@ -169,3 +169,6 @@ Every merge to `main` deploys to production immediately. Follow these gatekeeper
 - **Strict CI Order**: The build pipeline runs `typecheck -> lint -> unit -> guards -> build -> e2e`. All checks must pass before merging.
 - **WASM Isolation**: Keep COOP and COEP headers intact in [next.config.mjs](file:///home/joebos/programming/Mainline/next.config.mjs) for client Stockfish multi-threading.
 - **External API Limits**: Respect rate limits for Lichess, Chess.com, and Tablebase. Cache external responses in database cache tables.
+- **Frontend Design Skill**: Always use the frontend-design skill when doing anything frontend.
+- **Responsive Design**: Always make sure the UI is responsive and works on any viewport.
+- Always read planning/VISION.md. No exceptions.
