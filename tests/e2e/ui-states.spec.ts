@@ -204,7 +204,7 @@ test("Error notices explain recovery without exposing internal detail", async ({
     page.getByRole("button", { name: "Reload session" }),
   ).toBeEnabled();
   await expect(
-    page.getByRole("button", { name: "Trying again..." }),
+    page.getByRole("button", { name: "Trying again…" }),
   ).toBeDisabled();
   await page.getByRole("button", { name: "Reload session" }).focus();
   await expect(

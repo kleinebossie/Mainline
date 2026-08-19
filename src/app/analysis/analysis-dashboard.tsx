@@ -323,7 +323,7 @@ export function AnalysisDashboard() {
 
   return (
     <PageShell
-      eyebrow="Structured Game Review"
+      eyebrow="Structured game review"
       title="Review your games"
       lede="Pick one of your games, think through its critical moments before seeing engine feedback, then schedule the mistakes for review."
       width="default"

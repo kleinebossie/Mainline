@@ -7,6 +7,6 @@ test("/analysis opens for unauthenticated visitors in guest mode", async ({
   await page.goto("/analysis");
   await expect(page).toHaveURL(/\/analysis/);
   await expect(
-    page.getByRole("heading", { name: /Review Own Games/i }),
+    page.getByRole("heading", { name: /Review your games/i }),
   ).toBeVisible();
 });
