@@ -318,35 +318,42 @@ export function ConnectionsManager() {
         )}
       </section>
 
-      <div className="flex flex-col gap-3 border-t border-line/80 pt-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          {displayedConnections.length > 0 ? (
-            <Link
-              href="/onboarding/calibration"
-              className={buttonVariants({
-                size: "lg",
-                variant: "default",
-                className: "w-full sm:w-auto text-center justify-center",
-              })}
-            >
-              Continue to calibration →
-            </Link>
-          ) : (
-            <Button
-              type="button"
-              size="lg"
-              variant="outline"
-              disabled
-              aria-disabled="true"
-              className="w-full sm:w-auto opacity-60 cursor-not-allowed border-line bg-paper-raised text-graphite inline-flex items-center justify-center gap-2"
-            >
-              <Lock className="h-4 w-4 text-graphite/70" aria-hidden="true" />
-              <span>Continue to calibration</span>
-              <span className="font-mono text-[0.65rem] uppercase tracking-wider text-graphite/80 bg-line/60 px-1.5 py-0.5 rounded ml-1">
-                Locked
-              </span>
-            </Button>
-          )}
+      <div className="flex flex-col gap-4 border-t border-line/80 pt-6">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+          <div className="flex flex-col items-center sm:items-center gap-1.5 w-full sm:w-auto">
+            {displayedConnections.length > 0 ? (
+              <Link
+                href="/onboarding/calibration"
+                className={buttonVariants({
+                  size: "lg",
+                  variant: "default",
+                  className: "w-full sm:w-auto text-center justify-center",
+                })}
+              >
+                Continue to calibration →
+              </Link>
+            ) : (
+              <>
+                <Button
+                  type="button"
+                  size="lg"
+                  variant="outline"
+                  disabled
+                  aria-disabled="true"
+                  className="w-full sm:w-auto opacity-60 cursor-not-allowed border-line bg-paper-raised text-graphite inline-flex items-center justify-center gap-2"
+                >
+                  <Lock className="h-4 w-4 text-graphite/70" aria-hidden="true" />
+                  <span>Continue to calibration</span>
+                  <span className="font-mono text-[0.65rem] uppercase tracking-wider text-graphite/80 bg-line/60 px-1.5 py-0.5 rounded ml-1">
+                    Locked
+                  </span>
+                </Button>
+                <p className="font-mono text-[0.68rem] text-graphite text-center">
+                  Connect an account above to unlock calibration.
+                </p>
+              </>
+            )}
+          </div>
 
           <Link
             href="/today"
@@ -359,12 +366,6 @@ export function ConnectionsManager() {
             Skip connecting accounts and go to Today →
           </Link>
         </div>
-
-        {displayedConnections.length === 0 && (
-          <p className="font-mono text-[0.68rem] text-graphite">
-            Connect an account above to unlock calibration.
-          </p>
-        )}
       </div>
     </div>
   );
