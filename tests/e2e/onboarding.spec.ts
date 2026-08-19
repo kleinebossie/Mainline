@@ -28,12 +28,19 @@ test("guest can build first session directly from constraints", async ({
   await expect(page.getByText(/SIGN-IN EXPIRED/i)).not.toBeVisible();
 });
 
-test("guest can continue setup through connections to calibration", async ({
+test("guest sees calibration locked when no accounts connected and can skip to today", async ({
   page,
 }) => {
   await page.goto("/onboarding/constraints");
   await page.getByRole("button", { name: "Continue setup →" }).click();
   await expect(page).toHaveURL(/\/connections$/);
-  await page.getByRole("link", { name: "Continue to calibration →" }).click();
-  await expect(page).toHaveURL(/\/onboarding\/calibration$/);
+  const calButton = page.getByRole("button", {
+    name: /Continue to calibration/i,
+  });
+  await expect(calButton).toBeVisible();
+  await expect(calButton).toBeDisabled();
+  await page
+    .getByRole("link", { name: "Skip connecting accounts and go to Today →" })
+    .click();
+  await expect(page).toHaveURL(/\/today$/);
 });

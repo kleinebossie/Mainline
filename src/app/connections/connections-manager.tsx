@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import Link from "next/link";
+import { Lock } from "lucide-react";
 import { trpc } from "@/lib/trpc/react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -315,22 +316,46 @@ export function ConnectionsManager() {
         )}
       </section>
 
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 border-t border-line/80 pt-6">
-        <Link
-          href="/onboarding/calibration"
-          className={buttonVariants({
-            size: "lg",
-            variant: displayedConnections.length > 0 ? "default" : "secondary",
-          })}
-        >
-          Continue to calibration →
-        </Link>
-        <Link
-          href="/today"
-          className="text-graphite font-serif text-sm hover:text-ink underline decoration-line underline-offset-4 text-center sm:text-left"
-        >
-          Skip connecting accounts and go to Today →
-        </Link>
+      <div className="flex flex-col gap-4 border-t border-line/80 pt-6">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+          {displayedConnections.length > 0 ? (
+            <Link
+              href="/onboarding/calibration"
+              className={buttonVariants({
+                size: "lg",
+                variant: "default",
+              })}
+            >
+              Continue to calibration →
+            </Link>
+          ) : (
+            <div className="flex flex-col gap-1.5">
+              <Button
+                type="button"
+                size="lg"
+                variant="outline"
+                disabled
+                aria-disabled="true"
+                className="opacity-60 cursor-not-allowed border-line bg-paper-raised text-graphite inline-flex items-center gap-2"
+              >
+                <Lock className="h-4 w-4 text-graphite/70" aria-hidden="true" />
+                <span>Continue to calibration</span>
+                <span className="font-mono text-[0.65rem] uppercase tracking-wider text-graphite/80 bg-line/60 px-1.5 py-0.5 rounded ml-1">
+                  Locked
+                </span>
+              </Button>
+              <p className="font-mono text-[0.65rem] text-graphite">
+                Connect an account above to unlock calibration.
+              </p>
+            </div>
+          )}
+          <Link
+            href="/today"
+            className="text-graphite font-serif text-sm hover:text-ink underline decoration-line underline-offset-4 text-center sm:text-left"
+          >
+            Skip connecting accounts and go to Today →
+          </Link>
+        </div>
       </div>
     </div>
   );
