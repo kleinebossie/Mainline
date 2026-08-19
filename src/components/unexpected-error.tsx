@@ -51,7 +51,7 @@ export function UnexpectedError({
           }}
           disabled={resetting}
         >
-          {resetting ? "Trying again..." : "Try this page again"}
+          {resetting ? "Trying again…" : "Try this page again"}
         </Button>
         <Link
           href="/today"

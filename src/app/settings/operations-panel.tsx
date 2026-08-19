@@ -43,11 +43,11 @@ export function OperationsPanel() {
           onClick={() => void jobs.refetch()}
           type="button"
         >
-          {jobs.isFetching ? "Refreshing..." : "Refresh"}
+          {jobs.isFetching ? "Refreshing…" : "Refresh"}
         </button>
       </div>
 
-      {jobs.isLoading && <p className="text-sm">Loading job status...</p>}
+      {jobs.isLoading && <p className="text-sm">Loading job status…</p>}
       {jobs.error && (
         <ErrorNotice
           error={jobs.error}
@@ -90,7 +90,7 @@ export function OperationsPanel() {
                 type="button"
               >
                 {retry.isPending && retry.variables?.id === job.id
-                  ? "Retrying..."
+                  ? "Retrying…"
                   : "Retry"}
               </button>
             )}
@@ -147,7 +147,7 @@ export function OperationsPanel() {
           }}
           type="button"
         >
-          {researchExport.isFetching ? "Preparing..." : "Export consented rows"}
+          {researchExport.isFetching ? "Preparing…" : "Export consented rows"}
         </button>
         {researchExport.error && (
           <ErrorNotice

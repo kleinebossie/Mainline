@@ -456,7 +456,7 @@ export function InstantBlunderDrill({
                 <div className="flex flex-col gap-3 rounded-lg border border-evergreen/30 bg-evergreen/10 p-4 text-ink">
                   <div className="flex items-center gap-2 text-evergreen font-semibold text-sm">
                     <Check className="h-4 w-4" />
-                    <span>Correct! You found the winning tactic.</span>
+                    <span>Correct. You found the winning tactic.</span>
                   </div>
                   <p className="text-sm font-serif text-graphite">
                     Mainline converts your real game blunders into spaced
@@ -469,7 +469,7 @@ export function InstantBlunderDrill({
                         onClick={onContinue}
                         className="w-full sm:w-auto"
                       >
-                        Continue to Daily Training →
+                        Continue to daily training →
                       </Button>
                     ) : (
                       <Link
@@ -479,7 +479,7 @@ export function InstantBlunderDrill({
                           "w-full sm:w-auto text-center",
                         )}
                       >
-                        Continue to Daily Training →
+                        Continue to daily training →
                       </Link>
                     )}
                   </div>

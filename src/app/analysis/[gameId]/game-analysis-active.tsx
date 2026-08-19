@@ -227,7 +227,7 @@ export function ActiveReproductionStep({
                 <Button onClick={onContinue}>
                   {currentMomentIndex + 1 < session.criticalMoments.length
                     ? "Next critical moment"
-                    : "Proceed to spaced repetition"}
+                    : "Continue to spaced repetition"}
                 </Button>
               )}
             </>

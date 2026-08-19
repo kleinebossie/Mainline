@@ -18,7 +18,7 @@ import type { GradedCopy, LibraryView } from "@/server/library";
 // recommendations (with the cognitive-load block rule already applied server-side), the
 // book-study protocol, the 2D/3D modality + OTB guidance (gated by the user's play medium),
 // and rolled-up progress. Study-session logging lives on Today, where scheduled external
-// work is completed. Every recommendation shows how strong its evidence is — never a rating promise.
+// work is completed. Every recommendation shows how strong its evidence is: never a rating promise.
 
 /** A graded "why" block rendered as the brand's TransparencyCard (confidence is a band prior). */
 function Why({

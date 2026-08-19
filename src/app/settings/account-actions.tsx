@@ -251,7 +251,7 @@ export function AccountActions() {
                   type="button"
                 >
                   {grant.isPending
-                    ? "Recording consent..."
+                    ? "Recording consent…"
                     : "Record optional consent"}
                 </Button>
               </>
@@ -265,7 +265,7 @@ export function AccountActions() {
                   variant="outline"
                 >
                   {withdraw.isPending
-                    ? "Withdrawing consent..."
+                    ? "Withdrawing consent…"
                     : "Withdraw research consent"}
                 </Button>
                 <p className="text-graphite mt-2 text-xs">
@@ -317,7 +317,7 @@ export function AccountActions() {
             disabled={exporting}
           >
             {exporting
-              ? "Preparing..."
+              ? "Preparing…"
               : isGuestMode
                 ? "Export local data (JSON)"
                 : "Export my data (JSON)"}
@@ -366,7 +366,7 @@ export function AccountActions() {
                 {isGuestMode
                   ? "Clear local data"
                   : del.isPending
-                    ? "Queuing erase..."
+                    ? "Queuing erase…"
                     : "Permanently erase"}
               </Button>
               <Button

@@ -17,33 +17,33 @@ import { getPostAuthDestination } from "@/server/onboarding";
 const SETUP_STEPS = [
   {
     label: "Constrain",
-    title: "Define your reality",
+    title: "Set your constraints",
     detail:
-      "Set your available time, goals, formats, preferences, and resources you already own.",
+      "Set your daily time budget, format preferences, goals, and owned books.",
   },
   {
     label: "Connect",
-    title: "Bring your games",
+    title: "Connect your accounts",
     detail:
-      "Link Lichess or add Chess.com so Mainline can work from your actual play.",
+      "Link Lichess or Chess.com to import your public games and tactical mistakes.",
   },
   {
     label: "Calibrate",
-    title: "Establish a baseline",
+    title: "Measure your baseline",
     detail:
-      "Complete a short tactical check. We measure play instead of asking you to rate yourself.",
+      "Solve a short 3-puzzle check to estimate tactical rating and blunder patterns.",
   },
   {
     label: "Reveal",
-    title: "See the starting picture",
+    title: "See your starting profile",
     detail:
-      "Review the useful signals, the uncertainty, and what the program can act on first.",
+      "Review your tactical rating, game signals, and initial training priorities.",
   },
   {
     label: "Train",
-    title: "Open today’s session",
+    title: "Start your daily session",
     detail:
-      "Get a practical plan that fits today, with a reason attached to every activity.",
+      "Train with personalized blocks that adapt as you complete exercises and play games.",
   },
 ] as const;
 
@@ -56,39 +56,39 @@ interface PrincipleItem {
 const PRINCIPLES: PrincipleItem[] = [
   {
     icon: "help",
-    title: "Every recommendation explains why",
+    title: "Every recommendation shows evidence",
     detail:
-      "See why this activity made the plan, why it matters now, and how strong the supporting evidence is.",
+      "Every training block displays its evidence grade, research citations, and scheduling reason.",
   },
   {
     icon: "shield-alert",
     title: "No rating promises",
     detail:
-      "No training activity has been proven to cause rating gains. Mainline will not turn uncertainty into a sales pitch.",
+      "No study proves that specific chess training causes rating gains. Mainline uses best evidence without false certainty.",
   },
   {
     icon: "refresh",
-    title: "The plan keeps moving",
+    title: "Adapts to your play",
     detail:
-      "New games and completed training reshape what comes next. There is no generic syllabus to fall behind on.",
+      "New games, mistake drills, and completed reviews reshape what Mainline schedules next.",
   },
   {
     icon: "shield-check",
-    title: "Your data stays under your control",
+    title: "Your data stays private",
     detail:
-      "Connections are read-only. Your data is never sold, and you can export or delete it whenever you choose.",
+      "Connections are read-only. We do not sell your data, and you can export or delete your account at any time.",
   },
   {
     icon: "cpu",
     title: "No runtime AI",
     detail:
-      "The product uses open data, transparent rules, and a client-side chess engine, not an opaque chatbot deciding your training.",
+      "Mainline uses deterministic algorithms and a client-side Stockfish engine, never generative chatbots.",
   },
   {
     icon: "unlock",
-    title: "Training quality is never paywalled",
+    title: "Core training is never paywalled",
     detail:
-      "Mainline is free, without ads. Optional patronage may support the project, but never buys better training.",
+      "Mainline is free and ad-free. Optional supporter tiers fund hosting without locking training features.",
   },
 ];
 
@@ -154,19 +154,18 @@ export default async function Home() {
         <div className="mx-auto grid max-w-6xl lg:grid-cols-2">
           <div className="settle flex flex-col justify-center px-4 py-12 sm:px-6 sm:py-20 lg:min-h-[690px] lg:pr-16">
             <p className="eyebrow text-evergreen">
-              Personal chess training, properly directed
+              Evidence-based chess training
             </p>
             <h1 className="mt-4 max-w-xl font-serif text-4xl font-semibold leading-[1.02] tracking-[-0.03em] sm:text-6xl lg:text-7xl">
               Stop guessing what to train.
             </h1>
             <p className="mt-6 max-w-lg font-serif text-lg leading-relaxed text-graphite sm:text-2xl">
-              Mainline turns your games, goals, and available time into a daily
-              chess training program that keeps adapting.
+              Mainline converts your games, goals, and daily time into an
+              adaptive training program grounded in learning science.
             </p>
             <p className="mt-4 max-w-lg text-sm sm:text-base leading-relaxed text-graphite">
-              It sits above puzzle trainers, game analysis, books, and courses.
-              Instead of giving you more material, it decides what deserves your
-              attention today, then tells you why.
+              Instead of giving you endless random puzzles, Mainline targets
+              your measured mistakes and schedules spaced reviews.
             </p>
             <div className="mt-8 flex flex-col sm:flex-row sm:items-center gap-3.5">
               <a
@@ -182,11 +181,11 @@ export default async function Home() {
                 href="#how-it-works"
                 className="text-center rounded-sm font-mono text-xs sm:text-sm text-graphite underline decoration-line underline-offset-4 transition-colors hover:text-ink py-1"
               >
-                See what setup involves
+                See how setup works
               </a>
             </div>
             <p className="mt-4 font-mono text-[0.68rem] uppercase tracking-[0.12em] text-graphite">
-              Open beta · no login needed
+              Open beta · no sign-in required
             </p>
           </div>
 
@@ -195,46 +194,46 @@ export default async function Home() {
               <div className="flex items-end justify-between gap-4 border-b border-paper/15 pb-4">
                 <div>
                   <p className="font-mono text-[0.65rem] uppercase tracking-[0.2em] text-evergreen-bright">
-                    Illustrative training line
+                    Example daily session
                   </p>
                   <h2 className="mt-2 font-serif text-2xl font-semibold">
-                    A plan from your reality
+                    Structured daily training
                   </h2>
                 </div>
                 <span className="font-mono text-xs text-paper/50">Today</span>
               </div>
 
               <div className="grid grid-cols-[1fr_auto] gap-x-5 gap-y-3 border-b border-paper/15 py-5 font-mono text-xs">
-                <span className="text-paper/50">Time available</span>
+                <span className="text-paper/50">Time budget</span>
                 <span>25 minutes</span>
-                <span className="text-paper/50">Recent signal</span>
-                <span>missed conversions</span>
-                <span className="text-paper/50">Goal</span>
-                <span>stronger OTB play</span>
-                <span className="text-paper/50">Due practice</span>
-                <span>2 reviews</span>
+                <span className="text-paper/50">Primary weakness</span>
+                <span>tactical conversions</span>
+                <span className="text-paper/50">Format goal</span>
+                <span>rapid chess</span>
+                <span className="text-paper/50">Due reviews</span>
+                <span>2 blocks</span>
               </div>
 
               <div className="relative space-y-3 py-6 before:absolute before:bottom-10 before:left-[1.18rem] before:top-10 before:w-px before:bg-evergreen-bright/40">
                 <TrainingBlock
                   number="1"
                   minutes="10 min"
-                  title="Repair your own mistakes"
-                  reason="Recent games supply the positions."
+                  title="Blunder drills from your games"
+                  reason="Positions extracted directly from your recent losses."
                   delay="[animation-delay:150ms]"
                 />
                 <TrainingBlock
                   number="2"
                   minutes="8 min"
-                  title="Review what is due"
-                  reason="Completed work returns when it is useful."
+                  title="Spaced repetition reviews"
+                  reason="Scheduled based on past mistake review intervals."
                   delay="[animation-delay:250ms]"
                 />
                 <TrainingBlock
                   number="3"
                   minutes="7 min"
-                  title="Build the current priority"
-                  reason="The session fits the goal and time left."
+                  title="Endgame conversion drills"
+                  reason="Practical endgame structures matched to your rating."
                   delay="[animation-delay:350ms]"
                 />
               </div>
@@ -245,8 +244,8 @@ export default async function Home() {
                     name="help"
                     className="mt-0.5 h-4 w-4 shrink-0 text-evergreen-bright"
                   />
-                  Every block carries its evidence grade, the data that
-                  triggered it, and an honest explanation of uncertainty.
+                  Every block includes an evidence grade, data source, and
+                  clear explanation of uncertainty.
                 </p>
               </div>
             </div>
@@ -270,13 +269,13 @@ export default async function Home() {
         <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-24">
           <div className="grid gap-8 lg:grid-cols-[0.72fr_1.28fr] lg:gap-16">
             <div>
-              <p className="eyebrow">Your first session</p>
+              <p className="eyebrow">Onboarding flow</p>
               <h2 className="mt-4 font-serif text-4xl font-semibold leading-tight sm:text-5xl">
-                Five steps from scattered data to a useful day.
+                Five steps to your tailored daily session.
               </h2>
               <p className="mt-5 max-w-md leading-relaxed text-graphite">
-                Setup gives Mainline enough context to make a defensible first
-                plan. You can change every constraint later.
+                Setup configures your constraints and analyzes your game
+                baseline. You can adjust settings at any time.
               </p>
             </div>
 
@@ -305,8 +304,8 @@ export default async function Home() {
             </ol>
           </div>
           <p className="ml-auto mt-10 max-w-2xl border-l-2 border-evergreen/50 pl-5 font-serif text-xl leading-relaxed text-ink">
-            After setup, the loop is simple: train, play, and let new outcomes
-            change what deserves attention next.
+            After setup, the daily loop is simple: train your blocks, play your
+            games, and let new outcomes adapt your next session.
           </p>
         </div>
       </section>
@@ -314,14 +313,13 @@ export default async function Home() {
       <section id="principles" className="scroll-mt-16 border-b border-line/80">
         <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-24">
           <div className="max-w-2xl">
-            <p className="eyebrow">The no-BS part</p>
+            <p className="eyebrow">Methodology</p>
             <h2 className="mt-4 font-serif text-4xl font-semibold leading-tight sm:text-5xl">
-              Trust should be visible in the product.
+              Scientific honesty in every recommendation.
             </h2>
             <p className="mt-5 text-lg leading-relaxed text-graphite">
-              Mainline is science-based without pretending the science is
-              stronger than it is. Its boundaries are part of the product, not
-              fine print.
+              Mainline uses peer-reviewed cognitive science without claiming
+              false guarantees. All methodology rationales are public and open.
             </p>
           </div>
 
@@ -353,14 +351,14 @@ export default async function Home() {
         <div className="mx-auto grid max-w-6xl gap-12 px-4 py-20 sm:px-6 sm:py-24 lg:grid-cols-[1fr_0.82fr] lg:items-center lg:gap-20">
           <div>
             <p className="font-mono text-[0.68rem] font-medium uppercase tracking-[0.2em] text-evergreen-bright">
-              Step 1 · create your account
+              Get started
             </p>
             <h2 className="mt-5 max-w-xl font-serif text-4xl font-semibold leading-tight sm:text-6xl">
-              Give your chess training a main line.
+              Build your personal training plan.
             </h2>
             <p className="mt-6 max-w-lg text-lg leading-relaxed text-paper/65">
-              Mainline is currently in open beta. Sign in, and we will take you
-              straight to connecting your games.
+              Mainline is in open beta. Sign in to connect your games or try a
+              local guest session.
             </p>
           </div>
 
@@ -369,7 +367,7 @@ export default async function Home() {
             className="bg-paper text-ink rounded-lg border border-paper/10 p-6 shadow-sheet sm:p-8"
           >
             <h3 className="font-serif text-xl font-semibold">
-              Get Started (Open Beta)
+              Get started in open beta
             </h3>
             <p className="mt-1 text-sm text-graphite">
               Sign in with your chess or Google account to build your plan.

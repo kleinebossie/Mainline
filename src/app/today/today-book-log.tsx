@@ -31,8 +31,8 @@ const OUTCOME_BUTTONS: {
   label: string;
   description: string;
 }[] = [
-  { id: "target_met", label: "Target Met", description: "85% target" },
-  { id: "needs_review", label: "Needs Review", description: "65% target" },
+  { id: "target_met", label: "Target met", description: "85% target" },
+  { id: "needs_review", label: "Needs review", description: "65% target" },
   { id: "struggled", label: "Struggled", description: "40% target" },
 ];
 
@@ -231,7 +231,7 @@ export function BookLogForm({
       {assignedChapter && (
         <div className="rounded-md border border-line/80 bg-paper/60 p-3">
           <span className="eyebrow !text-[0.62rem] text-graphite">
-            Scheduled Assignment
+            Scheduled assignment
           </span>
           <p className="mt-0.5 font-serif text-sm font-semibold text-ink">
             Today: {selectedBook?.title ?? "Book"} Chapter{" "}
@@ -245,7 +245,7 @@ export function BookLogForm({
 
       <div className="flex flex-col gap-3">
         <div className="flex flex-col gap-1.5 font-serif text-xs">
-          <span className="eyebrow !text-[0.62rem]">Outcome Rating</span>
+          <span className="eyebrow !text-[0.62rem]">Outcome rating</span>
           <div className="grid grid-cols-3 gap-2">
             {OUTCOME_BUTTONS.map((opt) => {
               const isSelected = outcome === opt.id;
@@ -279,7 +279,7 @@ export function BookLogForm({
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <label className="flex flex-col gap-1.5 font-serif text-xs">
             <span className="eyebrow !text-[0.62rem]">
-              Confirmed Time (minutes)
+              Confirmed time (minutes)
             </span>
             <Input
               type="number"
@@ -420,7 +420,7 @@ export function BookLogForm({
           onClick={onSkip}
           size="sm"
         >
-          {busy ? "Saving..." : "Skip"}
+          {busy ? "Saving…" : "Skip"}
         </Button>
       </div>
 

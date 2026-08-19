@@ -344,13 +344,13 @@ export function HomepageBlunderAnalyzer() {
       {/* Input Search Hero Card */}
       <div className="rounded-xl border border-line bg-paper-raised/80 p-6 shadow-sheet sm:p-8">
         <div>
-          <p className="eyebrow text-evergreen">Interactive Blunder Analyzer</p>
+          <p className="eyebrow text-evergreen">Interactive blunder analyzer</p>
           <h2 className="mt-3 font-serif text-2xl font-semibold sm:text-4xl">
-            Find the tactical blindspots hiding in your games.
+            Find the tactical blindspots in your games.
           </h2>
           <p className="mt-2 max-w-2xl font-serif text-sm leading-relaxed text-graphite sm:text-base">
-            Enter your public chess username. We analyze your recent games with
-            Stockfish WASM to find the tactical patterns that cost you rating points.
+            Enter your public chess username. Stockfish scans your games locally
+            to identify recurring mistake patterns.
           </p>
         </div>
 
@@ -400,10 +400,10 @@ export function HomepageBlunderAnalyzer() {
               size="lg"
             >
               {query.isFetching
-                ? "Fetching Games…"
+                ? "Fetching games…"
                 : isWasmScanning
-                  ? "Analyzing with Stockfish…"
-                  : "Analyze My Games"}
+                  ? "Analyzing games…"
+                  : "Analyze games"}
             </Button>
           </div>
 
@@ -469,8 +469,8 @@ export function HomepageBlunderAnalyzer() {
           <div className="max-w-md space-y-2">
             <span className="font-mono text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-evergreen">
               {query.isFetching
-                ? "Connecting to Platform"
-                : "Stockfish WASM Engine"}
+                ? "Connecting to platform"
+                : "Stockfish WASM engine"}
             </span>
             <h3 className="font-serif text-xl sm:text-2xl font-semibold text-ink">
               {query.isFetching
@@ -480,7 +480,7 @@ export function HomepageBlunderAnalyzer() {
             <p className="font-mono text-xs sm:text-sm text-graphite leading-relaxed">
               {scanStatusMessage ||
                 (query.isFetching
-                  ? `Downloading public game history from ${platform === "lichess" ? "Lichess" : "Chess.com"} API…`
+                  ? `Downloading public game history from ${platform === "lichess" ? "Lichess" : "Chess.com"}…`
                   : "Running depth-10 tactical analysis in your browser…")}
             </p>
           </div>
@@ -570,7 +570,7 @@ export function HomepageBlunderAnalyzer() {
         </div>
       )}
 
-      {/* Analysis Result & Interactive Drill — Shown ONLY when scanning has completed */}
+      {/* Analysis result and interactive drill: shown only when scanning has completed */}
       {!query.isFetching && !isWasmScanning && result && blindspot && drill && (
         <div className="settle mt-8 flex flex-col gap-8 rounded-xl border border-line bg-paper p-6 shadow-sheet sm:p-8">
           <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-start">
@@ -582,12 +582,12 @@ export function HomepageBlunderAnalyzer() {
                     Analysis for {result.username}
                   </span>
                   <h3 className="mt-1 font-serif text-2xl font-semibold text-ink">
-                    Top Tactical Blindspot
+                    Top tactical blindspot
                   </h3>
                 </div>
                 <div className="flex items-center gap-2 rounded-md border border-line bg-paper-raised px-3 py-1 font-mono text-xs">
                   <span className="text-graphite">
-                    {result.ratingFormat} Rating:
+                    {result.ratingFormat} rating:
                   </span>
                   <span className="font-bold text-ink">{result.rating}</span>
                 </div>
@@ -605,7 +605,7 @@ export function HomepageBlunderAnalyzer() {
                       </h4>
                       {drill.source === "game" && (
                         <span className="rounded bg-evergreen/15 px-2 py-0.5 font-mono text-[0.65rem] font-bold text-evergreen uppercase">
-                          From Your Game
+                          From your game
                         </span>
                       )}
                     </div>
@@ -695,14 +695,14 @@ export function HomepageBlunderAnalyzer() {
                   <div className="flex items-center justify-center gap-2 rounded-md bg-evergreen/10 py-2 text-evergreen">
                     <Check className="h-4 w-4" />
                     <span className="font-mono text-xs font-semibold">
-                      Good move! Keep going.
+                      Good move. Keep going.
                     </span>
                   </div>
                 )}
                 {solveStatus === "wrong" && (
                   <div className="flex items-center justify-center gap-2 rounded-md bg-red-500/10 py-2 text-red-600">
                     <span className="font-mono text-xs font-semibold">
-                      Incorrect move. Try another line!
+                      Incorrect move. Try another line.
                     </span>
                   </div>
                 )}
@@ -710,11 +710,11 @@ export function HomepageBlunderAnalyzer() {
                   <div className="flex flex-col items-center gap-2 rounded-md border border-evergreen/40 bg-evergreen/10 p-3 text-center">
                     <div className="flex items-center gap-1.5 font-mono text-xs font-bold text-evergreen">
                       <Check className="h-4 w-4 stroke-[2.5]" />
-                      <span>Tactical Blindspot Solved!</span>
+                      <span>Blindspot solved</span>
                     </div>
                     <p className="font-serif text-xs text-graphite">
-                      Great calculation! Mainline builds these daily drills
-                      directly from your games.
+                      Mainline converts real game blunders into spaced
+                      repetition drills.
                     </p>
                   </div>
                 )}

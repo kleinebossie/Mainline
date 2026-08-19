@@ -245,7 +245,7 @@ export function ManualGameImport({ onImported }: { onImported: () => void }) {
               disabled={preview.isPending || pgnText.trim().length === 0}
               onClick={() => preview.mutate(pgnText)}
             >
-              {preview.isPending ? "Checking PGN..." : "Check games"}
+              {preview.isPending ? "Checking PGN…" : "Check games"}
             </Button>
             <span className="font-serif text-xs text-graphite">
               Standard chess only. Missing dates, ratings, and clocks stay
@@ -469,7 +469,7 @@ export function ManualGameImport({ onImported }: { onImported: () => void }) {
                 }
               >
                 {create.isPending
-                  ? "Importing games..."
+                  ? "Importing games…"
                   : `Import ${validEntries.length} valid game${validEntries.length === 1 ? "" : "s"}`}
               </Button>
               {missingColor && (

@@ -14,7 +14,7 @@ const GRADE_KEY = [
     glyph: "!!",
     grade: "A",
     label: "Strong, replicated",
-    note: "Used for robust, replicated findings, e.g. the retrieval-practice effect or the spacing effect.",
+    note: "Used for robust, replicated findings such as retrieval-practice and spacing effects.",
   },
   {
     glyph: "!",
@@ -31,8 +31,8 @@ const GRADE_KEY = [
   {
     glyph: "??",
     grade: "D",
-    label: "Myth: avoided",
-    note: "Popular chess-improvement advice the app actively avoids because the evidence contradicts it.",
+    label: "Contradicted myth",
+    note: "Popular chess advice that Mainline avoids because evidence contradicts it.",
   },
 ] as const;
 
@@ -47,65 +47,65 @@ const CONFIDENCE_KEY = [
   {
     level: "Insufficient",
     filled: 0,
-    label: "Not enough of your data yet",
-    note: "We don't have enough of your games or reviews to make this call. The app says so plainly instead of inventing a verdict.",
+    label: "Not enough data yet",
+    note: "We do not have enough of your games or reviews to make this call. Mainline displays uncertainty plainly instead of guessing.",
   },
   {
     level: "Low",
     filled: 1,
-    label: "A band prior, not your own data yet",
-    note: "The recommendation rests on what players at your level tend to need, not on what we've seen from you. It will sharpen as your data accrues.",
+    label: "Population baseline",
+    note: "The recommendation rests on what players at your level tend to need, not on your personal data yet. It sharpens as you train.",
   },
   {
     level: "Medium",
     filled: 2,
-    label: "Some of your own data",
-    note: "Partially grounded in your games or reviews. A working hypothesis, still refining.",
+    label: "Partial data",
+    note: "Partially grounded in your games or reviews. A working hypothesis under active refinement.",
   },
   {
     level: "High",
     filled: 4,
-    label: "Well-backed by your own data",
-    note: "Drawn from enough of your own play to read as yours, not as a population average.",
+    label: "Strong personal data",
+    note: "Drawn from enough of your own play to represent your specific strengths and leaks.",
   },
 ] as const;
 
 const EXCLUSIONS = [
   {
     what: "No LLM/AI at runtime",
-    why: "AI plays chess poorly and invites cost, abuse, and opacity. The app is pure deterministic algorithms. You can verify every decision.",
+    why: "Generative AI plays chess poorly and introduces opacity. Mainline uses deterministic algorithms and local Stockfish. You can verify every decision.",
   },
   {
     what: "No competing game platform",
-    why: "Lichess and Chess.com already do that better. The app references external platforms; it doesn't replace them.",
+    why: "Lichess and Chess.com provide great play servers. Mainline connects to external platforms rather than replacing them.",
   },
   {
     what: "No hosted copyrighted content",
-    why: "Books and courses are recommended and logged, never hosted. The app points you to the right resource; it doesn't steal it.",
+    why: "Books and courses are recommended and logged, never hosted. Mainline points you to resources you own.",
   },
   {
     what: "No social or multiplayer",
-    why: "No leaderboards, no chat, no shared sessions. Social comparison harms long-term motivation, and the app's goal is personal improvement.",
+    why: "No leaderboards, chat, or comparative rankings. Social comparison harms long-term practice habits.",
   },
   {
-    what: "No self-report skill diagnosis",
-    why: "Dunning-Kruger is real in chess (Grade A/1). The app diagnoses you behaviorally from your games and your puzzle performance, never by asking you to rate yourself.",
+    what: "No self-reported skill diagnosis",
+    why: "Self-assessment in chess is prone to error. Mainline measures play behaviorally from your games and calibration puzzles.",
   },
   {
     what: "No infinite streaks",
-    why: 'Unbreakable streaks are a dark pattern. They create a loss-aversion "quit moment" when the streak breaks. The app caps streaks and forgives missed days.',
+    why: "Unbreakable streaks create loss aversion and burnout. Mainline caps streak cycles and forgives missed days.",
   },
   {
     what: "No global leaderboards",
-    why: "Downward social comparison (seeing yourself ranked below strangers) harms motivation for the majority of users who are not at the top.",
+    why: "Comparative leaderboards harm motivation for most learners. Mainline focuses strictly on personal training consistency.",
   },
   {
-    what: "No puzzle-volume chasing",
-    why: "Correlation between puzzle volume and rating gap is r=−0.02. Grinding puzzles without reflection or spacing doesn't help. The app prioritizes how you practice over how much.",
+    what: "No puzzle volume chasing",
+    why: "Correlation between raw puzzle volume and rating is near zero. Spaced repetition and deliberate calculation matter more than quantity.",
   },
   {
     what: "No opening memorization for beginners",
-    why: "Beginners lose to blunders, not opening theory. Time spent memorizing lines at <1200 is time not spent on tactics and board vision.",
+    why: "Beginner and intermediate games are decided by tactical blunders. Time is better spent on pattern recognition and calculation.",
   },
 ];
 
@@ -116,10 +116,8 @@ export default function AboutPage() {
   return (
     <PageShell
       eyebrow="About Mainline"
-      title="The honest line"
-      lede={
-        "Mainline is a personalized, science-based chess training program that adapts as you play, with every claim graded the same way recommendations are graded in the app."
-      }
+      title="Product transparency"
+      lede="Mainline is a personalized chess training program that adapts as you play. Every recommendation carries an explicit evidence grade."
       width="wide"
     >
       <div className="flex flex-col gap-12">

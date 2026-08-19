@@ -29,7 +29,7 @@ export function CalibrationStep({
     <div className="mx-auto w-full max-w-2xl">
       <Card>
         <CardHeader>
-          <CardTitle>Reflect Before You Review</CardTitle>
+          <CardTitle>Reflect before you review</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <p className="text-ink font-serif text-base leading-relaxed">
@@ -61,7 +61,7 @@ export function CalibrationStep({
             )}
 
             <Button disabled={!skipped && incomplete} onClick={onContinue}>
-              Start Active Reproduction
+              Start active reproduction
             </Button>
           </div>
 

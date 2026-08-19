@@ -307,7 +307,7 @@ export function TrainDemo() {
 
                   <div className="flex flex-col gap-2 rounded-md border border-line bg-paper/50 p-4">
                     <span className="text-ink font-mono text-xs font-semibold uppercase tracking-wider">
-                      Solving Status:
+                      Solve status:
                     </span>
                     <span
                       id="solving-status"
@@ -319,10 +319,10 @@ export function TrainDemo() {
                         solveStatus === "pending" && "text-graphite",
                       )}
                     >
-                      {solveStatus === "solved" && "✓ Solved!"}
-                      {solveStatus === "wrong" && "✗ Wrong Move!"}
-                      {solveStatus === "correct" && "✓ Correct Move!"}
-                      {solveStatus === "pending" && "Pending User Move..."}
+                      {solveStatus === "solved" && "✓ Solved"}
+                      {solveStatus === "wrong" && "✗ Incorrect move"}
+                      {solveStatus === "correct" && "✓ Correct move"}
+                      {solveStatus === "pending" && "Your move…"}
                     </span>
                   </div>
 
@@ -331,7 +331,7 @@ export function TrainDemo() {
                     className="w-full mt-2"
                     size="sm"
                   >
-                    Reset Puzzle
+                    Reset puzzle
                   </Button>
                 </CardContent>
               </Card>
@@ -344,7 +344,7 @@ export function TrainDemo() {
                 </CardHeader>
                 <CardContent className="flex flex-col gap-4">
                   <p className="text-graphite font-serif text-sm leading-relaxed">
-                    This sparring harness boots the Stockfish engine directly
+                    This sparring harness runs the Stockfish engine directly
                     inside a Web Worker in your browser. All moves are computed
                     locally.
                   </p>
@@ -359,19 +359,19 @@ export function TrainDemo() {
                         size="sm"
                       >
                         {engineLoading
-                          ? "Booting WASM Worker..."
-                          : "Boot Stockfish Engine"}
+                          ? "Starting engine…"
+                          : "Start Stockfish engine"}
                       </Button>
                     ) : (
                       <div className="text-evergreen font-mono text-xs font-semibold">
-                        ✓ Engine ready. Play a move to Spar!
+                        ✓ Engine ready. Make your first move.
                       </div>
                     )}
                   </div>
 
                   <div className="flex flex-col gap-2 border-t border-line/80 pt-4">
                     <span className="text-ink font-mono text-xs font-semibold uppercase tracking-wider">
-                      Game History:
+                      Game history:
                     </span>
                     <div className="h-28 overflow-y-auto rounded-md border border-line bg-paper p-2 font-mono text-xs flex flex-col gap-1">
                       {sparHistory.length === 0 ? (
@@ -409,7 +409,7 @@ export function TrainDemo() {
                     size="sm"
                     disabled={engineLoading}
                   >
-                    Reset Sparring Board
+                    Reset sparring board
                   </Button>
                 </CardContent>
               </Card>
@@ -417,7 +417,7 @@ export function TrainDemo() {
               <Card className="h-full">
                 <CardHeader>
                   <CardTitle className="font-serif text-lg">
-                    Endgame Drill (vs engine)
+                    Endgame drill (vs engine)
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-4">
@@ -429,7 +429,7 @@ export function TrainDemo() {
 
                   <div className="flex flex-col gap-2 rounded-md border border-line bg-paper/50 p-4">
                     <span className="text-ink font-mono text-xs font-semibold uppercase tracking-wider">
-                      Endgame Result:
+                      Endgame result:
                     </span>
                     <span
                       id="endgame-status"
@@ -443,7 +443,7 @@ export function TrainDemo() {
                       )}
                     >
                       {!endgameResult && "Playing… your move"}
-                      {endgameResult?.correct && "✓ Endgame won!"}
+                      {endgameResult?.correct && "✓ Endgame won"}
                       {endgameResult &&
                         !endgameResult.correct &&
                         "✗ Objective not met"}
@@ -455,7 +455,7 @@ export function TrainDemo() {
                     className="w-full mt-2"
                     size="sm"
                   >
-                    Reset Endgame
+                    Reset endgame
                   </Button>
                 </CardContent>
               </Card>
