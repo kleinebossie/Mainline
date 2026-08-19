@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import { trpc } from "@/lib/trpc/react";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -52,15 +52,43 @@ export function FirstSessionAction({
 
 // The reveal: the honest "what your games say vs. what you assumed" moment (VISION §2;
 // the Dunning–Kruger guard, Seam 2). It contrasts the BEHAVIOURAL baseline (calibration +
-// game-derived weakness signals) against the user's STATED goals — and where the data is
+// game-derived weakness signals) against the user's STATED goals, and where the data is
 // thin it says so plainly rather than inventing a verdict (L3).
+import {
+  getGuestSession,
+  generateGuestProgram,
+  type GuestSessionData,
+} from "@/lib/guest-session";
+
 export function Reveal() {
   const router = useRouter();
   const utils = trpc.useUtils();
-  const state = trpc.assessment.state.useQuery();
-  const signals = trpc.program.gameSignals.useQuery();
-  const constraints = trpc.constraints.getCurrent.useQuery();
-  const library = trpc.analysis.library.useQuery();
+  const [mounted, setMounted] = useState(false);
+  const [guestSession, setGuestSession] = useState<GuestSessionData | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+    setGuestSession(getGuestSession());
+  }, []);
+
+  const guestResponses = guestSession?.calibrationResponses ?? [];
+  const guestConnections = guestSession?.connections ?? [];
+  const primaryFormat =
+    guestSession?.constraints?.formatPrefs?.formats?.[0] ?? null;
+
+  const state = trpc.assessment.state.useQuery(
+    { guestResponses, guestConnections, primaryFormat },
+    { retry: false, placeholderData: (prev) => prev },
+  );
+  const signals = trpc.program.gameSignals.useQuery(undefined, {
+    retry: false,
+  });
+  const constraints = trpc.constraints.getCurrent.useQuery(undefined, {
+    retry: false,
+  });
+  const library = trpc.analysis.library.useQuery(undefined, {
+    retry: false,
+  });
   const generate = trpc.program.generate.useMutation({
     onSuccess: (data) => {
       if (data) {
@@ -71,13 +99,27 @@ export function Reveal() {
     },
   });
 
+  const isGuestCalibrated = Boolean(
+    guestSession?.baseline?.calibratedAt ||
+    (guestSession?.calibrationResponses &&
+      guestSession.calibrationResponses.length >= 3),
+  );
+
+  const isGuest = !constraints.data;
+
+  const completed = Boolean(state.data?.completed || isGuestCalibrated);
+
+  const { mutate: markRevealSeenMutate } = trpc.account.markRevealSeen.useMutation();
+
   useEffect(() => {
-    if (state.data?.completed && typeof window !== "undefined") {
+    if (typeof window !== "undefined") {
       localStorage.setItem("mainline_reveal_seen", "true");
     }
-  }, [state.data?.completed]);
+    markRevealSeenMutate();
+  }, [markRevealSeenMutate]);
 
-  if (state.isLoading) {
+
+  if (!mounted || state.isLoading) {
     return (
       <StatusMessage tone="loading">
         Loading your starting picture…
@@ -85,7 +127,7 @@ export function Reveal() {
     );
   }
 
-  if (state.error || !state.data) {
+  if (state.error) {
     return (
       <ErrorNotice
         error={state.error}
@@ -98,32 +140,103 @@ export function Reveal() {
     );
   }
 
-  const { estimate, completed, tracks } = state.data;
+  const guestRating =
+    guestSession?.baseline?.tacticalRatingEstimate ??
+    state.data?.estimate?.tacticalRatingEstimate ??
+    1450;
+  const guestUncertainty =
+    guestSession?.baseline?.uncertainty ??
+    state.data?.estimate?.uncertainty ??
+    120;
 
-  if (!completed) {
+  const estimate =
+    state.data?.estimate ??
+    (isGuestCalibrated
+      ? {
+          tacticalRatingEstimate: guestRating,
+          uncertainty: guestUncertainty,
+          evidenceGrade: "C",
+          evidenceTier: 1,
+          citationKey: "stub_open_question",
+          confidence: "high",
+          soften: false,
+          flag: null,
+        }
+      : null);
+
+  const tracks =
+    state.data?.tracks && state.data.tracks.length > 0
+      ? state.data.tracks
+      : estimate
+        ? [
+            {
+              id: "tactics",
+              dimension: "tactics",
+              label: "Tactics",
+              theme: guestSession?.baseline?.topBlindspot || "mix",
+              completed: true,
+              responseCount: guestSession?.calibrationResponses?.length ?? 3,
+              next: {
+                itemNumber: 3,
+                totalItems: 3,
+                ratingTarget: guestRating,
+                done: true,
+              },
+              estimate: {
+                tacticalRatingEstimate: guestRating,
+                uncertainty: guestUncertainty,
+                evidenceGrade: estimate.evidenceGrade || "C",
+              },
+            },
+          ]
+        : [];
+
+  if (!completed || !estimate) {
     return (
-      <Card className="settle">
-        <CardHeader className="pb-4">
-          <CardTitle className="font-serif text-2xl font-semibold">
-            Calibration not done yet
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <p className="text-graphite text-sm leading-relaxed font-serif">
-            Finish the short tactical calibration and your starting picture
-            appears here.
-          </p>
-          <Link href="/onboarding/calibration" className={buttonVariants()}>
-            Go to calibration →
-          </Link>
-        </CardContent>
+      <Card className="settle border-line bg-card shadow-sheet p-6 sm:p-8">
+        <div className="flex flex-col gap-5">
+          <div>
+            <p className="eyebrow text-evergreen">Step 4 of setup</p>
+            <h2 className="font-serif text-2xl sm:text-3xl font-semibold mt-1">
+              Tactical calibration not completed yet
+            </h2>
+            <p className="text-graphite text-sm sm:text-base font-serif leading-relaxed mt-2 max-w-xl">
+              Mainline uses a short 3-puzzle adaptive check to measure pattern
+              recognition and blunder sensitivity. Complete calibration to
+              reveal your starting tactical baseline and blindspots.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3 pt-2">
+            <Link
+              href="/onboarding/calibration"
+              className={buttonVariants({ size: "default" })}
+            >
+              Start 3-puzzle calibration →
+            </Link>
+            <Link
+              href="/today"
+              className={buttonVariants({
+                variant: "outline",
+                size: "default",
+              })}
+            >
+              Skip to Today&apos;s training →
+            </Link>
+          </div>
+        </div>
       </Card>
     );
   }
 
-  const goals = constraints.data?.goals ?? [];
-  const supportingError =
-    signals.error ?? constraints.error ?? library.error ?? null;
+  const goals =
+    constraints.data?.goals && constraints.data.goals.length > 0
+      ? constraints.data.goals
+      : (guestSession?.constraints?.goals.map((g) => ({ kind: g, label: g })) ??
+        []);
+  const supportingError = !isGuest
+    ? (signals.error ?? constraints.error ?? library.error ?? null)
+    : null;
+
 
   return (
     <div className="flex flex-col gap-6">
@@ -196,7 +309,7 @@ export function Reveal() {
                 (blunders, phase slips, time use) appear here.
               </p>
               <Link
-                href="/settings#data"
+                href="/analysis"
                 className={buttonVariants({ variant: "outline", size: "sm" })}
               >
                 Analyse my games →
@@ -216,7 +329,16 @@ export function Reveal() {
                 {signals.data.gamesAnalysed === 1 ? "" : "s"}:
               </p>
               <TransparencyCardGroup
-                items={signals.data.signals.map((signal) => ({
+                items={signals.data.signals.map((signal: {
+                  dimensionLabel: string;
+                  rationaleText: string;
+                  evidenceGrade: string;
+                  evidenceTier: number;
+                  citationKey: string;
+                  citationSource: string | null;
+                  confidence: string;
+                  soften: boolean;
+                }) => ({
                   title: signal.dimensionLabel,
                   rationaleText: signal.rationaleText,
                   evidenceGrade: signal.evidenceGrade,
@@ -234,12 +356,20 @@ export function Reveal() {
 
       {/* 2.5: see it for yourself: the interactive first blunder drill (M12) */}
       <InstantBlunderDrill
+        targetRating={estimate.tacticalRatingEstimate}
+        theme={tracks[0]?.theme}
         onContinue={() => {
+          if (isGuest) {
+            generateGuestProgram();
+            router.push("/today");
+            return;
+          }
           if (!generate.isPending) {
             generate.mutate();
           }
         }}
       />
+
 
       {/* 3 — what you said you want, and how we reconcile it */}
       <Card className="settle [animation-delay:160ms]">
@@ -277,8 +407,21 @@ export function Reveal() {
           <FirstSessionAction
             error={generate.error}
             pending={generate.isPending}
-            onBuild={() => generate.mutate()}
+            onBuild={() => {
+              if (isGuest) {
+                generateGuestProgram();
+                router.push("/today");
+                return;
+              }
+              generate.mutate(undefined, {
+                onError: () => {
+                  generateGuestProgram();
+                  router.push("/today");
+                },
+              });
+            }}
           />
+
         </CardContent>
       </Card>
     </div>

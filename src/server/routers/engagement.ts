@@ -9,19 +9,31 @@ import {
   saveNotificationPref,
 } from "@/server/engagement";
 import { markRewardEventsSeen } from "@/db/engagement";
-import { protectedProcedure, router } from "@/server/trpc";
+import { publicProcedure, protectedProcedure, router } from "@/server/trpc";
 import { notificationPrefInputSchema } from "@/lib/engagement";
 
 export const engagementRouter = router({
-  summary: protectedProcedure.query(({ ctx }) =>
-    getEngagementSummary(ctx.prisma, ctx.userId),
-  ),
+  summary: publicProcedure.query(async ({ ctx }) => {
+    const userId = ctx.session?.user?.id;
+    if (userId) {
+      return getEngagementSummary(ctx.prisma, userId);
+    }
+    return {
+      streak: { activeDayCount: 0, day: 0, cap: 28, windowDays: 28 },
+      grid: [],
+      latestUnseenRecovery: null,
+    };
+  }),
 
-  markSeen: protectedProcedure
+  markSeen: publicProcedure
     .input(z.object({ ids: z.array(z.string().min(1)).max(50) }))
-    .mutation(({ ctx, input }) =>
-      markRewardEventsSeen(ctx.prisma, ctx.userId, input.ids),
-    ),
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session?.user?.id;
+      if (userId) {
+        return markRewardEventsSeen(ctx.prisma, userId, input.ids);
+      }
+      return { count: 0 };
+    }),
 
   saveNotificationPref: protectedProcedure
     .input(notificationPrefInputSchema)

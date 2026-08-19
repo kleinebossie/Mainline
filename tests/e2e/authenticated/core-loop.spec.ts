@@ -256,7 +256,7 @@ test("normal core loop persists outcomes, adaptation, history, replan, and feedb
     ).toBeVisible();
     await expect(coreLoopPage.getByText("2 of 5 steps done")).toBeVisible();
     await expect(
-      coreLoopPage.getByText("2 of 3 required steps done"),
+      coreLoopPage.getByText("0 of 1 required steps done"),
     ).toBeVisible();
     const constraintsStep = coreLoopPage.getByRole("listitem").filter({
       hasText: "Your time, goals & formats",
@@ -271,13 +271,19 @@ test("normal core loop persists outcomes, adaptation, history, replan, and feedb
     await coreLoopPage.getByLabel("Rapid", { exact: false }).check();
     await coreLoopPage.getByLabel("Screen only", { exact: false }).check();
     await coreLoopPage
-      .getByRole("button", { name: "Save constraints" })
+      .getByRole("button", { name: /Continue setup/i })
       .click();
-    await expect(
-      coreLoopPage.getByText(
-        "Saved. Your daily program will use these settings.",
-      ),
-    ).toBeVisible();
+    await expect(coreLoopPage).toHaveURL(/\/connections$/);
+
+    await coreLoopPage
+      .getByRole("link", { name: /Continue to calibration/i })
+      .click();
+    await expect(coreLoopPage).toHaveURL(/\/onboarding\/calibration$/);
+
+    await coreLoopPage
+      .getByRole("link", { name: /^Continue/i })
+      .click();
+    await expect(coreLoopPage).toHaveURL(/\/onboarding\/reveal$/);
 
     const savedConstraints = await db.constraintSet.findFirstOrThrow({
       where: { userId: coreLoopUser.id, isCurrent: true },
@@ -297,8 +303,6 @@ test("normal core loop persists outcomes, adaptation, history, replan, and feedb
     });
     expect(savedConstraints.ifThenPlan).toBeNull();
 
-    await coreLoopPage.getByRole("link", { name: /Continue/ }).click();
-    await expect(coreLoopPage).toHaveURL(/\/onboarding\/reveal$/);
     await expect(
       coreLoopPage.getByText("What your games reveal", { exact: true }),
     ).toBeVisible();

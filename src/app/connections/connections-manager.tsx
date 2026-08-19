@@ -1,13 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
+import Link from "next/link";
+import { Lock } from "lucide-react";
 import { trpc } from "@/lib/trpc/react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { StatusMessage } from "@/components/ui/status-message";
 import { ErrorNotice } from "@/components/ui/error-notice";
 import { errorMessage } from "@/lib/error-presentation";
+import {
+  getGuestSession,
+  saveGuestConnection,
+  removeGuestConnection,
+  type GuestConnection,
+} from "@/lib/guest-session";
 
 const PLATFORM_LABEL: Record<string, string> = {
   lichess: "Lichess",
@@ -21,16 +29,53 @@ type ConnectionError = {
 
 export function ConnectionsManager() {
   const utils = trpc.useUtils();
+  const [mounted, setMounted] = useState(false);
+  const [guestConnections, setGuestConnections] = useState<GuestConnection[]>(
+    [],
+  );
+
+  useEffect(() => {
+    setMounted(true);
+    setGuestConnections(getGuestSession().connections ?? []);
+  }, []);
+
   const list = trpc.connections.list.useQuery();
+
+  const displayedConnections = useMemo(() => {
+    const map = new Map<
+      string,
+      { id: string; platform: string; externalUsername: string; status: string }
+    >();
+    for (const c of guestConnections) {
+      map.set(c.platform, c);
+    }
+    for (const c of list.data ?? []) {
+      map.set(c.platform, c);
+    }
+    return Array.from(map.values());
+  }, [list.data, guestConnections]);
 
   const [lichessUsername, setLichessUsername] = useState("");
   const [chessComUsername, setChessComUsername] = useState("");
   const [error, setError] = useState<ConnectionError | null>(null);
 
   const addLichess = trpc.connections.addLichessUsername.useMutation({
-    onSuccess: () => {
+    onSuccess: (data) => {
       setLichessUsername("");
       setError(null);
+      const newConn: GuestConnection = {
+        id: data.id,
+        platform: "lichess",
+        externalUsername: data.externalUsername,
+        status: "active",
+        connectedAt: new Date().toISOString(),
+        ratings: data.ratings as Record<
+          string,
+          { rating: number; rd?: number; games?: number }
+        >,
+      };
+      const updated = saveGuestConnection(newConn);
+      setGuestConnections(updated.connections ?? []);
       void utils.connections.list.invalidate();
     },
     onError: (e) =>
@@ -44,9 +89,22 @@ export function ConnectionsManager() {
   });
 
   const addChessCom = trpc.connections.addChessComUsername.useMutation({
-    onSuccess: () => {
+    onSuccess: (data) => {
       setChessComUsername("");
       setError(null);
+      const newConn: GuestConnection = {
+        id: data.id,
+        platform: "chesscom",
+        externalUsername: data.externalUsername,
+        status: "active",
+        connectedAt: new Date().toISOString(),
+        ratings: data.ratings as Record<
+          string,
+          { rating: number; rd?: number; games?: number }
+        >,
+      };
+      const updated = saveGuestConnection(newConn);
+      setGuestConnections(updated.connections ?? []);
       void utils.connections.list.invalidate();
     },
     onError: (e) =>
@@ -60,7 +118,11 @@ export function ConnectionsManager() {
   });
 
   const disconnect = trpc.connections.disconnect.useMutation({
-    onSuccess: () => void utils.connections.list.invalidate(),
+    onSuccess: (_data, variables) => {
+      const updated = removeGuestConnection(variables.id);
+      setGuestConnections(updated.connections ?? []);
+      void utils.connections.list.invalidate();
+    },
     onError: (e) =>
       setError({
         scope: "disconnect",
@@ -121,6 +183,7 @@ export function ConnectionsManager() {
             <Button
               type="submit"
               disabled={addLichess.isPending || !lichessUsername.trim()}
+              className="shrink-0"
             >
               {addLichess.isPending ? "Checking…" : "Add account"}
             </Button>
@@ -173,6 +236,7 @@ export function ConnectionsManager() {
             <Button
               type="submit"
               disabled={addChessCom.isPending || !chessComUsername.trim()}
+              className="shrink-0"
             >
               {addChessCom.isPending ? "Checking…" : "Add account"}
             </Button>
@@ -194,11 +258,11 @@ export function ConnectionsManager() {
             {error.message}
           </StatusMessage>
         )}
-        {list.isLoading ? (
+        {list.isLoading && !mounted ? (
           <StatusMessage tone="loading">
             Loading connected accounts…
           </StatusMessage>
-        ) : list.error ? (
+        ) : list.error && !mounted ? (
           <ErrorNotice
             error={list.error}
             heading="Connections unavailable"
@@ -207,9 +271,9 @@ export function ConnectionsManager() {
             retrying={list.isFetching}
             retryLabel="Reload connections"
           />
-        ) : list.data && list.data.length > 0 ? (
+        ) : displayedConnections.length > 0 ? (
           <ul className="flex flex-col gap-2">
-            {list.data.map((conn) => (
+            {displayedConnections.map((conn) => (
               <li
                 key={conn.id}
                 className="bg-card flex flex-col gap-3 rounded-lg border p-4 shadow-sheet sm:flex-row sm:items-center sm:justify-between"
@@ -253,6 +317,57 @@ export function ConnectionsManager() {
           </StatusMessage>
         )}
       </section>
+
+      <div className="flex flex-col gap-4 border-t border-line/80 pt-6">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+          <div className="flex flex-col items-center sm:items-center gap-1.5 w-full sm:w-auto">
+            {displayedConnections.length > 0 ? (
+              <Link
+                href="/onboarding/calibration"
+                className={buttonVariants({
+                  size: "lg",
+                  variant: "default",
+                  className: "w-full sm:w-auto text-center justify-center",
+                })}
+              >
+                Continue to calibration →
+              </Link>
+            ) : (
+              <>
+                <Button
+                  type="button"
+                  size="lg"
+                  variant="outline"
+                  disabled
+                  aria-disabled="true"
+                  className="w-full sm:w-auto opacity-60 cursor-not-allowed border-line bg-paper-raised text-graphite inline-flex items-center justify-center gap-2"
+                >
+                  <Lock className="h-4 w-4 text-graphite/70" aria-hidden="true" />
+                  <span>Continue to calibration</span>
+                  <span className="font-mono text-[0.65rem] uppercase tracking-wider text-graphite/80 bg-line/60 px-1.5 py-0.5 rounded ml-1">
+                    Locked
+                  </span>
+                </Button>
+                <p className="font-mono text-[0.68rem] text-graphite text-center">
+                  Connect an account above to unlock calibration.
+                </p>
+              </>
+            )}
+          </div>
+
+          <Link
+            href="/today"
+            className={buttonVariants({
+              variant: "outline",
+              size: "lg",
+              className: "font-serif text-graphite hover:text-ink w-full sm:w-auto text-center justify-center",
+            })}
+          >
+            Skip connecting accounts and go to Today →
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }
+

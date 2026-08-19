@@ -10,6 +10,9 @@ import type { OnboardingStatus } from "@/server/onboarding";
 // The guided setup checklist. All five completion states come from persisted server
 // state so revisiting this page never resets visible progress.
 
+import { useEffect, useState } from "react";
+import { getGuestSession, type GuestSessionData } from "@/lib/guest-session";
+
 interface Step {
   href: string;
   title: string;
@@ -19,27 +22,83 @@ interface Step {
 }
 
 export function OnboardingSteps({ status }: { status: OnboardingStatus }) {
+  const [guestSession, setGuestSession] = useState<GuestSessionData | null>(
+    null,
+  );
+  const [revealSeen, setRevealSeen] = useState(false);
+
+  useEffect(() => {
+    setGuestSession(getGuestSession());
+    setRevealSeen(
+      typeof window !== "undefined" &&
+        localStorage.getItem("mainline_reveal_seen") === "true",
+    );
+  }, []);
+
   const details: Record<string, string> = {
+    "/onboarding/constraints": "Set your time, goals, and playing formats.",
     "/connections": "Link Lichess or add a Chess.com username.",
     "/onboarding/calibration": "Complete a short adaptive puzzle check.",
-    "/onboarding/constraints": "Set your time, goals, and playing formats.",
     "/onboarding/reveal":
       "Review your starting picture and solve your first blunder drill.",
     "/today": "Create your first daily training session.",
   };
-  const steps: Step[] = status.steps.map((step) => ({
-    href: step.href,
-    title: step.label,
-    detail: details[step.href] ?? "Complete this setup step.",
-    done: step.done,
-    required: step.required,
-  }));
+
+  const steps: Step[] = status.steps.map((step) => {
+    let done = step.done;
+    if (
+      step.href === "/onboarding/constraints" &&
+      guestSession?.constraints != null
+    ) {
+      done = true;
+    }
+    if (
+      step.href === "/connections" &&
+      ((guestSession?.connections && guestSession.connections.length > 0) ||
+        Boolean(guestSession?.baseline?.username))
+    ) {
+      done = true;
+    }
+    if (
+      step.href === "/onboarding/calibration" &&
+      (Boolean(guestSession?.baseline?.calibratedAt) ||
+        (guestSession?.calibrationResponses &&
+          guestSession.calibrationResponses.length >= 3))
+    ) {
+      done = true;
+    }
+    if (
+      step.href === "/onboarding/reveal" &&
+      (revealSeen ||
+        guestSession?.program != null ||
+        Boolean(guestSession?.baseline?.calibratedAt) ||
+        (guestSession?.calibrationResponses &&
+          guestSession.calibrationResponses.length >= 3))
+    ) {
+      done = true;
+    }
+    if (step.href === "/today" && guestSession?.program != null) {
+      done = true;
+    }
+    return {
+      href: step.href,
+      title: step.label,
+      detail: details[step.href] ?? "Complete this setup step.",
+      done,
+      required: step.required,
+    };
+  });
+
+
   const doneCount = steps.filter((step) => step.done).length;
   const requiredDone = steps.filter(
     (step) => step.required && step.done,
   ).length;
   const requiredCount = steps.filter((step) => step.required).length;
-  const nextStep = steps.find((step) => step.href === status.nextStep?.href);
+  const isComplete = requiredCount > 0 && requiredDone === requiredCount;
+  const nextStep =
+    steps.find((step) => step.required && !step.done) ??
+    steps.find((step) => !step.done);
 
   return (
     <div className="flex flex-col gap-6">
@@ -65,26 +124,38 @@ export function OnboardingSteps({ status }: { status: OnboardingStatus }) {
         </div>
       </div>
 
-      <div
-        className={cn(
-          "rounded-lg border px-4 py-3",
-          status.complete
-            ? "border-evergreen/30 bg-evergreen/[0.06]"
-            : "border-line bg-card",
-        )}
-        role="status"
-      >
-        <p className="font-serif text-sm font-semibold text-ink">
-          {status.complete
-            ? "Required setup complete"
-            : `${requiredDone} of ${requiredCount} required steps done`}
-        </p>
-        <p className="mt-1 text-sm text-graphite">
-          {status.complete
-            ? "Daily training is unlocked. Finish the last two steps when you are ready."
-            : "Complete the required steps to unlock daily training."}
-        </p>
-      </div>
+      {isComplete ? (
+        <div className="bg-paper-raised border border-evergreen/40 rounded-lg p-5 shadow-sheet flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <p className="eyebrow text-evergreen">Ready to train</p>
+            <p className="font-serif text-lg font-semibold text-ink mt-1">
+              Your first daily training session is ready
+            </p>
+            <p className="text-graphite font-serif text-sm mt-0.5 max-w-lg">
+              You can start training right now, or finish connecting your
+              accounts and calibration below to refine your starting signals.
+            </p>
+          </div>
+          <Link
+            href="/today"
+            className={cn(buttonVariants({ size: "default" }), "shrink-0")}
+          >
+            Start Today&apos;s session →
+          </Link>
+        </div>
+      ) : (
+        <div
+          className="rounded-lg border border-line bg-card px-4 py-3"
+          role="status"
+        >
+          <p className="font-serif text-sm font-semibold text-ink">
+            {`${requiredDone} of ${requiredCount} required steps done`}
+          </p>
+          <p className="mt-1 text-sm text-graphite">
+            Complete the required constraints step to unlock daily training.
+          </p>
+        </div>
+      )}
 
       <ol className="flex flex-col gap-4">
         {steps.map((step, i) => {

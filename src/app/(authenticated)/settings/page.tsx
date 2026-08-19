@@ -12,11 +12,12 @@ import { loadMethodology, rationaleFor } from "@/methodology";
 // assessment, delivery-fit feedback, analysis, and account controls.
 export default async function SettingsPage() {
   const session = await getSession();
-  if (!session?.user) return null;
-  const account = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { role: true },
-  });
+  const account = session?.user?.id
+    ? await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { role: true },
+      })
+    : null;
   const ifThenRationale = rationaleFor("if_then_plan", loadMethodology());
 
   return (

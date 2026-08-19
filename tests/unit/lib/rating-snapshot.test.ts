@@ -3,9 +3,11 @@ import { describe, expect, it } from "vitest";
 import {
   calibrationRatingFromSnapshot,
   highestLiveRatingFromSnapshot,
+
   playingRatingEntryFromSnapshot,
   playingRatingWithDeviationFromSnapshot,
   ratingEntriesFromSnapshot,
+  resolveCalibrationSeedRating,
 } from "@/lib/rating-snapshot";
 
 const ratings = {
@@ -65,4 +67,44 @@ describe("rating snapshot rules", () => {
       }),
     ).toEqual([{ format: "rapid", rating: 1500, rd: null }]);
   });
+
+  describe("resolveCalibrationSeedRating hierarchy", () => {
+    it("prefers Lichess puzzle rating (Priority 1)", () => {
+      const seed = resolveCalibrationSeedRating({
+        lichessRatings: { puzzle: { rating: 1850 }, rapid: { rating: 1600 } },
+        chesscomRatings: { rapid: { rating: 1700 }, blitz: { rating: 1650 } },
+        primaryFormat: "rapid",
+      });
+      expect(seed).toBe(1850);
+    });
+
+    it("uses Chess.com primary format rating when Lichess puzzle missing (Priority 2)", () => {
+      const seed = resolveCalibrationSeedRating({
+        lichessRatings: { rapid: { rating: 1600 } },
+        chesscomRatings: { rapid: { rating: 1420 }, blitz: { rating: 1550 } },
+        primaryFormat: "rapid",
+      });
+      expect(seed).toBe(1420);
+    });
+
+    it("uses highest Chess.com rating across the board when primary format missing (Priority 3)", () => {
+      const seed = resolveCalibrationSeedRating({
+        chesscomRatings: {
+          bullet: { rating: 1200 },
+          blitz: { rating: 1530 },
+          rapid: { rating: 1480 },
+        },
+        primaryFormat: null,
+      });
+      expect(seed).toBe(1530);
+    });
+
+    it("falls back to defaultStartRating when no ratings provided", () => {
+      const seed = resolveCalibrationSeedRating({
+        defaultStartRating: 1200,
+      });
+      expect(seed).toBe(1200);
+    });
+  });
 });
+

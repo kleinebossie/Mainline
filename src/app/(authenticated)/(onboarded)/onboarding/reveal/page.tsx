@@ -9,11 +9,12 @@ import { getSession } from "@/server/session";
 // interpretation (Seam 3) lands with analysis (M5) and the program engine (M6).
 export default async function RevealPage() {
   const session = await getSession();
-  if (!session?.user) return null;
-  await prisma.user.updateMany({
-    where: { id: session.user.id, setupRevealSeenAt: null },
-    data: { setupRevealSeenAt: new Date() },
-  });
+  if (session?.user) {
+    await prisma.user.updateMany({
+      where: { id: session.user.id, setupRevealSeenAt: null },
+      data: { setupRevealSeenAt: new Date() },
+    });
+  }
 
   return (
     <PageShell

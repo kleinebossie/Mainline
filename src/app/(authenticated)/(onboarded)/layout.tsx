@@ -10,7 +10,10 @@ export default async function OnboardedLayout({
   children: ReactNode;
 }) {
   const session = await getSession();
-  if (!session?.user) return null;
+  if (!session?.user) {
+    // Guest mode: visitors can explore Today and training drills
+    return children;
+  }
 
   if (session.user.onboarded === true) {
     return children;

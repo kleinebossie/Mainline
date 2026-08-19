@@ -79,22 +79,22 @@ export async function getOnboardingStatus(
 
   const steps: OnboardingStep[] = [
     {
+      href: "/onboarding/constraints",
+      label: "Your time, goals & formats",
+      done: hasConstraints,
+      required: true,
+    },
+    {
       href: "/connections",
       label: "Connect a chess account",
       done: hasConnection,
-      required: true,
+      required: false,
     },
     {
       href: "/onboarding/calibration",
       label: "Tactical calibration",
       done: hasCalibration,
-      required: true,
-    },
-    {
-      href: "/onboarding/constraints",
-      label: "Your time, goals & formats",
-      done: hasConstraints,
-      required: true,
+      required: false,
     },
     {
       href: "/onboarding/reveal",
@@ -126,6 +126,60 @@ export async function getPostAuthDestination(
   userId: string,
 ): Promise<typeof ONBOARDING_HOME_PATH | typeof TRAINING_HOME_PATH> {
   return postAuthDestination(await getOnboardingStatus(db, userId));
+}
+
+/**
+ * Return the onboarding status for a guest session.
+ * Allows visitors to complete constraints and reach Day 1 training without authentication.
+ */
+export function getGuestOnboardingStatus(
+  hasConstraints: boolean,
+  hasBaseline: boolean = false,
+  hasProgram: boolean = false,
+): OnboardingStatus {
+  const steps: OnboardingStep[] = [
+    {
+      href: "/onboarding/constraints",
+      label: "Your time, goals & formats",
+      done: hasConstraints,
+      required: true,
+    },
+    {
+      href: "/connections",
+      label: "Connect a chess account",
+      done: hasBaseline,
+      required: false,
+    },
+    {
+      href: "/onboarding/calibration",
+      label: "Tactical calibration",
+      done: hasBaseline,
+      required: false,
+    },
+    {
+      href: "/onboarding/reveal",
+      label: "See where you stand",
+      done: hasBaseline || hasProgram,
+      required: false,
+    },
+
+    {
+      href: "/today",
+      label: "Build your first session",
+      done: hasProgram,
+      required: false,
+    },
+  ];
+
+  const nextRequiredStep = steps.find((step) => step.required && !step.done);
+  const nextStep = nextRequiredStep ?? steps.find((step) => !step.done) ?? null;
+
+  return {
+    complete: nextRequiredStep == null,
+    nextStep,
+    steps,
+    allComplete: steps.every((step) => step.done),
+  };
 }
 
 /**

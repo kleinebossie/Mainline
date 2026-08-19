@@ -5,7 +5,7 @@
 // compute (§12). Display is deliberately judgement-free (L1): these are measurements, not
 // advice; interpretation ("why this is a weakness") arrives with the program engine (M6).
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import { trpc } from "@/lib/trpc/react";
 import { Button } from "@/components/ui/button";
@@ -13,13 +13,41 @@ import { ErrorNotice } from "@/components/ui/error-notice";
 import { StatusMessage } from "@/components/ui/status-message";
 import { errorMessage } from "@/lib/error-presentation";
 import { DEFAULT_ANALYSIS_DEPTH } from "@/analysis/worker-config";
+import { hasGuestData } from "@/lib/guest-session";
 
 type Status = "idle" | "running" | "done" | "error";
 
+interface GuestGame {
+  id: string;
+  pgn: string;
+  color?: string | null;
+  analyzed?: boolean;
+  rawFeatures?: unknown;
+}
+
 export function AnalysisRunner() {
   const utils = trpc.useUtils();
-  const pending = trpc.analysis.pending.useQuery();
-  const summary = trpc.analysis.summary.useQuery();
+  const [isGuest, setIsGuest] = useState(false);
+  const [guestGames, setGuestGames] = useState<GuestGame[]>([]);
+
+  useEffect(() => {
+    setIsGuest(hasGuestData());
+    try {
+      const cached = localStorage.getItem("mainline_guest_games");
+      if (cached) {
+        setGuestGames(JSON.parse(cached));
+      }
+    } catch {}
+  }, []);
+
+  const pending = trpc.analysis.pending.useQuery(undefined, {
+    enabled: !isGuest,
+    retry: false,
+  });
+  const summary = trpc.analysis.summary.useQuery(undefined, {
+    enabled: !isGuest,
+    retry: false,
+  });
   const save = trpc.analysis.save.useMutation();
 
   const [status, setStatus] = useState<Status>("idle");
@@ -30,12 +58,30 @@ export function AnalysisRunner() {
   const [engineLabel, setEngineLabel] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const isGuestMode =
+    isGuest ||
+    pending.error?.data?.code === "UNAUTHORIZED" ||
+    summary.error?.data?.code === "UNAUTHORIZED";
+
+  const guestPendingGames = guestGames.filter((g) => !g.analyzed);
+  const gamesToAnalyze = isGuestMode
+    ? guestPendingGames
+    : (pending.data ?? []);
+  const pendingCount = isGuestMode
+    ? guestPendingGames.length
+    : (pending.data?.length ?? 0);
+  const counts = isGuestMode
+    ? {
+        analysed: guestGames.filter((g) => g.analyzed).length,
+        total: guestGames.length,
+      }
+    : summary.data;
+
   async function run() {
-    const games = pending.data ?? [];
-    if (games.length === 0) return;
+    if (gamesToAnalyze.length === 0) return;
     setStatus("running");
     setError(null);
-    setProgress({ done: 0, total: games.length });
+    setProgress({ done: 0, total: gamesToAnalyze.length });
 
     try {
       // Lazy-load the engine: keeps the ~7 MB WASM off the initial bundle and off the server.
@@ -48,29 +94,57 @@ export function AnalysisRunner() {
 
       try {
         let done = 0;
-        for (const game of games) {
-          const features = await engine.analyzeGame(
-            game.pgn,
-            { depth: DEFAULT_ANALYSIS_DEPTH },
-            { userColor: game.color === "b" ? "b" : "w" },
-          );
-          await save.mutateAsync({
-            gameId: game.id,
-            engineVersion: engine.engineVersion,
-            depth: DEFAULT_ANALYSIS_DEPTH,
-            rawFeatures: features,
-          });
-          done += 1;
-          setProgress({ done, total: games.length });
+        if (isGuestMode) {
+          const updatedGames = [...guestGames];
+          for (const game of gamesToAnalyze) {
+            const features = await engine.analyzeGame(
+              game.pgn,
+              { depth: DEFAULT_ANALYSIS_DEPTH },
+              { userColor: game.color === "b" ? "b" : "w" },
+            );
+            const idx = updatedGames.findIndex((g) => g.id === game.id);
+            if (idx >= 0) {
+              updatedGames[idx] = {
+                ...updatedGames[idx]!,
+                analyzed: true,
+                rawFeatures: features,
+              };
+            }
+            done += 1;
+            setProgress({ done, total: gamesToAnalyze.length });
+          }
+          setGuestGames(updatedGames);
+          try {
+            localStorage.setItem(
+              "mainline_guest_games",
+              JSON.stringify(updatedGames),
+            );
+          } catch {}
+        } else {
+          for (const game of gamesToAnalyze) {
+            const features = await engine.analyzeGame(
+              game.pgn,
+              { depth: DEFAULT_ANALYSIS_DEPTH },
+              { userColor: game.color === "b" ? "b" : "w" },
+            );
+            await save.mutateAsync({
+              gameId: game.id,
+              engineVersion: engine.engineVersion,
+              depth: DEFAULT_ANALYSIS_DEPTH,
+              rawFeatures: features,
+            });
+            done += 1;
+            setProgress({ done, total: gamesToAnalyze.length });
+          }
+          await Promise.all([
+            utils.analysis.pending.invalidate(),
+            utils.analysis.summary.invalidate(),
+          ]);
         }
       } finally {
         engine.dispose();
       }
 
-      await Promise.all([
-        utils.analysis.pending.invalidate(),
-        utils.analysis.summary.invalidate(),
-      ]);
       setStatus("done");
     } catch (e) {
       setError(
@@ -83,9 +157,6 @@ export function AnalysisRunner() {
     }
   }
 
-  const counts = summary.data;
-  const pendingCount = pending.data?.length ?? 0;
-
   return (
     <section className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-4 border-b border-line/80 pb-3">
@@ -94,11 +165,13 @@ export function AnalysisRunner() {
           type="button"
           size="sm"
           disabled={
-            pending.isLoading || status === "running" || pendingCount === 0
+            (!isGuestMode && pending.isLoading) ||
+            status === "running" ||
+            pendingCount === 0
           }
           onClick={() => void run()}
         >
-          {pending.isLoading
+          {!isGuestMode && pending.isLoading
             ? "Checking games…"
             : status === "running"
               ? `Analysing ${progress.done}/${progress.total}…`
@@ -131,7 +204,7 @@ export function AnalysisRunner() {
         </p>
       ) : null}
 
-      {(pending.error || summary.error) && (
+      {!isGuestMode && (pending.error || summary.error) && (
         <ErrorNotice
           error={pending.error ?? summary.error}
           heading="Analysis queue unavailable"

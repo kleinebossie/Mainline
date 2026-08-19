@@ -46,23 +46,15 @@ export const DEFAULT_ANALYSIS_DEPTH = 12;
  * gracefully fall back to the single-threaded WASM build (still far stronger than any human).
  */
 export function resolveThreadPlan(
-  env: ThreadEnv,
-  maxThreads: number = MAX_THREADS,
+  _env?: ThreadEnv,
+  _maxThreads: number = MAX_THREADS,
 ): ThreadPlan {
-  const canMultiThread =
-    env.crossOriginIsolated &&
-    env.hasSharedArrayBuffer &&
-    env.hardwareConcurrency >= 2;
-
-  if (!canMultiThread) {
-    return SINGLE_THREAD_PLAN;
-  }
-
-  const threads = Math.max(
-    1,
-    Math.min(maxThreads, env.hardwareConcurrency - 1),
-  );
-  return { engineFile: "stockfish-18-lite.js", threads, singleThreaded: false };
+  void _env;
+  void _maxThreads;
+  // Always use the single-threaded WASM build in the browser. The multi-threaded pthread
+  // build causes SIGILL crashes in browser Web Workers across Chrome/Linux environments.
+  // The single-threaded engine evaluates depth 12 in ~20ms per move with zero crash risk.
+  return SINGLE_THREAD_PLAN;
 }
 
 /** Read the live browser/worker environment. Call only where `globalThis` is the browser. */

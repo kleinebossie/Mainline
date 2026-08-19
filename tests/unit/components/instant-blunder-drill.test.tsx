@@ -24,8 +24,16 @@ vi.mock("@/lib/trpc/react", () => ({
           },
         }),
       },
+      getPersonalizedDrill: {
+        useQuery: () => ({
+          isLoading: false,
+          error: null,
+          data: null,
+        }),
+      },
     },
     useUtils: () => ({}),
+
   },
 }));
 
@@ -43,10 +51,11 @@ describe("InstantBlunderDrill component", () => {
       <InstantBlunderDrill initialDrill={STARTER_BLUNDER_DRILL} />,
     );
 
-    expect(html).toContain("Punish the back-rank mistake");
+    expect(html).toContain("Execute the tactical fork");
     expect(html).toContain("Starter drill");
     expect(html).toContain("White to move");
     expect(html).toContain("Make the best move on the board");
+
   });
 
   it("renders a real game blunder drill when provided", () => {

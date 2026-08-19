@@ -6,11 +6,21 @@ import { cn } from "@/lib/utils";
 import { beginSelectedBetaSignIn } from "@/app/signin/actions";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
 import { buttonVariants } from "@/components/ui/button";
+import { HomepageBlunderAnalyzer } from "@/components/homepage-blunder-analyzer";
+import { LandingTelemetry } from "@/components/landing-telemetry";
+import { GuestLandingButton } from "@/components/guest-landing-button";
 import { prisma } from "@/db/client";
+
 import { auth } from "@/server/auth";
 import { getPostAuthDestination } from "@/server/onboarding";
 
 const SETUP_STEPS = [
+  {
+    label: "Constrain",
+    title: "Define your reality",
+    detail:
+      "Set your available time, goals, formats, preferences, and resources you already own.",
+  },
   {
     label: "Connect",
     title: "Bring your games",
@@ -22,12 +32,6 @@ const SETUP_STEPS = [
     title: "Establish a baseline",
     detail:
       "Complete a short tactical check. We measure play instead of asking you to rate yourself.",
-  },
-  {
-    label: "Constrain",
-    title: "Define your reality",
-    detail:
-      "Set your available time, goals, formats, preferences, and resources you already own.",
   },
   {
     label: "Reveal",
@@ -114,8 +118,14 @@ export default async function Home() {
           </Link>
           <nav
             aria-label="Landing page navigation"
-            className="flex items-center gap-3 font-mono text-[0.7rem] text-graphite sm:gap-6 sm:text-xs"
+            className="hidden items-center gap-5 font-mono text-xs text-graphite md:flex"
           >
+            <a
+              className="transition-colors hover:text-ink"
+              href="#blunder-analyzer"
+            >
+              Analyze games
+            </a>
             <a
               className="transition-colors hover:text-ink"
               href="#how-it-works"
@@ -125,15 +135,16 @@ export default async function Home() {
             <a className="transition-colors hover:text-ink" href="#principles">
               Principles
             </a>
-            <Link className="transition-colors hover:text-ink" href="/about">
-              About
-            </Link>
           </nav>
-          <a href="#get-started" className={buttonVariants({ size: "sm" })}>
+          <a
+            href="#get-started"
+            className={buttonVariants({ size: "sm", className: "shrink-0" })}
+          >
             Get started
           </a>
         </div>
       </header>
+      <LandingTelemetry />
 
       <section className="relative border-b border-line/80">
         <div
@@ -141,35 +152,41 @@ export default async function Home() {
           className="pointer-events-none absolute inset-y-0 left-1/2 hidden w-px bg-line/80 lg:block"
         />
         <div className="mx-auto grid max-w-6xl lg:grid-cols-2">
-          <div className="settle flex flex-col justify-center px-4 py-16 sm:px-6 sm:py-24 lg:min-h-[690px] lg:pr-16">
+          <div className="settle flex flex-col justify-center px-4 py-12 sm:px-6 sm:py-20 lg:min-h-[690px] lg:pr-16">
             <p className="eyebrow text-evergreen">
               Personal chess training, properly directed
             </p>
-            <h1 className="mt-5 max-w-xl font-serif text-5xl font-semibold leading-[0.98] tracking-[-0.04em] sm:text-7xl">
+            <h1 className="mt-4 max-w-xl font-serif text-4xl font-semibold leading-[1.02] tracking-[-0.03em] sm:text-6xl lg:text-7xl">
               Stop guessing what to train.
             </h1>
-            <p className="mt-7 max-w-lg font-serif text-xl leading-relaxed text-graphite sm:text-2xl">
+            <p className="mt-6 max-w-lg font-serif text-lg leading-relaxed text-graphite sm:text-2xl">
               Mainline turns your games, goals, and available time into a daily
               chess training program that keeps adapting.
             </p>
-            <p className="mt-5 max-w-lg text-base leading-relaxed text-graphite">
+            <p className="mt-4 max-w-lg text-sm sm:text-base leading-relaxed text-graphite">
               It sits above puzzle trainers, game analysis, books, and courses.
               Instead of giving you more material, it decides what deserves your
               attention today, then tells you why.
             </p>
-            <div className="mt-9 flex flex-wrap items-center gap-4">
-              <a href="#get-started" className={buttonVariants({ size: "lg" })}>
-                Build my training plan
+            <div className="mt-8 flex flex-col sm:flex-row sm:items-center gap-3.5">
+              <a
+                href="#blunder-analyzer"
+                className={buttonVariants({
+                  size: "lg",
+                  className: "w-full sm:w-auto text-center justify-center",
+                })}
+              >
+                Analyze my games
               </a>
               <a
                 href="#how-it-works"
-                className="rounded-sm font-mono text-sm text-graphite underline decoration-line underline-offset-4 transition-colors hover:text-ink"
+                className="text-center rounded-sm font-mono text-xs sm:text-sm text-graphite underline decoration-line underline-offset-4 transition-colors hover:text-ink py-1"
               >
                 See what setup involves
               </a>
             </div>
             <p className="mt-4 font-mono text-[0.68rem] uppercase tracking-[0.12em] text-graphite">
-              Open beta · free to use
+              Open beta · no login needed
             </p>
           </div>
 
@@ -234,6 +251,15 @@ export default async function Home() {
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section
+        id="blunder-analyzer"
+        className="scroll-mt-16 border-b border-line/80 bg-paper py-14 sm:py-20"
+      >
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <HomepageBlunderAnalyzer />
         </div>
       </section>
 
@@ -374,8 +400,16 @@ export default async function Home() {
                   Continue with Google
                 </PendingSubmitButton>
               )}
+              <div className="relative my-1 flex items-center justify-center">
+                <div className="w-full border-t border-line" />
+                <span className="bg-paper px-3 font-mono text-[0.65rem] uppercase text-graphite">
+                  or
+                </span>
+              </div>
+              <GuestLandingButton />
             </div>
             <p className="mt-6 border-t border-line pt-5 text-center font-mono text-[0.68rem] leading-relaxed text-graphite">
+
               Read-only connections · no password stored · export or delete your
               data at any time
             </p>
@@ -388,12 +422,7 @@ export default async function Home() {
           <span className="uppercase tracking-[0.18em]">
             Mainline · science-based chess training
           </span>
-          <div className="flex items-center gap-6">
-            <span>No ads · no runtime AI · no rating promises</span>
-            <Link className="transition-colors hover:text-paper" href="/about">
-              About
-            </Link>
-          </div>
+          <span>No ads · no runtime AI · no rating promises</span>
         </div>
       </footer>
     </main>

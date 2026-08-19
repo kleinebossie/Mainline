@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
+import { Chess } from "chess.js";
 
 import {
   analysisCounts,
@@ -8,6 +9,7 @@ import {
   saveAnalysisResult,
   userOwnsGame,
 } from "@/db/analysis";
+import { selectPuzzles } from "@/db/puzzles";
 import { rawGameFeaturesSchema } from "@/lib/raw-features";
 import { fsrsStateSchema } from "@/lib/tracker";
 import {
@@ -22,10 +24,14 @@ import {
 import { resolvePlayingRating } from "@/server/profile";
 import { gameIdentity } from "@/server/game-identity";
 import { systemClock } from "@/lib/clock";
-import { protectedProcedure, router } from "@/server/trpc";
-import { captureOperationalEvent } from "@/server/observability";
+import { publicProcedure, protectedProcedure, router } from "@/server/trpc";
+import { lichessAdapter } from "@/integrations/lichess/adapter";
+import { chessComAdapter } from "@/integrations/chesscom/adapter";
+import type { ImportedGameInput } from "@/integrations/adapter";
+import { analyzePublicUsername } from "@/server/public-analysis";
 import { expectedError } from "@/server/errors";
 import { GAME_ANALYSED_ACTIVITY_EVENT_TYPE } from "@/lib/tracker";
+
 
 const PLATFORMS = ["lichess", "chesscom"] as const;
 const ANALYSIS_SOURCES = ["lichess", "chesscom", "manual"] as const;
@@ -102,7 +108,7 @@ function repeatedSessionResult(payload: Prisma.JsonValue, gameId: string) {
 
 export const analysisRouter = router({
   // The default queue uses the methodology cap; callers may request a bounded window.
-  pending: protectedProcedure
+  pending: publicProcedure
     .input(
       z
         .object({
@@ -112,18 +118,20 @@ export const analysisRouter = router({
         .optional(),
     )
     .query(async ({ ctx, input }) => {
+      const userId = ctx.session?.user?.id;
+      if (!userId) return [];
       const cfg = loadMethodology();
       const games =
         input?.limit != null
           ? await gamesNeedingAnalysisInWindow(
               ctx.prisma,
-              ctx.userId,
+              userId,
               input.limit,
               input.platform,
             )
           : await gamesNeedingAnalysis(
               ctx.prisma,
-              ctx.userId,
+              userId,
               cfg.assessment.instantEvalGames.value,
               input?.platform,
             );
@@ -141,35 +149,40 @@ export const analysisRouter = router({
   save: protectedProcedure
     .input(
       z.object({
-        gameId: z.string(),
+        gameId: z.string().min(1).max(191),
         engineVersion: z.string().min(1).max(64),
-        depth: z.number().int().min(1).max(99),
+        depth: z.number().int().min(1).max(64),
         rawFeatures: rawGameFeaturesSchema,
       }),
     )
     .mutation(async ({ ctx, input }) => {
       const owns = await userOwnsGame(ctx.prisma, ctx.userId, input.gameId);
-      if (!owns) return { saved: false as const };
-      await saveAnalysisResult(ctx.prisma, input);
-      captureOperationalEvent({
-        operation: "analysis_handoff",
-        status: "success",
-        count: 1,
+      if (!owns) {
+        throw expectedError.notFound("Game does not exist.");
+      }
+      await saveAnalysisResult(ctx.prisma, {
+        gameId: input.gameId,
+        engineVersion: input.engineVersion,
+        depth: input.depth,
+        rawFeatures: input.rawFeatures,
       });
       return { saved: true as const };
     }),
 
-  summary: protectedProcedure.query(({ ctx }) =>
-    analysisCounts(ctx.prisma, ctx.userId),
-  ),
+  summary: publicProcedure.query(async ({ ctx }) => {
+    const userId = ctx.session?.user?.id;
+    if (!userId) {
+      return { total: 0, analysed: 0, unanalysed: 0 };
+    }
+    return analysisCounts(ctx.prisma, userId);
+  }),
 
-  suggestions: protectedProcedure.query(async ({ ctx }) => {
+  suggestions: publicProcedure.query(async ({ ctx }) => {
     const cfg = loadMethodology();
-    const playingRating = await resolvePlayingRating(
-      ctx.prisma,
-      ctx.userId,
-      cfg,
-    );
+    const userId = ctx.session?.user?.id;
+    const playingRating = userId
+      ? await resolvePlayingRating(ctx.prisma, userId, cfg)
+      : 1450;
     const band = bandForRating(playingRating, cfg);
 
     return {
@@ -179,14 +192,23 @@ export const analysisRouter = router({
     };
   }),
 
-  library: protectedProcedure.query(async ({ ctx }) => {
+  library: publicProcedure.query(async ({ ctx }) => {
+    const userId = ctx.session?.user?.id;
+    if (!userId) {
+      return {
+        primaryPlatform: null,
+        effectivePlatform: null,
+        platforms: [],
+        games: [],
+      };
+    }
     const [user, platformGames, manualGames] = await Promise.all([
       ctx.prisma.user.findUnique({
-        where: { id: ctx.userId },
+        where: { id: userId },
         select: { primaryPlatform: true },
       }),
       ctx.prisma.importedGame.findMany({
-        where: { userId: ctx.userId, source: { not: "manual" } },
+        where: { userId, source: { not: "manual" } },
         orderBy: [
           { playedAt: { sort: "desc", nulls: "last" } },
           { importedAt: "desc" },
@@ -195,7 +217,7 @@ export const analysisRouter = router({
         select: libraryGameSelect,
       }),
       ctx.prisma.importedGame.findMany({
-        where: { userId: ctx.userId, source: "manual" },
+        where: { userId, source: "manual" },
         orderBy: { importedAt: "desc" },
         take: 60,
         select: libraryGameSelect,
@@ -234,10 +256,80 @@ export const analysisRouter = router({
           you: id.you ?? null,
           userRating: g.userRatingAtGame,
           analyzed: g.analysis !== null,
+          pgn: g.pgn,
         };
       }),
     };
   }),
+
+  fetchGuestGames: publicProcedure
+    .input(
+      z.object({
+        platform: z.enum(["lichess", "chesscom"]),
+        username: z.string().trim().min(1).max(50),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      if (input.platform === "lichess") {
+        try {
+          const games: ImportedGameInput[] = await lichessAdapter.fetchGames(
+            { platform: "lichess", externalUsername: input.username },
+            undefined,
+            30,
+          );
+          return games.map((g) => {
+            const id = gameIdentity(g.pgn, g.color ?? null);
+            return {
+              id: g.externalGameId,
+              platform: "lichess" as const,
+              playedAt: g.playedAt ? new Date(g.playedAt).toISOString() : null,
+              color: g.color ?? null,
+              result: g.result ?? null,
+              timeControl: g.timeControl ?? null,
+              opening: g.opening ?? null,
+              opponentRating: g.opponentRating ?? null,
+              userRatingAtGame: g.userRatingAtGame ?? null,
+              pgn: g.pgn,
+              opponent: id.opponent ?? id.black ?? id.white ?? "Opponent",
+              event: id.event ?? null,
+              you: input.username,
+              analyzed: false,
+            };
+          });
+        } catch {
+          return [];
+        }
+      } else {
+        try {
+          const games: ImportedGameInput[] = await chessComAdapter.fetchGames(
+            { platform: "chesscom", externalUsername: input.username },
+            undefined,
+            30,
+          );
+          return games.map((g) => {
+            const id = gameIdentity(g.pgn, g.color ?? null);
+            return {
+              id: g.externalGameId,
+              platform: "chesscom" as const,
+              playedAt: g.playedAt ? new Date(g.playedAt).toISOString() : null,
+              color: g.color ?? null,
+              result: g.result ?? null,
+              timeControl: g.timeControl ?? null,
+              opening: g.opening ?? null,
+              opponentRating: g.opponentRating ?? null,
+              userRatingAtGame: g.userRatingAtGame ?? null,
+              pgn: g.pgn,
+              opponent: id.opponent ?? id.black ?? id.white ?? "Opponent",
+              event: id.event ?? null,
+              you: input.username,
+              analyzed: false,
+            };
+          });
+        } catch {
+          return [];
+        }
+      }
+    }),
 
   setPrimaryPlatform: protectedProcedure
     .input(z.object({ platform: z.enum(PLATFORMS) }))
@@ -519,4 +611,57 @@ export const analysisRouter = router({
       }
       return game;
     }),
+
+  // Public blunder analyzer for homepage visitor lead magnet (Sprint 1 §3.1).
+  analyzePublicUsername: publicProcedure
+    .input(
+      z.object({
+        platform: z.enum(["lichess", "chesscom"]),
+        username: z.string().min(1).max(50),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      return analyzePublicUsername(input.platform, input.username, ctx.prisma);
+    }),
+
+  // Rated drill for reveal and onboarding fallback
+  getPersonalizedDrill: publicProcedure
+    .input(
+      z.object({
+        ratingTarget: z.number().int().min(400).max(3000),
+        theme: z.string().optional(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      try {
+        const candidates = await selectPuzzles(ctx.prisma, {
+          theme: input.theme || "mix",
+          ratingTarget: input.ratingTarget,
+          count: 5,
+        });
+
+        for (const pz of candidates) {
+          const rawMoves = pz.moves.trim().split(/\s+/);
+          if (rawMoves.length >= 2) {
+            const chess = new Chess(pz.fen);
+            const oppMove = chess.move(rawMoves[0]!);
+            if (oppMove) {
+              return {
+                fen: chess.fen(),
+                solutionLine: rawMoves.slice(1),
+                source: "starter" as const,
+                title: `Tactical Drill (${pz.rating} rated)`,
+                description: `A puzzle calibrated to your tactical level (${pz.rating}). Find the winning move.`,
+                gameInfo: pz.gameUrl ?? undefined,
+                rating: pz.rating,
+              };
+            }
+          }
+        }
+        return null;
+      } catch {
+        return null;
+      }
+    }),
 });
+

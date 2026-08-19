@@ -13,16 +13,41 @@ import {
   withdrawResearchConsent,
 } from "@/server/account";
 import { expectedError } from "@/server/errors";
-import { protectedProcedure, router } from "@/server/trpc";
+import { protectedProcedure, publicProcedure, router } from "@/server/trpc";
+import {
+  guestMigrationInputSchema,
+  migrateGuestSession,
+} from "@/server/guest-migration";
 
 export const accountRouter = router({
-  exportData: protectedProcedure.query(({ ctx }) =>
-    exportUserData(ctx.prisma, ctx.userId),
-  ),
+  exportData: publicProcedure.query(async ({ ctx }) => {
+    const userId = ctx.session?.user?.id;
+    if (!userId) {
+      return {
+        exportedAt: new Date().toISOString(),
+        guestMode: true,
+        user: { id: "guest", role: "guest" },
+        connections: [],
+        constraintSets: [],
+        programs: [],
+        skillStates: [],
+        activityEvents: [],
+      };
+    }
+    return exportUserData(ctx.prisma, userId);
+  }),
 
-  researchConsent: protectedProcedure.query(({ ctx }) =>
-    consentStatus(ctx.prisma, ctx.userId),
-  ),
+  researchConsent: publicProcedure.query(async ({ ctx }) => {
+    const userId = ctx.session?.user?.id;
+    if (!userId) {
+      return {
+        isEligible: false,
+        hasActiveGrant: false,
+        notice: null,
+      };
+    }
+    return consentStatus(ctx.prisma, userId);
+  }),
 
   grantResearchConsent: protectedProcedure
     .input(
@@ -69,4 +94,36 @@ export const accountRouter = router({
       return { ok: true as const, state: "queued" as const };
     }
   }),
+
+  // Seamless guest session migration upon OAuth authentication (Sprint 1 §3.3).
+  migrateGuestSession: publicProcedure
+    .input(guestMigrationInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session?.user?.id;
+      if (!userId) {
+        return {
+          migrated: false as const,
+          itemsMigrated: 0,
+          hasAssessment: false,
+          hasConstraints: false,
+        };
+      }
+      const result = await migrateGuestSession(ctx.prisma, userId, input);
+      return {
+        migrated: true as const,
+        ...result,
+      };
+    }),
+
+  markRevealSeen: publicProcedure.mutation(async ({ ctx }) => {
+    const userId = ctx.session?.user?.id;
+    if (userId) {
+      await ctx.prisma.user.updateMany({
+        where: { id: userId, setupRevealSeenAt: null },
+        data: { setupRevealSeenAt: new Date() },
+      });
+    }
+    return { ok: true as const };
+  }),
 });
+

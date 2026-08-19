@@ -2,23 +2,32 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
 
 import { trpc } from "@/lib/trpc/react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { asEvidenceGrade } from "@/components/evidence";
 import { StatusMessage } from "@/components/ui/status-message";
 import { ErrorNotice } from "@/components/ui/error-notice";
-import { CalibrationTrackGauges } from "@/app/onboarding/calibration-track-gauges";
 import {
   BOARD_SIZE_CLASS,
   InteractiveBoard,
 } from "@/components/interactive-board";
+
 import { stepSolve, type SolveState } from "@/engine/interactive/session";
 import {
   puzzleToSolveState,
   type BoardOrientation,
 } from "@/engine/interactive/puzzle";
+import {
+  getGuestSession,
+  saveGuestBaseline,
+  saveGuestCalibrationResponses,
+  clearGuestCalibration,
+  type GuestCalibrationResponse,
+  type GuestConnection,
+} from "@/lib/guest-session";
 import { systemClock } from "@/lib/clock";
 import { cn } from "@/lib/utils";
 
@@ -28,15 +37,84 @@ import { cn } from "@/lib/utils";
 // and ladder length; an in-progress historic assessment keeps its original release.
 
 export function Calibration() {
+  const router = useRouter();
   const utils = trpc.useUtils();
-  const state = trpc.assessment.state.useQuery();
+  const [guestResponses, setGuestResponses] = useState<
+    GuestCalibrationResponse[]
+  >(() => {
+    if (typeof window !== "undefined") {
+      return getGuestSession().calibrationResponses ?? [];
+    }
+    return [];
+  });
+  const [guestConnections, setGuestConnections] = useState<GuestConnection[]>(
+    () => {
+      if (typeof window !== "undefined") {
+        return getGuestSession().connections ?? [];
+      }
+      return [];
+    },
+  );
+  const [primaryFormat, setPrimaryFormat] = useState<string | null>(() => {
+    if (typeof window !== "undefined") {
+      return (
+        getGuestSession().constraints?.formatPrefs?.formats?.[0] ?? null
+      );
+    }
+    return null;
+  });
+
+  useEffect(() => {
+    const session = getGuestSession();
+    setGuestResponses(session.calibrationResponses ?? []);
+    setGuestConnections(session.connections ?? []);
+    setPrimaryFormat(session.constraints?.formatPrefs?.formats?.[0] ?? null);
+  }, []);
+
+  const state = trpc.assessment.state.useQuery(
+    {
+      guestResponses,
+      guestConnections,
+      primaryFormat,
+    },
+    {
+      placeholderData: (previousData) => previousData,
+    },
+  );
 
   const submit = trpc.assessment.submit.useMutation({
-    onSuccess: () => void utils.assessment.state.invalidate(),
+    onSuccess: (data) => {
+      void utils.assessment.state.invalidate();
+      if (
+        data &&
+        "guestResponses" in data &&
+        Array.isArray(data.guestResponses)
+      ) {
+        setGuestResponses(data.guestResponses);
+        saveGuestCalibrationResponses(data.guestResponses);
+        if (data.completed && data.estimate) {
+          saveGuestBaseline({
+            tacticalRatingEstimate: data.estimate.tacticalRatingEstimate,
+            uncertainty: data.estimate.uncertainty,
+            topBlindspot: data.tracks[0]?.theme || "Tactics",
+            calibratedAt: new Date().toISOString(),
+          });
+          router.push("/onboarding/reveal");
+          return;
+        }
+      }
+      if (data.completed) {
+        router.push("/onboarding/reveal");
+      }
+    },
     onError: () => setSolveStatus("pending"),
   });
   const reset = trpc.assessment.reset.useMutation({
-    onSuccess: () => void utils.assessment.state.invalidate(),
+    onSuccess: () => {
+      setGuestResponses([]);
+      clearGuestCalibration();
+      void utils.assessment.state.invalidate();
+    },
   });
 
   const [solveState, setSolveState] = useState<SolveState | null>(null);
@@ -49,6 +127,7 @@ export function Calibration() {
   const activeTrack = state.data?.activeTrack;
   const affordances = state.data?.affordances;
   const pending = submit.isPending || reset.isPending;
+  const isAdvancing = pending || state.isFetching;
 
   useEffect(() => {
     if (activePuzzle) {
@@ -83,6 +162,9 @@ export function Calibration() {
         ratingShown: activeTrack.next.ratingTarget,
         correct: true,
         puzzleId: activePuzzle.puzzleId,
+        guestResponses,
+        guestConnections,
+        primaryFormat,
       });
     } else if (result.step === "wrong") {
       setSolveStatus("wrong");
@@ -90,6 +172,9 @@ export function Calibration() {
         ratingShown: activeTrack.next.ratingTarget,
         correct: false,
         puzzleId: activePuzzle.puzzleId,
+        guestResponses,
+        guestConnections,
+        primaryFormat,
       });
     } else if (result.step === "correct" || result.step === "continue") {
       setSolveStatus("correct");
@@ -105,14 +190,17 @@ export function Calibration() {
       ratingShown: activeTrack.next.ratingTarget,
       correct: false,
       puzzleId: activePuzzle.puzzleId,
+      guestResponses,
+      guestConnections,
+      primaryFormat,
     });
   };
 
-  if (state.isLoading) {
+  if (state.isLoading && !state.data) {
     return <StatusMessage tone="loading">Loading calibration…</StatusMessage>;
   }
 
-  if (state.error || !state.data) {
+  if (state.error && !state.data) {
     return (
       <ErrorNotice
         error={state.error}
@@ -125,55 +213,72 @@ export function Calibration() {
     );
   }
 
-  const {
-    completed,
-    maxItems,
-    timeBudgetMin,
-    trackCount,
-    activeTrackIndex,
-    tracks,
-  } = state.data;
+  if (!state.data) {
+    return null;
+  }
 
-  // --- Completed: the multi-dimensional baseline -----------------------------
-  if (completed || !activeTrack) {
-    const primary = tracks[0]!;
+  if (state.data.locked) {
     return (
-      <Card
-        gutter={asEvidenceGrade(primary.estimate.evidenceGrade)}
-        className="settle"
-      >
-        <CardHeader className="pb-4">
-          <CardTitle className="font-serif text-3xl font-semibold">
-            Your starting baseline
-          </CardTitle>
-          <p className="text-graphite font-mono text-sm mt-1">
-            {tracks.length === 1
-              ? "A behavioural read of your tactical level."
-              : `A behavioural read across ${tracks.length} dimensions.`}{" "}
-            Uncertainty shrinks with more games and reviews.
-          </p>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-5">
-          {reset.error && (
-            <ErrorNotice
-              error={reset.error}
-              heading="Calibration not restarted"
-              message="Your existing result is unchanged. Try retaking the calibration again."
-            />
-          )}
-          <CalibrationTrackGauges tracks={tracks} className="gap-4" />
+      <Card className="settle border-line bg-card shadow-sheet p-6 sm:p-8">
+        <div className="flex flex-col gap-5">
+          <div>
+            <p className="eyebrow text-evergreen">
+              Tactical Calibration · Locked
+            </p>
+            <h2 className="font-serif text-2xl sm:text-3xl font-semibold mt-1">
+              Connect a chess account to unlock calibration
+            </h2>
+            <p className="text-graphite text-sm sm:text-base font-serif leading-relaxed mt-2 max-w-xl">
+              Mainline seeds your calibration puzzles from your actual rating on
+              Lichess or Chess.com. Link at least one chess account to begin.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3 pt-2">
+            <Link
+              href="/connections"
+              className={buttonVariants({ size: "default" })}
+            >
+              Connect chess account →
+            </Link>
+            <Link
+              href="/today"
+              className={buttonVariants({
+                variant: "outline",
+                size: "default",
+              })}
+            >
+              Skip to Today&apos;s training →
+            </Link>
+          </div>
+        </div>
+      </Card>
+    );
+  }
 
-          <p className="text-graphite font-serif text-sm leading-relaxed border-t border-line/80 pt-4">
-            {tracks.length === 1
-              ? "This is a rough calibration point"
-              : "These are rough calibration points"}
-            , not verdicts. The fuller picture comes from analysing your real
-            games.
-          </p>
+  const { completed, maxItems, activeTrackIndex } = state.data;
 
-          <div className="flex flex-wrap gap-3 border-t border-line/80 pt-5">
-            <Link href="/onboarding/constraints" className={buttonVariants()}>
-              Continue
+  // --- Completed: directly route to reveal or provide retake ------------------
+
+  if (completed || !activeTrack) {
+    return (
+      <Card className="settle border-line bg-card shadow-sheet p-6 sm:p-8">
+        <div className="flex flex-col gap-5">
+          <div>
+            <p className="eyebrow text-evergreen">Calibration complete</p>
+            <h2 className="font-serif text-2xl sm:text-3xl font-semibold mt-1">
+              Your calibration is already finished
+            </h2>
+            <p className="text-graphite text-sm sm:text-base font-serif leading-relaxed mt-2 max-w-xl">
+              You can review your full baseline on the reveal page, or retake the
+              3-puzzle calibration.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3 pt-2">
+            <Link
+              href="/onboarding/reveal"
+              className={buttonVariants({ size: "default" })}
+            >
+              Continue to reveal →
             </Link>
             <Button
               type="button"
@@ -184,36 +289,36 @@ export function Calibration() {
               Retake calibration
             </Button>
           </div>
-        </CardContent>
+        </div>
       </Card>
     );
   }
 
   // --- In progress: the active track's next item -----------------------------
   const recordFallback = (correct: boolean) =>
-    submit.mutate({ ratingShown: activeTrack.next.ratingTarget, correct });
+    submit.mutate({
+      ratingShown: activeTrack.next.ratingTarget,
+      correct,
+      guestResponses,
+      guestConnections,
+      primaryFormat,
+    });
+
 
   return (
     <Card className="settle">
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between gap-3">
-          <p className="eyebrow !text-[0.65rem]">
-            Track {activeTrackIndex + 1} of {trackCount} · {activeTrack.label}
-          </p>
+          <p className="eyebrow !text-[0.65rem]">Tactical Calibration</p>
           <p className="text-graphite font-mono text-[0.65rem] uppercase tracking-wider">
-            ~{timeBudgetMin} min each
+            3 puzzles
           </p>
         </div>
-        <CardTitle className="font-serif text-3xl font-semibold mt-2">
-          {activeTrack.label}: puzzle {activeTrack.next.itemNumber} of{" "}
-          {maxItems}{" "}
-          <span className="font-mono text-base font-normal text-graphite">
-            (typically 8-15 total)
-          </span>
+        <CardTitle className="font-serif text-2xl sm:text-3xl font-semibold mt-1">
+          Puzzle {activeTrack.next.itemNumber} of {maxItems}
         </CardTitle>
         <p className="text-graphite text-sm leading-relaxed mt-1">
-          Solve a {activeTrack.label.toLowerCase()} puzzle around this strength,
-          then tell us how it went.
+          Solve 3 quick tactical puzzles to build your starting baseline.
         </p>
       </CardHeader>
       <CardContent className="flex flex-col gap-5">
@@ -230,20 +335,19 @@ export function Calibration() {
             }
           />
         )}
-        {/* Track progress dots */}
-        <div className="flex items-center gap-1.5">
-          {tracks.map((t, i) => (
+        {/* Puzzle step progress dots */}
+        <div className="flex items-center gap-1.5" aria-hidden>
+          {Array.from({ length: maxItems }).map((_, i) => (
             <span
-              key={t.id}
-              aria-hidden
-              className={
-                "h-1.5 flex-1 rounded-full " +
-                (t.completed
+              key={i}
+              className={cn(
+                "h-1.5 flex-1 rounded-full transition-colors",
+                i < activeTrack.next.itemNumber - 1
                   ? "bg-evergreen"
-                  : i === activeTrackIndex
-                    ? "bg-evergreen/40"
-                    : "bg-line")
-              }
+                  : i === activeTrack.next.itemNumber - 1
+                    ? "bg-evergreen/50"
+                    : "bg-line",
+              )}
             />
           ))}
         </div>
@@ -258,16 +362,23 @@ export function Calibration() {
                 <span className="eyebrow !text-[0.6rem]">
                   {orientation === "white" ? "White" : "Black"} to move
                 </span>
-                <span className="text-graphite font-mono text-xs">
-                  You play {orientation}
-                </span>
+                {isAdvancing ? (
+                  <span className="inline-flex items-center gap-1.5 font-mono text-xs font-semibold text-evergreen animate-pulse">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    Loading next puzzle…
+                  </span>
+                ) : (
+                  <span className="text-graphite font-mono text-xs">
+                    You play {orientation}
+                  </span>
+                )}
               </div>
               <InteractiveBoard
                 fen={solveState.position}
                 onMove={handleMove}
                 orientation={orientation}
                 disabled={
-                  pending || solveStatus === "solved" || solveStatus === "wrong"
+                  pending || isAdvancing || solveStatus === "solved" || solveStatus === "wrong"
                 }
                 showEvalBar={affordances?.showEvalBar ?? false}
                 showLegalMoveDots={affordances?.showLegalMoveDots ?? false}
@@ -288,32 +399,56 @@ export function Calibration() {
             {/* Info Sidebar */}
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-2 rounded-md border border-line bg-paper/50 p-4">
-                <span className="text-ink font-mono text-xs font-semibold uppercase tracking-wider">
-                  Solve State:
-                </span>
-                <span
+                <div className="flex items-center justify-between">
+                  <span className="text-ink font-mono text-xs font-semibold uppercase tracking-wider">
+                    Solve State:
+                  </span>
+                  {isAdvancing && (
+                    <span className="inline-flex items-center gap-1 font-mono text-[0.65rem] text-evergreen animate-pulse">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Loading next…
+                    </span>
+                  )}
+                </div>
+                <div
                   className={cn(
-                    "font-serif text-lg font-semibold",
+                    "font-serif text-lg font-semibold flex flex-col gap-1",
                     solveStatus === "solved" && "text-evergreen-bright",
                     solveStatus === "wrong" && "text-destructive",
                     solveStatus === "correct" && "text-evergreen",
                     solveStatus === "pending" && "text-graphite",
                   )}
                 >
-                  {solveStatus === "solved" && "✓ Correct!"}
-                  {solveStatus === "wrong" && "✗ Incorrect!"}
-                  {solveStatus === "correct" && "✓ Correct Move!"}
-                  {solveStatus === "pending" && "Solve the puzzle..."}
-                </span>
+                  <div>
+                    {solveStatus === "solved" && "✓ Correct!"}
+                    {solveStatus === "wrong" && "✗ Incorrect!"}
+                    {solveStatus === "correct" && "✓ Correct Move!"}
+                    {solveStatus === "pending" && (isAdvancing ? "Loading next puzzle…" : "Solve the puzzle...")}
+                  </div>
+                  {isAdvancing && (
+                    <p className="text-xs font-mono font-normal text-graphite flex items-center gap-1.5 pt-0.5">
+                      <Loader2 className="h-3 w-3 animate-spin text-evergreen shrink-0" />
+                      Next puzzle on its way…
+                    </p>
+                  )}
+                </div>
               </div>
 
               <div className="flex flex-col gap-2 border-t border-line/80 pt-4">
                 <Button
                   variant="outline"
                   onClick={handleSkip}
-                  disabled={pending}
+                  disabled={pending || isAdvancing}
+                  className="inline-flex items-center justify-center gap-2"
                 >
-                  Skip / Give Up
+                  {isAdvancing ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin text-evergreen" />
+                      <span>Loading next puzzle…</span>
+                    </>
+                  ) : (
+                    "Skip / Give Up"
+                  )}
                 </Button>
               </div>
             </div>
@@ -335,19 +470,19 @@ export function Calibration() {
               <Button
                 type="button"
                 className="flex-1"
-                disabled={pending}
+                disabled={pending || isAdvancing}
                 onClick={() => recordFallback(true)}
               >
-                I solved it
+                {isAdvancing ? "Loading next…" : "I solved it"}
               </Button>
               <Button
                 type="button"
                 variant="outline"
                 className="flex-1"
-                disabled={pending}
+                disabled={pending || isAdvancing}
                 onClick={() => recordFallback(false)}
               >
-                I missed it
+                {isAdvancing ? "Loading next…" : "I missed it"}
               </Button>
             </div>
           </>

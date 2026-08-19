@@ -13,6 +13,7 @@ Load these documents when executing specific branches:
 - **Production Operations**: Read [OPERATIONS.md](file:///home/joebos/programming/Mainline/planning/OPERATIONS.md) to execute migrations, beta invites, job recovery, and research exports.
 - **Release Management**: Read [SHIPPING.md](file:///home/joebos/programming/Mainline/planning/SHIPPING.md) to verify readiness gates and deployment checklists.
 - **User Growth**: Read [GROWTH.md](file:///home/joebos/programming/Mainline/planning/GROWTH.md) to review acquisition ethics and feedback loops.
+- **Beta Prioritization Plan**: Read [BETA_PRIORITIZATION_PLAN.md](file:///home/joebos/programming/Mainline/planning/BETA_PRIORITIZATION_PLAN.md) to inspect the 3-phase growth and conversion roadmap.
 
 ---
 
@@ -168,3 +169,6 @@ Every merge to `main` deploys to production immediately. Follow these gatekeeper
 - **Strict CI Order**: The build pipeline runs `typecheck -> lint -> unit -> guards -> build -> e2e`. All checks must pass before merging.
 - **WASM Isolation**: Keep COOP and COEP headers intact in [next.config.mjs](file:///home/joebos/programming/Mainline/next.config.mjs) for client Stockfish multi-threading.
 - **External API Limits**: Respect rate limits for Lichess, Chess.com, and Tablebase. Cache external responses in database cache tables.
+- **Frontend Design Skill**: Always use the frontend-design skill when doing anything frontend.
+- **Responsive Design**: Always make sure the UI is responsive and works on any viewport.
+- Always read planning/VISION.md. No exceptions.

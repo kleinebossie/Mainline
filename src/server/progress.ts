@@ -362,3 +362,53 @@ export async function getProgressSummary(
       : null,
   };
 }
+
+export function getGuestProgressSummary(clock: Clock = systemClock) {
+  const cfg = loadMethodology();
+  const workWindowDays = cfg.engagement.streakCapDays.value;
+  const now = clock.now();
+  const grid = Array.from({ length: 28 }, (_, i) => {
+    const d = new Date(now - (27 - i) * DAY_MS);
+    return {
+      date: d,
+      active: false,
+    };
+  });
+
+  return {
+    methodologyVersion: cfg.version,
+    evidence: {
+      progressSurface: evidenceFor("progress_surface", cfg),
+      processGoal: evidenceFor("process_goal", cfg),
+      consistency: evidenceFor("consistency_grid", cfg),
+      review: evidenceFor("redo_failed", cfg),
+      skill: evidenceFor("skill_update", cfg),
+      expectations: evidenceFor("expectations", cfg),
+      ratingNoise: evidenceFor("rating_noise", cfg),
+    },
+    consistency: {
+      streak: {
+        activeDayCount: 0,
+        day: 0,
+        rawStreak: 0,
+        cap: 28,
+        windowDays: 28,
+      },
+      grid,
+      recoveryEvents: [],
+    },
+    work: {
+      windowDays: workWindowDays,
+      completedBlocks: 0,
+      skippedBlocks: 0,
+      minutesLogged: 0,
+    },
+    reviews: {
+      dueCount: 0,
+      oldestDue: null,
+      itemTypes: {},
+    },
+    skills: [],
+    rating: null,
+  };
+}

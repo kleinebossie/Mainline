@@ -4,6 +4,7 @@
 // its Auth.js event can still create a token-backed connection.
 
 import { z } from "zod";
+import type { Prisma } from "@prisma/client";
 
 import { PlatformError, type Platform } from "@/integrations/adapter";
 import { chessComAdapter } from "@/integrations/chesscom/adapter";
@@ -18,7 +19,7 @@ import {
   upsertPlatformConnection,
 } from "@/server/connections";
 import { expectedError } from "@/server/errors";
-import { protectedProcedure, router } from "@/server/trpc";
+import { publicProcedure, router } from "@/server/trpc";
 import { lockUserProgramMutation } from "@/db/user-mutation-lock";
 
 function profileLookupError(
@@ -53,9 +54,13 @@ function profileLookupError(
 
 export const connectionsRouter = router({
   // Tokens are NEVER selected — the client only sees safe metadata.
-  list: protectedProcedure.query(({ ctx }) =>
-    ctx.prisma.platformConnection.findMany({
-      where: { userId: ctx.userId },
+  list: publicProcedure.query(async ({ ctx }) => {
+    const userId = ctx.session?.user?.id;
+    if (!userId) {
+      return [];
+    }
+    return ctx.prisma.platformConnection.findMany({
+      where: { userId },
       orderBy: { connectedAt: "asc" },
       select: {
         id: true,
@@ -65,36 +70,60 @@ export const connectionsRouter = router({
         connectedAt: true,
         lastSyncedAt: true,
       },
-    }),
-  ),
+    });
+  }),
 
   // The user's preferred home platform — defaults the constraints/onboarding picker and the
   // Today "play a game" deep link. Set via analysis.setPrimaryPlatform.
-  getPrimaryPlatform: protectedProcedure.query(async ({ ctx }) => {
+  getPrimaryPlatform: publicProcedure.query(async ({ ctx }) => {
+    const userId = ctx.session?.user?.id;
+    if (!userId) {
+      return { primaryPlatform: null };
+    }
     const user = await ctx.prisma.user.findUnique({
-      where: { id: ctx.userId },
+      where: { id: userId },
       select: { primaryPlatform: true },
     });
     return { primaryPlatform: user?.primaryPlatform ?? null };
   }),
 
-  addLichessUsername: protectedProcedure
+  addLichessUsername: publicProcedure
     .input(z.object({ username: z.string().trim().min(1).max(50) }))
     .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session?.user?.id;
       let profile;
       try {
         profile = await lichessAdapter.fetchProfile({
           platform: "lichess",
           externalUsername: input.username,
-          beforeRequest: () =>
-            assertApiCallBudget(ctx.prisma, ctx.userId, "lichess", new Date()),
+          beforeRequest: () => {
+            if (userId) {
+              return assertApiCallBudget(
+                ctx.prisma,
+                userId,
+                "lichess",
+                new Date(),
+              );
+            }
+            return Promise.resolve();
+          },
         });
       } catch (err) {
         throw profileLookupError(err, "lichess", input.username);
       }
+
+      if (!userId) {
+        return {
+          id: `guest_conn_lichess_${Date.now()}`,
+          platform: "lichess" as const,
+          externalUsername: profile.externalUsername,
+          ratings: profile.ratings,
+        };
+      }
+
       const existing = await ctx.prisma.platformConnection.findUnique({
         where: {
-          userId_platform: { userId: ctx.userId, platform: "lichess" },
+          userId_platform: { userId, platform: "lichess" },
         },
         select: { externalUsername: true, accessToken: true },
       });
@@ -104,49 +133,105 @@ export const connectionsRouter = router({
         );
       }
       const conn = await upsertPlatformConnection({
-        userId: ctx.userId,
+        userId,
         platform: "lichess",
         externalUsername: profile.externalUsername,
       });
+
+      if (profile.ratings && Object.keys(profile.ratings).length > 0) {
+        await ctx.prisma.chessProfileSnapshot.create({
+          data: {
+            id: `snapshot_${conn.id}_${Date.now()}`,
+            userId,
+            platform: "lichess",
+            capturedAt: new Date(),
+            ratings: profile.ratings as unknown as Prisma.InputJsonValue,
+            totalGames: profile.totalGames ?? 0,
+            raw: {},
+          },
+        });
+      }
+
       return {
         id: conn.id,
         platform: conn.platform,
         externalUsername: conn.externalUsername,
+        ratings: profile.ratings,
       };
     }),
 
-  addChessComUsername: protectedProcedure
+  addChessComUsername: publicProcedure
     .input(z.object({ username: z.string().trim().min(1).max(50) }))
     .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session?.user?.id;
       let profile;
       try {
         // fetchProfile doubles as validation: it 404s for a non-existent player.
         profile = await chessComAdapter.fetchProfile({
           platform: "chesscom",
           externalUsername: input.username,
-          beforeRequest: () =>
-            assertApiCallBudget(ctx.prisma, ctx.userId, "chesscom", new Date()),
+          beforeRequest: () => {
+            if (userId) {
+              return assertApiCallBudget(
+                ctx.prisma,
+                userId,
+                "chesscom",
+                new Date(),
+              );
+            }
+            return Promise.resolve();
+          },
         });
       } catch (err) {
         throw profileLookupError(err, "chesscom", input.username);
       }
+
+      if (!userId) {
+        return {
+          id: `guest_conn_chesscom_${Date.now()}`,
+          platform: "chesscom" as const,
+          externalUsername: profile.externalUsername,
+          ratings: profile.ratings,
+        };
+      }
+
       const conn = await upsertPlatformConnection({
-        userId: ctx.userId,
+        userId,
         platform: "chesscom",
         externalUsername: profile.externalUsername,
       });
+
+      if (profile.ratings && Object.keys(profile.ratings).length > 0) {
+        await ctx.prisma.chessProfileSnapshot.create({
+          data: {
+            id: `snapshot_${conn.id}_${Date.now()}`,
+            userId,
+            platform: "chesscom",
+            capturedAt: new Date(),
+            ratings: profile.ratings as unknown as Prisma.InputJsonValue,
+            totalGames: profile.totalGames ?? 0,
+            raw: {},
+          },
+        });
+      }
+
       return {
         id: conn.id,
         platform: conn.platform,
         externalUsername: conn.externalUsername,
+        ratings: profile.ratings,
       };
     }),
 
-  disconnect: protectedProcedure
+  disconnect: publicProcedure
     .input(z.object({ id: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session?.user?.id;
+      if (!userId) {
+        return { id: input.id };
+      }
       const conn = await ctx.prisma.platformConnection.findFirst({
-        where: { id: input.id, userId: ctx.userId },
+        where: { id: input.id, userId },
       });
       if (!conn) {
         throw expectedError.notFound(
@@ -156,20 +241,20 @@ export const connectionsRouter = router({
       // Best-effort token revocation so we stop holding a live Lichess credential.
       if (conn.platform === "lichess" && conn.accessToken) {
         await revokeLichessToken(conn.accessToken, () =>
-          assertApiCallBudget(ctx.prisma, ctx.userId, "lichess", new Date()),
+          assertApiCallBudget(ctx.prisma, userId, "lichess", new Date()),
         ).catch(() => {
           /* local disconnect proceeds regardless (§6.2) */
         });
       }
       await ctx.prisma.$transaction(async (tx) => {
-        await lockUserProgramMutation(tx, ctx.userId);
+        await lockUserProgramMutation(tx, userId);
         // Import jobs are not relational rows, so erase their correlatable
         // connection id before the connection itself becomes undiscoverable.
         await tx.jobRun.deleteMany({
           where: { key: { endsWith: `:${conn.id}` } },
         });
         await tx.platformConnection.deleteMany({
-          where: { id: conn.id, userId: ctx.userId },
+          where: { id: conn.id, userId },
         });
       });
       return { id: conn.id };

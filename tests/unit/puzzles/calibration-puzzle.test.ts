@@ -59,7 +59,11 @@ describe("calibration-puzzle test", () => {
         },
       },
       chessProfileSnapshot: {
+        findMany: async () => [],
         findFirst: async () => null,
+      },
+      platformConnection: {
+        findMany: async () => [{ platform: "lichess" }],
       },
       // With no saved constraints, target focus defaults to online.
       constraintSet: {
@@ -120,10 +124,17 @@ describe("calibration-puzzle test", () => {
           methodologyVersion: "research-1.1.0",
         }),
       },
-      chessProfileSnapshot: { findFirst: async () => null },
+      chessProfileSnapshot: {
+        findMany: async () => [],
+        findFirst: async () => null,
+      },
+      platformConnection: {
+        findMany: async () => [{ platform: "lichess" }],
+      },
       constraintSet: { findFirst: async () => null },
       lichessPuzzle: { findMany: async () => [] },
     } as unknown as PrismaClient;
+
 
     const state = await getCalibrationState(db, "historic-user");
 

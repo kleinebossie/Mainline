@@ -1,5 +1,33 @@
 {
   "version": "research-1.4.0",
+  "assessment": {
+    "calibration": {
+      "minItems": {
+        "value": 3,
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "stub_open_question",
+        "flag": "best-guess",
+        "note": "Three-item lower bound chosen as a product best guess to shorten onboarding; its measurement quality requires validation."
+      },
+      "maxItems": {
+        "value": 3,
+        "grade": "C",
+        "tier": 1,
+        "citationKey": "stub_open_question",
+        "flag": "best-guess",
+        "note": "Three-item upper bound chosen as a product best guess to shorten onboarding; its measurement quality requires validation."
+      }
+    },
+    "tracks": [
+      {
+        "id": "tactics",
+        "dimension": "tactics",
+        "label": "Tactics",
+        "theme": "mix"
+      }
+    ]
+  },
   "weeklyFocus": {
     "weights": {
       "fitPreference": {

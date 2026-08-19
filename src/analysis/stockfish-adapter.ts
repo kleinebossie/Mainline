@@ -72,6 +72,9 @@ export class StockfishAnalysisEngine implements AnalysisEngineAdapter {
     if (this.worker) return;
     const worker = new Worker(`${ENGINE_BASE}/${this.plan.engineFile}`);
     this.worker = worker;
+    worker.onerror = (err) => {
+      console.error("Stockfish worker error:", err);
+    };
     worker.onmessage = (e: MessageEvent) => {
       // nmrugg builds post the UCI line as a string; be defensive about {data} shapes.
       const line: string =

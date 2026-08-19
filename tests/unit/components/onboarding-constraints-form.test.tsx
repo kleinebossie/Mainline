@@ -2,6 +2,12 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+  }),
+}));
+
 // Mock TRPC react hooks for static rendering
 vi.mock("@/lib/trpc/react", () => ({
   trpc: {
@@ -77,7 +83,8 @@ describe("OnboardingConstraintsForm", () => {
       'You can add your owned chess books, customize habit cues, and adjust topic mixing in <span class="text-ink font-medium">Settings</span> at any time.',
     );
 
-    // Save button
-    expect(html).toContain("Save constraints");
+    // Action buttons
+    expect(html).toContain("Build my first session →");
+    expect(html).toContain("Continue setup →");
   });
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Chess } from "chess.js";
 import { trpc } from "@/lib/trpc/react";
@@ -27,21 +27,120 @@ import { SaveReviewStep } from "@/app/analysis/[gameId]/game-analysis-save";
 import { GameIdentity } from "@/app/analysis/[gameId]/game-analysis-shared";
 import { errorMessage } from "@/lib/error-presentation";
 import { DEFAULT_ANALYSIS_DEPTH } from "@/analysis/worker-config";
+import {
+  getGuestSession,
+  recordGuestActivityEvent,
+  DEFAULT_GUEST_BASELINE,
+} from "@/lib/guest-session";
+
+import {
+  bandForRating,
+  gameAnalysisProtocol,
+  loadMethodology,
+  rationaleFor,
+} from "@/methodology";
+import { systemClock } from "@/lib/clock";
+import type { RawGameFeatures } from "@/lib/raw-features";
+import { pgnTag } from "@/integrations/pgn";
 
 // Loaded lazily so Stockfish stays client-side.
 type AnalysisEngine = import("@/analysis").StockfishAnalysisEngine;
+
+function guestGameIdentity(pgn: string, color: string | null) {
+  const white = pgnTag(pgn, "White");
+  const black = pgnTag(pgn, "Black");
+  const event = pgnTag(pgn, "Event");
+  const youIsWhite = color === "w";
+  return {
+    white,
+    black,
+    event,
+    you: color ? (youIsWhite ? white : black) : undefined,
+    opponent: color ? (youIsWhite ? black : white) : undefined,
+  };
+}
 
 export function GameAnalysisFlow() {
   const params = useParams();
   const router = useRouter();
   const gameId = params.gameId as string;
+  const [mounted, setMounted] = useState(false);
 
-  // Refetching during a sitting must not reset in-progress attempts or board state.
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const guestGameItem = useMemo(() => {
+    if (!mounted || typeof window === "undefined") return null;
+    try {
+      const cached = localStorage.getItem("mainline_guest_games");
+      if (cached) {
+        const games = JSON.parse(cached);
+        return games.find((g: { id: string }) => g.id === gameId) ?? null;
+      }
+    } catch {}
+    return null;
+  }, [mounted, gameId]);
+
+
+  const guestData = useMemo(() => {
+    if (!guestGameItem) return null;
+    const cfg = loadMethodology();
+    const baseline = getGuestSession().baseline ?? DEFAULT_GUEST_BASELINE;
+    const band = bandForRating(baseline.tacticalRatingEstimate, cfg);
+    const parsedGame = {
+      id: guestGameItem.id,
+      pgn: guestGameItem.pgn,
+      playedAt: guestGameItem.playedAt
+        ? new Date(guestGameItem.playedAt)
+        : null,
+      result: guestGameItem.result,
+      color: guestGameItem.color,
+      userRatingAtGame: guestGameItem.userRating ?? null,
+      rawFeatures: (guestGameItem.rawFeatures as RawGameFeatures) ?? null,
+    };
+    const session = gameAnalysisProtocol(parsedGame, band, cfg, {
+      clock: systemClock,
+    });
+    const game = {
+      id: guestGameItem.id,
+      pgn: guestGameItem.pgn,
+      playedAt: guestGameItem.playedAt
+        ? new Date(guestGameItem.playedAt)
+        : null,
+      result: guestGameItem.result,
+      color: guestGameItem.color,
+      platform: guestGameItem.platform,
+      timeControl: guestGameItem.timeControl,
+      opening: guestGameItem.opening,
+      eco: null,
+      opponentRating: guestGameItem.opponentRating,
+      userRating: guestGameItem.userRating,
+      ...guestGameIdentity(guestGameItem.pgn, guestGameItem.color),
+    };
+    const rationales = {
+      analysis_tilt_pause: rationaleFor("analysis_tilt_pause", cfg),
+      analysis_engine_delay: rationaleFor("analysis_engine_delay", cfg),
+      analysis_rpl_filter: rationaleFor("analysis_rpl_filter", cfg),
+      analysis_guess_tolerance: rationaleFor("analysis_guess_tolerance", cfg),
+      analysis_srs_puzzle: rationaleFor("analysis_srs_puzzle", cfg),
+    };
+    return { session, game, rationales };
+  }, [guestGameItem]);
+
   const sessionQuery = trpc.analysis.session.useQuery(
     { gameId },
-    { refetchOnWindowFocus: false, staleTime: Infinity },
+    {
+      refetchOnWindowFocus: false,
+      staleTime: Infinity,
+      retry: false,
+    },
   );
   const saveSessionMutation = trpc.analysis.saveSession.useMutation();
+
+  const isGuest = Boolean(
+    !sessionQuery.isLoading && (sessionQuery.error != null || !sessionQuery.data) && guestData != null
+  );
 
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [reflectionNote, setReflectionNote] = useState("");
@@ -67,9 +166,11 @@ export function GameAnalysisFlow() {
   const engineQueueRef = useRef<Promise<unknown>>(Promise.resolve());
   const saveRequestIdRef = useRef<string | null>(null);
 
-  const session = sessionQuery.data?.session;
-  const game = sessionQuery.data?.game;
-  const rationales = sessionQuery.data?.rationales;
+  const session = sessionQuery.data?.session ?? (isGuest ? guestData?.session : null);
+  const game = sessionQuery.data?.game ?? (isGuest ? guestData?.game : null);
+  const rationales = sessionQuery.data?.rationales ?? (isGuest ? guestData?.rationales : null);
+  const isLoading = !mounted || (sessionQuery.isLoading && !guestData);
+  const error = isGuest ? null : sessionQuery.error;
 
   const getEngine = useCallback(async (): Promise<AnalysisEngine> => {
     if (engineRef.current) return engineRef.current;
@@ -302,6 +403,20 @@ export function GameAnalysisFlow() {
       bestUci: bestUcis[idx],
     }));
     try {
+      if (isGuest) {
+        recordGuestActivityEvent({
+          type: "game_analysed",
+          payload: {
+            gameId,
+            reflectionNote,
+            outcomes: saveOutcomes,
+            scheduledCount: saveOutcomes.filter((o) => o.bestUci).length,
+          },
+        });
+        router.push("/analysis");
+        return;
+      }
+
       saveRequestIdRef.current ??= crypto.randomUUID();
       await saveSessionMutation.mutateAsync({
         gameId,
@@ -320,7 +435,7 @@ export function GameAnalysisFlow() {
     }
   };
 
-  if (sessionQuery.isLoading) {
+  if (isLoading) {
     return (
       <PageShell width="default">
         <StatusMessage tone="loading">
@@ -334,7 +449,7 @@ export function GameAnalysisFlow() {
     return (
       <PageShell width="default">
         <ErrorNotice
-          error={sessionQuery.error}
+          error={error}
           heading="Review unavailable"
           message="Mainline could not load this game review. Try it again, or return to Analysis and choose another game."
           onRetry={() => void sessionQuery.refetch()}

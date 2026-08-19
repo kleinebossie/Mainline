@@ -1,7 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { loadMethodology, nextCalibrationItem } from "@/methodology";
-import { applyCalibrationResponse } from "@/server/assessment";
+import {
+  applyCalibrationResponse,
+  applyGuestCalibrationResponse,
+} from "@/server/assessment";
 
 describe("calibration response persistence", () => {
   it("rejects a rating that is not the server-selected active target", async () => {
@@ -20,7 +23,11 @@ describe("calibration response persistence", () => {
         upsert,
       },
       chessProfileSnapshot: {
+        findMany: vi.fn().mockResolvedValue([]),
         findFirst: vi.fn().mockResolvedValue(null),
+      },
+      platformConnection: {
+        findMany: vi.fn().mockResolvedValue([{ platform: "lichess" }]),
       },
       lichessPuzzle: {
         findMany: vi.fn().mockResolvedValue([]),
@@ -47,4 +54,42 @@ describe("calibration response persistence", () => {
     });
     expect(upsert).not.toHaveBeenCalled();
   });
+
+  it("resolves and advances guest calibration responses deterministically when connection exists", async () => {
+    const db = {
+      lichessPuzzle: {
+        findMany: vi.fn().mockResolvedValue([]),
+      },
+    };
+
+    const initial = await applyGuestCalibrationResponse(db as never, {
+      ratingShown: 1400,
+      correct: true,
+      guestConnections: [{ platform: "lichess" }],
+    });
+
+    expect(initial.guestResponses.length).toBe(1);
+    expect(initial.guestResponses[0]?.correct).toBe(true);
+    expect(initial.tracks.length).toBeGreaterThan(0);
+  });
+
+  it("rejects guest calibration submission when no accounts are connected", async () => {
+    const db = {
+      lichessPuzzle: {
+        findMany: vi.fn().mockResolvedValue([]),
+      },
+    };
+
+    await expect(
+      applyGuestCalibrationResponse(db as never, {
+        ratingShown: 1400,
+        correct: true,
+        guestConnections: [],
+      }),
+    ).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+      message: "Connect a chess account before completing calibration.",
+    });
+  });
 });
+

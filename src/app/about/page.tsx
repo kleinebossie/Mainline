@@ -11,7 +11,7 @@ import {
 
 const GRADE_KEY = [
   {
-    glyph: "‼",
+    glyph: "!!",
     grade: "A",
     label: "Strong, replicated",
     note: "Used for robust, replicated findings, e.g. the retrieval-practice effect or the spacing effect.",

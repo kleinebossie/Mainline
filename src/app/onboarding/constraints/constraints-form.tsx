@@ -66,6 +66,8 @@ const GOAL_OPTIONS: ReadonlyArray<{ kind: Goal["kind"]; label: string }> = [
 
 // Reused in onboarding (continue → reveal) and in Settings (continue → today). The
 // continuation is the only thing that differs between the two contexts.
+import { getGuestSession } from "@/lib/guest-session";
+
 export function ConstraintsForm({
   ifThenRationale,
   continueHref = "/onboarding/reveal",
@@ -91,11 +93,31 @@ export function ConstraintsForm({
       />
     );
   }
-  // The query's initial loading state already gates this form. Keep the component mounted
-  // after a save so cache invalidation does not erase its success state and Continue action.
+
+  const guestSession = typeof window !== "undefined" ? getGuestSession() : null;
+  const initialConstraints =
+    current.data ??
+    (guestSession?.constraints
+      ? {
+          ...EMPTY_CONSTRAINTS,
+          minutesPerDay: guestSession.constraints.minutesPerDay,
+          daysPerWeek: guestSession.constraints.daysPerWeek,
+          formatPrefs: guestSession.constraints.formatPrefs,
+          goals: guestSession.constraints.goals.map((g) => ({
+            kind: g as Goal["kind"],
+            label: g,
+          })),
+          ownedResources: guestSession.constraints.ownedResources.map((r) => ({
+            kind: r.kind as OwnedResource["kind"],
+            label: r.label,
+            externalRef: r.externalRef,
+          })),
+        }
+      : EMPTY_CONSTRAINTS);
+
   return (
     <Form
-      initial={current.data ?? EMPTY_CONSTRAINTS}
+      initial={initialConstraints}
       ifThenRationale={ifThenRationale}
       continueHref={continueHref}
       continueLabel={continueLabel}

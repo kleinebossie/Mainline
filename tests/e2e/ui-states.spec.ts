@@ -109,13 +109,15 @@ test("Setup separates overall and required progress", async ({
     page.getByText("3 of 5 steps done", { exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByText("Required setup complete", { exact: true }),
+    page.getByText("Your first daily training session is ready", {
+      exact: true,
+    }),
   ).toBeVisible();
   await expect(
     page.getByText("See where you stand", { exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByText("Build your first session", { exact: true }),
+    page.getByRole("link", { name: "Start Today's session →" }),
   ).toBeVisible();
   await expectNoPageOverflow(page);
   await capture(page, testInfo, "setup-mobile");

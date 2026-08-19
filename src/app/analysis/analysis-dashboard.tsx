@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc/react";
 import { PageShell } from "@/components/app-shell";
@@ -19,6 +19,11 @@ import {
 import { errorMessage } from "@/lib/error-presentation";
 import { ManualGameImport } from "@/app/analysis/manual-game-import";
 import { DEFAULT_ANALYSIS_DEPTH } from "@/analysis/worker-config";
+import {
+  getGuestSession,
+  hasGuestData,
+  type GuestConnection,
+} from "@/lib/guest-session";
 
 function resultChipClass(result: string | null | undefined): string {
   if (result === "win") return "bg-grade-a/10 text-grade-a";
@@ -31,8 +36,33 @@ type BatchStatus = "idle" | "running" | "error" | "partial";
 // The client-side Stockfish adapter type (imported lazily at call time, typed here).
 type AnalysisEngine = import("@/analysis").StockfishAnalysisEngine;
 
+interface AnalysisGameItem {
+  id: string;
+  platform: string;
+  playedAt: string | null;
+  color: string | null;
+  result: string | null;
+  timeControl: string | null;
+  opening: string | null;
+  opponent: string | null;
+  event: string | null;
+  opponentRating: number | null;
+  you: string | null;
+  userRating?: number | null;
+  analyzed: boolean;
+  pgn: string;
+  rawFeatures?: unknown;
+}
+
 export function AnalysisDashboard() {
   const utils = trpc.useUtils();
+  const [isGuest, setIsGuest] = useState(false);
+  const [guestConnections, setGuestConnections] = useState<GuestConnection[]>(
+    [],
+  );
+  const [guestGames, setGuestGames] = useState<AnalysisGameItem[]>([]);
+  const [isGuestSyncing, setIsGuestSyncing] = useState(false);
+
   const suggestionsQuery = trpc.analysis.suggestions.useQuery();
   const libraryQuery = trpc.analysis.library.useQuery();
 
@@ -46,6 +76,7 @@ export function AnalysisDashboard() {
     },
   });
   const saveAnalysis = trpc.analysis.save.useMutation();
+  const fetchGuestGames = trpc.analysis.fetchGuestGames.useMutation();
 
   const [platformOverride, setPlatformOverride] = useState<string | null>(null);
   const [batchStatus, setBatchStatus] = useState<BatchStatus>("idle");
@@ -57,21 +88,110 @@ export function AnalysisDashboard() {
   // The id of the single game whose engine analysis is running (per-row "Engine analysis").
   const [analyzingGameId, setAnalyzingGameId] = useState<string | null>(null);
 
+  const syncGuestAccounts = useCallback(
+    async (conns: GuestConnection[]) => {
+      if (conns.length === 0) return;
+      setIsGuestSyncing(true);
+      try {
+        const allFetched: AnalysisGameItem[] = [];
+        for (const conn of conns) {
+          const fetched = await fetchGuestGames.mutateAsync({
+            platform: conn.platform,
+            username: conn.externalUsername,
+          });
+          allFetched.push(...fetched);
+        }
+        setGuestGames((prev) => {
+          const map = new Map<string, AnalysisGameItem>();
+          for (const g of allFetched) map.set(g.id, g);
+          for (const g of prev) {
+            if (map.has(g.id)) {
+              map.set(g.id, {
+                ...map.get(g.id)!,
+                analyzed: g.analyzed,
+                rawFeatures: g.rawFeatures,
+              });
+            } else {
+              map.set(g.id, g);
+            }
+          }
+          const merged = Array.from(map.values());
+          try {
+            localStorage.setItem(
+              "mainline_guest_games",
+              JSON.stringify(merged),
+            );
+          } catch {}
+          return merged;
+        });
+      } catch {
+        // Ignored
+      } finally {
+        setIsGuestSyncing(false);
+      }
+    },
+    [fetchGuestGames],
+  );
+
+  const syncGuestAccountsRef = useRef(syncGuestAccounts);
+  syncGuestAccountsRef.current = syncGuestAccounts;
+
+  useEffect(() => {
+    const session = getGuestSession();
+    const conns = session.connections ?? [];
+    setGuestConnections(conns);
+    setIsGuest(hasGuestData());
+    let initialGuestGames: AnalysisGameItem[] = [];
+    try {
+      const cached = localStorage.getItem("mainline_guest_games");
+      if (cached) {
+        initialGuestGames = JSON.parse(cached);
+        setGuestGames(initialGuestGames);
+      }
+    } catch {}
+
+    if (conns.length > 0 && initialGuestGames.length === 0) {
+      void syncGuestAccountsRef.current(conns);
+    }
+  }, []);
+
+  const handleSync = async () => {
+    if (guestConnections.length > 0) {
+      await syncGuestAccounts(guestConnections);
+    } else {
+      sync.mutate();
+    }
+  };
+
   const ratio = suggestionsQuery.data?.ratio;
   const ownGamesRationale = suggestionsQuery.data?.ownGamesRationale;
   const successBiasRationale = suggestionsQuery.data?.successBiasRationale;
 
   const library = libraryQuery.data;
-  const platforms = library?.platforms ?? [];
+  const platforms = Array.from(
+    new Set([
+      ...(library?.platforms ?? []),
+      ...guestConnections.map((c) => c.platform),
+      ...(guestGames.some((g) => g.platform === "manual") ? ["manual"] : []),
+    ]),
+  );
   const selectedPlatform =
-    platformOverride ?? library?.effectivePlatform ?? null;
-  const games = (library?.games ?? []).filter(
+    platformOverride ??
+    library?.effectivePlatform ??
+    guestConnections[0]?.platform ??
+    platforms[0] ??
+    null;
+
+  const allGames = [...(library?.games ?? []), ...guestGames];
+  const games = allGames.filter(
     (g) => !selectedPlatform || g.platform === selectedPlatform,
   );
 
   const choosePlatform = (p: string) => {
     setPlatformOverride(p);
-    if (p === "lichess" || p === "chesscom") setPrimary.mutate({ platform: p });
+    if (!isGuest && (p === "lichess" || p === "chesscom")) {
+      setPrimary.mutate({ platform: p });
+    }
   };
 
   // Analyse one game with an already-initialised engine and persist its raw features.
@@ -85,12 +205,26 @@ export function AnalysisDashboard() {
       { depth: DEFAULT_ANALYSIS_DEPTH },
       { userColor: game.color === "b" ? "b" : "w" },
     );
-    await saveAnalysis.mutateAsync({
-      gameId: game.id,
-      engineVersion: engine.engineVersion,
-      depth: DEFAULT_ANALYSIS_DEPTH,
-      rawFeatures: features,
-    });
+    if (!isGuest) {
+      await saveAnalysis.mutateAsync({
+        gameId: game.id,
+        engineVersion: engine.engineVersion,
+        depth: DEFAULT_ANALYSIS_DEPTH,
+        rawFeatures: features,
+      });
+    } else {
+      setGuestGames((prev) => {
+        const updated = prev.map((g) =>
+          g.id === game.id
+            ? { ...g, analyzed: true, rawFeatures: features }
+            : g,
+        );
+        try {
+          localStorage.setItem("mainline_guest_games", JSON.stringify(updated));
+        } catch {}
+        return updated;
+      });
+    }
   }
 
   // Per-game engine analysis: turn Stockfish on for ONE game (the row's "Engine analysis"
@@ -99,19 +233,24 @@ export function AnalysisDashboard() {
     setAnalyzingGameId(gameId);
     setBatchError(null);
     try {
-      const game = await utils.analysis.gameSource.fetch({ gameId });
+      const targetGame = games.find((g) => g.id === gameId);
+      if (!targetGame?.pgn) {
+        throw new Error("Game PGN is not available.");
+      }
       const { StockfishAnalysisEngine } = await import("@/analysis");
       const engine = new StockfishAnalysisEngine();
       await engine.init();
       try {
-        await analyzeAndSave(engine, game);
+        await analyzeAndSave(engine, targetGame);
       } finally {
         engine.dispose();
       }
-      await Promise.all([
-        utils.analysis.library.invalidate(),
-        utils.analysis.summary.invalidate(),
-      ]);
+      if (!isGuest) {
+        await Promise.all([
+          utils.analysis.library.invalidate(),
+          utils.analysis.summary.invalidate(),
+        ]);
+      }
     } catch (e) {
       setBatchError(
         errorMessage(
@@ -127,24 +266,15 @@ export function AnalysisDashboard() {
   // Runs Stockfish (browser WASM) over a bounded recent window scoped to the selected
   // platform. The caller passes either the visible game count or the explicit recent count.
   async function runBatchAnalysis(limit: number) {
-    const platform =
-      selectedPlatform === "lichess" ||
-      selectedPlatform === "chesscom" ||
-      selectedPlatform === "manual"
-        ? selectedPlatform
-        : undefined;
     setBatchStatus("running");
     setBatchError(null);
     try {
-      const pendingGames = await utils.analysis.pending.fetch({
-        limit,
-        ...(platform ? { platform } : {}),
-      });
-      if (pendingGames.length === 0) {
+      const targetGames = games.filter((g) => !g.analyzed).slice(0, limit);
+      if (targetGames.length === 0) {
         setBatchStatus("idle");
         return;
       }
-      setBatchProgress({ done: 0, total: pendingGames.length });
+      setBatchProgress({ done: 0, total: targetGames.length });
 
       const { StockfishAnalysisEngine } = await import("@/analysis");
       const engine = new StockfishAnalysisEngine();
@@ -152,7 +282,7 @@ export function AnalysisDashboard() {
       let failures = 0;
       try {
         let done = 0;
-        for (const game of pendingGames) {
+        for (const game of targetGames) {
           try {
             await analyzeAndSave(engine, game);
           } catch {
@@ -160,16 +290,18 @@ export function AnalysisDashboard() {
             continue;
           }
           done += 1;
-          setBatchProgress({ done, total: pendingGames.length });
+          setBatchProgress({ done, total: targetGames.length });
         }
       } finally {
         engine.dispose();
       }
 
-      await Promise.all([
-        utils.analysis.library.invalidate(),
-        utils.analysis.summary.invalidate(),
-      ]);
+      if (!isGuest) {
+        await Promise.all([
+          utils.analysis.library.invalidate(),
+          utils.analysis.summary.invalidate(),
+        ]);
+      }
       if (failures > 0) {
         setBatchError(
           `${failures} game${failures === 1 ? "" : "s"} could not be scanned. Completed scans were saved. Try the remaining games again individually.`,
@@ -197,7 +329,7 @@ export function AnalysisDashboard() {
       width="default"
     >
       <div className="flex flex-col gap-8">
-        {suggestionsQuery.error && (
+        {!isGuest && suggestionsQuery.error && (
           <ErrorNotice
             error={suggestionsQuery.error}
             heading="Review guidance unavailable"
@@ -249,10 +381,10 @@ export function AnalysisDashboard() {
                 <Button
                   size="sm"
                   variant="outline"
-                  disabled={sync.isPending}
-                  onClick={() => sync.mutate()}
+                  disabled={sync.isPending || isGuestSyncing}
+                  onClick={() => void handleSync()}
                 >
-                  {sync.isPending ? "Syncing…" : "Sync now"}
+                  {sync.isPending || isGuestSyncing ? "Syncing…" : "Sync now"}
                 </Button>
               )}
             </div>
@@ -267,7 +399,7 @@ export function AnalysisDashboard() {
               </p>
             )}
 
-          {sync.error && (
+          {!isGuest && sync.error && (
             <ErrorNotice
               error={sync.error}
               heading="Games not synced"
@@ -278,7 +410,7 @@ export function AnalysisDashboard() {
             />
           )}
 
-          {setPrimary.error && (
+          {!isGuest && setPrimary.error && (
             <ErrorNotice
               error={setPrimary.error}
               heading="Platform not saved"
@@ -328,9 +460,47 @@ export function AnalysisDashboard() {
             </div>
           )}
 
-          {libraryQuery.isLoading ? (
+          {platforms.length === 0 && games.length === 0 ? (
+            <Card className="border-line bg-card shadow-sheet">
+              <CardContent className="flex flex-col gap-5 py-6">
+                <div className="flex flex-col gap-2">
+                  <p className="eyebrow text-evergreen">
+                    Automatic Game Imports
+                  </p>
+                  <h3 className="font-serif text-xl font-semibold text-ink">
+                    Connect a chess account to sync your games automatically.
+                  </h3>
+                  <p className="font-serif text-sm text-graphite leading-relaxed max-w-xl">
+                    Link your Lichess or Chess.com account to automatically
+                    import your games, scan for tactical mistakes, and build
+                    your daily blunder drills.
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-3 border-t border-line/80 pt-4">
+                  <Link
+                    href="/connections"
+                    className={buttonVariants({
+                      variant: "default",
+                      size: "sm",
+                    })}
+                  >
+                    Connect chess account →
+                  </Link>
+                  <Link
+                    href="/signin"
+                    className={buttonVariants({
+                      variant: "outline",
+                      size: "sm",
+                    })}
+                  >
+                    Sign in
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+          ) : !isGuest && libraryQuery.isLoading ? (
             <StatusMessage tone="loading">Loading your games…</StatusMessage>
-          ) : libraryQuery.error ? (
+          ) : !isGuest && libraryQuery.error ? (
             <ErrorNotice
               error={libraryQuery.error}
               heading="Games unavailable"
@@ -339,6 +509,10 @@ export function AnalysisDashboard() {
               retrying={libraryQuery.isFetching}
               retryLabel="Reload games"
             />
+          ) : isGuestSyncing && games.length === 0 ? (
+            <StatusMessage tone="loading">
+              Fetching your recent games…
+            </StatusMessage>
           ) : games.length === 0 ? (
             <Card gutter="B">
               <CardContent className="flex flex-col gap-6 py-6">
@@ -389,10 +563,12 @@ export function AnalysisDashboard() {
                   <div className="flex flex-wrap justify-center gap-3 border-t border-line/80 pt-4">
                     <Button
                       size="sm"
-                      disabled={sync.isPending}
-                      onClick={() => sync.mutate()}
+                      disabled={sync.isPending || isGuestSyncing}
+                      onClick={() => void handleSync()}
                     >
-                      {sync.isPending ? "Syncing games..." : "Sync games now"}
+                      {sync.isPending || isGuestSyncing
+                        ? "Syncing games..."
+                        : "Sync games now"}
                     </Button>
                     <Link
                       href="/connections"

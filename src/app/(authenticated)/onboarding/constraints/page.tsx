@@ -7,11 +7,14 @@ import { OnboardingConstraintsForm } from "@/app/onboarding/constraints/onboardi
 export default function ConstraintsPage() {
   return (
     <PageShell
-      eyebrow="Step 3 of setup"
+      eyebrow="Step 1 of setup"
       title="Your training constraints"
       lede="Three simple choices to shape your daily training. You can customize books, interleaving, and habit cues in Settings at any time."
     >
-      <OnboardingConstraintsForm />
+      <OnboardingConstraintsForm
+        continueHref="/connections"
+        continueLabel="Continue setup →"
+      />
     </PageShell>
   );
 }

@@ -61,6 +61,9 @@ const mapExpectedErrors = t.middleware(async ({ next }) => {
   return result;
 });
 
+/** Public procedure without authentication requirement. */
+export const publicProcedure = t.procedure.use(mapExpectedErrors);
+
 /** Requires an authenticated session; narrows `ctx.userId` for downstream procedures. */
 export const protectedProcedure = t.procedure
   .use(mapExpectedErrors)

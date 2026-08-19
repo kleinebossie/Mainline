@@ -17,7 +17,7 @@ export const GRADE_DETAILS: Record<
   { glyph: string; label: string; note: string; detail: string; cls: string }
 > = {
   A: {
-    glyph: "‼",
+    glyph: "!!",
     label: "Grade A",
     note: "Strong, replicated evidence",
     detail: "Multiple high-quality studies show consistent results.",
@@ -109,7 +109,10 @@ export function GradeMark({
 
   const badgeContent = (
     <>
-      <span aria-hidden="true" className="text-sm font-bold leading-none">
+      <span
+        aria-hidden="true"
+        className="font-mono text-xs font-bold leading-none shrink-0 inline-flex items-center justify-center tracking-tight"
+      >
         {meta.glyph}
       </span>
       <span className="tracking-tight">{meta.label}</span>
