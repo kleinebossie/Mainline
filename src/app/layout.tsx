@@ -5,6 +5,7 @@ import "./globals.css";
 import { TRPCReactProvider } from "@/lib/trpc/react";
 import { ServiceWorkerRegistration } from "@/components/service-worker-registration";
 import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 // Two families, split by role — the product's Engine⟷Methodology, human⟷machine split.
 // Fraunces is the human voice (titles, prose, honest declarations); IBM Plex Mono is the
@@ -49,7 +50,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <TRPCReactProvider>{children}</TRPCReactProvider>
         <ServiceWorkerRegistration />
         {(process.env.VERCEL || process.env.NEXT_PUBLIC_VERCEL_ENV) && (
-          <Analytics />
+          <>
+            <Analytics />
+            <SpeedInsights />
+          </>
         )}
       </body>
     </html>
