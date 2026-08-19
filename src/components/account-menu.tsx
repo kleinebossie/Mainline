@@ -11,11 +11,13 @@ import {
   Link2,
   Download,
   LogOut,
+  FlaskConical,
 } from "lucide-react";
 
 import { signOutAction } from "@/server/auth-actions";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
 import { safeRouteContext } from "@/lib/feedback";
+import { trpc } from "@/lib/trpc/react";
 import { cn } from "@/lib/utils";
 
 // The account menu at the right of the top bar: the home for everything that is
@@ -46,6 +48,11 @@ export function AccountMenu() {
   const firstItemRef = useRef<HTMLAnchorElement>(null);
   const menuId = useId();
 
+  const consent = trpc.account.researchConsent.useQuery(undefined, {
+    staleTime: 60_000,
+  });
+  const hasResearchConsent = consent.data?.hasActiveGrant === true;
+
   useEffect(() => {
     if (!open) return;
     function onPointer(e: MouseEvent) {
@@ -68,7 +75,18 @@ export function AccountMenu() {
   }, [open]);
 
   return (
-    <div ref={rootRef} className="relative">
+    <div ref={rootRef} className="relative flex items-center gap-1">
+      {hasResearchConsent && (
+        <Link
+          href="/settings"
+          title="Observational research active"
+          aria-label="Observational research active"
+          className="flex h-9 w-9 items-center justify-center rounded-sm font-mono text-evergreen hover:text-evergreen-bright hover:bg-evergreen/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
+        >
+          <FlaskConical className="h-4 w-4" aria-hidden="true" />
+        </Link>
+      )}
+
       <button
         type="button"
         aria-expanded={open}
@@ -102,6 +120,7 @@ export function AccountMenu() {
         >
           {ITEMS.map((item) => {
             const Icon = item.icon;
+            const isSettingsItem = item.label === "Settings";
             return (
               <Link
                 key={item.href}
@@ -112,15 +131,25 @@ export function AccountMenu() {
                 }
                 ref={item === ITEMS[0] ? firstItemRef : undefined}
                 onClick={() => setOpen(false)}
-                className="group flex min-h-8 items-center gap-2.5 rounded-sm px-2.5 py-1.5 font-mono text-xs tracking-tight text-graphite transition-colors hover:bg-ink/[0.06] hover:text-ink focus-visible:bg-ink/[0.06] focus-visible:outline-none"
+                className="group flex min-h-8 items-center justify-between rounded-sm px-2.5 py-1.5 font-mono text-xs tracking-tight text-graphite transition-colors hover:bg-ink/[0.06] hover:text-ink focus-visible:bg-ink/[0.06] focus-visible:outline-none"
               >
-                <span className="flex h-4 w-4 shrink-0 items-center justify-center text-graphite/70 transition-colors group-hover:text-ink">
-                  <Icon
-                    className="h-3.5 w-3.5 stroke-[1.75]"
-                    aria-hidden="true"
-                  />
-                </span>
-                <span className="leading-none">{item.label}</span>
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-4 w-4 shrink-0 items-center justify-center text-graphite/70 transition-colors group-hover:text-ink">
+                    <Icon
+                      className="h-3.5 w-3.5 stroke-[1.75]"
+                      aria-hidden="true"
+                    />
+                  </span>
+                  <span className="leading-none">{item.label}</span>
+                </div>
+                {isSettingsItem && hasResearchConsent && (
+                  <span
+                    title="Observational research active"
+                    className="flex items-center text-evergreen"
+                  >
+                    <FlaskConical className="h-3.5 w-3.5" aria-hidden="true" />
+                  </span>
+                )}
               </Link>
             );
           })}
