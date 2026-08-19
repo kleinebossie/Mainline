@@ -4,7 +4,7 @@
  * Validates findings.json against report-schema.json.
  * Usage: node validate-findings.cjs <path-to-findings.json>
  *
- * The validation rules live in report-schema.json — the single source of truth.
+ * The validation rules live in report-schema.json  -  the single source of truth.
  * This script reads that schema at runtime and interprets the subset of JSON
  * Schema it uses: type (object|array|string|integer), properties, required,
  * additionalProperties:false, enum, const, items, minItems, and oneOf.
@@ -199,7 +199,7 @@ findings.forEach((f, i) => {
 
   const errs = collect(f, itemSchema, `[${i}]`);
 
-  // Semantic layer — constraints the schema subset can't express:
+  // Semantic layer  -  constraints the schema subset can't express:
   // a confirmed trace must be one entrypoint, zero or more propagation steps,
   // then one sink.
   if (
