@@ -29,7 +29,6 @@ import { lichessAdapter } from "@/integrations/lichess/adapter";
 import { chessComAdapter } from "@/integrations/chesscom/adapter";
 import type { ImportedGameInput } from "@/integrations/adapter";
 import { analyzePublicUsername } from "@/server/public-analysis";
-import { captureOperationalEvent } from "@/server/observability";
 import { expectedError } from "@/server/errors";
 import { GAME_ANALYSED_ACTIVITY_EVENT_TYPE } from "@/lib/tracker";
 
@@ -109,7 +108,7 @@ function repeatedSessionResult(payload: Prisma.JsonValue, gameId: string) {
 
 export const analysisRouter = router({
   // The default queue uses the methodology cap; callers may request a bounded window.
-  pending: protectedProcedure
+  pending: publicProcedure
     .input(
       z
         .object({
@@ -119,18 +118,20 @@ export const analysisRouter = router({
         .optional(),
     )
     .query(async ({ ctx, input }) => {
+      const userId = ctx.session?.user?.id;
+      if (!userId) return [];
       const cfg = loadMethodology();
       const games =
         input?.limit != null
           ? await gamesNeedingAnalysisInWindow(
               ctx.prisma,
-              ctx.userId,
+              userId,
               input.limit,
               input.platform,
             )
           : await gamesNeedingAnalysis(
               ctx.prisma,
-              ctx.userId,
+              userId,
               cfg.assessment.instantEvalGames.value,
               input?.platform,
             );
@@ -148,27 +149,33 @@ export const analysisRouter = router({
   save: protectedProcedure
     .input(
       z.object({
-        gameId: z.string(),
+        gameId: z.string().min(1).max(191),
         engineVersion: z.string().min(1).max(64),
-        depth: z.number().int().min(1).max(99),
+        depth: z.number().int().min(1).max(64),
         rawFeatures: rawGameFeaturesSchema,
       }),
     )
     .mutation(async ({ ctx, input }) => {
       const owns = await userOwnsGame(ctx.prisma, ctx.userId, input.gameId);
-      if (!owns) return { saved: false as const };
-      await saveAnalysisResult(ctx.prisma, input);
-      captureOperationalEvent({
-        operation: "analysis_handoff",
-        status: "success",
-        count: 1,
+      if (!owns) {
+        throw expectedError.notFound("Game does not exist.");
+      }
+      await saveAnalysisResult(ctx.prisma, {
+        gameId: input.gameId,
+        engineVersion: input.engineVersion,
+        depth: input.depth,
+        rawFeatures: input.rawFeatures,
       });
       return { saved: true as const };
     }),
 
-  summary: protectedProcedure.query(({ ctx }) =>
-    analysisCounts(ctx.prisma, ctx.userId),
-  ),
+  summary: publicProcedure.query(async ({ ctx }) => {
+    const userId = ctx.session?.user?.id;
+    if (!userId) {
+      return { total: 0, analysed: 0, unanalysed: 0 };
+    }
+    return analysisCounts(ctx.prisma, userId);
+  }),
 
   suggestions: publicProcedure.query(async ({ ctx }) => {
     const cfg = loadMethodology();

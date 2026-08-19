@@ -357,6 +357,36 @@ function TodayHeroButton({
     ? "Start Session"
     : `Continue Session (Block ${nextItemIndex + 1})`;
 
+  const isExternal =
+    item.delivery === "external" ||
+    Boolean(item.externalUrl) ||
+    Boolean(
+      item.url &&
+        (item.url.startsWith("http://") ||
+          item.url.startsWith("https://") ||
+          item.url.startsWith("//")),
+    );
+
+  const targetExternalUrl = item.externalUrl ?? (isExternal ? item.url : null);
+
+  if (isExternal && targetExternalUrl) {
+    return (
+      <a
+        id="today-start-session-link"
+        href={targetExternalUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={cn(
+          buttonVariants({ variant: "default", size: "lg" }),
+          "h-11 px-6 text-sm font-medium shadow-xs gap-2 shrink-0 bg-evergreen hover:bg-evergreen-bright text-paper",
+        )}
+      >
+        <span>{label}</span>
+        <span aria-hidden="true">↗</span>
+      </a>
+    );
+  }
+
   if (item.url) {
     return (
       <Link
@@ -370,24 +400,6 @@ function TodayHeroButton({
         <span>{label}</span>
         <span aria-hidden="true">→</span>
       </Link>
-    );
-  }
-
-  if (item.externalUrl) {
-    return (
-      <a
-        id="today-start-session-link"
-        href={item.externalUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className={cn(
-          buttonVariants({ variant: "default", size: "lg" }),
-          "h-11 px-6 text-sm font-medium shadow-xs gap-2 shrink-0 bg-evergreen hover:bg-evergreen-bright text-paper",
-        )}
-      >
-        <span>{label}</span>
-        <span aria-hidden="true">↗</span>
-      </a>
     );
   }
 
