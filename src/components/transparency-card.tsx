@@ -3,7 +3,7 @@
 // TransparencyCard: The honesty-brand component (BUILD.md §7.6). It renders the
 // "why this / why now" rationale snapshotted on a ProgramItem (L3) as a chess-style
 // annotation: the evidence grade as an interactive badge, confidence as an eval meter,
-// and a dashed/struck treatment for thin or placeholder evidence so it can never read as
+// and a dashed/struck treatment for thin or provisional evidence so it can never read as
 // established fact (VISION §2).
 
 import { useId, useState } from "react";
@@ -11,7 +11,7 @@ import { CircleHelp, ChevronDown } from "lucide-react";
 import {
   GradeMark,
   ConfidenceBar,
-  PlaceholderTag,
+  ProvisionalTag,
 } from "@/components/evidence";
 import { cn } from "@/lib/utils";
 
@@ -58,14 +58,9 @@ function TransparencyDetails({
           {item.title}
         </h3>
       )}
-      <div className="mt-2">
-        <p className="text-xs font-mono font-semibold uppercase tracking-wider text-evergreen">
-          Why Mainline scheduled this:
-        </p>
-        <p className="text-ink mt-1 font-serif text-[0.95rem] leading-relaxed">
-          {item.rationaleText}
-        </p>
-      </div>
+      <p className="text-ink mt-2 font-serif text-[0.95rem] leading-relaxed">
+        {item.rationaleText}
+      </p>
 
       <div className="mt-3.5 flex flex-wrap items-center gap-x-4 gap-y-2">
         <GradeMark grade={item.evidenceGrade} tier={item.evidenceTier} />
@@ -96,7 +91,7 @@ function TransparencyDisclosure({
 }: TransparencyCardGroupProps & { hideToggle?: boolean }) {
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const contentId = useId();
-  const hasPlaceholder = items.some(
+  const hasProvisional = items.some(
     (item) => item.flag === "stub" || item.flag === "best-guess",
   );
   const expanded = hideToggle || !collapsed;
@@ -134,7 +129,7 @@ function TransparencyDisclosure({
               aria-hidden="true"
             />
           </button>
-          {hasPlaceholder && <PlaceholderTag />}
+          {hasProvisional && <ProvisionalTag />}
         </div>
       )}
 

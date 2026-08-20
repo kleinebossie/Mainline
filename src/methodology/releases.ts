@@ -39,12 +39,12 @@ const STUB_RELEASE = freezeMetadata({
   releasedOn: "2026-06-21",
   sourceDocument: "planning/METHODOLOGY.md",
   summary:
-    "Pre-release placeholder configuration retained for historic programs.",
+    "Pre-release initial configuration retained for historic programs.",
   retainedBestGuesses: [],
   deliberateStubs: [
     "The complete methodology was not yet released as the active configuration.",
   ],
-  evidenceChanges: ["None. This was a pre-release placeholder."],
+  evidenceChanges: ["None. This was a pre-release initial configuration."],
   aggregateBasis:
     "None. No Mainline observational aggregate informed this release.",
   limitations: ["Not an evidence-complete methodology release."],

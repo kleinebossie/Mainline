@@ -1,6 +1,6 @@
 import { useState } from "react";
 import Link from "next/link";
-import { Target, ChevronDown } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 
 import { BookLogForm, type OwnedBook } from "@/app/today/today-book-log";
 import {
@@ -53,23 +53,15 @@ export function EmptyTodayCard({
   return (
     <Card gutter="A" className="focus-card p-6 shadow-sheet">
       <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-start gap-4">
-          <span
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-line bg-paper font-serif text-3xl text-evergreen shadow-xs"
-            aria-hidden="true"
-          >
-            ♔
-          </span>
-          <div>
-            <p className="eyebrow">Today&apos;s Training</p>
-            <h2 className="mt-1 font-serif text-2xl font-semibold text-ink">
-              Your constraints are set
-            </h2>
-            <p className="text-graphite mt-1 max-w-md font-serif text-sm leading-relaxed">
-              Choose today&apos;s available time budget to build your adapted
-              training session.
-            </p>
-          </div>
+        <div>
+          <p className="eyebrow">Today&apos;s Training</p>
+          <h2 className="mt-1 font-serif text-2xl font-semibold text-ink">
+            Your constraints are set
+          </h2>
+          <p className="text-graphite mt-1 max-w-md font-serif text-sm leading-relaxed">
+            Choose today&apos;s available time budget to build your adapted
+            training session.
+          </p>
         </div>
         <TimeEdit
           timeInput={timeInput}
@@ -162,11 +154,6 @@ export function TodayHeader({
                 : `${done} done, ${skipped} skipped, ${remaining} remaining`}
             </p>
           </div>
-          {program.items.length > 0 && (
-            <span className="font-mono text-xs text-graphite">
-              {done + skipped} of {program.items.length} handled
-            </span>
-          )}
         </div>
         {program.items.length > 0 && (
           <div
@@ -246,11 +233,8 @@ export function TodayHeader({
               <p className="font-mono text-[0.62rem] uppercase tracking-[0.12em] text-graphite">
                 Planned
               </p>
-              <h2 className="mt-1 flex flex-wrap items-baseline gap-x-2 font-serif text-xl font-semibold leading-tight text-ink sm:text-2xl">
-                <span>{sessionMinuteCap(program)}</span>
-                <span className="font-mono text-xs font-normal text-graphite">
-                  ordered training blocks
-                </span>
+              <h2 className="mt-1 font-serif text-xl font-semibold leading-tight text-ink sm:text-2xl">
+                {sessionMinuteCap(program)}
               </h2>
             </div>
             <div className="border-l border-line pl-5">
@@ -260,16 +244,14 @@ export function TodayHeader({
               <p className="mt-1 font-serif text-xl font-semibold leading-tight text-ink sm:text-2xl">
                 {historyLoading
                   ? "Loading…"
-                  : historyError
-                    ? "Unavailable"
-                    : notStarted
-                      ? "Not started"
-                      : formatMeasuredMinutes(
-                          actualMinutes,
-                          actualMeasurementTruncated,
-                        )}
+                  : notStarted || actualMinutes === 0 || actualMinutes == null
+                    ? "0 min"
+                    : formatMeasuredMinutes(
+                        actualMinutes,
+                        actualMeasurementTruncated,
+                      )}
               </p>
-              {!historyLoading && !historyError && !notStarted && (
+              {!historyLoading && !historyError && !notStarted && actualMinutes != null && actualMinutes > 0 && (
                 <p className="mt-1 font-mono text-[0.6rem] leading-relaxed text-graphite">
                   {formatMeasurementCoverage(
                     actualMeasuredEvents,
@@ -300,10 +282,6 @@ export function TodayHeader({
           aria-controls="today-process-goal"
           className="eyebrow flex cursor-pointer items-center gap-2 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
         >
-          <Target
-            className="h-3.5 w-3.5 shrink-0 text-evergreen"
-            aria-hidden="true"
-          />
           <span>Today&apos;s goal</span>
           <ChevronDown
             className={cn(
@@ -478,9 +456,7 @@ function TimeEdit({
         id="today-time-help"
         className="text-graphite font-mono text-[0.65rem]"
       >
-        {!empty && !changed && timeValid
-          ? "Change the minutes to update remaining work."
-          : `${MIN_MINUTES_PER_DAY}-${MAX_MINUTES_PER_DAY} min (${formatMinuteCap(MAX_MINUTES_PER_DAY)})`}
+        {`${MIN_MINUTES_PER_DAY}-${MAX_MINUTES_PER_DAY} min (${formatMinuteCap(MAX_MINUTES_PER_DAY)})`}
       </p>
     </div>
   );
@@ -905,7 +881,7 @@ function TodayBlockDetails({
           citationSource={item.citationSource}
           confidence={item.confidence}
           soften={item.soften}
-          defaultCollapsed={false}
+          hideToggle={true}
         />
       )}
 

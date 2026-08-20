@@ -52,7 +52,7 @@ const bandSchema = z.object({
 // structural (identifier / display string), like a band's — the taxonomy is data, not a
 // graded number. ProgramItem.dimensionsTargeted and a WeaknessSignal.dimension reference
 // these ids. The per-band salience prior (METHODOLOGY Seam 1) is the research config's
-// job; the stub ships the taxonomy only, so a placeholder weight never reads as fact.
+// job; the stub ships the taxonomy only, so a provisional weight never reads as fact.
 const dimensionSchema = z.object({
   id: z.string().min(1),
   label: z.string().min(1),
