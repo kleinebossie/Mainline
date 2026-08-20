@@ -66,7 +66,7 @@ const GOAL_OPTIONS: ReadonlyArray<{ kind: Goal["kind"]; label: string }> = [
 
 // Reused in onboarding (continue → reveal) and in Settings (continue → today). The
 // continuation is the only thing that differs between the two contexts.
-import { getGuestSession } from "@/lib/guest-session";
+import { getGuestSession, saveGuestConstraints } from "@/lib/guest-session";
 
 export function ConstraintsForm({
   ifThenRationale,
@@ -330,6 +330,17 @@ function Form({
     ];
     const cueT = cue.trim();
     const planT = plan.trim();
+    saveGuestConstraints({
+      minutesPerDay: parsedMinutes,
+      daysPerWeek: parsedDays,
+      goals: goals.map((g) => g.kind),
+      ownedResources,
+      formatPrefs: {
+        formats: CHESS_FORMATS.filter((f) => formats.has(f)),
+        preferredVariety,
+        targetFocus,
+      },
+    });
     save.mutate({
       minutesPerDay: parsedMinutes,
       daysPerWeek: parsedDays,

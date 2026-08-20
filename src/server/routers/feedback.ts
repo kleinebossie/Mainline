@@ -101,12 +101,20 @@ export const feedbackRouter = router({
       }
       return submitProductFeedback(ctx.prisma, userId, input);
     }),
-  setPositivePreference: protectedProcedure
+  setPositivePreference: publicProcedure
     .input(preferenceOverrideInputSchema)
-    .mutation(({ ctx, input }) =>
-      setPositiveTrainingPreference(ctx.prisma, ctx.userId, input),
-    ),
-  resetPreferences: protectedProcedure.mutation(({ ctx }) =>
-    resetTrainingPreferences(ctx.prisma, ctx.userId),
-  ),
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session?.user?.id;
+      if (!userId) {
+        return { ok: true as const, activityType: input.activityType };
+      }
+      return setPositiveTrainingPreference(ctx.prisma, userId, input);
+    }),
+  resetPreferences: publicProcedure.mutation(async ({ ctx }) => {
+    const userId = ctx.session?.user?.id;
+    if (!userId) {
+      return { ok: true as const };
+    }
+    return resetTrainingPreferences(ctx.prisma, userId);
+  }),
 });

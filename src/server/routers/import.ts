@@ -23,7 +23,7 @@ import {
 } from "@/server/manual-import";
 import { captureOperationalEvent } from "@/server/observability";
 import { expectedError } from "@/server/errors";
-import { protectedProcedure, router } from "@/server/trpc";
+import { protectedProcedure, publicProcedure, router } from "@/server/trpc";
 
 export function manualImportJobKey(userId: string, now: Date): string {
   const windowStart = apiBudgetWindowStart(now, API_BUDGET_WINDOW_MS);
@@ -64,22 +64,43 @@ export const importRouter = router({
     return summary;
   }),
 
-  manualPreview: protectedProcedure
+  manualPreview: publicProcedure
     .input(manualPgnTextSchema)
     .mutation(async ({ ctx, input }) => {
-      await assertManualImportRequestBudget(ctx.prisma, ctx.userId);
+      const userId = ctx.session?.user?.id;
+      if (userId) {
+        await assertManualImportRequestBudget(ctx.prisma, userId);
+      }
       return previewManualPgn(input);
     }),
 
-  manualCreate: protectedProcedure
+  manualCreate: publicProcedure
     .input(manualPgnImportInputSchema)
     .mutation(async ({ ctx, input }) => {
-      await assertManualImportRequestBudget(ctx.prisma, ctx.userId);
+      const userId = ctx.session?.user?.id;
+      if (!userId) {
+        const preview = previewManualPgn(input.pgnText);
+        if (!preview.ok) {
+          return { ok: false as const, message: preview.message };
+        }
+        return {
+          ok: true as const,
+          totalBytes: preview.totalBytes,
+          imported: input.games.length,
+          duplicates: 0,
+          entries: input.games.map((g) => ({
+            status: "imported" as const,
+            index: g.index,
+            gameId: `guest_game_${Date.now()}_${g.index}`,
+          })),
+        };
+      }
+      await assertManualImportRequestBudget(ctx.prisma, userId);
       let result;
       try {
         result = await importManualPgnBatchWithinQuota(
           ctx.prisma,
-          ctx.userId,
+          userId,
           input.pgnText,
           input.games,
         );

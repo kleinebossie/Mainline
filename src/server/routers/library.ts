@@ -17,7 +17,7 @@ import {
   rationaleFor,
 } from "@/methodology";
 import { bookPositionSchema } from "@/lib/tracker";
-import { publicProcedure, protectedProcedure, router } from "@/server/trpc";
+import { publicProcedure, router } from "@/server/trpc";
 import { buildLibrary } from "@/server/library";
 
 export const libraryRouter = router({
@@ -49,8 +49,8 @@ export const libraryRouter = router({
   }),
 
   // Log one external book-study session. The self-reported success rate is used ONLY for the
-  // 85% difficulty nudge — never skill (Seam 2). Outcomes feed the unchanged adaptation loop.
-  logSession: protectedProcedure
+  // 85% difficulty nudge: never skill (Seam 2). Outcomes feed the unchanged adaptation loop.
+  logSession: publicProcedure
     .input(
       z.object({
         requestId: z.string().uuid(),
@@ -65,23 +65,7 @@ export const libraryRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const selfReport =
-        input.successRate != null || input.woodpeckerCycle != null
-          ? {
-              successRate: input.successRate,
-              woodpeckerCycle: input.woodpeckerCycle,
-            }
-          : undefined;
-      const result = await logOutcome(ctx.prisma, ctx.userId, {
-        requestId: input.requestId,
-        programItemId: input.programItemId,
-        type: "book_session",
-        resourceRefId: input.resourceRefId,
-        durationMin: input.durationMin,
-        position: input.position,
-        selfReport,
-      });
-      // The 85%-rule calibration nudge for the reported success rate (Seam 4 §4.2), shown now.
+      const userId = ctx.session?.user?.id;
       const cfg = loadMethodology();
       const feedback =
         input.successRate != null
@@ -91,20 +75,48 @@ export const libraryRouter = router({
       const citationSource =
         cfg.evidenceLedger.find((entry) => entry.key === copy.citationKey)
           ?.source ?? null;
+      const feedbackCopy = feedback
+        ? {
+            text: copy.value,
+            grade: copy.grade,
+            tier: copy.tier,
+            citationKey: copy.citationKey,
+            citationSource,
+            soften: copy.soften,
+            flag: copy.flag,
+          }
+        : null;
+
+      if (!userId) {
+        return {
+          scheduledReviews: 0,
+          rewardEvents: [],
+          feedback,
+          feedbackCopy,
+        };
+      }
+
+      const selfReport =
+        input.successRate != null || input.woodpeckerCycle != null
+          ? {
+              successRate: input.successRate,
+              woodpeckerCycle: input.woodpeckerCycle,
+            }
+          : undefined;
+      const result = await logOutcome(ctx.prisma, userId, {
+        requestId: input.requestId,
+        programItemId: input.programItemId,
+        type: "book_session",
+        resourceRefId: input.resourceRefId,
+        durationMin: input.durationMin,
+        position: input.position,
+        selfReport,
+      });
+
       return {
         ...result,
         feedback,
-        feedbackCopy: feedback
-          ? {
-              text: copy.value,
-              grade: copy.grade,
-              tier: copy.tier,
-              citationKey: copy.citationKey,
-              citationSource,
-              soften: copy.soften,
-              flag: copy.flag,
-            }
-          : null,
+        feedbackCopy,
       };
     }),
 });

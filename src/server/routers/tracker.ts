@@ -9,32 +9,51 @@ import {
   findDueScheduleStates,
   findSkillStates,
 } from "@/db/tracker";
-import { protectedProcedure, router } from "@/server/trpc";
+import { protectedProcedure, publicProcedure, router } from "@/server/trpc";
 import {
   completeProgramItemInputSchema,
   logOutcomeInputSchema,
 } from "@/lib/tracker";
 
 export const trackerRouter = router({
-  logOutcome: protectedProcedure
+  logOutcome: publicProcedure
     .input(logOutcomeInputSchema)
-    .mutation(({ ctx, input }) => logOutcome(ctx.prisma, ctx.userId, input)),
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session?.user?.id;
+      if (!userId) {
+        return {
+          scheduledReviews: 0,
+          rewardEvents: [],
+        };
+      }
+      return logOutcome(ctx.prisma, userId, input);
+    }),
 
-  completeProgramItem: protectedProcedure
+  completeProgramItem: publicProcedure
     .input(completeProgramItemInputSchema)
-    .mutation(({ ctx, input }) =>
-      completeProgramItem(ctx.prisma, ctx.userId, input),
-    ),
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session?.user?.id;
+      if (!userId) {
+        return { ok: true as const };
+      }
+      return completeProgramItem(ctx.prisma, userId, input);
+    }),
 
-  undoSkip: protectedProcedure
+  undoSkip: publicProcedure
     .input(logOutcomeInputSchema.pick({ programItemId: true }).required())
-    .mutation(({ ctx, input }) =>
-      undoSkip(ctx.prisma, ctx.userId, input.programItemId),
-    ),
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session?.user?.id;
+      if (!userId) {
+        return { ok: true as const };
+      }
+      return undoSkip(ctx.prisma, userId, input.programItemId);
+    }),
 
-  dueReviews: protectedProcedure.query(({ ctx }) =>
-    countDueScheduleStates(ctx.prisma, ctx.userId, new Date()),
-  ),
+  dueReviews: publicProcedure.query(({ ctx }) => {
+    const userId = ctx.session?.user?.id;
+    if (!userId) return 0;
+    return countDueScheduleStates(ctx.prisma, userId, new Date());
+  }),
 
   skillStates: protectedProcedure.query(({ ctx }) =>
     findSkillStates(ctx.prisma, ctx.userId),

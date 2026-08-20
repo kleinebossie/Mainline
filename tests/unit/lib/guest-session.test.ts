@@ -91,4 +91,18 @@ describe("guest-session", () => {
     clearGuestSession();
     expect(hasGuestData()).toBe(false);
   });
+
+  it("detects guest session from storage or cookies", async () => {
+    const { isGuestSession } = await import("@/lib/guest-session");
+    expect(isGuestSession()).toBe(false);
+
+    saveGuestBaseline(DEFAULT_GUEST_BASELINE);
+    expect(isGuestSession()).toBe(true);
+
+    clearGuestSession();
+    expect(isGuestSession()).toBe(false);
+
+    vi.stubGlobal("document", { cookie: "mainline_guest=1" });
+    expect(isGuestSession()).toBe(true);
+  });
 });

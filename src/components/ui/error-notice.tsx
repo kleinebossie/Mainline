@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { StatusMessage } from "@/components/ui/status-message";
 import { errorCode, presentError } from "@/lib/error-presentation";
+import { isGuestSession } from "@/lib/guest-session";
 import { cn } from "@/lib/utils";
 
 type ErrorNoticeBaseProps = {
@@ -40,7 +41,8 @@ export function ErrorNotice({
   className,
 }: ErrorNoticeProps) {
   const copy = presentError(error, { heading, message });
-  const signInRequired = errorCode(error) === "UNAUTHORIZED";
+  const isGuest = isGuestSession();
+  const signInRequired = !isGuest && errorCode(error) === "UNAUTHORIZED";
   const showActions = onRetry || secondaryAction || signInRequired;
 
   return (

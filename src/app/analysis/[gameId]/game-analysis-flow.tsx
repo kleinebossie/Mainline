@@ -128,19 +128,22 @@ export function GameAnalysisFlow() {
     return { session, game, rationales };
   }, [guestGameItem]);
 
+  const me = trpc.account.me.useQuery(undefined, {
+    staleTime: 60_000,
+    retry: false,
+  });
+  const isGuest = me.data ? !me.data.authenticated : true;
+
   const sessionQuery = trpc.analysis.session.useQuery(
     { gameId },
     {
+      enabled: Boolean(me.data?.authenticated),
       refetchOnWindowFocus: false,
       staleTime: Infinity,
       retry: false,
     },
   );
   const saveSessionMutation = trpc.analysis.saveSession.useMutation();
-
-  const isGuest = Boolean(
-    !sessionQuery.isLoading && (sessionQuery.error != null || !sessionQuery.data) && guestData != null
-  );
 
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [reflectionNote, setReflectionNote] = useState("");

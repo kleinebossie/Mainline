@@ -75,4 +75,30 @@ describe("ErrorNotice", () => {
     expect(html).toContain("Trying again…");
     expect(html).not.toContain("Try import again");
   });
+
+  it("does not render sign-in action for guest sessions on unauthorized error", () => {
+    const mockStorage = {
+      getItem: (key: string) =>
+        key === "mainline_guest_session_data"
+          ? JSON.stringify({ baseline: { username: "guest" } })
+          : null,
+    };
+    vi.stubGlobal("localStorage", mockStorage);
+
+    const html = renderToStaticMarkup(
+      <ErrorNotice
+        error={{ data: { code: "UNAUTHORIZED" } }}
+        heading="Library unavailable"
+        message="The library could not be loaded."
+        onRetry={vi.fn()}
+        retryLabel="Reload library"
+      />,
+    );
+
+    expect(html).not.toContain("Sign-in expired");
+    expect(html).not.toContain("Sign in again");
+    expect(html).toContain("Reload library");
+
+    vi.unstubAllGlobals();
+  });
 });
