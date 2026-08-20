@@ -323,8 +323,8 @@ export function AnalysisDashboard() {
 
   return (
     <PageShell
-      eyebrow="Structured Game Review"
-      title="Review Own Games"
+      eyebrow="Structured game review"
+      title="Review your games"
       lede="Pick one of your games, think through its critical moments before seeing engine feedback, then schedule the mistakes for review."
       width="default"
     >
@@ -343,7 +343,7 @@ export function AnalysisDashboard() {
           <MethodologyRationaleCard rationale={ownGamesRationale} />
         )}
         <ManualGameImport onImported={() => setPlatformOverride("manual")} />
-        {/* Pick a game — the library, most recent first, filtered by primary platform. */}
+        {/* Pick a game: the library, most recent first, filtered by primary platform. */}
         <section className="flex flex-col gap-4">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div className="flex flex-col gap-0.5">
@@ -465,7 +465,7 @@ export function AnalysisDashboard() {
               <CardContent className="flex flex-col gap-5 py-6">
                 <div className="flex flex-col gap-2">
                   <p className="eyebrow text-evergreen">
-                    Automatic Game Imports
+                    Automatic game imports
                   </p>
                   <h3 className="font-serif text-xl font-semibold text-ink">
                     Connect a chess account to sync your games automatically.
@@ -533,7 +533,7 @@ export function AnalysisDashboard() {
                   <div className="flex flex-col gap-1 p-3 rounded-md bg-paper/60 border border-line">
                     <span className="eyebrow !text-[0.6rem]">Step 1</span>
                     <span className="font-serif text-sm font-semibold text-ink">
-                      Link Account or PGN
+                      Link account or PGN
                     </span>
                     <span className="text-graphite font-serif text-xs">
                       Add your username or upload raw game text.
@@ -542,7 +542,7 @@ export function AnalysisDashboard() {
                   <div className="flex flex-col gap-1 p-3 rounded-md bg-paper/60 border border-line">
                     <span className="eyebrow !text-[0.6rem]">Step 2</span>
                     <span className="font-serif text-sm font-semibold text-ink">
-                      Run Engine Scan
+                      Run engine scan
                     </span>
                     <span className="text-graphite font-serif text-xs">
                       Client Stockfish finds critical turning points.
@@ -551,7 +551,7 @@ export function AnalysisDashboard() {
                   <div className="flex flex-col gap-1 p-3 rounded-md bg-paper/60 border border-line">
                     <span className="eyebrow !text-[0.6rem]">Step 3</span>
                     <span className="font-serif text-sm font-semibold text-ink">
-                      Train Your Mistakes
+                      Train your mistakes
                     </span>
                     <span className="text-graphite font-serif text-xs">
                       Mistakes schedule into daily training blocks.
@@ -567,7 +567,7 @@ export function AnalysisDashboard() {
                       onClick={() => void handleSync()}
                     >
                       {sync.isPending || isGuestSyncing
-                        ? "Syncing games..."
+                        ? "Syncing games…"
                         : "Sync games now"}
                     </Button>
                     <Link
@@ -643,11 +643,11 @@ export function AnalysisDashboard() {
                         "self-start shrink-0 sm:self-auto",
                       )}
                     >
-                      Review Game
+                      Review game
                     </Link>
                   ) : (
                     // Not scanned yet — turn the engine on for just this game. Neutral
-                    // outline, so it never looks like the same control as "Review Game".
+                    // outline, so it never looks like the same control as "Review game".
                     <Button
                       size="sm"
                       variant="outline"
@@ -666,7 +666,7 @@ export function AnalysisDashboard() {
           )}
         </section>
 
-        {/* Honest one-line recommendation (Seam 4.1 §Step5) — no curated list, since the
+        {/* Honest one-line recommendation (Seam 4.1 §Step5): no curated list, since the
             player can already pick any game above. */}
         {ratio && successBiasRationale && (
           <section className="flex flex-col gap-3 rounded-lg border border-line bg-card px-5 py-4 shadow-sheet">

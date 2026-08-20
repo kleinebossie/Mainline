@@ -4,7 +4,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 // Controls read as commands on an instrument: monospace, lightly tracked, crisp. The
-// machine-readout voice (VISION §4 — Engine⟷Methodology) extends to the things you press.
+// machine-readout voice (VISION §4: Engine⟷Methodology) extends to the things you press.
 const buttonVariants = cva(
   "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md font-mono text-sm font-medium tracking-tight transition-[color,background-color,border-color,box-shadow,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-paper disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-45 active:translate-y-px",
   {

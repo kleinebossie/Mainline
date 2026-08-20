@@ -637,14 +637,14 @@ function Form({
               disabled={libraryQuery.isLoading || availableBooks.length === 0}
             >
               {libraryQuery.isLoading ? (
-                <option value="">Loading recommended books...</option>
-              ) : availableBooks.length === 0 ? (
-                <option value="">
-                  All recommended books at your level added
+                <option value="">Loading recommended books…</option>
+              ) : libraryQuery.isError ? (
+                <option value="" disabled>
+                  Could not load recommendations
                 </option>
               ) : (
                 <>
-                  <option value="">Select a recommended book...</option>
+                  <option value="">Select a recommended book…</option>
                   {availableBooks.map((b) => (
                     <option key={b.id} value={b.id}>
                       {b.title} (by {b.author})

@@ -60,7 +60,7 @@ export function ErrorNotice({
               onClick={onRetry}
               disabled={retrying}
             >
-              {retrying ? "Trying again..." : retryLabel}
+              {retrying ? "Trying again…" : retryLabel}
             </Button>
           )}
           {signInRequired && (

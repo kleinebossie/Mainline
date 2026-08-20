@@ -1,7 +1,7 @@
 "use client";
 
 // Client-side analysis runner (BUILD.md M5 · §6.5, onboarding step 4). Runs Stockfish in
-// the browser over the user's unanalysed games and posts RAW features back — zero server
+// the browser over the user's unanalysed games and posts RAW features back: zero server
 // compute (§12). Display is deliberately judgement-free (L1): these are measurements, not
 // advice; interpretation ("why this is a weakness") arrives with the program engine (M6).
 

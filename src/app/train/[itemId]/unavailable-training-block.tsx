@@ -52,7 +52,7 @@ export function UnavailableTrainingBlock({
             </p>
             <div className="mt-6 flex flex-wrap items-center gap-3">
               <Button type="button" onClick={onClose} disabled={pending}>
-                {pending ? "Closing block..." : "Skip unavailable block"}
+                {pending ? "Closing block…" : "Skip unavailable block"}
               </Button>
               <Link
                 href="/today"

@@ -112,7 +112,7 @@ function RecoveryNote({
           className="inline-flex min-h-9 shrink-0 items-center justify-center rounded-sm border border-ink/15 bg-card px-3 font-mono text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-ink transition-colors hover:bg-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
         >
           {pending
-            ? "Clearing note..."
+            ? "Clearing note…"
             : failed
               ? "Try clearing again"
               : "Clear note"}
@@ -450,7 +450,7 @@ function RatingSignal({
                       </span>
                     </span>
 
-                    {/* Baseline with label — right side on desktop */}
+                    {/* Baseline with label: right side on desktop */}
                     <span className="ml-auto hidden font-mono text-[0.68rem] tabular-nums sm:inline">
                       {baselineText ? (
                         <>
@@ -469,7 +469,7 @@ function RatingSignal({
 
                   {/* Row 2: baseline (mobile) + progress status */}
                   <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
-                    {/* Baseline — mobile only (hidden on sm+) */}
+                    {/* Baseline: mobile only (hidden on sm+) */}
                     <span className="font-mono text-[0.68rem] tabular-nums sm:hidden">
                       {baselineText ? (
                         <>
@@ -654,7 +654,7 @@ export function ProgressDashboard() {
         ? [
             {
               dimension: "tactics",
-              label: "Tactical Pattern Recognition",
+              label: "Tactical pattern recognition",
               estimate: guestSession.baseline.tacticalRatingEstimate,
               uncertainty: guestSession.baseline.uncertainty,
               sampleSize: guestSession.calibrationResponses?.length || 3,

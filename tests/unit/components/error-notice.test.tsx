@@ -72,7 +72,7 @@ describe("ErrorNotice", () => {
     );
 
     expect(html).toMatch(/<button[^>]*disabled=""/);
-    expect(html).toContain("Trying again...");
+    expect(html).toContain("Trying again…");
     expect(html).not.toContain("Try import again");
   });
 });

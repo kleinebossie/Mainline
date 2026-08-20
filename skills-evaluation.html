@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mainline Skills ROI Matrix & Cutoff Guide</title>
+  <style>
+    :root {
+      --bg: #090D16;
+      --card-bg: #111827;
+      --card-elevated: #182234;
+      --card-hover: #1E293B;
+      --border: #1F293D;
+      --border-focus: #3B82F6;
+      --text-main: #F8FAFC;
+      --text-muted: #94A3B8;
+      --text-dim: #64748B;
+      --accent-pstack: #0EA5E9;
+      --accent-matt: #818CF8;
+      --green-roi: #10B981;
+      --green-bg: rgba(16, 185, 129, 0.12);
+      --green-border: rgba(16, 185, 129, 0.3);
+      --amber: #F59E0B;
+      --amber-bg: rgba(245, 158, 11, 0.12);
+      --amber-border: rgba(245, 158, 11, 0.3);
+      --red-cutoff: #F43F5E;
+      --red-bg: rgba(244, 63, 94, 0.12);
+      --red-border: rgba(244, 63, 94, 0.3);
+      --purple: #A855F7;
+      --purple-bg: rgba(168, 85, 247, 0.12);
+      --purple-border: rgba(168, 85, 247, 0.3);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.5;
+      padding: 2.5rem 1.5rem 5rem;
+      max-width: 1280px;
+      margin: 0 auto;
+      font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Header & Hero */
+    header {
+      margin-bottom: 2.5rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 2rem;
+    }
+
+    .eyebrow {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.8125rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent-pstack);
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .eyebrow-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--green-roi);
+      display: inline-block;
+      box-shadow: 0 0 8px var(--green-roi);
+    }
+
+    h1 {
+      font-size: 2.25rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      margin-bottom: 1rem;
+      color: #FFFFFF;
+    }
+
+    .hero-lead {
+      font-size: 1.125rem;
+      color: var(--text-muted);
+      max-width: 850px;
+      margin-bottom: 1.75rem;
+    }
+
+    /* Key Metric Cards */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .metric-card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      transition: border-color 0.2s;
+    }
+
+    .metric-card:hover {
+      border-color: var(--card-hover);
+    }
+
+    .metric-label {
+      font-size: 0.8125rem;
+      color: var(--text-dim);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .metric-value {
+      font-size: 1.75rem;
+      font-weight: 700;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .metric-sub {
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+    }
+
+    /* Controls: Search & Tabs */
+    .controls-wrapper {
+      position: sticky;
+      top: 1rem;
+      z-index: 50;
+      background: rgba(9, 13, 22, 0.92);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 2rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+
+    .search-box {
+      flex: 1;
+      min-width: 260px;
+      position: relative;
+    }
+
+    .search-input {
+      width: 100%;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.65rem 1rem 0.65rem 2.25rem;
+      color: var(--text-main);
+      font-size: 0.9375rem;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .search-input:focus {
+      border-color: var(--border-focus);
+      background: var(--card-elevated);
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-dim);
+      font-size: 0.875rem;
+    }
+
+    .filter-tabs {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 0.5rem 0.875rem;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .tab-btn:hover {
+      background: var(--card-bg);
+      color: var(--text-main);
+      border-color: var(--text-dim);
+    }
+
+    .tab-btn.active {
+      background: var(--text-main);
+      color: var(--bg);
+      border-color: var(--text-main);
+      font-weight: 600;
+    }
+
+    /* Section Headers */
+    .section-header {
+      margin: 3rem 0 1.25rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.75rem;
+    }
+
+    .section-title {
+      font-size: 1.35rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .repo-pill {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.75rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 6px;
+      font-weight: 600;
+    }
+
+    .pill-pstack {
+      background: rgba(14, 165, 233, 0.15);
+      color: var(--accent-pstack);
+      border: 1px solid rgba(14, 165, 233, 0.3);
+    }
+
+    .pill-matt {
+      background: rgba(129, 140, 248, 0.15);
+      color: var(--accent-matt);
+      border: 1px solid rgba(129, 140, 248, 0.3);
+    }
+
+    /* Skills Table / Card Layout */
+    .skills-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      margin-bottom: 2rem;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      background: var(--card-bg);
+    }
+
+    .skills-table th {
+      background: #0E1422;
+      color: var(--text-dim);
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 0.85rem 1.25rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .skills-table td {
+      padding: 1.1rem 1.25rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      vertical-align: top;
+      font-size: 0.9375rem;
+    }
+
+    .skills-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .skills-table tr:hover td {
+      background-color: var(--card-elevated);
+    }
+
+    /* Column Widths & Styles */
+    .col-rank {
+      width: 60px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-weight: 700;
+      color: var(--text-dim);
+    }
+
+    .col-skill {
+      width: 240px;
+    }
+
+    .skill-name {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.9375rem;
+      font-weight: 700;
+      color: #FFFFFF;
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+
+    .skill-source {
+      font-size: 0.75rem;
+      color: var(--text-dim);
+    }
+
+    .col-roi {
+      width: 110px;
+      text-align: center;
+    }
+
+    .roi-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.25rem 0.6rem;
+      border-radius: 6px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.875rem;
+      font-weight: 800;
+    }
+
+    .roi-elite {
+      background: var(--green-bg);
+      color: var(--green-roi);
+      border: 1px solid var(--green-border);
+    }
+
+    .roi-high {
+      background: rgba(14, 165, 233, 0.15);
+      color: var(--accent-pstack);
+      border: 1px solid rgba(14, 165, 233, 0.3);
+    }
+
+    .roi-mid {
+      background: var(--amber-bg);
+      color: var(--amber);
+      border: 1px solid var(--amber-border);
+    }
+
+    .roi-low {
+      background: rgba(100, 116, 139, 0.15);
+      color: var(--text-dim);
+      border: 1px solid rgba(100, 116, 139, 0.3);
+    }
+
+    .col-verdict {
+      width: 150px;
+    }
+
+    .verdict-tag {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.25rem 0.6rem;
+      border-radius: 9999px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .tag-install {
+      background: var(--green-bg);
+      color: var(--green-roi);
+      border: 1px solid var(--green-border);
+    }
+
+    .tag-installed {
+      background: var(--purple-bg);
+      color: var(--purple);
+      border: 1px solid var(--purple-border);
+    }
+
+    .tag-optional {
+      background: var(--amber-bg);
+      color: var(--amber);
+      border: 1px solid var(--amber-border);
+    }
+
+    .tag-skip {
+      background: rgba(100, 116, 139, 0.12);
+      color: #94A3B8;
+      border: 1px solid rgba(100, 116, 139, 0.2);
+    }
+
+    .tag-reject {
+      background: var(--red-bg);
+      color: var(--red-cutoff);
+      border: 1px solid var(--red-border);
+    }
+
+    .col-desc {
+      color: var(--text-muted);
+      line-height: 1.45;
+    }
+
+    .desc-strong {
+      color: var(--text-main);
+      font-weight: 600;
+    }
+
+    /* THE CUTOFF DIVIDER BANNER */
+    .cutoff-row td {
+      padding: 0 !important;
+      border: none !important;
+    }
+
+    .cutoff-banner {
+      background: linear-gradient(90deg, rgba(244, 63, 94, 0.25) 0%, rgba(244, 63, 94, 0.1) 50%, rgba(244, 63, 94, 0.25) 100%);
+      border-top: 2px dashed var(--red-cutoff);
+      border-bottom: 2px dashed var(--red-cutoff);
+      padding: 1.25rem 1.5rem;
+      text-align: center;
+      margin: 0.5rem 0;
+    }
+
+    .cutoff-title {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      color: var(--red-cutoff);
+      font-size: 0.9375rem;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .cutoff-subtitle {
+      font-size: 0.8125rem;
+      color: #FDA4AF;
+    }
+
+    /* Dimmed rows below cutoff */
+    .row-below-cutoff td {
+      opacity: 0.55;
+      background: rgba(9, 13, 22, 0.4);
+    }
+
+    .row-below-cutoff:hover td {
+      opacity: 0.9;
+      background: var(--card-elevated);
+    }
+
+    /* Quick Install Block */
+    .install-box {
+      background: #0E1422;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-top: 3rem;
+    }
+
+    .install-title {
+      font-size: 1.125rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .install-desc {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+    }
+
+    .code-block {
+      background: #060911;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.8125rem;
+      color: #38BDF8;
+      overflow-x: auto;
+      line-height: 1.6;
+    }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .skills-table th:nth-child(1), .skills-table td:nth-child(1) { display: none; }
+      .skills-table th:nth-child(4), .skills-table td:nth-child(4) { display: none; }
+      .skills-table td { padding: 0.85rem; }
+      .col-skill { width: 180px; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="eyebrow">
+      <span class="eyebrow-dot"></span> Mainline AI Architecture & Engineering Review
+    </div>
+    <h1>Agent Skills ROI Matrix & Cutoff Guide</h1>
+    <p class="hero-lead">
+      Comprehensive evaluation of <strong>79 skills</strong> across <code>cursor/plugins/pstack</code> and <code>mattpocock/skills</code>. Evaluated specifically for Joe's workflow on Mainline: solo developer, learning chess engine architecture, ASD-STE100 writing rules, and strict simplicity.
+    </p>
+
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-label">Total Skills Evaluated</div>
+        <div class="metric-value">79</div>
+        <div class="metric-sub">44 pstack + 35 Matt Pocock</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Elite (Above Cutoff)</div>
+        <div class="metric-value" style="color: var(--green-roi);">15</div>
+        <div class="metric-sub">10 pstack + 5 Matt Pocock</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Already in Mainline</div>
+        <div class="metric-value" style="color: var(--purple);">5</div>
+        <div class="metric-sub">frontend-design, security-audit, etc.</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Below Cutoff (Rejected)</div>
+        <div class="metric-value" style="color: var(--red-cutoff);">59</div>
+        <div class="metric-sub">Zero-friction minimal policy</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Sticky Controls -->
+  <div class="controls-wrapper">
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="skillSearch" class="search-input" placeholder="Search skill name, description, or keyword..." oninput="filterSkills()">
+    </div>
+    <div class="filter-tabs">
+      <button class="tab-btn active" onclick="setFilter('all', this)">All Skills (79)</button>
+      <button class="tab-btn" onclick="setFilter('above', this)">⭐ Above Cutoff Only (15)</button>
+      <button class="tab-btn" onclick="setFilter('pstack', this)">pstack/skills (44)</button>
+      <button class="tab-btn" onclick="setFilter('matt', this)">mattpocock/skills (35)</button>
+      <button class="tab-btn" onclick="setFilter('installed', this)">Already Installed (5)</button>
+    </div>
+  </div>
+
+  <!-- SECTION 1: PSTACK SKILLS -->
+  <div class="section-container" id="pstack-section">
+    <div class="section-header">
+      <div class="section-title">
+        <span>Cursor Plugins: pstack/skills</span>
+        <span class="repo-pill pill-pstack">cursor/plugins</span>
+      </div>
+      <span style="font-size: 0.8125rem; color: var(--text-dim);">44 skills evaluated &bull; 10 above cutoff</span>
+    </div>
+
+    <table class="skills-table">
+      <thead>
+        <tr>
+          <th class="col-rank">#</th>
+          <th class="col-skill">Skill</th>
+          <th class="col-roi">ROI Score</th>
+          <th class="col-verdict">Verdict</th>
+          <th class="col-desc">Mainline Impact & Evaluation</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- ABOVE CUTOFF PSTACK -->
+        <tr class="skill-row" data-repo="pstack" data-cutoff="above" data-status="install">
+          <td class="col-rank">01</td>
+          <td class="col-skill">
+            <span class="skill-name">typescript-best-practices</span>
+            <span class="skill-source">pstack/skills</span>
+          </td>
+          <td class="col-roi"><span class="roi-badge roi-elite">10.0</span></td>
+          <td class="col-verdict"><span class="verdict-tag tag-install">Install Now</span></td>
+          <td class="col-desc">
+            <span class="desc-strong">Highest ROI for full-stack code.</span> Enforces strict discriminated unions, branded types (like <code>PuzzleId</code>, <code>UserId</code>), constructive modeling, and total types. Perfectly matches Mainline's typed Engine vs Methodology architecture.
+          </td>
+        </tr>
+
+        <tr class="skill-row" data-repo="pstack" data-cutoff="above" data-status="install">
+          <td class="col-rank">02</td>
+          <td class="col-skill">
+            <span class="skill-name">technical-writing</span>
+            <span class="skill-source">pstack/skills</span>
+          </td>
+          <td class="col-roi"><span class="roi-badge roi-elite">9.5</span></td>
+          <td class="col-verdict"><span class="verdict-tag tag-install">Install Now</span></td>
+          <td class="col-desc">
+            <span class="desc-strong">Direct match with Joe's core rules.</span> Implements ASD-STE100 Simplified Technical English, Diátaxis documentation structure, and concise sentences. Cuts unnecessary passive voice and filler words.
+          </td>
+        </tr>
+
+        <tr class="skill-row" data-repo="pstack" data-cutoff="above" data-status="install">
+          <td class="col-rank">03</td>
+          <td class="col-skill">
+            <span class="skill-name">unslop</span>
+            <span class="skill-source">pstack/skills</span>
+          </td>
+          <td class="col-roi"><span class="roi-badge roi-elite">9.5</span></td>
+          <td class="col-verdict"><span class="verdict-tag tag-install">Install Now</span></td>
+          <td class="col-desc">
+            <span class="desc-strong">Eliminates AI tells.</span> Removes robotic phrasing, sycophantic greetings, throat-clearing fluff, and artificial transitions from generated code, comments, and documentation.
+          </td>
+        </tr>
+
+        <tr class="skill-row" data-repo="pstack" data-cutoff="above" data-status="install">
+          <td class="col-rank">04</td>
+          <td class="col-skill">
+            <span class="skill-name">blast-radius</span>
+            <span class="skill-source">pstack/skills</span>
+          </td>
+          <td class="col-roi"><span class="roi-badge roi-high">9.0</span></td>
+          <td class="col-verdict"><span class="verdict-tag tag-install">Install Now</span></td>
+          <td class="col-desc">
+            <span class="desc-strong">Essential safety tool for refactors.</span> Finds what a code change could break across the codebase before shipping. Proves safety with real code execution rather than conversational guesses.
+          </td>
+        </tr>
+
+        <tr class="skill-row" data-repo="pstack" data-cutoff="above" data-status="install">
+          <td class="col-rank">05</td>
+          <td class="col-skill">
+            <span class="skill-name">tdd</span>
+            <span class="skill-source">pstack/skills</span>
+          </td>
+          <td class="col-roi"><span class="roi-badge roi-high">8.5</span></td>
+          <td class="col-verdict"><span class="verdict-tag tag-install">Install Now</span></td>
+          <td class="col-desc">
+            <span class="desc-strong">Pragmatic bug-fixing loop.</span> Writes a minimal failing test to reproduce a bug before touching production code. Explicitly skips heavy harness setup when impractical.
+          </td>
+        </tr>
+
+        <tr class="skill-row" data-repo="pstack" data-cutoff="above" data-status="install">
+          <td class="col-rank">06</td>
+          <td class="col-skill">
+            <span class="skill-name">teach</span>
+            <span class="skill-source">pstack/skills</span>
+          </td>
+          <td class="col-roi"><span class="roi-badge roi-high">8.5</span></td>
+          <td class="col-verdict"><span class="verdict-tag tag-install">Install Now</span></td>
+          <td class="col-desc">
+            <span class="desc-strong">Tailored for learning.</span> Explains what a subsystem is, how it works, and why it was built in plain language without walls of text. Ideal for Joe's pair-programming learning journey.
+          </td>
+        </tr>
+
+        <tr class="skill-row" data-repo="pstack" data-cutoff="above" data-status="install">
+          <td class="col-rank">07</td>
+          <td class="col-skill">
+            <span class="skill-name">how</span>
+            <span class="skill-source">pstack/skills</span>
+          </td>
+          <td class="col-roi"><span class="roi-badge roi-high">8.5</span></td>
+          <td class="col-verdict"><span class="verdict-tag tag-install">Install Now</span></td>
+          <td class="col-desc">
+            <span class="desc-strong">Codebase navigation.</span> Explains runtime execution, subsystem layering, and module ownership. Produces senior-engineer mental models of complex features (like Stockfish WASM or FSRS).
+          </td>
+        </tr>
+
+        <tr class="skill-row" data-repo="pstack" data-cutoff="above" data-status="install">
+          <td class="col-rank">08</td>
+          <td class="col-skill">
+            <span class="skill-name">why</span>
+            <span class="skill-source">pstack/skills</span>
+          </td>
+          <td class="col-roi"><span class="roi-badge roi-high">8.5</span></td>
+          <td class="col-verdict"><span class="verdict-tag tag-install">Install Now</span></td>
+          <td class="col-desc">
+            <span class="desc-strong">Decision archaeology.</span> Discovers intent behind code by surveying git history, commit messages, and docs. Explains why trade-offs were made rather than just what the code does.
+          </td>
+        </tr>
+
+        <tr class="skill-row" data-repo="pstack" data-cutoff="above" data-status="install">
+          <td class="col-rank">09</td>
+          <td class="col-skill">
+            <span class="skill-name">principle-boundary-discipline</span>
+            <span class="skill-source">pstack/skills</span>
+          </td>
+          <td class="col-roi"><span class="roi-badge roi-high">8.5</span></td>
+          <td class="col-verdict"><span class="verdict-tag tag-install">Install Now</span></td>
+          <td class="col-desc">
+            <span class="desc-strong">Matches Law L1 of Mainline.</span> Validates data strictly at boundaries (Lichess/Chess.com APIs, config JSON, DB queries) and keeps internal business logic pure and trustful.
+          </td>
+        </tr>
+
+        <tr class="skill-row" data-repo="pstack" data-cutoff="above" data-status="install">
+          <td class="col-rank">10</td>
+          <td class="col-skill">
+            <span class="skill-name">principle-subtract-before-you-add</span>
+            <span class="skill-source">pstack/skills</span>
+          </td>
+          <td class="col-roi"><span class="roi-badge roi-high">8.0</span></td>
+          <td class="col-verdict"><span class="verdict-tag tag-install">Install Now</span></td>
+          <td class="col-desc">
+            <span class="desc-strong">Enforces simplicity.</span> Removes dead weight, redundant handlers, and stale code before adding new features. Keeps the codebase lean and understandable.
+          </td>
+        </tr>
+
+        <!-- CUTOFF DIVIDER FOR PSTACK -->
+        <tr class="cutoff-row">
+          <td colspan="5">
+            <div class="cutoff-banner">
+              <div class="cutoff-title">⛔ PSTACK CUTOFF LINE: DO NOT INSTALL BELOW THIS POINT ⛔</div>
+              <div class="cutoff-subtitle">Skills below this line introduce unnecessary ceremony, Cursor-specific lock-in, multi-model token waste, or rule conflicts.</div>
+            </div>
+          </td>
+        </tr>
+
+        <!-- BELOW CUTOFF PSTACK (34 SKILLS) -->
+        <tr class="skill-row row-below-cutoff" data-repo="pstack" data-cutoff="below" data-status="optional">
+          <td class="col-rank">11</td>
+          <td class="col-skill"><span class="skill-name">principle-prove-it-works</span><span class="skill-source">pstack/skills</span></td>
+          <td class="col-roi"><span class="roi-badge roi-mid">7.5</span></td>
+          <td class="col-verdict"><span class="verdict-tag tag-optional">Redundant</span></td>
+          <td class="col-desc">Good advice (check real artifacts), but already built into Antigravity verification instructions.</td>
+        </tr>
+        <tr class="skill-row row-below-cutoff" data-repo="pstack" data-cutoff="below" data-status="optional">
+          <td class="col-rank">12</td>
+          <td class="col-skill"><span class="skill-name">principle-type-system-discipline</span><span class="skill-source">pstack/skills</span></td>
+          <td class="col-roi"><span class="roi-badge roi-mid">7.5</span></td>
+          <td class="col-verdict"><span class="verdict-tag tag-optional">Redundant</span></td>
+          <td class="col-desc">General typed principles; completely covered in more practical detail by <code>typescript-best-practices</code>.</td>
+        </tr>
+        <tr class="skill-row row-below-cutoff" data-repo="pstack" data-cutoff="below" data-status="optional">
+          <td class="col-rank">13</td>
+          <td class="col-skill"><span class="skill-name">principle-model-the-domain</span><span class="skill-source">pstack/skills</span></td>
+          <td class="col-roi"><span class="roi-badge roi-mid">7.0</span></td>
+          <td class="col-verdict"><span class="verdict-tag tag-optional">Redundant</span></td>
+          <td class="col-desc">Subsumed by Matt Pocock's superior <code>domain-modeling</code> skill.</td>
+        </tr>
+        <tr class="skill-row row-below-cutoff" data-repo="pstack" data-cutoff="below" data-status="optional">
+          <td class="col-rank">14</td>
+          <td class="col-skill"><span class="skill-name">principle-laziness-protocol</span><span class="skill-source">pstack/skills</span></td>
+          <td class="col-roi"><span class="roi-badge roi-mid">7.0</span></td>
+          <td class="col-verdict"><span class="verdict-tag tag-optional">Redundant</span></td>
+          <td class="col-desc">Already stated in Joe's global prompt: "Prefer simple, pragmatic solutions over elaborate architecture."</td>
+        </tr>
+        <tr class="skill-row row-below-cutoff" data-repo="pstack" data-cutoff="below" data-status="optional">
+          <td class="col-rank">15</td>
+          <td class="col-skill"><span class="skill-name">principle-fix-root-causes</span><span class="skill-source">pstack/skills</span></td>
+          <td class="col-roi"><span class="roi-badge roi-mid">7.0</span></td>
+          <td class="col-verdict"><span class="verdict-tag tag-optional">Redundant</span></td>
+          <td class="col-desc">Standard engineering baseline; covered by Matt's <code>diagnosing-bugs</code>.</td>
+        </tr>
+        <tr class="skill-row row-below-cutoff" data-repo="pstack" data-cutoff="below" data-status="optional">
+          <td class="col-rank">16</td>
+          <td class="col-skill"><span class="skill-name">architect</span><span class="skill-source">pstack/skills</span></td>
+          <td class="col-roi"><span class="roi-badge roi-mid">6.0</span></td>
+          <td class="col-verdict"><span class="verdict-tag tag-optional">Redundant</span></td>
+          <td class="col-desc">Antigravity planning mode (<code>implementation_plan.md</code>) already handles type sketching and phased plans.</td>
+        </tr>
+        <tr class="skill-row row-below-cutoff" data-repo="pstack" data-cutoff="below" data-status="optional">
+          <td class="col-rank">17</td>
+          <td class="col-skill"><span class="skill-name">bro</span><span class="skill-source">pstack/skills</span></td>
+          <td class="col-roi"><span class="roi-badge roi-low">5.5</span></td>
+          <td class="col-verdict"><span class="verdict-tag tag-optional">Unnecessary</span></td>
+          <td class="col-desc">Translates messages to plain English. Joe's STE prompt and <code>teach</code> already enforce plain English.</td>
+        </tr>
+        <tr class="skill-row row-below-cutoff" data-repo="pstack" data-cutoff="below" data-status="reject">
+          <td class="col-rank">18</td>
+          <td class="col-skill"><span class="skill-name">no-comments</span><span class="skill-source">pstack/skills</span></td>
+          <td class="col-roi"><span class="roi-badge roi-low">5.0</span></td>
+          <td class="col-verdict"><span class="verdict-tag tag-reject">Risky</span></td>
+          <td class="col-desc">Spawns a subagent to strip comments. Risks destroying essential scientific citations and FSRS math explanations.</td>
+        </tr>
+        <tr class="skill-row row-below-cutoff" data-repo="pstack" data-cutoff="below" data-status="reject">
+          <td class="col-rank">19</td>
+          <td class="col-skill"><span class="skill-name">show-me-your-work</span><span class="skill-source">pstack/skills</span></td>
+          <td class="col-roi"><span class="roi-badge roi-low">5.0</span></td>
+          <td class="col-verdict"><span class="verdict-tag tag-skip">Overhead</span></td>
+          <td class="col-desc">Maintains a TSV decision spreadsheet on disk. Too much bookkeeping ceremony for a solo developer.</td>
+        </tr>
+        <tr class="skill-row row-below-cutoff" data-repo="pstack" data-cutoff="below" data-status="reject">
+          <td class="col-rank">20</td>
+          <td class="col-skill"><span class="skill-name">figure-it-out</span><span class="skill-source">pstack/skills</span></td>
+          <td class="col-roi"><span class="roi-badge roi-low">4.5</span></td>
+          <td class="col-verdict"><span class="verdict-tag tag-skip">Overhead</span></td>
+          <td class="col-desc">Heavy meta-playbook orchestrating poteto-mode and TSV decision logs. Excess complexity.</td>
+        </tr>
+        <tr class="skill-row row-below-cutoff" data-repo="pstack" data-cutoff="below" data-status="reject">
+          <td class="col-rank">21-33</td>
+          <td class="col-skill"><span class="skill-name">Miscellaneous principle-* (13 skills)</span><span class="skill-source">pstack/skills</span></td>
+          <td class="col-roi"><span class="roi-badge roi-low">3.5-4.5</span></td>
+          <td class="col-verdict"><span class="verdict-tag tag-skip">Skip</span></td>
+          <td class="col-desc">Micro-principles (<code>principle-build-the-lever</code>, <code>principle-guard-the-context-window</code>, etc.). Creates cognitive overload and skill bloat.</td>
+        </tr>
+        <tr class="skill-row row-below-cutoff" data-repo="pstack" data-cutoff="below" data-status="reject">
+          <td class="col-rank">34</td>
+          <td class="col-skill"><span class="skill-name">poteto-mode</span><span class="skill-source">pstack/skills</span></td>
+          <td class="col-roi"><span class="roi-badge roi-low">2.0</span></td>
+          <td class="col-verdict"><span class="verdict-tag tag-reject">Incompatible</span></td>
+          <td class="col-desc">Rigid personal meta-harness enforcing todolists and multi-skill orchestration. Clashes with Antigravity.</td>
+        </tr>
+        <tr class="skill-row row-below-cutoff" data-repo="pstack" data-cutoff="below" data-status="reject">
+          <td class="col-rank">35-37</td>
+          <td class="col-skill"><span class="skill-name">arena, swarm, interrogate</span><span class="skill-source">pstack/skills</span></td>
+          <td class="col-roi"><span class="roi-badge roi-low">1.0</span></td>
+          <td class="col-verdict"><span class="verdict-tag tag-reject">Token Waste</span></td>
+          <td class="col-desc">Forks N parallel subagents across Opus, Sonnet, and GPT-4o. High token cost, massive latency, and excessive complexity.</td>
+        </tr>
+        <tr class="skill-row row-below-cutoff" data-repo="pstack" data-cutoff="below" data-status="reject">
+          <td class="col-rank">38-41</td>
+          <td class="col-skill"><span class="skill-name">setup-pstack, recall, automate-me, reflect</span><span class="skill-source">pstack/skills</span></td>
+          <td class="col-roi"><span class="roi-badge roi-low">1.0</span></td>
+          <td class="col-verdict"><span class="verdict-tag tag-reject">Cursor Only</span></td>
+          <td class="col-desc">Hardcoded to Cursor paths (<code>~/.cursor/projects/...</code>) and `.cursor/rules/`. Completely non-functional in Antigravity.</td>
+        </tr>
+        <tr class="skill-row row-below-cutoff" data-repo="pstack" data-cutoff="below" data-status="reject">
+          <td class="col-rank">42-43</td>
+          <td class="col-skill"><span class="skill-name">create-verification-skill, maintain-verification-skill</span><span class="skill-source">pstack/skills</span></td>
+          <td class="col-roi"><span class="roi-badge roi-low">1.0</span></td>
+          <td class="col-verdict"><span class="verdict-tag tag-skip">Unneeded</span></td>
+          <td class="col-desc">Builds Cursor-specific verification trees. Mainline already uses Vitest, Playwright E2E, and CI guards.</td>
+        </tr>
+        <tr class="skill-row row-below-cutoff" data-repo="pstack" data-cutoff="below" data-status="reject">
+          <td class="col-rank">44</td>
+          <td class="col-skill"><span class="skill-name">principle-never-block-on-the-human</span><span class="skill-source">pstack/skills</span></td>
+          <td class="col-roi"><span class="roi-badge roi-low">0.5</span></td>
+          <td class="col-verdict"><span class="verdict-tag tag-reject">Dangerous</span></td>
+          <td class="col-desc">Tells agents never to block on the user. Directly violates Mainline's explicit gatekeeper rules for user PR approvals and plan confirmations.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- SECTION 2: MATT POCOCK SKILLS -->
+  <div class="section-container" id="matt-section">
+    <div class="section-header">
+      <div class="section-title">
+        <span>Matt Pocock Skills: mattpocock/skills</span>
+        <span class="repo-pill pill-matt">mattpocock/skills</span>
+      </div>
+      <span style="font-size: 0.8125rem; color: var(--text-dim);">35 skills evaluated &bull; 5 above cutoff (+ 5 already installed)</span>
+    </div>
+
+    <table class="skills-table">
+      <thead>
+        <tr>
+          <th class="col-rank">#</th>
+          <th class="col-skill">Skill</th>
+          <th class="col-roi">ROI Score</th>
+          <th class="col-verdict">Verdict</th>
+          <th class="col-desc">Mainline Impact & Evaluation</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- ALREADY INSTALLED MATT SKILLS -->
+        <tr class="skill-row" data-repo="matt" data-cutoff="above" data-status="installed">
+          <td class="col-rank">★</td>
+          <td class="col-skill"><span class="skill-name">frontend-design</span><span class="skill-source">mattpocock/skills</span></td>
+          <td class="col-roi"><span class="roi-badge roi-elite">10.0</span></td>
+          <td class="col-verdict"><span class="verdict-tag tag-installed">Installed</span></td>
+          <td class="col-desc"><span class="desc-strong">Already in Mainline.</span> Ensures intentional, distinctive, responsive UI design without generic AI templates.</td>
+        </tr>
+        <tr class="skill-row" data-repo="matt" data-cutoff="above" data-status="installed">
+          <td class="col-rank">★</td>
+          <td class="col-skill"><span class="skill-name">security-audit</span><span class="skill-source">mattpocock/skills</span></td>
+          <td class="col-roi"><span class="roi-badge roi-elite">9.5</span></td>
+          <td class="col-verdict"><span class="verdict-tag tag-installed">Installed</span></td>
+          <td class="col-desc"><span class="desc-strong">Already in Mainline.</span> Deep security audits for web apps, OAuth tokens, API secrets, and client vulnerabilities.</td>
+        </tr>
+        <tr class="skill-row" data-repo="matt" data-cutoff="above" data-status="installed">
+          <td class="col-rank">★</td>
+          <td class="col-skill"><span class="skill-name">grilling</span><span class="skill-source">mattpocock/skills</span></td>
+          <td class="col-roi"><span class="roi-badge roi-high">9.0</span></td>
+          <td class="col-verdict"><span class="verdict-tag tag-installed">Installed</span></td>
+          <td class="col-desc"><span class="desc-strong">Already in Mainline.</span> Relentlessly interviews and stress-tests plans and decisions before building.</td>
+        </tr>
+        <tr class="skill-row" data-repo="matt" data-cutoff="above" data-status="installed">
+          <td class="col-rank">★</td>
+          <td class="col-skill"><span class="skill-name">code-review-expert</span><span class="skill-source">mattpocock/skills</span></td>
+          <td class="col-roi"><span class="roi-badge roi-high">8.5</span></td>
+          <td class="col-verdict"><span class="verdict-tag tag-installed">Installed</span></td>
+          <td class="col-desc"><span class="desc-strong">Already in Mainline.</span> Senior engineer code review for SOLID principles and security issues.</td>
+        </tr>
+        <tr class="skill-row" data-repo="matt" data-cutoff="above" data-status="installed">
+          <td class="col-rank">★</td>
+          <td class="col-skill"><span class="skill-name">writing-for-agents</span><span class="skill-source">mattpocock/skills</span></td>
+          <td class="col-roi"><span class="roi-badge roi-high">8.5</span></td>
+          <td class="col-verdict"><span class="verdict-tag tag-installed">Installed</span></td>
+          <td class="col-desc"><span class="desc-strong">Already in Mainline.</span> Clear guidance on authoring skills and agent system docs.</td>
+        </tr>
+
+        <!-- NEW ABOVE CUTOFF MATT SKILLS -->
+        <tr class="skill-row" data-repo="matt" data-cutoff="above" data-status="install">
+          <td class="col-rank">01</td>
+          <td class="col-skill"><span class="skill-name">domain-modeling</span><span class="skill-source">mattpocock/skills</span></td>
+          <td class="col-roi"><span class="roi-badge roi-elite">9.5</span></td>
+          <td class="col-verdict"><span class="verdict-tag tag-install">Install Now</span></td>
+          <td class="col-desc">
+            <span class="desc-strong">Matt's signature modeling technique.</span> Establishes ubiquitous language, glossary definitions, and TypeScript algebraic types that make invalid states unrepresentable. Perfect for chess training sessions, FSRS intervals, and program items.
+          </td>
+        </tr>
+
+        <tr class="skill-row" data-repo="matt" data-cutoff="above" data-status="install">
+          <td class="col-rank">02</td>
+          <td class="col-skill"><span class="skill-name">wizard</span><span class="skill-source">mattpocock/skills</span></td>
+          <td class="col-roi"><span class="roi-badge roi-high">9.0</span></td>
+          <td class="col-verdict"><span class="verdict-tag tag-install">Install Now</span></td>
+          <td class="col-desc">
+            <span class="desc-strong">Huge time-saver for external setups.</span> Generates interactive step-by-step terminal wizards for manual tasks (OAuth credentials, Lichess API tokens, DB migrations, production environment variables) so Joe never gets lost.
+          </td>
+        </tr>
+
+        <tr class="skill-row" data-repo="matt" data-cutoff="above" data-status="install">
+          <td class="col-rank">03</td>
+          <td class="col-skill"><span class="skill-name">diagnosing-bugs</span><span class="skill-source">mattpocock/skills</span></td>
+          <td class="col-roi"><span class="roi-badge roi-high">8.5</span></td>
+          <td class="col-verdict"><span class="verdict-tag tag-install">Install Now</span></td>
+          <td class="col-desc">
+            <span class="desc-strong">Scientific debugging process.</span> Isolates symptoms, reproduces issues with minimal test cases, and runs explicit hypothesis loops before modifying any application logic.
+          </td>
+        </tr>
+
+        <tr class="skill-row" data-repo="matt" data-cutoff="above" data-status="install">
+          <td class="col-rank">04</td>
+          <td class="col-skill"><span class="skill-name">resolving-merge-conflicts</span><span class="skill-source">mattpocock/skills</span></td>
+          <td class="col-roi"><span class="roi-badge roi-high">8.0</span></td>
+          <td class="col-verdict"><span class="verdict-tag tag-install">Install Now</span></td>
+          <td class="col-desc">
+            <span class="desc-strong">Safe git conflict management.</span> Inspects original intent on both sides of a git conflict, resolves each hunk without discarding real changes, and never blindly overwrites.
+          </td>
+        </tr>
+
+        <tr class="skill-row" data-repo="matt" data-cutoff="above" data-status="install">
+          <td class="col-rank">05</td>
+          <td class="col-skill"><span class="skill-name">ask-matt</span><span class="skill-source">mattpocock/skills</span></td>
+          <td class="col-roi"><span class="roi-badge roi-high">8.0</span></td>
+          <td class="col-verdict"><span class="verdict-tag tag-install">Install Now</span></td>
+          <td class="col-desc">
+            <span class="desc-strong">Instant TypeScript heuristics.</span> Answers deep TypeScript and modern web architectural questions using Matt Pocock's Total TypeScript heuristics.
+          </td>
+        </tr>
+
+        <!-- CUTOFF DIVIDER FOR MATT POCOCK -->
+        <tr class="cutoff-row">
+          <td colspan="5">
+            <div class="cutoff-banner">
+              <div class="cutoff-title">⛔ MATT POCOCK CUTOFF LINE: DO NOT INSTALL BELOW THIS POINT ⛔</div>
+              <div class="cutoff-subtitle">Skills below this line assume GitHub issue trackers, courseware platforms (ai-hero), or add unnecessary tooling dependencies.</div>
+            </div>
+          </td>
+        </tr>
+
+        <!-- BELOW CUTOFF MATT POCOCK (25 SKILLS) -->
+        <tr class="skill-row row-below-cutoff" data-repo="matt" data-cutoff="below" data-status="optional">
+          <td class="col-rank">06</td>
+          <td class="col-skill"><span class="skill-name">tdd</span><span class="skill-source">mattpocock/skills</span></td>
+          <td class="col-roi"><span class="roi-badge roi-mid">7.0</span></td>
+          <td class="col-verdict"><span class="verdict-tag tag-optional">Redundant</span></td>
+          <td class="col-desc">General TDD reference. pstack's bugfix-focused <code>tdd</code> skill is smaller and simpler.</td>
+        </tr>
+        <tr class="skill-row row-below-cutoff" data-repo="matt" data-cutoff="below" data-status="optional">
+          <td class="col-rank">07</td>
+          <td class="col-skill"><span class="skill-name">codebase-design</span><span class="skill-source">mattpocock/skills</span></td>
+          <td class="col-roi"><span class="roi-badge roi-mid">6.5</span></td>
+          <td class="col-verdict"><span class="verdict-tag tag-optional">Redundant</span></td>
+          <td class="col-desc">Architecture advice; already handled by existing project planning guidelines and guards.</td>
+        </tr>
+        <tr class="skill-row row-below-cutoff" data-repo="matt" data-cutoff="below" data-status="optional">
+          <td class="col-rank">08</td>
+          <td class="col-skill"><span class="skill-name">improve-codebase-architecture</span><span class="skill-source">mattpocock/skills</span></td>
+          <td class="col-roi"><span class="roi-badge roi-mid">6.0</span></td>
+          <td class="col-verdict"><span class="verdict-tag tag-skip">Overhead</span></td>
+          <td class="col-desc">Generates visual HTML dependency reports. Unneeded for Mainline's clean Next.js/Prisma layout.</td>
+        </tr>
+        <tr class="skill-row row-below-cutoff" data-repo="matt" data-cutoff="below" data-status="optional">
+          <td class="col-rank">09</td>
+          <td class="col-skill"><span class="skill-name">prototype</span><span class="skill-source">mattpocock/skills</span></td>
+          <td class="col-roi"><span class="roi-badge roi-mid">6.0</span></td>
+          <td class="col-verdict"><span class="verdict-tag tag-optional">Redundant</span></td>
+          <td class="col-desc">Spikes throwaway prototype code. Antigravity scratch scripts already provide this.</td>
+        </tr>
+        <tr class="skill-row row-below-cutoff" data-repo="matt" data-cutoff="below" data-status="reject">
+          <td class="col-rank">10-14</td>
+          <td class="col-skill"><span class="skill-name">to-spec, to-tickets, wayfinder, triage, implement</span><span class="skill-source">mattpocock/skills</span></td>
+          <td class="col-roi"><span class="roi-badge roi-low">4.0-5.0</span></td>
+          <td class="col-verdict"><span class="verdict-tag tag-skip">Too Bureaucratic</span></td>
+          <td class="col-desc">Designed for teams managing complex GitHub issue trackers and ticket states. Heavy bureaucracy for a solo developer.</td>
+        </tr>
+        <tr class="skill-row row-below-cutoff" data-repo="matt" data-cutoff="below" data-status="reject">
+          <td class="col-rank">15</td>
+          <td class="col-skill"><span class="skill-name">setup-matt-pocock-skills</span><span class="skill-source">mattpocock/skills</span></td>
+          <td class="col-roi"><span class="roi-badge roi-low">2.0</span></td>
+          <td class="col-verdict"><span class="verdict-tag tag-reject">Do Not Run</span></td>
+          <td class="col-desc">Scaffolds <code>docs/agents/</code> and issue tracker labels. (We just removed these files during cleanup).</td>
+        </tr>
+        <tr class="skill-row row-below-cutoff" data-repo="matt" data-cutoff="below" data-status="reject">
+          <td class="col-rank">16</td>
+          <td class="col-skill"><span class="skill-name">setup-ts-deep-modules</span><span class="skill-source">mattpocock/skills</span></td>
+          <td class="col-roi"><span class="roi-badge roi-low">1.5</span></td>
+          <td class="col-verdict"><span class="verdict-tag tag-reject">Dependency Bloat</span></td>
+          <td class="col-desc">Installs <code>dependency-cruiser</code> into package.json. Violates "Minimize unnecessary dependencies".</td>
+        </tr>
+        <tr class="skill-row row-below-cutoff" data-repo="matt" data-cutoff="below" data-status="reject">
+          <td class="col-rank">17-21</td>
+          <td class="col-skill"><span class="skill-name">scaffold-exercises, writing-beats, writing-fragments, writing-shape</span><span class="skill-source">mattpocock/skills</span></td>
+          <td class="col-roi"><span class="roi-badge roi-low">1.0</span></td>
+          <td class="col-verdict"><span class="verdict-tag tag-reject">Courseware Only</span></td>
+          <td class="col-desc">Authoring tools for Matt Pocock's Total TypeScript courses and books. Irrelevant for a chess training app.</td>
+        </tr>
+        <tr class="skill-row row-below-cutoff" data-repo="matt" data-cutoff="below" data-status="reject">
+          <td class="col-rank">22-25</td>
+          <td class="col-skill"><span class="skill-name">git-guardrails-claude-code, migrate-to-shoehorn, setup-pre-commit, loop-me</span><span class="skill-source">mattpocock/skills</span></td>
+          <td class="col-roi"><span class="roi-badge roi-low">1.0-2.0</span></td>
+          <td class="col-verdict"><span class="verdict-tag tag-skip">Skip</span></td>
+          <td class="col-desc">Niche helpers (Claude Code hooks, shoehorn library, Husky hooks, multi-agent loop handoffs).</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- SUMMARY & NEXT ACTIONS -->
+  <div class="install-box">
+    <div class="install-title">🚀 Minimal High-ROI Installation Plan</div>
+    <p class="install-desc">
+      To maintain absolute simplicity and zero friction, install only the <strong>15 skills above the cutoffs</strong> (10 from pstack, 5 from Matt Pocock). This gives you world-class TypeScript modeling, STE writing, safe refactoring, and interactive terminal wizards without adding any boilerplate.
+    </p>
+    <div class="code-block">
+# Recommended 15 High-ROI Skills to Install in .agents/skills/
+1. typescript-best-practices    (pstack)  - Strict TypeScript discriminated unions & branded types
+2. technical-writing            (pstack)  - ASD-STE100 & Diátaxis documentation standards
+3. unslop                       (pstack)  - Cuts robotic AI filler and conversational noise
+4. blast-radius                 (pstack)  - Proves safety and discovers ripple effects of changes
+5. tdd                          (pstack)  - Minimal failing test before bug fixes
+6. teach                        (pstack)  - Plain English conceptual learning explanations
+7. how                          (pstack)  - Explains runtime architecture and data flow
+8. why                          (pstack)  - Investigates historical design reasons & git commits
+9. principle-boundary-discipline(pstack)  - Strict boundary validation, pure internal logic
+10. principle-subtract-before-add(pstack) - Simplifies and deletes dead code first
+11. domain-modeling             (matt)    - Ubiquitous language & zero-invalid-states domain design
+12. wizard                      (matt)    - Interactive terminal walkthroughs for tricky setups
+13. diagnosing-bugs             (matt)    - Scientific hypothesis-based bug diagnosis
+14. resolving-merge-conflicts   (matt)    - Safe intent-preserving git conflict resolution
+15. ask-matt                    (matt)    - Instant TypeScript & web architecture advice
+    </div>
+  </div>
+
+  <script>
+    function filterSkills() {
+      const query = document.getElementById('skillSearch').value.toLowerCase();
+      const rows = document.querySelectorAll('.skill-row');
+
+      rows.forEach(row => {
+        const text = row.innerText.toLowerCase();
+        if (text.includes(query)) {
+          row.style.display = '';
+        } else {
+          row.style.display = 'none';
+        }
+      });
+    }
+
+    function setFilter(type, btn) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      const rows = document.querySelectorAll('.skill-row');
+      const cutoffBanners = document.querySelectorAll('.cutoff-row');
+      const pstackSection = document.getElementById('pstack-section');
+      const mattSection = document.getElementById('matt-section');
+
+      pstackSection.style.display = '';
+      mattSection.style.display = '';
+
+      if (type === 'all') {
+        rows.forEach(r => r.style.display = '');
+        cutoffBanners.forEach(b => b.style.display = '');
+      } else if (type === 'above') {
+        rows.forEach(r => {
+          r.style.display = r.getAttribute('data-cutoff') === 'above' ? '' : 'none';
+        });
+        cutoffBanners.forEach(b => b.style.display = 'none');
+      } else if (type === 'pstack') {
+        mattSection.style.display = 'none';
+        rows.forEach(r => {
+          r.style.display = r.getAttribute('data-repo') === 'pstack' ? '' : 'none';
+        });
+        cutoffBanners.forEach(b => b.style.display = '');
+      } else if (type === 'matt') {
+        pstackSection.style.display = 'none';
+        rows.forEach(r => {
+          r.style.display = r.getAttribute('data-repo') === 'matt' ? '' : 'none';
+        });
+        cutoffBanners.forEach(b => b.style.display = '');
+      } else if (type === 'installed') {
+        pstackSection.style.display = 'none';
+        rows.forEach(r => {
+          r.style.display = r.getAttribute('data-status') === 'installed' ? '' : 'none';
+        });
+        cutoffBanners.forEach(b => b.style.display = 'none');
+      }
+    }
+  </script>
+</body>
+</html>

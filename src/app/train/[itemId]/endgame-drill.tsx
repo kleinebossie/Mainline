@@ -31,7 +31,7 @@ import {
 } from "@/lib/result-persistence";
 import { cn } from "@/lib/utils";
 
-// M13 — play a curated endgame OUT against the client-side chess engine, then judge the
+// M13: play a curated endgame OUT against the client-side chess engine, then judge the
 // played-out result against the position's objective (win / hold the draw). The opponent's
 // moves come from the in-browser Stockfish (engine-play), so there is zero server compute;
 // the optional Lichess tablebase (cached server-side) shows the ground-truth verdict. The
@@ -180,7 +180,7 @@ export function EndgameDrillSession({
       try {
         chess.move(move.san);
       } catch {
-        return; // illegal — board will snap back to `fen`
+        return; // illegal: board will snap back to `fen`
       }
       const afterUser = chess.fen();
       setFen(afterUser);
@@ -321,7 +321,7 @@ export function EndgameDrillSession({
                       autoAdvanceSec > 0 &&
                       !resultBlocked && (
                         <p className="text-graphite font-mono text-xs mt-1">
-                          Auto-advancing in {autoAdvanceSec}s...
+                          Auto-advancing in {autoAdvanceSec}s…
                         </p>
                       )}
                     {autoAdvancePaused && (
@@ -442,7 +442,7 @@ export function EndgameDrillSession({
           <Card className="h-full">
             <CardHeader className="pb-3">
               <CardTitle className="font-serif text-lg">
-                Play it out vs the engine
+                Play against engine
               </CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
@@ -453,7 +453,7 @@ export function EndgameDrillSession({
 
               {isEngineLoading && (
                 <StatusMessage tone="loading">
-                  Initializing Stockfish WASM engine in browser...
+                  Initializing Stockfish WASM engine in browser…
                 </StatusMessage>
               )}
 
@@ -565,7 +565,7 @@ export function EndgameDrillSession({
                     onClick={() => finish(fen, "unresolved")}
                     disabled={status === "thinking" || resultBlocked}
                   >
-                    I can&apos;t convert this
+                    I cannot convert this
                   </Button>
                 )}
                 <Button

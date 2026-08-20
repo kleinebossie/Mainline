@@ -830,7 +830,7 @@ export function TrainItem({ programItemId }: TrainItemProps) {
           />
         )}
         {persistenceState === "saving" && (
-          <StatusMessage tone="loading">Saving final result...</StatusMessage>
+          <StatusMessage tone="loading">Saving final result…</StatusMessage>
         )}
         <Card gutter="A">
           <CardHeader>
@@ -870,7 +870,7 @@ export function TrainItem({ programItemId }: TrainItemProps) {
                       autoAdvanceSec > 0 &&
                       !resultBlocked && (
                         <p className="text-graphite font-mono text-xs mt-1">
-                          Auto-advancing in {autoAdvanceSec}s...
+                          Auto-advancing in {autoAdvanceSec}s…
                         </p>
                       )}
                     {autoAdvancePaused && (
@@ -953,7 +953,7 @@ export function TrainItem({ programItemId }: TrainItemProps) {
         <Card gutter="C">
           <CardHeader>
             <CardTitle className="font-serif text-2xl font-bold text-center">
-              Desirable Difficulty: Spacing Interval
+              Desirable difficulty: spacing interval
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-5 text-center">
@@ -1011,10 +1011,10 @@ export function TrainItem({ programItemId }: TrainItemProps) {
 
   const phaseLabel =
     phase === "retest"
-      ? "Phase 3: Retesting Mistakes"
+      ? "Phase 3: Retest mistakes"
       : isDrill
         ? "Blunder drill"
-        : "In-App Practice";
+        : "In-app practice";
 
   return (
     <div className="flex flex-col gap-6 py-6 settle">
@@ -1120,7 +1120,7 @@ export function TrainItem({ programItemId }: TrainItemProps) {
           <Card className="h-full">
             <CardHeader className="pb-3">
               <CardTitle className="font-serif text-lg">
-                {isDrill ? "Find the move you missed" : "Practice Status"}
+                {isDrill ? "Find the move you missed" : "Practice status"}
               </CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
@@ -1207,7 +1207,7 @@ export function TrainItem({ programItemId }: TrainItemProps) {
                     onClick={() => void handleSkip()}
                     disabled={resultBlocked}
                   >
-                    Skip / Give Up
+                    Skip puzzle
                   </Button>
                 )}
               </div>

@@ -4,26 +4,27 @@ This document is the primary orientation for AI agents working on Mainline.
 
 ## Context Pointers
 
+Before starting any task, read [VISION.md](file:///home/joebos/programming/Mainline/planning/VISION.md). It defines product boundaries, brand honesty, and system limits.
+
 Load these documents when executing specific branches:
 
-- **Vision and Product Intent**: Read [VISION.md](file:///home/joebos/programming/Mainline/planning/VISION.md) to understand product boundaries, brand honesty, and commercial intent.
-- **Technical Plan and Seams**: Read [BUILD.md](file:///home/joebos/programming/Mainline/planning/BUILD.md) to inspect typed engine contracts, data schemas, and the 0-to-1 build specification.
-- **Feature Roadmap**: Read [FEATURE_ROADMAP.md](file:///home/joebos/programming/Mainline/planning/FEATURE_ROADMAP.md) to check feature sequence, part definitions, and acceptance gates.
-- **Learning Science**: Read [METHODOLOGY.md](file:///home/joebos/programming/Mainline/planning/METHODOLOGY.md) to inspect evidence-graded parameters, research seams, and rationale copy.
-- **Production Operations**: Read [OPERATIONS.md](file:///home/joebos/programming/Mainline/planning/OPERATIONS.md) to execute migrations, beta invites, job recovery, and research exports.
-- **Release Management**: Read [SHIPPING.md](file:///home/joebos/programming/Mainline/planning/SHIPPING.md) to verify readiness gates and deployment checklists.
-- **User Growth**: Read [GROWTH.md](file:///home/joebos/programming/Mainline/planning/GROWTH.md) to review acquisition ethics and feedback loops.
-- **Beta Prioritization Plan**: Read [BETA_PRIORITIZATION_PLAN.md](file:///home/joebos/programming/Mainline/planning/BETA_PRIORITIZATION_PLAN.md) to inspect the 3-phase growth and conversion roadmap.
+- **Engine contracts, schemas, or milestone specifications**: Read [BUILD.md](file:///home/joebos/programming/Mainline/planning/BUILD.md).
+- **Feature roadmap, sequencing, or acceptance gates**: Read [FEATURE_ROADMAP.md](file:///home/joebos/programming/Mainline/planning/FEATURE_ROADMAP.md).
+- **Learning science, evidence grades, citations, or rationale copy**: Read [METHODOLOGY.md](file:///home/joebos/programming/Mainline/planning/METHODOLOGY.md).
+- **Migrations, beta invites, worker recovery, or research export procedures**: Read [OPERATIONS.md](file:///home/joebos/programming/Mainline/planning/OPERATIONS.md).
+- **Release readiness gates and deployment checklists**: Read [SHIPPING.md](file:///home/joebos/programming/Mainline/planning/SHIPPING.md).
+- **Growth ethics and acquisition loops**: Read [GROWTH.md](file:///home/joebos/programming/Mainline/planning/GROWTH.md).
+- **Beta growth, lead magnet, guest mode, or conversion roadmap**: Read [BETA_PRIORITIZATION_PLAN.md](file:///home/joebos/programming/Mainline/planning/BETA_PRIORITIZATION_PLAN.md).
 
 ---
 
 ## 1. Product Summary and Scope
 
-Mainline is a personalized chess training application based on learning science. It generates and adapts a daily training program.
+Mainline generates and adapts a personalized, science-based chess training program.
 
-- **In-App Training**: Solve puzzles, drill blunders, review games, and practice endgames in the browser using Stockfish WASM.
-- **External Training**: Play real games and read chess books externally. The app recommends and logs external activities.
-- **System Boundaries**: Open source under AGPL-3.0. Multi-user and billing-ready architecture. No runtime LLM or AI inference. No gameplay server or multiplayer. No hosted copyrighted content.
+- **In-App Training**: Solve puzzles, drill blunders, review games, and practice endgames in the browser using client-side Stockfish WASM.
+- **External Training**: Play real games and read chess books externally. The application recommends and logs external activities.
+- **System Boundaries**: Open source under AGPL-3.0. Multi-user architecture. No runtime LLMs or AI chatbots. No multiplayer gameplay server. No hosted copyrighted books.
 
 ---
 
@@ -32,14 +33,14 @@ Mainline is a personalized chess training application based on learning science.
 The codebase separates generic application mechanics from chess learning science.
 
 - **The Engine** (`src/engine/`, `src/analysis/`, `src/server/`, `src/app/`, `src/db/`): Science-free, deterministic application code.
-- **The Methodology** (`src/methodology/`): The chess learning science. Methodology is loaded as versioned JSON configuration files and pure reader functions.
+- **The Methodology** (`src/methodology/`): Chess learning science parameters loaded as versioned JSON configurations and pure reader functions.
 
 ### The Three Architectural Laws
 
-These three laws are enforced by automated CI guards:
+Automated CI guards enforce these three laws:
 
-1. **L1 (Science in Config)**: The Engine contains no chess or learning constants. Consume methodology only through `@/methodology` ([index.ts](file:///home/joebos/programming/Mainline/src/methodology/index.ts)). Do not use internal deep imports.
-2. **L2 (Pure and Deterministic)**: Generator and adaptation functions must be pure. Never call `Date.now()`, `new Date()`, or `Math.random()`. Inject a `Clock` ([clock.ts](file:///home/joebos/programming/Mainline/src/lib/clock.ts)) or an explicit seed.
+1. **L1 (Science in Config)**: The Engine contains zero chess or learning constants. Consume methodology only through `@/methodology` ([index.ts](file:///home/joebos/programming/Mainline/src/methodology/index.ts)). Do not use internal deep imports.
+2. **L2 (Pure and Deterministic)**: Generator and adaptation functions must remain pure. Never call `Date.now()`, `new Date()`, or `Math.random()`. Inject a `Clock` ([clock.ts](file:///home/joebos/programming/Mainline/src/lib/clock.ts)) or an explicit random seed.
 3. **L3 (Graded Evidence)**: Every methodology leaf value must use the `GradedValue<T>` shape with grade, tier, and citation. Program items snapshot their rationale at generation time to preserve history.
 
 ---
@@ -49,7 +50,7 @@ These three laws are enforced by automated CI guards:
 - `src/app/`: Next.js App Router pages and API route handlers.
 - `src/server/`: tRPC routers and protected API procedures.
 - `src/db/`: Prisma Client singleton and database query helpers with zero business logic.
-- `src/engine/`: Spacing algorithms (FSRS), Glicko-2 arithmetic, and session budget logic.
+- `src/engine/`: Spacing algorithms (FSRS), Glicko-2 calculations, and session budget logic.
 - `src/integrations/`: Platform adapters (Lichess, Chess.com) and puzzle or tablebase clients.
 - `src/methodology/`: Versioned configuration schemas, JSON datasets, and pure reader functions.
 - `planning/`: Authoritative plans, roadmaps, and operational runbooks.
@@ -58,29 +59,22 @@ These three laws are enforced by automated CI guards:
 
 ---
 
-## 4. Setup and Commands
+## 4. Setup and Verification
 
-Use Node 25.2.0 (npm 11) specified in `.nvmrc`.
+Consult `package.json` for standard scripts (`dev`, `build`, `typecheck`, `lint`, `test`, `format`).
+
+### Strict CI Verification Order
+
+Run all checks in this exact sequence before completing work:
 
 ```bash
-cp .env.example .env.local
-npm ci
-npm run prisma:migrate
+npm run typecheck
+npm run lint
+npm test
+npm run test:guards
+npm run build
+npm run test:e2e
 ```
-
-### Primary Scripts
-
-- `npm run dev`: Start the local development server.
-- `npm run build`: Build the production bundle (runs `prisma generate` first).
-- `npm run typecheck`: Run TypeScript type verification (`tsc --noEmit`).
-- `npm run lint`: Run ESLint checks.
-- `npm test`: Run all Vitest unit and architecture guard tests.
-- `npm run test:guards`: Run architecture boundary tests.
-- `npm run test:e2e`: Run Playwright end-to-end tests.
-- `npm run format`: Format code with Prettier.
-- `npm run prisma:migrate`: Apply database migrations in local development.
-- `npm run prisma:deploy`: Apply migrations in production or CI.
-- `npm run beta:invite`: Generate beta user invite codes.
 
 ### End-to-End Testing Procedure
 
@@ -138,12 +132,7 @@ Every merge to `main` deploys to production immediately. Follow these gatekeeper
    ```bash
    git checkout -b feat/<name>
    ```
-3. Implement changes and verify locally:
-   ```bash
-   npm run typecheck
-   npm run lint
-   npm test
-   ```
+3. Implement changes and verify locally with the strict CI sequence.
 4. Push your branch and open a pull request against `main`.
 5. Confirm that CI checks pass on the PR preview.
 6. Request review from the user. The user merges with **Squash and merge**.
@@ -163,12 +152,13 @@ Every merge to `main` deploys to production immediately. Follow these gatekeeper
 
 ## 7. Hard Development Rules
 
-- **No Unauthorized Merges**: Never push directly to `main` or merge a PR without explicit user permission.
+- **ASD-STE100 Prose**: Use ASD-STE100 Simplified Technical English for all prose, explanations, docs, and comments. Keep sentences short (≤20–25 words), active voice, and one idea per sentence. State conditions before actions.
 - **No Em-Dashes**: Never use em dashes (unicode U+2014) in code, comments, copy, or markdown documents. Use colons, commas, semicolons, or separate sentences.
+- **No Unauthorized Merges**: Never push directly to `main` or merge a PR without explicit user permission.
 - **No Runtime AI**: Never introduce LLM or AI inference into runtime application logic.
-- **Strict CI Order**: The build pipeline runs `typecheck -> lint -> unit -> guards -> build -> e2e`. All checks must pass before merging.
+- **Strict CI Order**: Follow the exact verification order: `typecheck -> lint -> unit -> guards -> build -> e2e`. All checks must pass before merging.
+- **Frontend Design Skill**: Always use the frontend-design skill when building or editing user interfaces.
+- **Responsive Design**: Ensure the user interface is fully responsive and functions cleanly on any viewport.
 - **WASM Isolation**: Keep COOP and COEP headers intact in [next.config.mjs](file:///home/joebos/programming/Mainline/next.config.mjs) for client Stockfish multi-threading.
 - **External API Limits**: Respect rate limits for Lichess, Chess.com, and Tablebase. Cache external responses in database cache tables.
-- **Frontend Design Skill**: Always use the frontend-design skill when doing anything frontend.
-- **Responsive Design**: Always make sure the UI is responsive and works on any viewport.
-- Always read planning/VISION.md. No exceptions.
+- **Mandatory Vision Orientation**: Always read [VISION.md](file:///home/joebos/programming/Mainline/planning/VISION.md) before starting any task.

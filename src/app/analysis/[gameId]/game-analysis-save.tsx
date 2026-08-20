@@ -29,7 +29,7 @@ export function SaveReviewStep({
     <div className="mx-auto w-full max-w-2xl">
       <Card>
         <CardHeader>
-          <CardTitle>Spaced Repetition (SRS) Integration</CardTitle>
+          <CardTitle>Spaced repetition integration</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           {hasMoments ? (
@@ -60,8 +60,8 @@ export function SaveReviewStep({
                       )}
                     >
                       {outcomes[index]
-                        ? "Good (Standard Schedule)"
-                        : "Again (Lapse Schedule)"}
+                        ? "Good (standard schedule)"
+                        : "Again (lapse schedule)"}
                     </span>
                   </div>
                 ))}
@@ -88,7 +88,7 @@ export function SaveReviewStep({
               />
             )}
             <Button disabled={saving} onClick={onSave}>
-              {saving ? "Saving..." : "Save Session & Finish"}
+              {saving ? "Saving…" : "Save review and finish"}
             </Button>
           </div>
         </CardContent>

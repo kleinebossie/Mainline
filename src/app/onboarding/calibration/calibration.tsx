@@ -396,12 +396,12 @@ export function Calibration() {
               </div>
             </div>
 
-            {/* Info Sidebar */}
+        {/* Info Sidebar */}
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-2 rounded-md border border-line bg-paper/50 p-4">
                 <div className="flex items-center justify-between">
                   <span className="text-ink font-mono text-xs font-semibold uppercase tracking-wider">
-                    Solve State:
+                    Solve status:
                   </span>
                   {isAdvancing && (
                     <span className="inline-flex items-center gap-1 font-mono text-[0.65rem] text-evergreen animate-pulse">
@@ -420,15 +420,15 @@ export function Calibration() {
                   )}
                 >
                   <div>
-                    {solveStatus === "solved" && "✓ Correct!"}
-                    {solveStatus === "wrong" && "✗ Incorrect!"}
-                    {solveStatus === "correct" && "✓ Correct Move!"}
-                    {solveStatus === "pending" && (isAdvancing ? "Loading next puzzle…" : "Solve the puzzle...")}
+                    {solveStatus === "solved" && "✓ Solved"}
+                    {solveStatus === "wrong" && "✗ Incorrect"}
+                    {solveStatus === "correct" && "✓ Correct move"}
+                    {solveStatus === "pending" && (isAdvancing ? "Loading next puzzle…" : "Solve the puzzle…")}
                   </div>
                   {isAdvancing && (
                     <p className="text-xs font-mono font-normal text-graphite flex items-center gap-1.5 pt-0.5">
                       <Loader2 className="h-3 w-3 animate-spin text-evergreen shrink-0" />
-                      Next puzzle on its way…
+                      Next puzzle loading…
                     </p>
                   )}
                 </div>
@@ -447,7 +447,7 @@ export function Calibration() {
                       <span>Loading next puzzle…</span>
                     </>
                   ) : (
-                    "Skip / Give Up"
+                    "Skip puzzle"
                   )}
                 </Button>
               </div>

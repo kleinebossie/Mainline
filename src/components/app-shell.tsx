@@ -87,7 +87,7 @@ function TopBar() {
 }
 
 /**
- * PageShell — the signed-in page frame: the top bar plus a centered measure and an optional
+ * PageShell: the signed-in page frame: the top bar plus a centered measure and an optional
  * masthead (mono eyebrow, serif title, graphite lede).
  */
 export function PageShell({

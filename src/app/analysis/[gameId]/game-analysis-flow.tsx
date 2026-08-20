@@ -483,10 +483,10 @@ export function GameAnalysisFlow() {
       eyebrow={`Step ${step} of 3 · Game Review`}
       title={
         step === 1
-          ? "Emotional Calibration"
+          ? "Emotional calibration"
           : step === 2
-            ? "Active Reproduction"
-            : "Spaced Repetition"
+            ? "Active reproduction"
+            : "Spaced repetition"
       }
       width="wide"
     >

@@ -32,6 +32,6 @@ describe("UnavailableTrainingBlock", () => {
 
     expect(html).toContain("Block not closed");
     expect(html).toMatch(/<button[^>]*disabled=""/);
-    expect(html).toContain("Closing block...");
+    expect(html).toContain("Closing block…");
   });
 });

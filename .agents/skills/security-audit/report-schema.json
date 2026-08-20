@@ -1,10 +1,10 @@
 {
-  "$comment": "Single source of truth for findings.json structure (see SKILL.md Phase 5). validate-findings.cjs reads this file directly and interprets it — there is no second copy of these rules to keep in sync.",
+  "$comment": "Single source of truth for findings.json structure (see SKILL.md Phase 5). validate-findings.cjs reads this file directly and interprets it  -  there is no second copy of these rules to keep in sync.",
   "output_schema": {
     "oneOf": [
       {
         "type": "object",
-        "description": "Confirmed vulnerability — provide the complete, independently verified report.",
+        "description": "Confirmed vulnerability  -  provide the complete, independently verified report.",
         "properties": {
           "verdict": {
             "type": "string",
@@ -230,7 +230,7 @@
       },
       {
         "type": "object",
-        "description": "Rejected finding — the described behavior is factually incorrect or the code path does not exist.",
+        "description": "Rejected finding  -  the described behavior is factually incorrect or the code path does not exist.",
         "properties": {
           "verdict": {
             "type": "string",

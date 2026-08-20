@@ -471,7 +471,7 @@ function TimeEdit({
             !timeValid && !timeBusy && "border-evergreen/30 text-evergreen/50",
           )}
         >
-          {timeBusy ? "Updating..." : empty ? "Build session" : "Update plan"}
+          {timeBusy ? "Updating…" : empty ? "Build session" : "Update plan"}
         </Button>
       </div>
       <p
@@ -734,7 +734,7 @@ function TodayPrimaryAction({
         })
       }
     >
-      {busy ? "Saving..." : "Mark done"}
+      {busy ? "Saving…" : "Mark done"}
     </Button>
   );
 }
@@ -767,7 +767,7 @@ function TodayLogActions({
           })
         }
       >
-        {busy ? "Saving..." : "Solved"}
+        {busy ? "Saving…" : "Solved"}
       </Button>,
       <Button
         key="struggled"
@@ -783,7 +783,7 @@ function TodayLogActions({
           })
         }
       >
-        {busy ? "Saving..." : "Struggled"}
+        {busy ? "Saving…" : "Struggled"}
       </Button>,
     );
   } else if (
@@ -804,7 +804,7 @@ function TodayLogActions({
           })
         }
       >
-        {busy ? "Saving..." : "Mark done"}
+        {busy ? "Saving…" : "Mark done"}
       </Button>,
     );
   }
@@ -818,7 +818,7 @@ function TodayLogActions({
       disabled={busy}
       onClick={() => onLogOutcome({ programItemId: item.id, type: "skip" })}
     >
-      {busy ? "Saving..." : "Skip"}
+      {busy ? "Saving…" : "Skip"}
     </Button>,
   );
 
@@ -854,7 +854,7 @@ function FinalStatusPill({
           disabled={busy}
           onClick={onUndoSkip}
         >
-          {busy ? "Restoring..." : "Undo skip"}
+          {busy ? "Restoring…" : "Undo skip"}
         </Button>
       )}
     </div>
@@ -944,7 +944,7 @@ function TodayBlockDetails({
       {isBook && !closed ? (
         scheduledBook == null && libraryLoading ? (
           <p className="text-graphite font-mono text-xs">
-            Loading owned books...
+            Loading owned books…
           </p>
         ) : bookOptions.length === 0 ? (
           <div className="flex flex-col gap-2 border-t border-line/80 pt-4">
@@ -960,7 +960,7 @@ function TodayBlockDetails({
               onClick={onSkip}
               className="self-start"
             >
-              {busy ? "Saving..." : "Skip"}
+              {busy ? "Saving…" : "Skip"}
             </Button>
           </div>
         ) : (
