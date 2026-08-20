@@ -142,27 +142,6 @@ function ConsistencyGrid({
   );
 }
 
-function ReviewTypeList({ itemTypes }: { itemTypes: Record<string, number> }) {
-  const entries = Object.entries(itemTypes);
-  if (entries.length === 0) {
-    return (
-      <p className="text-sm text-graphite">No reviews are due right now.</p>
-    );
-  }
-  return (
-    <ul className="flex flex-wrap gap-2">
-      {entries.map(([type, count]) => (
-        <li
-          key={type}
-          className="rounded-sm border border-line bg-paper/70 px-2 py-1 font-mono text-[0.7rem] text-graphite"
-        >
-          {type.replace(/_/g, " ")} · {count}
-        </li>
-      ))}
-    </ul>
-  );
-}
-
 function SkillSignals({
   skills,
 }: {
@@ -201,7 +180,7 @@ function SkillSignals({
   }
 
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {skills.map((skill) => {
         const isRating = skill.isRating || skill.estimate > 100;
         const isLowSample = skill.sampleSize < 3;
@@ -708,52 +687,17 @@ export function ProgressDashboard() {
           />
         </section>
 
-        {/* Row 3: Spaced Review Health & Detailed Skill Signals */}
-        <section className="grid grid-cols-1 md:grid-cols-12 gap-6">
-          {/* Review Health Column */}
-          <div className="md:col-span-5 flex flex-col">
-            <div className="rounded-lg border bg-card p-4 shadow-sheet flex-1 flex flex-col justify-between">
-              <div>
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    <h2 className="eyebrow">Review health</h2>
-                    <GradeMark
-                      grade={data.evidence.review.evidenceGrade}
-                      tier={data.evidence.review.evidenceTier}
-                    />
-                  </div>
-                  <span
-                    className={cn(
-                      "rounded-sm border px-2 py-1 font-mono text-[0.68rem] uppercase",
-                      data.reviews.dueCount === 0
-                        ? "border-evergreen/40 bg-evergreen/10 text-evergreen"
-                        : "border-amber/45 bg-amber/10 text-ink",
-                    )}
-                  >
-                    {data.reviews.dueCount === 0 ? "clear" : "due"}
-                  </span>
-                </div>
-                <div className="mt-4">
-                  <ReviewTypeList itemTypes={data.reviews.itemTypes} />
-                </div>
-              </div>
-            </div>
+        {/* Row 3: Skill Signals */}
+        <section className="rounded-lg border bg-card p-5 shadow-sheet flex flex-col">
+          <div className="flex items-center justify-between border-b border-line/80 pb-3">
+            <h2 className="eyebrow">Skill signals</h2>
+            <GradeMark
+              grade={data.evidence.skill.evidenceGrade}
+              tier={data.evidence.skill.evidenceTier}
+            />
           </div>
-
-          {/* Skill Signals Column */}
-          <div className="md:col-span-7 flex flex-col">
-            <div className="rounded-lg border bg-card p-5 shadow-sheet flex-1 flex flex-col">
-              <div className="flex items-center justify-between border-b border-line/80 pb-3">
-                <h2 className="eyebrow">Skill signals</h2>
-                <GradeMark
-                  grade={data.evidence.skill.evidenceGrade}
-                  tier={data.evidence.skill.evidenceTier}
-                />
-              </div>
-              <div className="mt-4">
-                <SkillSignals skills={effectiveSkills} />
-              </div>
-            </div>
+          <div className="mt-4">
+            <SkillSignals skills={effectiveSkills} />
           </div>
         </section>
 
@@ -775,16 +719,6 @@ export function ProgressDashboard() {
               citationSource: data.evidence.progressSurface.citationSource,
               confidence: "high",
               soften: data.evidence.progressSurface.soften,
-            },
-            {
-              title: "Review policy",
-              rationaleText: data.evidence.review.text,
-              evidenceGrade: data.evidence.review.evidenceGrade,
-              evidenceTier: data.evidence.review.evidenceTier,
-              citationKey: data.evidence.review.citationKey,
-              citationSource: data.evidence.review.citationSource,
-              confidence: "high",
-              soften: data.evidence.review.soften,
             },
             {
               title: "Skill estimates",
