@@ -83,7 +83,6 @@ describe("Today session state", () => {
 
   it("disables Update plan until the time budget changes", () => {
     const unchanged = header(["todo"]);
-    expect(unchanged).toContain("Change the minutes to update remaining work.");
     expect(unchanged).toMatch(/<button[^>]*disabled=""[^>]*>Update plan/);
 
     const changed = header(["todo"], true);
@@ -93,7 +92,7 @@ describe("Today session state", () => {
   it("shows a quiet untouched state before any work is logged", () => {
     const html = header(["todo"]);
 
-    expect(html).toContain("Not started");
+    expect(html).toContain("0 min");
     expect(html).not.toContain("No timed logs yet");
   });
 

@@ -19,7 +19,7 @@ describe("TransparencyCard", () => {
         flag="stub"
       />,
     );
-    expect(html).toContain("Placeholder");
+    expect(html).toContain("Provisional");
   });
 
   it("does not render a caveat for unflagged values", () => {
@@ -33,7 +33,7 @@ describe("TransparencyCard", () => {
         soften={false}
       />,
     );
-    expect(html).not.toContain("Placeholder");
+    expect(html).not.toContain("Provisional");
   });
 
   it("surfaces the confidence note inline, not only via the title tooltip", () => {
@@ -97,7 +97,6 @@ describe("TransparencyCard", () => {
         defaultCollapsed={false}
       />,
     );
-    expect(html).toContain("Why Mainline scheduled this:");
     expect(html).toContain(
       "Trains deep calculation and candidate move validation.",
     );

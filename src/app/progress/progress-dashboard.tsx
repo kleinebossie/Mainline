@@ -6,62 +6,15 @@ import { trpc } from "@/lib/trpc/react";
 import { cn } from "@/lib/utils";
 import { StatusMessage } from "@/components/ui/status-message";
 import { ErrorNotice } from "@/components/ui/error-notice";
+import { GradeMark } from "@/components/evidence";
+import { TransparencyCardGroup } from "@/components/transparency-card";
 import { getGuestSession, type GuestSessionData } from "@/lib/guest-session";
 import type { AppRouter } from "@/server/routers/_app";
 import type { inferRouterOutputs } from "@trpc/server";
 
 type ProgressSummary = inferRouterOutputs<AppRouter>["progress"]["summary"];
 
-type Evidence = {
-  text: string;
-  evidenceGrade: string;
-  evidenceTier: number;
-  citationKey: string;
-  citationSource: string | null;
-  soften: boolean;
-};
 
-const GRADE_CLASS: Record<string, string> = {
-  A: "border-grade-a/50 bg-grade-a/10 text-ink",
-  B: "border-grade-b/50 bg-grade-b/10 text-ink",
-  C: "border-grade-c/50 bg-grade-c/10 text-ink",
-  D: "border-grade-d/50 bg-grade-d/10 text-ink",
-};
-
-function EvidenceNote({
-  title,
-  evidence,
-  className,
-}: {
-  title: string;
-  evidence: Evidence;
-  className?: string;
-}) {
-  return (
-    <aside
-      className={cn(
-        "rounded-md border p-3.5",
-        GRADE_CLASS[evidence.evidenceGrade] ?? "border-line bg-card",
-        className,
-      )}
-    >
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="font-mono text-[0.68rem] font-semibold uppercase tracking-[0.16em]">
-          {title}
-        </p>
-        <span className="rounded-sm border border-ink/10 px-1.5 py-0.5 font-mono text-[0.65rem] uppercase">
-          Grade {evidence.evidenceGrade} / Tier {evidence.evidenceTier}
-        </span>
-      </div>
-      <p className="mt-2 text-sm leading-relaxed text-graphite">
-        {evidence.text}
-      </p>
-      <p className="mt-2 font-mono text-[0.68rem] text-graphite">
-        {evidence.citationSource ?? evidence.citationKey}
-      </p>
-    </aside>
-  );
-}
 
 function RecoveryNote({
   event,
@@ -710,35 +663,30 @@ export function ProgressDashboard() {
           />
         )}
 
-        {/* Row 1: Consistency Grid & Dashboard Rationale */}
-        <section className="grid grid-cols-1 md:grid-cols-12 gap-6">
-          <div className="md:col-span-7 rounded-lg border bg-card p-5 shadow-sheet flex flex-col justify-between">
-            <div>
-              <div className="flex flex-wrap items-baseline justify-between gap-3">
-                <p className="eyebrow">Consistency</p>
-                <span className="font-mono text-xs text-graphite">
-                  {data.consistency.streak.activeDayCount} active day
-                  {data.consistency.streak.activeDayCount === 1
-                    ? ""
-                    : "s"} · {data.consistency.streak.windowDays}-day window
-                </span>
-              </div>
-              <p className="mt-2 font-serif text-2xl font-semibold">
-                {data.consistency.streak.day > 0
-                  ? `Day ${data.consistency.streak.day} of ${data.consistency.streak.cap}`
-                  : "Ready for a fresh cycle"}
-              </p>
+        {/* Row 1: Consistency Grid */}
+        <section className="rounded-lg border bg-card p-5 shadow-sheet flex flex-col justify-between">
+          <div className="flex flex-wrap items-baseline justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <p className="eyebrow">Consistency</p>
+              <GradeMark
+                grade={data.evidence.progressSurface.evidenceGrade}
+                tier={data.evidence.progressSurface.evidenceTier}
+              />
             </div>
-            <div className="mt-5">
-              <ConsistencyGrid grid={data.consistency.grid} />
-            </div>
+            <span className="font-mono text-xs text-graphite">
+              {data.consistency.streak.activeDayCount} active day
+              {data.consistency.streak.activeDayCount === 1 ? "" : "s"} ·{" "}
+              {data.consistency.streak.windowDays}-day window
+            </span>
           </div>
-
-          <EvidenceNote
-            title="Why this dashboard exists"
-            evidence={data.evidence.progressSurface}
-            className="md:col-span-5 flex flex-col justify-between"
-          />
+          <p className="mt-2 font-serif text-2xl font-semibold">
+            {data.consistency.streak.day > 0
+              ? `Day ${data.consistency.streak.day} of ${data.consistency.streak.cap}`
+              : "Ready for a fresh cycle"}
+          </p>
+          <div className="mt-5">
+            <ConsistencyGrid grid={data.consistency.grid} />
+          </div>
         </section>
 
         {/* Row 2: Standardized Quick Stats */}
@@ -746,12 +694,12 @@ export function ProgressDashboard() {
           <StatTile
             label="Blocks completed"
             value={String(effectiveWork.completedBlocks)}
-            detail={`Last ${effectiveWork.windowDays}-day cycle; skips stay non-shaming (${effectiveWork.skippedBlocks} skipped).`}
+            detail={`Last ${effectiveWork.windowDays}-day cycle (${effectiveWork.skippedBlocks} skipped).`}
           />
           <StatTile
             label="Minutes logged"
             value={String(effectiveWork.minutesLogged)}
-            detail="Logged process time, not a promise of rating movement."
+            detail="Total training time across current cycle."
           />
           <StatTile
             label="Reviews due"
@@ -763,11 +711,17 @@ export function ProgressDashboard() {
         {/* Row 3: Spaced Review Health & Detailed Skill Signals */}
         <section className="grid grid-cols-1 md:grid-cols-12 gap-6">
           {/* Review Health Column */}
-          <div className="md:col-span-5 flex flex-col gap-6">
+          <div className="md:col-span-5 flex flex-col">
             <div className="rounded-lg border bg-card p-4 shadow-sheet flex-1 flex flex-col justify-between">
               <div>
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <h2 className="eyebrow">Review health</h2>
+                  <div className="flex items-center gap-2">
+                    <h2 className="eyebrow">Review health</h2>
+                    <GradeMark
+                      grade={data.evidence.review.evidenceGrade}
+                      tier={data.evidence.review.evidenceTier}
+                    />
+                  </div>
                   <span
                     className={cn(
                       "rounded-sm border px-2 py-1 font-mono text-[0.68rem] uppercase",
@@ -784,43 +738,86 @@ export function ProgressDashboard() {
                 </div>
               </div>
             </div>
-            <EvidenceNote
-              title="Review policy"
-              evidence={data.evidence.review}
-            />
           </div>
 
           {/* Skill Signals Column */}
-          <div className="md:col-span-7 flex flex-col gap-6 justify-between">
-            <div className="flex flex-col gap-4">
-              <h2 className="eyebrow border-b border-line/80 pb-3">
-                Skill signals
-              </h2>
-              <SkillSignals skills={effectiveSkills} />
+          <div className="md:col-span-7 flex flex-col">
+            <div className="rounded-lg border bg-card p-5 shadow-sheet flex-1 flex flex-col">
+              <div className="flex items-center justify-between border-b border-line/80 pb-3">
+                <h2 className="eyebrow">Skill signals</h2>
+                <GradeMark
+                  grade={data.evidence.skill.evidenceGrade}
+                  tier={data.evidence.skill.evidenceTier}
+                />
+              </div>
+              <div className="mt-4">
+                <SkillSignals skills={effectiveSkills} />
+              </div>
             </div>
-            <EvidenceNote
-              title="Skill estimates"
-              evidence={data.evidence.skill}
-            />
           </div>
         </section>
 
         {/* Row 4: Rating Signals & Noise Warnings */}
-        <section className="grid grid-cols-1 md:grid-cols-12 gap-6">
-          <RatingSignal rating={effectiveRating} className="md:col-span-7" />
-          <div className="md:col-span-5 flex flex-col gap-6 justify-between">
-            <EvidenceNote
-              title="Rating caveat"
-              evidence={data.evidence.ratingNoise}
-              className="flex-1"
-            />
-            <EvidenceNote
-              title="No rating promise"
-              evidence={data.evidence.expectations}
-              className="flex-1"
-            />
-          </div>
+        <section className="grid grid-cols-1 gap-6">
+          <RatingSignal rating={effectiveRating} />
         </section>
+
+        {/* Evidence & Transparency Standards */}
+        <TransparencyCardGroup
+          defaultCollapsed={true}
+          items={[
+            {
+              title: "Why this dashboard exists",
+              rationaleText: data.evidence.progressSurface.text,
+              evidenceGrade: data.evidence.progressSurface.evidenceGrade,
+              evidenceTier: data.evidence.progressSurface.evidenceTier,
+              citationKey: data.evidence.progressSurface.citationKey,
+              citationSource: data.evidence.progressSurface.citationSource,
+              confidence: "high",
+              soften: data.evidence.progressSurface.soften,
+            },
+            {
+              title: "Review policy",
+              rationaleText: data.evidence.review.text,
+              evidenceGrade: data.evidence.review.evidenceGrade,
+              evidenceTier: data.evidence.review.evidenceTier,
+              citationKey: data.evidence.review.citationKey,
+              citationSource: data.evidence.review.citationSource,
+              confidence: "high",
+              soften: data.evidence.review.soften,
+            },
+            {
+              title: "Skill estimates",
+              rationaleText: data.evidence.skill.text,
+              evidenceGrade: data.evidence.skill.evidenceGrade,
+              evidenceTier: data.evidence.skill.evidenceTier,
+              citationKey: data.evidence.skill.citationKey,
+              citationSource: data.evidence.skill.citationSource,
+              confidence: "high",
+              soften: data.evidence.skill.soften,
+            },
+            {
+              title: "Rating noise and variance",
+              rationaleText: data.evidence.ratingNoise.text,
+              evidenceGrade: data.evidence.ratingNoise.evidenceGrade,
+              evidenceTier: data.evidence.ratingNoise.evidenceTier,
+              citationKey: data.evidence.ratingNoise.citationKey,
+              citationSource: data.evidence.ratingNoise.citationSource,
+              confidence: "high",
+              soften: data.evidence.ratingNoise.soften,
+            },
+            {
+              title: "No rating promise",
+              rationaleText: data.evidence.expectations.text,
+              evidenceGrade: data.evidence.expectations.evidenceGrade,
+              evidenceTier: data.evidence.expectations.evidenceTier,
+              citationKey: data.evidence.expectations.citationKey,
+              citationSource: data.evidence.expectations.citationSource,
+              confidence: "high",
+              soften: data.evidence.expectations.soften,
+            },
+          ]}
+        />
       </div>
 
       <p className="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-graphite ml-2">

@@ -164,7 +164,6 @@ export function AnalysisDashboard() {
   };
 
   const ratio = suggestionsQuery.data?.ratio;
-  const ownGamesRationale = suggestionsQuery.data?.ownGamesRationale;
   const successBiasRationale = suggestionsQuery.data?.successBiasRationale;
 
   const library = libraryQuery.data;
@@ -339,18 +338,12 @@ export function AnalysisDashboard() {
             retryLabel="Reload guidance"
           />
         )}
-        {ownGamesRationale && (
-          <MethodologyRationaleCard rationale={ownGamesRationale} />
-        )}
         <ManualGameImport onImported={() => setPlatformOverride("manual")} />
-        {/* Pick a game: the library, most recent first, filtered by primary platform. */}
+        {/* Pick a game: the library, filtered by primary platform. */}
         <section className="flex flex-col gap-4">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div className="flex flex-col gap-0.5">
               <h2 className="eyebrow">Your games · pick one to review</h2>
-              <p className="text-graphite font-serif text-xs">
-                Most recent first.
-              </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               {platforms.length > 0 && (
@@ -527,36 +520,6 @@ export function AnalysisDashboard() {
                         ? "Connect your Lichess or Chess.com username. Mainline automatically pulls your recent games, identifies tactical mistakes, and generates custom training blocks."
                         : `No ${platformLabel(selectedPlatform)} games imported yet. Click sync below to fetch your latest games or manage connected accounts.`}
                   </p>
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-3 border-t border-line/80 pt-5">
-                  <div className="flex flex-col gap-1 p-3 rounded-md bg-paper/60 border border-line">
-                    <span className="eyebrow !text-[0.6rem]">Step 1</span>
-                    <span className="font-serif text-sm font-semibold text-ink">
-                      Link account or PGN
-                    </span>
-                    <span className="text-graphite font-serif text-xs">
-                      Add your username or upload raw game text.
-                    </span>
-                  </div>
-                  <div className="flex flex-col gap-1 p-3 rounded-md bg-paper/60 border border-line">
-                    <span className="eyebrow !text-[0.6rem]">Step 2</span>
-                    <span className="font-serif text-sm font-semibold text-ink">
-                      Run engine scan
-                    </span>
-                    <span className="text-graphite font-serif text-xs">
-                      Client Stockfish finds critical turning points.
-                    </span>
-                  </div>
-                  <div className="flex flex-col gap-1 p-3 rounded-md bg-paper/60 border border-line">
-                    <span className="eyebrow !text-[0.6rem]">Step 3</span>
-                    <span className="font-serif text-sm font-semibold text-ink">
-                      Train your mistakes
-                    </span>
-                    <span className="text-graphite font-serif text-xs">
-                      Mistakes schedule into daily training blocks.
-                    </span>
-                  </div>
                 </div>
 
                 {selectedPlatform !== "manual" && (

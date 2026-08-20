@@ -557,6 +557,17 @@ export function Today() {
   const currentHistory = historyEntries.find(
     (entry) => entry.id === program.id,
   );
+  const guestMinutesLogged =
+    guestState?.activityEvents.reduce(
+      (sum, e) =>
+        sum +
+        (typeof e.payload?.minutes === "number"
+          ? e.payload.minutes
+          : typeof e.payload?.estMinutes === "number"
+            ? e.payload.estMinutes
+            : 0),
+      0,
+    ) ?? 0;
 
   return (
     <div className="flex min-w-0 flex-col gap-5">
@@ -590,14 +601,26 @@ export function Today() {
       <TodayHeader
         program={program}
         due={due}
-        actualMinutes={currentHistory?.actualMinutes ?? null}
-        actualMeasuredEvents={currentHistory?.measuredEventCount ?? 0}
-        actualEventCount={currentHistory?.eventCount ?? 0}
-        actualMeasurementTruncated={
-          currentHistory?.measurementTruncated ?? false
+        actualMinutes={
+          isGuest
+            ? guestMinutesLogged
+            : (currentHistory?.actualMinutes ?? null)
         }
-        historyLoading={history.isLoading}
-        historyError={history.isError}
+        actualMeasuredEvents={
+          isGuest
+            ? (guestState?.activityEvents.length ?? 0)
+            : (currentHistory?.measuredEventCount ?? 0)
+        }
+        actualEventCount={
+          isGuest
+            ? (guestState?.activityEvents.length ?? 0)
+            : (currentHistory?.eventCount ?? 0)
+        }
+        actualMeasurementTruncated={
+          isGuest ? false : (currentHistory?.measurementTruncated ?? false)
+        }
+        historyLoading={isGuest ? false : history.isLoading}
+        historyError={isGuest ? false : history.isError}
         timeInput={timeInput}
         setTimeInput={setTimeInput}
         timeBusy={timeBusy}

@@ -1131,9 +1131,6 @@ export function TrainItem({ programItemId }: TrainItemProps) {
                 </p>
               )}
               <div className="flex flex-col gap-2 rounded-md border border-line bg-paper/50 p-4">
-                <span className="text-ink font-mono text-xs font-semibold uppercase tracking-wider">
-                  Move feedback
-                </span>
                 <span
                   className={cn(
                     "font-serif text-lg font-semibold",

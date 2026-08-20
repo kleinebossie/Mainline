@@ -26,7 +26,7 @@ const GRADE_KEY = [
     glyph: "?!",
     grade: "C",
     label: "Theory / best-guess",
-    note: "Logical inference, placeholder, or calibration estimate. Treated as a starting point, never a proven prescription.",
+    note: "Logical inference, provisional rule, or calibration estimate. Treated as a starting point, never a proven prescription.",
   },
   {
     glyph: "??",
@@ -226,7 +226,7 @@ export default function AboutPage() {
           </div>
           <p className="text-graphite max-w-2xl font-serif text-base leading-relaxed">
             Every recommendation, methodology value, and claim on this page
-            carries a grade: a placeholder can never pose as established fact.
+            carries a grade: an unverified assumption can never pose as established fact.
           </p>
 
           {/* Four grades */}
@@ -332,7 +332,7 @@ export default function AboutPage() {
             <p className="text-ink mt-3 font-serif text-base leading-relaxed">
               {isResearchRelease
                 ? "This active research release encodes the approved methodology values and copy, while retaining every documented best guess and deliberate stub as evidence-labeled data."
-                : "The active methodology is still the pre-release placeholder configuration. It keeps the full loop runnable while research release work is pending."}
+                : "The active methodology is still the pre-release initial configuration. It keeps the full loop runnable while research release work is pending."}
             </p>
             <p className="text-graphite mt-3 font-serif text-sm leading-relaxed">
               The release is reproducible: historic programs keep the version

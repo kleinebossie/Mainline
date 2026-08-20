@@ -69,20 +69,17 @@ function ProtocolStep({
   children: ReactNode;
 }) {
   return (
-    <li className="grid grid-cols-[2rem_minmax(0,1fr)] gap-3">
-      <span
-        aria-hidden
-        className="border-evergreen/35 bg-paper/80 text-evergreen flex h-8 w-8 items-center justify-center rounded-sm border font-mono text-xs tabular-nums"
-      >
-        {step}
-      </span>
-      <div className="min-w-0 border-b border-line/70 pb-4 last:border-b-0">
+    <li className="flex flex-col gap-1 border-b border-line/70 pb-4 last:border-b-0">
+      <div className="flex items-baseline gap-2">
+        <span className="eyebrow !text-[0.62rem] text-evergreen shrink-0">
+          Step {step}
+        </span>
         <h3 className="text-ink font-serif text-base font-semibold leading-snug">
           {title}
         </h3>
-        <div className="text-graphite mt-1 font-serif text-sm leading-relaxed">
-          {children}
-        </div>
+      </div>
+      <div className="text-graphite font-serif text-sm leading-relaxed mt-0.5">
+        {children}
       </div>
     </li>
   );
@@ -318,9 +315,6 @@ export function Library() {
                 </p>
                 <div className="flex flex-wrap items-center gap-3">
                   <GradeMark grade={b.evidenceGrade} tier={b.evidenceTier} />
-                  <span className="text-graphite font-mono text-[0.7rem]">
-                    Source · {b.citationSource ?? b.citationKey}
-                  </span>
                 </div>
               </CardContent>
             </Card>

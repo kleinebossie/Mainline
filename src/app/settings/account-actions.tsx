@@ -384,9 +384,6 @@ export function AccountActions() {
             </div>
           )}
         </div>
-        <p className="text-graphite text-xs">
-          This product copy is a roadmap implementation, not legal advice.
-        </p>
       </div>
       {notice && <StatusMessage tone="success">{notice}</StatusMessage>}
       {error && <StatusMessage tone="error">{error}</StatusMessage>}

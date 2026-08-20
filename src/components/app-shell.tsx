@@ -44,7 +44,6 @@ function TopBar() {
           className="order-3 -mx-4 flex w-[calc(100%+2rem)] border-t border-line/70 sm:order-none sm:mx-0 sm:w-auto sm:justify-self-center sm:border-t-0"
         >
           {NAV.map((item) => {
-            const Icon = item.icon;
             const active =
               pathname === item.href || pathname.startsWith(item.href + "/");
             return (
@@ -53,22 +52,13 @@ function TopBar() {
                 href={item.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "relative flex min-h-11 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-sm px-2 py-2 font-mono text-[0.68rem] tracking-tight transition-colors focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset sm:min-h-0 sm:flex-none sm:px-2.5 sm:py-1.5 sm:text-[0.8rem]",
+                  "relative flex min-h-11 flex-1 items-center justify-center whitespace-nowrap rounded-sm px-2.5 py-2 font-mono text-[0.72rem] tracking-tight transition-colors focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset sm:min-h-0 sm:flex-none sm:px-3 sm:py-1.5 sm:text-[0.8rem]",
                   item.secondary && "hidden sm:inline-flex",
                   active
                     ? "text-ink font-medium"
                     : "text-graphite hover:bg-ink/[0.04] hover:text-ink",
                 )}
               >
-                <span className="flex h-4 w-4 shrink-0 items-center justify-center">
-                  <Icon
-                    className={cn(
-                      "h-3.5 w-3.5 stroke-[1.75]",
-                      active ? "text-ink" : "text-graphite/70",
-                    )}
-                    aria-hidden="true"
-                  />
-                </span>
                 <span className="leading-none">{item.label}</span>
                 {active && (
                   <span className="bg-evergreen absolute inset-x-3 bottom-0 h-0.5 rounded-full sm:inset-x-2 sm:-bottom-px" />

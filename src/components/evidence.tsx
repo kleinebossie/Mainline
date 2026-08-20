@@ -3,7 +3,7 @@
 // The evidence-annotation system: Mainline's signature and the visible form of the
 // honesty brand (VISION §2). Evidence grades borrow chess's annotation grammar
 // (!! ! ?! ??) and confidence reads like an engine's depth meter. Color encodes evidence
-// and nothing else, so trust is legible at a glance and a placeholder can never pose as
+// and nothing else, so trust is legible at a glance and an unverified claim can never pose as
 // established fact (L3).
 
 import { useEffect, useId, useRef, useState } from "react";
@@ -323,8 +323,8 @@ export function ConfidenceBar({
   );
 }
 
-/** PlaceholderTag: Flags a stub / best-guess value so it never reads as fact (L3). */
-export function PlaceholderTag({ className }: { className?: string }) {
+/** ProvisionalTag: Flags a stub / best-guess value so it never reads as established fact (L3). */
+export function ProvisionalTag({ className }: { className?: string }) {
   return (
     <span
       className={cn(
@@ -332,7 +332,10 @@ export function PlaceholderTag({ className }: { className?: string }) {
         className,
       )}
     >
-      <Flag className="h-3 w-3 stroke-[2]" aria-hidden="true" /> Placeholder
+      <Flag className="h-3 w-3 stroke-[2]" aria-hidden="true" /> Provisional
     </span>
   );
 }
+
+/** @deprecated Use ProvisionalTag */
+export const PlaceholderTag = ProvisionalTag;
