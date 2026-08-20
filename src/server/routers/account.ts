@@ -20,6 +20,25 @@ import {
 } from "@/server/guest-migration";
 
 export const accountRouter = router({
+  me: publicProcedure.query(async ({ ctx }) => {
+    const user = ctx.session?.user;
+    if (!user?.id) {
+      return {
+        authenticated: false as const,
+        user: null,
+      };
+    }
+    return {
+      authenticated: true as const,
+      user: {
+        id: user.id,
+        name: user.name ?? null,
+        email: user.email ?? null,
+        image: user.image ?? null,
+      },
+    };
+  }),
+
   exportData: publicProcedure.query(async ({ ctx }) => {
     const userId = ctx.session?.user?.id;
     if (!userId) {

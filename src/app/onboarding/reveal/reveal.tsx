@@ -76,6 +76,11 @@ export function Reveal() {
   const primaryFormat =
     guestSession?.constraints?.formatPrefs?.formats?.[0] ?? null;
 
+  const me = trpc.account.me.useQuery(undefined, {
+    staleTime: 60_000,
+    retry: false,
+  });
+
   const state = trpc.assessment.state.useQuery(
     { guestResponses, guestConnections, primaryFormat },
     { retry: false, placeholderData: (prev) => prev },
@@ -105,7 +110,7 @@ export function Reveal() {
       guestSession.calibrationResponses.length >= 3),
   );
 
-  const isGuest = !constraints.data;
+  const isGuest = me.data ? !me.data.authenticated : true;
 
   const completed = Boolean(state.data?.completed || isGuestCalibrated);
 

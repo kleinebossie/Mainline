@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   errorMessage,
@@ -65,5 +65,21 @@ describe("error presentation", () => {
     expect(shouldRetryRequest(0, { data: { code: "UNAUTHORIZED" } })).toBe(
       false,
     );
+  });
+
+  it("suppresses sign-in expired error when in guest session", () => {
+    const error = { data: { code: "UNAUTHORIZED" } };
+    expect(presentError(error, fallback).heading).toBe("Sign-in expired");
+
+    const mockStorage = {
+      getItem: (key: string) =>
+        key === "mainline_guest_session_data"
+          ? JSON.stringify({ baseline: { username: "guest" } })
+          : null,
+    };
+    vi.stubGlobal("localStorage", mockStorage);
+
+    expect(presentError(error, fallback).heading).toBe("Session unavailable");
+    vi.unstubAllGlobals();
   });
 });

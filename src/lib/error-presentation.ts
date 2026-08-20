@@ -1,3 +1,5 @@
+import { isGuestSession } from "@/lib/guest-session";
+
 export type ErrorPresentation = {
   heading: string;
   message: string;
@@ -63,6 +65,12 @@ export function presentError(
   const serverMessage = publicServerMessage(error, code);
 
   if (code === "UNAUTHORIZED") {
+    if (isGuestSession()) {
+      return {
+        heading: fallback.heading,
+        message: fallback.message,
+      };
+    }
     return {
       heading: "Sign-in expired",
       message: "Sign in again, then return here to continue.",

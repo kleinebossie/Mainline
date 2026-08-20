@@ -58,7 +58,8 @@ import { getGuestTrainItemData } from "@/lib/guest-solvables";
 // program.getTrainItem. Both render on the same board + redo flow; only the solve-state
 // construction (a puzzle has an opponent setup move, a drill does not) and the logged event
 // type differ by `kind`.
-type TrainData = inferRouterOutputs<AppRouter>["program"]["getTrainItem"];
+type TrainData =
+  NonNullable<inferRouterOutputs<AppRouter>["program"]["getTrainItem"]>;
 type Solvable = TrainData["solvables"][number];
 
 interface TrainItemProps {
@@ -759,6 +760,11 @@ export function TrainItem({ programItemId }: TrainItemProps) {
 
   if (data.solvables.length === 0) {
     const closeEmptyBlock = () => {
+      if (isGuest) {
+        updateGuestProgramItemStatus(programItemId, "skipped");
+        router.push("/today");
+        return;
+      }
       emptyCloseRequestIdRef.current ??= crypto.randomUUID();
       emptyCloseMutation.mutate({
         requestId: emptyCloseRequestIdRef.current,

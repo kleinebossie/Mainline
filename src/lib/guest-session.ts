@@ -107,47 +107,46 @@ export const DEFAULT_GUEST_BASELINE: GuestBaseline = {
   uncertainty: 350,
 };
 
+function createDefaultGuestSession(): GuestSessionData {
+  return {
+    baseline: null,
+    constraints: null,
+    program: null,
+    activityEvents: [],
+    updatedAt: new Date().toISOString(),
+  };
+}
+
 /** Read the guest session from browser storage. */
 export function getGuestSession(): GuestSessionData {
-  if (typeof window === "undefined") {
-    return {
-      baseline: null,
-      constraints: null,
-      program: null,
-      activityEvents: [],
-      updatedAt: new Date().toISOString(),
-    };
-  }
-
   try {
-    const raw = localStorage.getItem(GUEST_STORAGE_KEY);
-    if (!raw) {
-      return {
-        baseline: null,
-        constraints: null,
-        program: null,
-        activityEvents: [],
-        updatedAt: new Date().toISOString(),
-      };
-    }
+    const storage =
+      typeof window !== "undefined" && window.localStorage
+        ? window.localStorage
+        : typeof localStorage !== "undefined"
+          ? localStorage
+          : null;
+    if (!storage) return createDefaultGuestSession();
+    const raw = storage.getItem(GUEST_STORAGE_KEY);
+    if (!raw) return createDefaultGuestSession();
     return JSON.parse(raw) as GuestSessionData;
   } catch {
-    return {
-      baseline: null,
-      constraints: null,
-      program: null,
-      activityEvents: [],
-      updatedAt: new Date().toISOString(),
-    };
+    return createDefaultGuestSession();
   }
 }
 
 /** Save updated guest session data to browser storage. */
 export function saveGuestSession(data: GuestSessionData): void {
-  if (typeof window === "undefined") return;
   try {
+    const storage =
+      typeof window !== "undefined" && window.localStorage
+        ? window.localStorage
+        : typeof localStorage !== "undefined"
+          ? localStorage
+          : null;
+    if (!storage) return;
     data.updatedAt = new Date().toISOString();
-    localStorage.setItem(GUEST_STORAGE_KEY, JSON.stringify(data));
+    storage.setItem(GUEST_STORAGE_KEY, JSON.stringify(data));
   } catch {
     // Ignore storage quota errors.
   }
@@ -155,14 +154,39 @@ export function saveGuestSession(data: GuestSessionData): void {
 
 /** Check whether the user has stored guest data. */
 export function hasGuestData(): boolean {
-  if (typeof window === "undefined") return false;
-  const session = getGuestSession();
-  return Boolean(
-    session.baseline ||
-    session.constraints ||
-    session.program ||
-    (session.connections && session.connections.length > 0),
-  );
+  try {
+    const session = getGuestSession();
+    return Boolean(
+      session.baseline ||
+      session.constraints ||
+      session.program ||
+      (session.connections && session.connections.length > 0),
+    );
+  } catch {
+    return false;
+  }
+}
+
+/** Check whether the current browser environment is in guest mode. */
+export function isGuestSession(): boolean {
+  try {
+    const cookie =
+      typeof document !== "undefined"
+        ? document.cookie
+        : typeof window !== "undefined" && window.document
+          ? window.document.cookie
+          : "";
+    const hasGuestCookie = cookie.includes("mainline_guest=1");
+    if (hasGuestCookie) return true;
+    const hasAuthCookie =
+      cookie.includes("authjs.session-token") ||
+      cookie.includes("next-auth.session-token") ||
+      cookie.includes("__Secure-authjs.session-token");
+    if (hasAuthCookie) return false;
+    return hasGuestData();
+  } catch {
+    return false;
+  }
 }
 
 /** Save or update guest tactical baseline. */

@@ -21,7 +21,6 @@ import { ManualGameImport } from "@/app/analysis/manual-game-import";
 import { DEFAULT_ANALYSIS_DEPTH } from "@/analysis/worker-config";
 import {
   getGuestSession,
-  hasGuestData,
   type GuestConnection,
 } from "@/lib/guest-session";
 
@@ -56,12 +55,17 @@ interface AnalysisGameItem {
 
 export function AnalysisDashboard() {
   const utils = trpc.useUtils();
-  const [isGuest, setIsGuest] = useState(false);
+  const me = trpc.account.me.useQuery(undefined, {
+    staleTime: 60_000,
+    retry: false,
+  });
   const [guestConnections, setGuestConnections] = useState<GuestConnection[]>(
     [],
   );
   const [guestGames, setGuestGames] = useState<AnalysisGameItem[]>([]);
   const [isGuestSyncing, setIsGuestSyncing] = useState(false);
+
+  const isGuest = me.data ? !me.data.authenticated : true;
 
   const suggestionsQuery = trpc.analysis.suggestions.useQuery();
   const libraryQuery = trpc.analysis.library.useQuery();
@@ -140,7 +144,6 @@ export function AnalysisDashboard() {
     const session = getGuestSession();
     const conns = session.connections ?? [];
     setGuestConnections(conns);
-    setIsGuest(hasGuestData());
     let initialGuestGames: AnalysisGameItem[] = [];
     try {
       const cached = localStorage.getItem("mainline_guest_games");
@@ -158,7 +161,7 @@ export function AnalysisDashboard() {
   const handleSync = async () => {
     if (guestConnections.length > 0) {
       await syncGuestAccounts(guestConnections);
-    } else {
+    } else if (!isGuest) {
       sync.mutate();
     }
   };

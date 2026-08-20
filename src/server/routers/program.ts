@@ -79,13 +79,18 @@ function toPuzzleSolvable(p: LichessPuzzle): Solvable {
 }
 
 export const programRouter = router({
-  getToday: protectedProcedure.query(({ ctx }) =>
-    getTodayProgram(ctx.prisma, ctx.userId),
-  ),
+  getToday: publicProcedure.query(async ({ ctx }) => {
+    const userId = ctx.session?.user?.id;
+    if (!userId) return null;
+    return getTodayProgram(ctx.prisma, userId);
+  }),
 
-  getTrainItem: protectedProcedure
+  getTrainItem: publicProcedure
     .input(z.object({ programItemId: z.string() }))
     .query(async ({ ctx, input }) => {
+      const userId = ctx.session?.user?.id;
+      if (!userId) return null;
+
       const item = await ctx.prisma.programItem.findUnique({
         where: { id: input.programItemId },
         include: {
@@ -101,7 +106,7 @@ export const programRouter = router({
         },
       });
 
-      if (!item || item.program.userId !== ctx.userId) {
+      if (!item || item.program.userId !== userId) {
         throw expectedError.notFound(
           "This training block is no longer in your plan. Return to Today for the latest session.",
         );
@@ -121,7 +126,7 @@ export const programRouter = router({
         const refs = (params.dueItemRefs as string[] | null) ?? [];
         const items = await findPracticeItemsByIds(
           ctx.prisma,
-          ctx.userId,
+          userId,
           refs,
         );
         const order = new Map(refs.map((id, idx) => [id, idx]));
@@ -145,7 +150,7 @@ export const programRouter = router({
         const refs = (params.dueItemRefs as string[] | null) ?? [];
         const items = await findPracticeItemsByIds(
           ctx.prisma,
-          ctx.userId,
+          userId,
           refs,
         );
         const order = new Map(refs.map((id, idx) => [id, idx]));
@@ -189,7 +194,7 @@ export const programRouter = router({
         );
       } else {
         const pastEvents = await ctx.prisma.activityEvent.findMany({
-          where: { userId: ctx.userId, type: "puzzle_attempt" },
+          where: { userId, type: "puzzle_attempt" },
           select: { payload: true },
         });
         const excludePuzzleIds = pastEvents
@@ -216,7 +221,7 @@ export const programRouter = router({
       const todayItem = toTodayItem(item, cfg, dimLabels, ledger, null);
 
       const user = await ctx.prisma.user.findUnique({
-        where: { id: ctx.userId },
+        where: { id: userId },
         select: { primaryPlatform: true },
       });
       const primaryPlatform = user?.primaryPlatform ?? null;
@@ -248,11 +253,11 @@ export const programRouter = router({
 
       const tacticalRating = await resolveTacticalRating(
         ctx.prisma,
-        ctx.userId,
+        userId,
         cfg,
       );
       const band = bandForRating(tacticalRating, cfg);
-      const targetFocus = await getTargetFocus(ctx.prisma, ctx.userId);
+      const targetFocus = await getTargetFocus(ctx.prisma, userId);
       const affordances = interfaceAffordancesFor({ band, targetFocus }, cfg);
       const restrictionRationale = affordances.restricted
         ? rationaleFor(affordances.restrictionRationaleKey, cfg)
@@ -452,15 +457,19 @@ export const programRouter = router({
     }),
 
   // Null means the client should fall back to chess-engine judging.
-  probeTablebase: protectedProcedure
+  probeTablebase: publicProcedure
     .input(z.object({ fen: z.string().min(1) }))
-    .query(({ ctx, input }) =>
-      lookupTablebase(ctx.prisma, ctx.userId, input.fen),
-    ),
+    .query(({ ctx, input }) => {
+      const userId = ctx.session?.user?.id;
+      return lookupTablebase(ctx.prisma, userId ?? "guest", input.fen);
+    }),
 
-  bandExpectation: protectedProcedure.query(async ({ ctx }) => {
+  bandExpectation: publicProcedure.query(async ({ ctx }) => {
     const cfg = loadMethodology();
-    const rating = await resolveTacticalRating(ctx.prisma, ctx.userId, cfg);
+    const userId = ctx.session?.user?.id;
+    const rating = userId
+      ? await resolveTacticalRating(ctx.prisma, userId, cfg)
+      : 1450;
     const bandId = bandForRating(rating, cfg);
     return expectationForBand(bandId, cfg);
   }),

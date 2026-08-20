@@ -38,11 +38,17 @@ import { cn } from "@/lib/utils";
 // outcome is auto-logged (`drill_done`) and FSRS-rescheduled by the existing loop, unchanged.
 
 type AnalysisEngine = import("@/analysis").StockfishAnalysisEngine;
-type TrainData = inferRouterOutputs<AppRouter>["program"]["getTrainItem"];
+type TrainData =
+  NonNullable<inferRouterOutputs<AppRouter>["program"]["getTrainItem"]>;
 
 // Infra constants (client responsiveness / runaway-game guard), NOT methodology (L1).
 const ENGINE_DEPTH = 12;
 const MOVE_CAP_PLIES = 80;
+
+import {
+  recordGuestActivityEvent,
+  updateGuestProgramItemStatus,
+} from "@/lib/guest-session";
 
 export function EndgameDrillSession({
   programItemId,
@@ -54,6 +60,12 @@ export function EndgameDrillSession({
   const router = useRouter();
   const utils = trpc.useUtils();
   const positions = data.solvables.filter((s) => s.kind === "endgame");
+
+  const me = trpc.account.me.useQuery(undefined, {
+    staleTime: 60_000,
+    retry: false,
+  });
+  const isGuest = me.data ? !me.data.authenticated : true;
 
   const logMutation = trpc.tracker.logOutcome.useMutation({
     onSuccess: () => {
@@ -81,10 +93,12 @@ export function EndgameDrillSession({
       setIdx(positions.length);
     },
   });
-  const persistenceState = resultPersistenceState(
-    logMutation.isPending || completionMutation.isPending,
-    logMutation.error ?? completionMutation.error,
-  );
+  const persistenceState = isGuest
+    ? "ready"
+    : resultPersistenceState(
+        logMutation.isPending || completionMutation.isPending,
+        logMutation.error ?? completionMutation.error,
+      );
   const resultBlocked = resultAdvanceBlocked(persistenceState);
 
   const [fen, setFen] = useState<string>(current?.fen ?? "");
@@ -159,18 +173,31 @@ export function EndgameDrillSession({
       const score = scoreEndgame(outcome, objective);
       setResult({ correct: score.correct, outcome, reason: score.reason });
       setStatus("done");
-      outcomeRequestIdRef.current ??= crypto.randomUUID();
-      logMutation.mutate({
-        requestId: outcomeRequestIdRef.current,
-        programItemId,
-        completeProgramItem: false,
-        type: "drill_done",
-        correct: score.correct,
-        solveTimeMs: Math.max(0, systemClock.now() - startRef.current),
-        practiceItemId: current.id,
-      });
+
+      if (isGuest) {
+        recordGuestActivityEvent({
+          type: "drill_done",
+          programItemId,
+          payload: {
+            correct: score.correct,
+            solveTimeMs: Math.max(0, systemClock.now() - startRef.current),
+            practiceItemId: current.id,
+          },
+        });
+      } else {
+        outcomeRequestIdRef.current ??= crypto.randomUUID();
+        logMutation.mutate({
+          requestId: outcomeRequestIdRef.current,
+          programItemId,
+          completeProgramItem: false,
+          type: "drill_done",
+          correct: score.correct,
+          solveTimeMs: Math.max(0, systemClock.now() - startRef.current),
+          practiceItemId: current.id,
+        });
+      }
     },
-    [current, playerColor, objective, logMutation, programItemId],
+    [current, playerColor, objective, isGuest, logMutation, programItemId],
   );
 
   const handleMove = useCallback(
@@ -225,6 +252,11 @@ export function EndgameDrillSession({
   const goNext = () => {
     if (idx + 1 < positions.length) {
       setIdx(idx + 1);
+      return;
+    }
+    if (isGuest) {
+      updateGuestProgramItemStatus(programItemId, "done");
+      setIdx(positions.length);
       return;
     }
     completionRequestIdRef.current ??= crypto.randomUUID();

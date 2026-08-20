@@ -16,6 +16,7 @@ import {
   type ManualGameImportInput,
 } from "@/lib/manual-import";
 import { errorMessage } from "@/lib/error-presentation";
+import { isGuestSession } from "@/lib/guest-session";
 import { trpc } from "@/lib/trpc/react";
 import type { AppRouter } from "@/server/routers/_app";
 
@@ -124,6 +125,40 @@ export function ManualGameImport({ onImported }: { onImported: () => void }) {
   const create = trpc.import.manualCreate.useMutation({
     onSuccess: async (result) => {
       if (result.ok && (result.imported > 0 || result.duplicates > 0)) {
+        if (typeof window !== "undefined" && isGuestSession()) {
+          try {
+            const cached = localStorage.getItem("mainline_guest_games");
+            const existingGames = cached ? JSON.parse(cached) : [];
+            const newGames = validEntries.map((entry) => {
+              const draft = drafts[entry.index];
+              return {
+                id: `guest_manual_${Date.now()}_${entry.index}`,
+                pgn: pgnText,
+                color: draft?.color ?? "w",
+                platform: "manual",
+                playedAt: draft?.playedDate ?? new Date().toISOString(),
+                result: draft?.result ?? null,
+                timeControl: draft?.timeControl ?? null,
+                opening: entry.metadata.opening ?? null,
+                opponent:
+                  draft?.color === "w"
+                    ? entry.metadata.black ?? "Opponent"
+                    : entry.metadata.white ?? "Opponent",
+                you:
+                  draft?.color === "w"
+                    ? entry.metadata.white ?? "You"
+                    : entry.metadata.black ?? "You",
+                analyzed: false,
+              };
+            });
+            localStorage.setItem(
+              "mainline_guest_games",
+              JSON.stringify([...newGames, ...existingGames]),
+            );
+          } catch {
+            // Ignore storage errors.
+          }
+        }
         await Promise.all([
           utils.analysis.library.invalidate(),
           utils.analysis.pending.invalidate(),

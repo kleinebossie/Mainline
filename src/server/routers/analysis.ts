@@ -24,7 +24,7 @@ import {
 import { resolvePlayingRating } from "@/server/profile";
 import { gameIdentity } from "@/server/game-identity";
 import { systemClock } from "@/lib/clock";
-import { publicProcedure, protectedProcedure, router } from "@/server/trpc";
+import { publicProcedure, router } from "@/server/trpc";
 import { lichessAdapter } from "@/integrations/lichess/adapter";
 import { chessComAdapter } from "@/integrations/chesscom/adapter";
 import type { ImportedGameInput } from "@/integrations/adapter";
@@ -146,7 +146,7 @@ export const analysisRouter = router({
       }));
     }),
 
-  save: protectedProcedure
+  save: publicProcedure
     .input(
       z.object({
         gameId: z.string().min(1).max(191),
@@ -156,7 +156,11 @@ export const analysisRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const owns = await userOwnsGame(ctx.prisma, ctx.userId, input.gameId);
+      const userId = ctx.session?.user?.id;
+      if (!userId) {
+        return { saved: true as const };
+      }
+      const owns = await userOwnsGame(ctx.prisma, userId, input.gameId);
       if (!owns) {
         throw expectedError.notFound("Game does not exist.");
       }
@@ -331,20 +335,27 @@ export const analysisRouter = router({
       }
     }),
 
-  setPrimaryPlatform: protectedProcedure
+  setPrimaryPlatform: publicProcedure
     .input(z.object({ platform: z.enum(PLATFORMS) }))
     .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session?.user?.id;
+      if (!userId) {
+        return { primaryPlatform: input.platform };
+      }
       await ctx.prisma.user.update({
-        where: { id: ctx.userId },
+        where: { id: userId },
         data: { primaryPlatform: input.platform },
       });
       return { primaryPlatform: input.platform };
     }),
 
-  session: protectedProcedure
+  session: publicProcedure
     .input(z.object({ gameId: z.string() }))
     .query(async ({ ctx, input }) => {
-      const owns = await userOwnsGame(ctx.prisma, ctx.userId, input.gameId);
+      const userId = ctx.session?.user?.id;
+      if (!userId) return null;
+
+      const owns = await userOwnsGame(ctx.prisma, userId, input.gameId);
       if (!owns) {
         throw expectedError.notFound(
           "That game is no longer in your library. Return to Analysis and choose another game.",
@@ -365,7 +376,7 @@ export const analysisRouter = router({
       // Use playing strength for the analysis band, never puzzle rating.
       const playingRating = await resolvePlayingRating(
         ctx.prisma,
-        ctx.userId,
+        userId,
         cfg,
         game.userRatingAtGame,
       );
@@ -373,7 +384,7 @@ export const analysisRouter = router({
 
       const recentAllGames = await ctx.prisma.importedGame.findMany({
         where: {
-          userId: ctx.userId,
+          userId,
           source: { not: "manual" },
           playedAt: { not: null },
         },
@@ -432,13 +443,21 @@ export const analysisRouter = router({
       };
     }),
 
-  saveSession: protectedProcedure
+  saveSession: publicProcedure
     .input(analysisSessionInputSchema)
     .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session?.user?.id;
+      if (!userId) {
+        return {
+          success: true as const,
+          scheduledCount: 0,
+        };
+      }
+
       const existingEvent = await ctx.prisma.activityEvent.findUnique({
         where: {
           userId_requestId: {
-            userId: ctx.userId,
+            userId,
             requestId: input.requestId,
           },
         },
@@ -448,7 +467,7 @@ export const analysisRouter = router({
         return repeatedSessionResult(existingEvent.payload, input.gameId);
       }
 
-      const owns = await userOwnsGame(ctx.prisma, ctx.userId, input.gameId);
+      const owns = await userOwnsGame(ctx.prisma, userId, input.gameId);
       if (!owns) {
         throw expectedError.notFound(
           "That game is no longer in your library. Return to Analysis and choose another game.",
@@ -491,7 +510,7 @@ export const analysisRouter = router({
         return await ctx.prisma.$transaction(async (tx) => {
           await tx.activityEvent.create({
             data: {
-              userId: ctx.userId,
+              userId,
               requestId: input.requestId,
               type: GAME_ANALYSED_ACTIVITY_EVENT_TYPE,
               occurredAt: new Date(now),
@@ -510,12 +529,12 @@ export const analysisRouter = router({
             const item = await tx.practiceItem.upsert({
               where: {
                 userId_sourceRef: {
-                  userId: ctx.userId,
+                  userId,
                   sourceRef,
                 },
               },
               create: {
-                userId: ctx.userId,
+                userId,
                 kind: "blunder_drill",
                 fen: blunder.fen,
                 solutionLine: [outcome.bestUci!],
@@ -532,7 +551,7 @@ export const analysisRouter = router({
             const existing = await tx.scheduleState.findUnique({
               where: {
                 userId_itemType_itemRef: {
-                  userId: ctx.userId,
+                  userId,
                   itemType,
                   itemRef,
                 },
@@ -547,13 +566,13 @@ export const analysisRouter = router({
             await tx.scheduleState.upsert({
               where: {
                 userId_itemType_itemRef: {
-                  userId: ctx.userId,
+                  userId,
                   itemType,
                   itemRef,
                 },
               },
               create: {
-                userId: ctx.userId,
+                userId,
                 itemType,
                 itemRef,
                 fsrsState: newState as unknown as Prisma.InputJsonValue,
@@ -582,7 +601,7 @@ export const analysisRouter = router({
           const repeated = await ctx.prisma.activityEvent.findUnique({
             where: {
               userId_requestId: {
-                userId: ctx.userId,
+                userId,
                 requestId: input.requestId,
               },
             },
@@ -597,11 +616,14 @@ export const analysisRouter = router({
     }),
 
   // Ownership-scoped source for client-side analysis.
-  gameSource: protectedProcedure
+  gameSource: publicProcedure
     .input(z.object({ gameId: z.string() }))
     .query(async ({ ctx, input }) => {
+      const userId = ctx.session?.user?.id;
+      if (!userId) return null;
+
       const game = await ctx.prisma.importedGame.findFirst({
-        where: { id: input.gameId, userId: ctx.userId },
+        where: { id: input.gameId, userId },
         select: { id: true, pgn: true, color: true },
       });
       if (!game) {

@@ -45,22 +45,43 @@ export function Today() {
     null,
   );
   const [mounted, setMounted] = useState(false);
-  const [guestState, setGuestState] = useState<GuestSessionData | null>(() =>
-    typeof window !== "undefined" ? getGuestSession() : null,
-  );
+  const [guestState, setGuestState] = useState<GuestSessionData | null>(() => {
+    if (typeof window === "undefined") return null;
+    const session = getGuestSession();
+    if (!session.program) {
+      generateGuestProgram();
+      return getGuestSession();
+    }
+    return session;
+  });
+
+  const me = trpc.account.me.useQuery(undefined, {
+    staleTime: 60_000,
+    retry: false,
+  });
 
   useEffect(() => {
     setMounted(true);
-    setGuestState(getGuestSession());
+    const session = getGuestSession();
+    if (!session.program) {
+      generateGuestProgram();
+      setGuestState(getGuestSession());
+    } else {
+      setGuestState(session);
+    }
   }, []);
 
+  const isGuest = me.data ? !me.data.authenticated : true;
+
   const today = trpc.program.getToday.useQuery(undefined, {
+    enabled: Boolean(me.data?.authenticated),
     retry: false,
   });
   const history = trpc.program.history.useInfiniteQuery(
     { limit: 8 },
     {
       getNextPageParam: (page) => page.nextCursor ?? undefined,
+      enabled: Boolean(me.data?.authenticated),
       retry: false,
     },
   );
@@ -183,11 +204,6 @@ export function Today() {
     retry: false,
   });
   const ownedBooks = library.data?.books.filter((b) => b.owned) ?? [];
-
-  const isGuest = Boolean(
-    (!today.isLoading && (today.error != null || !today.data) && (guestState?.program != null || guestState?.constraints != null)) ||
-    (!mounted && (guestState?.program != null || guestState?.constraints != null))
-  );
 
   const supportingError = isGuest
     ? null
