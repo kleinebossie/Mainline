@@ -153,6 +153,7 @@ Every merge to `main` deploys to production immediately. Follow these gatekeeper
 ## 7. Hard Development Rules
 
 - **ASD-STE100 Prose**: Use ASD-STE100 Simplified Technical English for all prose, explanations, docs, and comments. Keep sentences short (≤20–25 words), active voice, and one idea per sentence. State conditions before actions.
+- **Unslop Skill**: Always use the /unslop skill. No exceptions.
 - **No Em-Dashes**: Never use em dashes (unicode U+2014) in code, comments, copy, or markdown documents. Use colons, commas, semicolons, or separate sentences.
 - **No Unauthorized Merges**: Never push directly to `main` or merge a PR without explicit user permission.
 - **No Runtime AI**: Never introduce LLM or AI inference into runtime application logic.

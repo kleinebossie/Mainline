@@ -107,4 +107,63 @@ describe("analysis session security boundaries", () => {
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
     expect(transaction).not.toHaveBeenCalled();
   });
+
+  it("persists durationSeconds into the activity event payload", async () => {
+    const createEvent = vi.fn().mockResolvedValue({ id: "ev-1" });
+    const context = authorizedContext({
+      activityEvent: { findUnique: vi.fn().mockResolvedValue(null) },
+      importedGame: {
+        findFirst: vi.fn().mockResolvedValue({ id: "game-1" }),
+        findUnique: vi.fn().mockResolvedValue({
+          id: "game-1",
+          analysis: {
+            rawFeatures: {
+              acplOverall: 0,
+              acplByPhase: { opening: 0, middlegame: 0, endgame: 0 },
+              phaseBoundaries: {
+                openingEndsPly: 20,
+                endgameStartsPly: 60,
+              },
+              moveEvals: [{ ply: 4, cpBefore: 20, cpAfter: -50, cpLoss: 70 }],
+              blunders: [],
+              errorCounts: {
+                inaccuracies: 1,
+                mistakes: 0,
+                blunders: 0,
+                grossBlunders: 0,
+              },
+            },
+          },
+        }),
+      },
+      $transaction: vi.fn(async (cb) =>
+        cb({
+          activityEvent: { create: createEvent },
+        }),
+      ),
+    });
+
+    await expect(
+      analysisRouter.createCaller(context).saveSession({
+        gameId: "game-1",
+        requestId: REQUEST_ID,
+        reflectionNote: "Reflected well.",
+        outcomes: [{ ply: 4, correct: true }],
+        durationSeconds: 450,
+      }),
+    ).resolves.toEqual({ success: true, scheduledCount: 0 });
+
+    expect(createEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          userId: "user-1",
+          payload: expect.objectContaining({
+            gameId: "game-1",
+            reflectionNote: "Reflected well.",
+            durationSeconds: 450,
+          }),
+        }),
+      }),
+    );
+  });
 });

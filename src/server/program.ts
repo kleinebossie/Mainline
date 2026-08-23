@@ -33,6 +33,7 @@ import {
   refreshForecast,
   type ForecastSource,
 } from "@/server/program-forecast";
+import { reconcileAnalysisItems } from "@/server/analysis-reconcile";
 
 type Db = Pick<
   PrismaClient,
@@ -43,6 +44,7 @@ type Db = Pick<
   | "constraintSet"
   | "resourceRef"
   | "program"
+  | "programItem"
   | "practiceItem"
   | "scheduleState"
   | "activityEvent"
@@ -51,6 +53,8 @@ type Db = Pick<
   | "skillStateSnapshot"
   | "trainingPreferenceState"
   | "weeklyFocus"
+  | "rewardEvent"
+  | "notificationPref"
   | "$transaction"
 >;
 
@@ -622,10 +626,26 @@ export async function getTodayProgram(
   db: Db,
   userId: string,
   methodologyLoader: (version?: string) => MethodologyConfig = loadMethodology,
+  clock: Clock = systemClock,
 ): Promise<TodayProgram | null> {
   const program = await getActiveProgram(db, userId);
   if (!program) return null;
   const cfg = methodologyLoader(program.methodologyVersion);
+
+  const scheduledDate =
+    program.items[0]?.date ?? startOfDayUTC(program.createdAt.getTime());
+
+  await reconcileAnalysisItems(
+    db,
+    userId,
+    {
+      id: program.id,
+      scheduledDate,
+      items: program.items,
+    },
+    cfg,
+    clock,
+  );
 
   const user = await db.user.findUnique({
     where: { id: userId },
@@ -643,8 +663,7 @@ export async function getTodayProgram(
   return {
     id: program.id,
     createdAt: program.createdAt,
-    scheduledDate:
-      program.items[0]?.date ?? startOfDayUTC(program.createdAt.getTime()),
+    scheduledDate,
     methodologyVersion: program.methodologyVersion,
     honesty: {
       expectations: expectationsRationale.value,
