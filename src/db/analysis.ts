@@ -1,16 +1,20 @@
 // Typed query helpers for client-computed game analysis (BUILD.md §4: db/ holds query
-// helpers, NO business logic). M5 persists RAW features only (L1) — these helpers just
-// read/write the AnalysisResult rows; nothing here interprets them.
+// helpers, NO business logic). M5 persists RAW features only (L1): these helpers just
+// read/write the AnalysisResult rows. Nothing here interprets them.
 
 import type { ImportedGame, Prisma, PrismaClient } from "@prisma/client";
 
 import type { RawGameFeatures } from "@/lib/raw-features";
+import { GAME_ANALYSED_ACTIVITY_EVENT_TYPE } from "@/lib/tracker";
 
-type Db = Pick<PrismaClient, "importedGame" | "analysisResult">;
+export type Db = Pick<
+  PrismaClient,
+  "importedGame" | "analysisResult" | "activityEvent"
+>;
 
 /** Most-recent games for this user that have no AnalysisResult yet (the work queue). */
 export async function gamesNeedingAnalysis(
-  db: Db,
+  db: Pick<PrismaClient, "importedGame">,
   userId: string,
   limit: number,
   platform?: string,
@@ -30,10 +34,9 @@ export async function gamesNeedingAnalysis(
 }
 
 /** The `windowSize` most recent games for this user (+ platform), filtered down to the ones
- *  with no AnalysisResult yet — i.e. "analyse my last N games" rather than "analyse my next N
- *  unanalysed games". */
+ *  with no AnalysisResult yet. */
 export async function gamesNeedingAnalysisInWindow(
-  db: Db,
+  db: Pick<PrismaClient, "importedGame">,
   userId: string,
   windowSize: number,
   platform?: string,
@@ -50,9 +53,59 @@ export async function gamesNeedingAnalysisInWindow(
   return recent.filter((g) => g.analysis === null);
 }
 
+/** All game IDs that this user has reviewed through a `game_analysed` activity event. */
+export async function reviewedGameIds(
+  db: Pick<PrismaClient, "activityEvent">,
+  userId: string,
+): Promise<Set<string>> {
+  const events = await db.activityEvent.findMany({
+    where: {
+      userId,
+      type: GAME_ANALYSED_ACTIVITY_EVENT_TYPE,
+    },
+    select: { payload: true },
+  });
+  const ids = new Set<string>();
+  for (const event of events) {
+    if (
+      event.payload &&
+      typeof event.payload === "object" &&
+      "gameId" in event.payload
+    ) {
+      const gameId = (event.payload as { gameId?: unknown }).gameId;
+      if (typeof gameId === "string" && gameId.length > 0) {
+        ids.add(gameId);
+      }
+    }
+  }
+  return ids;
+}
+
+/** Games that have an AnalysisResult (scanned) but no review event yet. */
+export async function unreviewedGames(
+  db: Pick<PrismaClient, "importedGame" | "activityEvent">,
+  userId: string,
+  limit: number,
+): Promise<ImportedGame[]> {
+  const reviewed = await reviewedGameIds(db, userId);
+  const reviewedList = Array.from(reviewed);
+  return db.importedGame.findMany({
+    where: {
+      userId,
+      analysis: { isNot: null },
+      ...(reviewedList.length > 0 ? { id: { notIn: reviewedList } } : {}),
+    },
+    orderBy: [
+      { playedAt: { sort: "desc", nulls: "last" } },
+      { importedAt: "desc" },
+    ],
+    take: Math.max(0, limit),
+  });
+}
+
 /** True iff the game exists and belongs to this user (authorisation for `save`). */
 export async function userOwnsGame(
-  db: Db,
+  db: Pick<PrismaClient, "importedGame">,
   userId: string,
   gameId: string,
 ): Promise<boolean> {
@@ -63,9 +116,9 @@ export async function userOwnsGame(
   return row !== null;
 }
 
-/** Upsert one game's raw analysis (idempotent on gameId — re-running analysis overwrites). */
+/** Upsert one game's raw analysis (idempotent on gameId: re-running analysis overwrites). */
 export async function saveAnalysisResult(
-  db: Db,
+  db: Pick<PrismaClient, "analysisResult">,
   input: {
     gameId: string;
     engineVersion: string;
@@ -93,7 +146,7 @@ export async function saveAnalysisResult(
 
 /** Count of analysed vs total games for this user (dashboard progress). */
 export async function analysisCounts(
-  db: Db,
+  db: Pick<PrismaClient, "analysisResult" | "importedGame">,
   userId: string,
 ): Promise<{ analysed: number; total: number }> {
   const [analysed, total] = await Promise.all([

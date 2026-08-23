@@ -4,10 +4,13 @@ import {
   analysisCounts,
   gamesNeedingAnalysis,
   gamesNeedingAnalysisInWindow,
+  reviewedGameIds,
   saveAnalysisResult,
+  unreviewedGames,
   userOwnsGame,
 } from "@/db/analysis";
 import type { RawGameFeatures } from "@/lib/raw-features";
+import { GAME_ANALYSED_ACTIVITY_EVENT_TYPE } from "@/lib/tracker";
 
 const mockRawFeatures: RawGameFeatures = {
   acplOverall: 25.5,
@@ -69,6 +72,83 @@ describe("db/analysis query helpers", () => {
       include: { analysis: { select: { id: true } } },
     });
     expect(result.map((g) => g.id)).toEqual(["g2", "g3"]);
+  });
+
+  it("extracts reviewed game IDs from activity events", async () => {
+    const findMany = vi.fn().mockResolvedValue([
+      { payload: { gameId: "g1", scheduledCount: 1 } },
+      { payload: { gameId: "g2" } },
+      { payload: {} },
+      { payload: null },
+    ]);
+    const db = { activityEvent: { findMany } };
+
+    const result = await reviewedGameIds(db as never, "u1");
+
+    expect(findMany).toHaveBeenCalledWith({
+      where: {
+        userId: "u1",
+        type: GAME_ANALYSED_ACTIVITY_EVENT_TYPE,
+      },
+      select: { payload: true },
+    });
+    expect(result).toEqual(new Set(["g1", "g2"]));
+  });
+
+  it("queries unreviewed scanned games excluding already reviewed ones", async () => {
+    const eventsFindMany = vi.fn().mockResolvedValue([
+      { payload: { gameId: "g1" } },
+    ]);
+    const gamesFindMany = vi.fn().mockResolvedValue([
+      { id: "g2", userId: "u1", playedAt: new Date(1_700_000_000_000) },
+    ]);
+    const db = {
+      activityEvent: { findMany: eventsFindMany },
+      importedGame: { findMany: gamesFindMany },
+    };
+
+    const result = await unreviewedGames(db as never, "u1", 10);
+
+    expect(gamesFindMany).toHaveBeenCalledWith({
+      where: {
+        userId: "u1",
+        analysis: { isNot: null },
+        id: { notIn: ["g1"] },
+      },
+      orderBy: [
+        { playedAt: { sort: "desc", nulls: "last" } },
+        { importedAt: "desc" },
+      ],
+      take: 10,
+    });
+    expect(result).toHaveLength(1);
+    expect(result[0]?.id).toBe("g2");
+  });
+
+  it("queries unreviewed scanned games when no reviews exist", async () => {
+    const eventsFindMany = vi.fn().mockResolvedValue([]);
+    const gamesFindMany = vi.fn().mockResolvedValue([
+      { id: "g1", userId: "u1", playedAt: new Date(1_700_000_000_000) },
+    ]);
+    const db = {
+      activityEvent: { findMany: eventsFindMany },
+      importedGame: { findMany: gamesFindMany },
+    };
+
+    const result = await unreviewedGames(db as never, "u1", 5);
+
+    expect(gamesFindMany).toHaveBeenCalledWith({
+      where: {
+        userId: "u1",
+        analysis: { isNot: null },
+      },
+      orderBy: [
+        { playedAt: { sort: "desc", nulls: "last" } },
+        { importedAt: "desc" },
+      ],
+      take: 5,
+    });
+    expect(result).toHaveLength(1);
   });
 
   it("checks game ownership correctly", async () => {

@@ -48,8 +48,6 @@ import {
   getGuestSession,
   updateGuestProgramItemStatus,
   recordGuestActivityEvent,
-  hasSeenAnalysisIntro,
-  markSeenAnalysisIntro,
 } from "@/lib/guest-session";
 
 import { getGuestTrainItemData } from "@/lib/guest-solvables";
@@ -94,10 +92,6 @@ export function TrainItem({ programItemId }: TrainItemProps) {
     { programItemId },
     { retry: false },
   );
-
-  const connectionsQuery = trpc.connections.list.useQuery(undefined, {
-    retry: false,
-  });
 
   const guestTrainData = useMemo(() => {
     return guestItem ? getGuestTrainItemData(guestItem) : null;
@@ -627,123 +621,48 @@ export function TrainItem({ programItemId }: TrainItemProps) {
     data.item.label?.toLowerCase().includes("game review");
 
   if (isAnalysisActivity) {
-    const session = getGuestSession();
-    const hasLinkedAccount = isGuest
-      ? (session.connections && session.connections.length > 0) ||
-        Boolean(session.baseline?.username)
-      : (connectionsQuery.data && connectionsQuery.data.length > 0) || false;
-
-    if (hasLinkedAccount) {
-      if (hasSeenAnalysisIntro()) {
-        router.replace("/analysis");
-        return (
-          <StatusMessage tone="loading">Opening game analysis…</StatusMessage>
-        );
+    const handleManualLog = () => {
+      if (isGuest) {
+        updateGuestProgramItemStatus(programItemId, "done");
+        recordGuestActivityEvent({
+          type: "drill_done",
+          programItemId,
+          payload: { reason: "manual_game_analysis_completed" },
+        });
+        router.push("/today");
+        return;
       }
 
-      return (
-        <div className="settle mx-auto flex w-full max-w-2xl flex-col gap-5 py-6">
-          <Card className="overflow-hidden p-6 sm:p-8 bg-card shadow-sheet">
-            <div className="flex flex-col gap-4">
-              <p className="eyebrow text-evergreen">Game Analysis</p>
-              <h1 className="font-serif text-2xl sm:text-3xl font-semibold leading-tight text-ink">
-                Review your real games with Stockfish.
-              </h1>
-              <p className="font-serif text-sm leading-relaxed text-graphite">
-                Your chess account is connected. Open Analysis to sync your
-                games, identify critical blunders, and turn them into personal
-                spaced-repetition drills.
-              </p>
-              <div className="mt-4 flex flex-wrap items-center gap-3">
-                <Link
-                  href="/analysis"
-                  className={buttonVariants({ variant: "default" })}
-                  onClick={() => {
-                    markSeenAnalysisIntro();
-                  }}
-                >
-                  Open Analysis →
-                </Link>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    markSeenAnalysisIntro();
-                    if (isGuest) {
-                      updateGuestProgramItemStatus(programItemId, "done");
-                      recordGuestActivityEvent({
-                        type: "drill_done",
-                        programItemId,
-                        payload: { reason: "game_analysis_completed" },
-                      });
-                    } else if (!completionRequestIdRef.current) {
-                      completionRequestIdRef.current = crypto.randomUUID();
-                      completeProgramItem({
-                        requestId: completionRequestIdRef.current,
-                        programItemId,
-                      });
-                    }
-                    router.push("/today");
-                  }}
-                >
-                  Mark block as done
-                </Button>
-                <Link
-                  href="/today"
-                  className={buttonVariants({ variant: "ghost" })}
-                >
-                  Back to Today
-                </Link>
-              </div>
-            </div>
-          </Card>
-        </div>
-      );
-    }
+      completionRequestIdRef.current ??= crypto.randomUUID();
+      completeProgramItem({
+        requestId: completionRequestIdRef.current,
+        programItemId,
+      });
+      router.push("/today");
+    };
 
     return (
       <div className="settle mx-auto flex w-full max-w-2xl flex-col gap-5 py-6">
-        <Card className="overflow-hidden border-dashed p-6 sm:p-8 bg-card shadow-sheet">
+        <Card className="overflow-hidden p-6 sm:p-8 bg-card shadow-sheet">
           <div className="flex flex-col gap-4">
-            <p className="eyebrow text-evergreen">Account Connection Needed</p>
+            <p className="eyebrow text-evergreen">Game Analysis</p>
             <h1 className="font-serif text-2xl sm:text-3xl font-semibold leading-tight text-ink">
-              Connect a chess account to analyze your games.
+              Reviewed a game on your own? Log it.
             </h1>
             <p className="font-serif text-sm leading-relaxed text-graphite">
-              Mainline analyzes games directly from your linked Lichess or
-              Chess.com account. Connect your account to discover your tactical
-              blindspots and repair your mistakes.
+              If you analyzed your game outside this guided session, log it here
+              to complete this analysis block.
             </p>
             <div className="mt-4 flex flex-wrap items-center gap-3">
-              <Link
-                href="/connections"
-                className={buttonVariants({ variant: "default" })}
-              >
-                Connect chess account →
-              </Link>
               <Button
                 type="button"
-                variant="outline"
-                onClick={() => {
-                  if (isGuest) {
-                    updateGuestProgramItemStatus(programItemId, "skipped");
-                    recordGuestActivityEvent({
-                      type: "skip",
-                      programItemId,
-                      payload: { reason: "requires_connected_account" },
-                    });
-                  } else {
-                    emptyCloseRequestIdRef.current ??= crypto.randomUUID();
-                    emptyCloseMutation.mutate({
-                      requestId: emptyCloseRequestIdRef.current,
-                      programItemId,
-                      type: "skip",
-                    });
-                  }
-                  router.push("/today");
-                }}
+                variant="default"
+                disabled={completionMutation.isPending}
+                onClick={handleManualLog}
               >
-                Skip block
+                {completionMutation.isPending
+                  ? "Saving…"
+                  : "Mark block as done"}
               </Button>
               <Link
                 href="/today"

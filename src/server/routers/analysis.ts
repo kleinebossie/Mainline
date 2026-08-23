@@ -10,7 +10,10 @@ import {
   userOwnsGame,
 } from "@/db/analysis";
 import { selectPuzzles } from "@/db/puzzles";
-import { rawGameFeaturesSchema } from "@/lib/raw-features";
+import {
+  MAX_ANALYSIS_DURATION_SECONDS,
+  rawGameFeaturesSchema,
+} from "@/lib/raw-features";
 import { fsrsStateSchema } from "@/lib/tracker";
 import {
   loadMethodology,
@@ -83,6 +86,12 @@ export const analysisSessionInputSchema = z
     requestId: z.string().uuid(),
     reflectionNote: z.string().max(MAX_REFLECTION_NOTE_LENGTH),
     outcomes: analysisOutcomesSchema,
+    durationSeconds: z
+      .number()
+      .int()
+      .min(0)
+      .max(MAX_ANALYSIS_DURATION_SECONDS)
+      .optional(),
   })
   .strict();
 
@@ -519,6 +528,9 @@ export const analysisRouter = router({
                 reflectionNote: input.reflectionNote,
                 outcomes: input.outcomes,
                 scheduledCount: schedulableOutcomes.length,
+                ...(input.durationSeconds !== undefined
+                  ? { durationSeconds: input.durationSeconds }
+                  : {}),
               } as unknown as Prisma.InputJsonValue,
               source: "user",
             },

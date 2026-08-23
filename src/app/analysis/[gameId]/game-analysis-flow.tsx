@@ -26,6 +26,7 @@ import {
 import { SaveReviewStep } from "@/app/analysis/[gameId]/game-analysis-save";
 import { GameIdentity } from "@/app/analysis/[gameId]/game-analysis-shared";
 import { errorMessage } from "@/lib/error-presentation";
+import { MAX_ANALYSIS_DURATION_SECONDS } from "@/lib/raw-features";
 import { DEFAULT_ANALYSIS_DEPTH } from "@/analysis/worker-config";
 import {
   getGuestSession,
@@ -65,9 +66,11 @@ export function GameAnalysisFlow() {
   const router = useRouter();
   const gameId = params.gameId as string;
   const [mounted, setMounted] = useState(false);
+  const startTimeRef = useRef<number | null>(null);
 
   useEffect(() => {
     setMounted(true);
+    startTimeRef.current ??= Date.now();
   }, []);
 
   const guestGameItem = useMemo(() => {
@@ -405,6 +408,13 @@ export function GameAnalysisFlow() {
       correct: outcomes[idx] ?? false,
       bestUci: bestUcis[idx],
     }));
+    const durationSeconds = startTimeRef.current
+      ? Math.min(
+          MAX_ANALYSIS_DURATION_SECONDS,
+          Math.max(0, Math.round((Date.now() - startTimeRef.current) / 1000)),
+        )
+      : undefined;
+
     try {
       if (isGuest) {
         recordGuestActivityEvent({
@@ -414,6 +424,7 @@ export function GameAnalysisFlow() {
             reflectionNote,
             outcomes: saveOutcomes,
             scheduledCount: saveOutcomes.filter((o) => o.bestUci).length,
+            ...(durationSeconds !== undefined ? { durationSeconds } : {}),
           },
         });
         router.push("/analysis");
@@ -426,6 +437,7 @@ export function GameAnalysisFlow() {
         requestId: saveRequestIdRef.current,
         reflectionNote,
         outcomes: saveOutcomes,
+        durationSeconds,
       });
       router.push("/analysis");
     } catch (error) {

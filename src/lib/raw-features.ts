@@ -9,6 +9,7 @@ import { z } from "zod";
 export const MAX_ANALYSIS_PLIES = 600;
 export const MAX_ANALYSIS_BLUNDERS = 80;
 export const MAX_FEN_LENGTH = 128;
+export const MAX_ANALYSIS_DURATION_SECONDS = 7200;
 
 const finite = z.number().finite();
 const intPly = z.number().int();

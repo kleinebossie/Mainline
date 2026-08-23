@@ -6,5 +6,7 @@ test("/today opens for unauthenticated visitors in guest mode", async ({
 }) => {
   await page.goto("/today");
   await expect(page).toHaveURL(/\/today/);
-  await expect(page.getByRole("heading", { name: /Today/i })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Today", exact: true }),
+  ).toBeVisible();
 });
