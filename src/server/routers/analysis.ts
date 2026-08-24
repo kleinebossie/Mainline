@@ -229,6 +229,7 @@ export const analysisRouter = router({
           completedReviews: 0,
           targetCount: 0,
           games: [],
+          scanCandidate: null,
         };
       }
 
@@ -260,6 +261,7 @@ export const analysisRouter = router({
           completedReviews: 0,
           targetCount: 0,
           games: [],
+          scanCandidate: null,
         };
       }
 
@@ -336,6 +338,33 @@ export const analysisRouter = router({
       }
       const byId = new Map(candidates.map((g) => [g.id, g]));
 
+      // Tier 3 (locked decision 2): when nothing scanned is left and the budget still
+      // allows work, offer to scan the most recent unscanned game. The client runs the
+      // scan (Stockfish WASM), then reloads this queue.
+      let scanCandidate: {
+        id: string;
+        playedAt: string | null;
+        result: string | null;
+        opponent: string | null;
+      } | null = null;
+      const budgetRemains =
+        completedReviews < targetCount &&
+        !(completedReviews >= 1 && usedMinutes >= budgetMinutes);
+      if (ordered.length === 0 && budgetRemains) {
+        const [unscanned] = await gamesNeedingAnalysis(ctx.prisma, userId, 1);
+        if (unscanned) {
+          scanCandidate = {
+            id: unscanned.id,
+            playedAt: unscanned.playedAt
+              ? unscanned.playedAt.toISOString()
+              : null,
+            result: unscanned.result,
+            opponent:
+              gameIdentity(unscanned.pgn, unscanned.color).opponent ?? null,
+          };
+        }
+      }
+
       return {
         budgetMinutes,
         usedMinutes,
@@ -365,8 +394,27 @@ export const analysisRouter = router({
             },
           ];
         }),
+        scanCandidate,
       };
     }),
+
+  // Quiet nudge source (TEMP_ANALYSIS_QUEUE_PLAN §7 item 3): true while any unreviewed
+  // scanned game is younger than the fresh window. Derived on demand; no persistence.
+  freshness: publicProcedure.query(async ({ ctx }) => {
+    const userId = ctx.session?.user?.id;
+    if (!userId) return { hasFreshUnreviewed: false };
+    const cfg = loadMethodology();
+    const { freshWindowMs } = analysisReviewThresholds(cfg);
+    const games = await unreviewedGames(ctx.prisma, userId, 20);
+    const nowMs = systemClock.now();
+    return {
+      hasFreshUnreviewed: games.some((game) => {
+        if (!game.playedAt) return false;
+        const ageMs = nowMs - game.playedAt.getTime();
+        return ageMs >= 0 && ageMs < freshWindowMs;
+      }),
+    };
+  }),
 
   library: publicProcedure.query(async ({ ctx }) => {
     const userId = ctx.session?.user?.id;

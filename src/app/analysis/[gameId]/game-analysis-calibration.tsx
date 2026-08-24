@@ -4,10 +4,19 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 
+/**
+ * `mode` comes from the queue's prompt rung (TEMP_ANALYSIS_QUEUE_PLAN §6.4):
+ * - "timed": the protocol's calibration wait applies; the countdown, the completed
+ *   mark, and the skip row render only when a wait is actually configured.
+ * - "untimed": games older than the fresh window skip the pause entirely — no
+ *   countdown, no completed mark, no skip row, no pause rationale.
+ */
 export function CalibrationStep({
   prompt,
   reflectionNote,
   countdown,
+  initialCountdown = countdown,
+  mode = "timed",
   skipped,
   rationale,
   onReflectionChange,
@@ -17,13 +26,21 @@ export function CalibrationStep({
   prompt: string;
   reflectionNote: string;
   countdown: number;
+  /** The configured delay at session start (0 means no wait exists at all). */
+  initialCountdown?: number;
+  mode?: "timed" | "untimed";
   skipped: boolean;
   rationale: GameAnalysisRationale;
   onReflectionChange: (value: string) => void;
   onSkip: () => void;
   onContinue: () => void;
 }) {
-  const incomplete = countdown > 0 || reflectionNote.trim().length < 3;
+  const untimed = mode === "untimed" || initialCountdown <= 0;
+  const incomplete = untimed
+    ? reflectionNote.trim().length < 3
+    : countdown > 0 || reflectionNote.trim().length < 3;
+  const showsTimer = !untimed && countdown > 0;
+  const showsCompletedMark = !untimed && initialCountdown > 0 && countdown <= 0;
 
   return (
     <div className="mx-auto w-full max-w-2xl">
@@ -45,27 +62,31 @@ export function CalibrationStep({
           />
 
           <p id="reflection-help" className="text-graphite font-mono text-xs">
-            Write at least a few words, then continue when the timer ends.
+            {untimed
+              ? "Write at least a few words, then continue."
+              : "Write at least a few words, then continue when the timer ends."}
           </p>
 
           <div className="mt-2 flex items-center justify-between gap-4">
-            {countdown > 0 ? (
+            {showsTimer ? (
               <span className="text-graphite font-mono text-xs">
                 Review unlocks in {Math.floor(countdown / 60)}:
                 {String(countdown % 60).padStart(2, "0")}
               </span>
-            ) : (
+            ) : showsCompletedMark ? (
               <span className="text-evergreen font-mono text-xs font-semibold">
                 ✓ Calibration delay completed
               </span>
+            ) : (
+              <span aria-hidden="true" />
             )}
 
-            <Button disabled={!skipped && incomplete} onClick={onContinue}>
+            <Button disabled={incomplete} onClick={onContinue}>
               Start active reproduction
             </Button>
           </div>
 
-          {incomplete && !skipped && (
+          {!untimed && initialCountdown > 0 && incomplete && !skipped && (
             <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line/60 pt-3">
               <p className="text-grade-d font-serif text-xs">
                 Skipping this reflection isn&apos;t recommended. See the
@@ -76,15 +97,17 @@ export function CalibrationStep({
               </Button>
             </div>
           )}
-          {skipped && (
+          {!untimed && skipped && (
             <p className="text-graphite font-mono text-xs">
               Calibration skipped for this session.
             </p>
           )}
 
-          <div className="mt-4 border-t border-line/60 pt-4">
-            <MethodologyRationaleCard rationale={rationale} />
-          </div>
+          {!untimed && (
+            <div className="mt-4 border-t border-line/60 pt-4">
+              <MethodologyRationaleCard rationale={rationale} />
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

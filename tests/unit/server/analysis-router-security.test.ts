@@ -274,4 +274,77 @@ describe("guided review queue authorization (queueGames)", () => {
       }),
     );
   });
+
+  it("offers the most recent unscanned game when the scanned queue is empty", async () => {
+    const unscanned = {
+      id: "game-unscanned",
+      platform: "chesscom",
+      externalGameId: "xyz789",
+      pgn: '[White "Me"]\n[Black "Rival"]\n',
+      color: "w",
+      result: "loss",
+      playedAt: new Date(ITEM_DATE.getTime() - 2 * 3_600_000),
+    };
+    const context = queueContext({
+      programItem: {
+        findFirst: vi.fn().mockResolvedValue({
+          id: "item-4",
+          activityType: "analyse",
+          params: {},
+          date: ITEM_DATE,
+        }),
+      },
+      // One fake serves both helpers: unreviewedGames asks for scanned rows
+      // (analysis.isNot) while gamesNeedingAnalysis asks for unscanned ones.
+      importedGame: {
+        findMany: vi.fn(async ({
+          where,
+        }: {
+          where: { analysis?: { isNot?: unknown; is?: unknown } };
+        }) => {
+          const analysis = where.analysis;
+          if (analysis && "isNot" in analysis) return [];
+          if (analysis && "is" in analysis) return [unscanned];
+          throw new Error(
+            "Unexpected importedGame.findMany shape: " + JSON.stringify(where),
+          );
+        }),
+      },
+    });
+
+    const result = await analysisRouter
+      .createCaller(context)
+      .queueGames({ programItemId: "item-4" });
+
+    expect(result.games).toHaveLength(0);
+    expect(result.scanCandidate?.id).toBe("game-unscanned");
+    expect(result.scanCandidate?.opponent).toBe("Rival");
+  });
+
+  it("reports fresh unreviewed games only inside the configured window", async () => {
+    const hourAgo = new Date(Date.now() - 3_600_000);
+    const weekAgo = new Date(Date.now() - 10 * 86_400_000);
+    const makeContext = (playedAt: Date | null) =>
+      queueContext({
+        importedGame: {
+          findMany: vi.fn().mockResolvedValue([
+            {
+              id: "g1",
+              pgn: '[White "Me"]\n[Black "Rival"]\n',
+              playedAt,
+            },
+          ]),
+        },
+      });
+
+    await expect(
+      analysisRouter.createCaller(makeContext(hourAgo)).freshness(),
+    ).resolves.toEqual({ hasFreshUnreviewed: true });
+    await expect(
+      analysisRouter.createCaller(makeContext(weekAgo)).freshness(),
+    ).resolves.toEqual({ hasFreshUnreviewed: false });
+    await expect(
+      analysisRouter.createCaller(makeContext(null)).freshness(),
+    ).resolves.toEqual({ hasFreshUnreviewed: false });
+  });
 });

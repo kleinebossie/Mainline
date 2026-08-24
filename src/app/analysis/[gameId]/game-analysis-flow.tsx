@@ -508,6 +508,10 @@ export function GameAnalysisFlow() {
       : undefined;
 
     try {
+      const returnTarget =
+        returnToQueue && queueItemId
+          ? `/analysis/session?item=${encodeURIComponent(queueItemId)}&done=${encodeURIComponent(gameId)}`
+          : "/analysis";
       if (isGuest) {
         recordGuestActivityEvent({
           type: "game_analysed",
@@ -521,7 +525,7 @@ export function GameAnalysisFlow() {
         });
         savedRef.current = true;
         clearReviewProgress(gameId);
-        router.push("/analysis");
+        router.push(returnTarget);
         return;
       }
 
@@ -535,11 +539,7 @@ export function GameAnalysisFlow() {
       });
       savedRef.current = true;
       clearReviewProgress(gameId);
-      router.push(
-        returnToQueue && queueItemId
-          ? `/analysis/session?item=${encodeURIComponent(queueItemId)}&done=${encodeURIComponent(gameId)}`
-          : "/analysis",
-      );
+      router.push(returnTarget);
     } catch (error) {
       setSaveError(
         errorMessage(
@@ -618,6 +618,12 @@ export function GameAnalysisFlow() {
             prompt={queuePrompt ?? session.calibrationPrompt}
             reflectionNote={reflectionNote}
             countdown={countdown}
+            initialCountdown={Math.ceil(session.analysisUnlockDelay / 1000)}
+            // Games older than the fresh window skip the calibration pause entirely;
+            // fresh games keep the full timed protocol (feedback round 1, point 3).
+            mode={
+              rung === "recent" || rung === "old" ? "untimed" : "timed"
+            }
             skipped={skipCalibration}
             rationale={rationales.analysis_tilt_pause}
             onReflectionChange={setReflectionNote}
