@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
  * `mode` comes from the queue's prompt rung (TEMP_ANALYSIS_QUEUE_PLAN §6.4):
  * - "timed": the protocol's calibration wait applies; the countdown, the completed
  *   mark, and the skip row render only when a wait is actually configured.
- * - "untimed": games older than the fresh window skip the pause entirely — no
+ * - "untimed": games older than the fresh window skip the pause entirely: no
  *   countdown, no completed mark, no skip row, no pause rationale.
  */
 export function CalibrationStep({

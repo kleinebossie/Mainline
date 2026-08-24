@@ -2719,7 +2719,7 @@ export function gameAnalysisProtocol(
 }
 
 // ---------------------------------------------------------------------------
-// Guided analysis queue — prompt-ladder readers (TEMP_ANALYSIS_QUEUE_PLAN §6.1).
+// Guided analysis queue: prompt-ladder readers (TEMP_ANALYSIS_QUEUE_PLAN §6.1).
 // Pure (L2); every boundary and every prompt string comes from the config's
 // `analysisReview` section (L1), each leaf graded with a real citation (L3).
 // ---------------------------------------------------------------------------
