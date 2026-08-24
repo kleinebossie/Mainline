@@ -105,6 +105,35 @@ export function TrainItem({ programItemId }: TrainItemProps) {
   const isLoading = !mounted || (serverLoading && !guestTrainData);
   const error = isGuest ? null : serverError;
 
+  // Personalized analysis fallback (feedback round 2): the manual-log card must say
+  // WHY nothing can be analysed yet. Signed-in: the library summary; guests: the
+  // local connection + game cache state.
+  const librarySummary = trpc.analysis.summary.useQuery(undefined, {
+    retry: false,
+  });
+  const guestAnalysisContext = useMemo(() => {
+    if (!mounted || typeof window === "undefined") return null;
+    const session = getGuestSession();
+    const connections = session.connections ?? [];
+    let cachedGames = 0;
+    try {
+      const raw = localStorage.getItem("mainline_guest_games");
+      cachedGames = raw ? (JSON.parse(raw) as unknown[]).length : 0;
+    } catch {}
+    return {
+      hasConnection:
+        connections.length > 0 || Boolean(session.baseline?.username),
+      hasGames: cachedGames > 0,
+    };
+  }, [mounted]);
+
+  const hasAnyGames = isGuest
+    ? Boolean(guestAnalysisContext?.hasGames)
+    : (librarySummary.data?.total ?? 0) > 0;
+  const guestHasConnection = isGuest
+    ? Boolean(guestAnalysisContext?.hasConnection)
+    : false;
+
   const logMutation = trpc.tracker.logOutcome.useMutation({
     onSuccess: () => {
       void utils.program.getToday.invalidate();
@@ -640,6 +669,80 @@ export function TrainItem({ programItemId }: TrainItemProps) {
       });
       router.push("/today");
     };
+
+    // Nothing to analyse yet: explain both paths in, then keep the manual log
+    // as a quiet secondary action for games reviewed elsewhere.
+    if (!hasAnyGames) {
+      return (
+        <div className="settle mx-auto flex w-full max-w-2xl flex-col gap-5 py-6">
+          <Card className="overflow-hidden p-6 sm:p-8 bg-card shadow-sheet">
+            <div className="flex flex-col gap-4">
+              <p className="eyebrow text-evergreen">Game Analysis</p>
+              <h1 className="font-serif text-2xl sm:text-3xl font-semibold leading-tight text-ink">
+                Nothing to analyse yet
+              </h1>
+              <p className="font-serif text-sm leading-relaxed text-graphite">
+                Mainline can only review games it has imported. There are two
+                ways to bring them in:
+              </p>
+              <ol className="flex list-decimal flex-col gap-2 pl-5 font-serif text-sm leading-relaxed text-graphite">
+                <li>
+                  {isGuest && !guestHasConnection ? (
+                    <>
+                      Connect your Chess.com or Lichess account, and recent
+                      games import automatically.
+                    </>
+                  ) : (
+                    <>Sync your connected chess account from the Analysis page.</>
+                  )}
+                </li>
+                <li>Import a PGN file by hand from the Analysis page.</li>
+              </ol>
+              <div className="mt-2 flex flex-wrap items-center gap-3">
+                {isGuest && !guestHasConnection ? (
+                  <Link
+                    href="/connections"
+                    className={buttonVariants({ variant: "default" })}
+                  >
+                    Connect chess account →
+                  </Link>
+                ) : null}
+                <Link
+                  href="/analysis"
+                  className={
+                    isGuest && !guestHasConnection
+                      ? buttonVariants({ variant: "outline" })
+                      : buttonVariants({ variant: "default" })
+                  }
+                >
+                  Open Analysis
+                </Link>
+              </div>
+              <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-line pt-4">
+                <p className="text-graphite font-serif text-sm">
+                  Already reviewed a game somewhere else?
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={completionMutation.isPending}
+                  onClick={handleManualLog}
+                >
+                  {completionMutation.isPending ? "Saving…" : "Log it"}
+                </Button>
+                <Link
+                  href="/today"
+                  className={buttonVariants({ variant: "ghost", size: "sm" })}
+                >
+                  Back to Today
+                </Link>
+              </div>
+            </div>
+          </Card>
+        </div>
+      );
+    }
 
     return (
       <div className="settle mx-auto flex w-full max-w-2xl flex-col gap-5 py-6">

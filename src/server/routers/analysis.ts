@@ -7,8 +7,15 @@ import {
   gamesNeedingAnalysis,
   gamesNeedingAnalysisInWindow,
   saveAnalysisResult,
+  unreviewedGames,
   userOwnsGame,
 } from "@/db/analysis";
+import {
+  applySuccessBiasTiebreak,
+  calculateTargetCount,
+  calculateUsedReviewMinutes,
+  selectAnalysisQueue,
+} from "@/engine/interactive/analysis-queue";
 import { selectPuzzles } from "@/db/puzzles";
 import {
   MAX_ANALYSIS_DURATION_SECONDS,
@@ -16,9 +23,11 @@ import {
 } from "@/lib/raw-features";
 import { fsrsStateSchema } from "@/lib/tracker";
 import {
-  loadMethodology,
+  analysisPromptRungFor,
+  analysisReviewThresholds,
   bandForRating,
   gameAnalysisProtocol,
+  loadMethodology,
   rationaleFor,
   gameSelectionRatioFor,
   gradeFromOutcome,
@@ -26,6 +35,7 @@ import {
 } from "@/methodology";
 import { resolvePlayingRating } from "@/server/profile";
 import { gameIdentity } from "@/server/game-identity";
+import { platformGameUrl } from "@/integrations/catalog";
 import { systemClock } from "@/lib/clock";
 import { publicProcedure, router } from "@/server/trpc";
 import { lichessAdapter } from "@/integrations/lichess/adapter";
@@ -202,6 +212,217 @@ export const analysisRouter = router({
       ratio: gameSelectionRatioFor(band, cfg),
       ownGamesRationale: rationaleFor("analyse_own_games", cfg),
       successBiasRationale: rationaleFor("analysis_success_bias", cfg),
+    };
+  }),
+
+  // Guided review queue for one analysis program item (TEMP_ANALYSIS_QUEUE_PLAN §6.2).
+  // Returns the unreviewed scanned games in walk order plus the block's budget state;
+  // the caller decides the soft stop between games. Never interrupts an active review.
+  queueGames: publicProcedure
+    .input(z.object({ programItemId: z.string().min(1).max(191) }))
+    .query(async ({ ctx, input }) => {
+      const userId = ctx.session?.user?.id;
+      if (!userId) {
+        return {
+          budgetMinutes: 0,
+          usedMinutes: 0,
+          completedReviews: 0,
+          targetCount: 0,
+          hasGames: false,
+          games: [],
+          scanCandidate: null,
+        };
+      }
+
+      const item = await ctx.prisma.programItem.findFirst({
+        where: { id: input.programItemId, program: { userId } },
+        select: {
+          id: true,
+          activityType: true,
+          params: true,
+          date: true,
+        },
+      });
+      if (!item || item.activityType !== "analyse") {
+        throw expectedError.notFound(
+          "That analysis block does not exist. Return to Today for your current session.",
+        );
+      }
+
+      const cfg = loadMethodology();
+      const analyseActivity = cfg.activities.find(
+        (a) => a.id === "analyse_own_games",
+      );
+      const avgReviewMinutes = analyseActivity?.estMinutes.value;
+      if (!avgReviewMinutes || avgReviewMinutes <= 0) {
+        // Matches reconciliation's fail-safe: no average means no budget to run.
+        return {
+          budgetMinutes: 0,
+          usedMinutes: 0,
+          completedReviews: 0,
+          targetCount: 0,
+          hasGames: false,
+          games: [],
+          scanCandidate: null,
+        };
+      }
+
+      const rawParams =
+        item.params && typeof item.params === "object"
+          ? (item.params as Record<string, unknown>)
+          : {};
+      const budgetMinutes =
+        (typeof rawParams.budgetMinutes === "number" &&
+        rawParams.budgetMinutes > 0
+          ? rawParams.budgetMinutes
+          : null) ??
+        (typeof rawParams.estMinutes === "number" && rawParams.estMinutes > 0
+          ? rawParams.estMinutes
+          : null) ??
+        avgReviewMinutes;
+      const targetCount = calculateTargetCount(budgetMinutes, avgReviewMinutes);
+
+      const dayStart = new Date(
+        Date.UTC(
+          item.date.getUTCFullYear(),
+          item.date.getUTCMonth(),
+          item.date.getUTCDate(),
+        ),
+      );
+      const events = await ctx.prisma.activityEvent.findMany({
+        where: {
+          userId,
+          type: GAME_ANALYSED_ACTIVITY_EVENT_TYPE,
+          occurredAt: { gte: dayStart },
+        },
+        select: { payload: true },
+      });
+      const durations = events.map((event) => ({
+        durationSeconds:
+          event.payload &&
+          typeof event.payload === "object" &&
+          typeof (event.payload as { durationSeconds?: unknown })
+            .durationSeconds === "number"
+            ? (event.payload as { durationSeconds: number }).durationSeconds
+            : null,
+      }));
+      const completedReviews = events.length;
+      const usedMinutes = calculateUsedReviewMinutes(
+        durations,
+        avgReviewMinutes,
+      );
+
+      // Display-window cap on the returned queue; the review order below picks the head.
+      const QUEUE_GAME_CAP = 12;
+      const candidates = await unreviewedGames(
+        ctx.prisma,
+        userId,
+        QUEUE_GAME_CAP,
+      );
+
+      const nowMs = systemClock.now();
+      const thresholds = analysisReviewThresholds(cfg);
+      let ordered = selectAnalysisQueue(
+        candidates.map((g) => ({
+          id: g.id,
+          playedAtMs: g.playedAt ? g.playedAt.getTime() : null,
+          result: g.result,
+        })),
+        nowMs,
+        thresholds,
+      );
+      // Success-bias ratio breaks ties between same-day games (locked decision 2).
+      const playingRating = await resolvePlayingRating(ctx.prisma, userId, cfg);
+      const band = bandForRating(playingRating, cfg);
+      const ratio = gameSelectionRatioFor(band, cfg);
+      if (ratio) {
+        ordered = applySuccessBiasTiebreak(ordered, ratio.winPct / 100);
+      }
+      const byId = new Map(candidates.map((g) => [g.id, g]));
+
+      // Tier 3 (locked decision 2): when nothing scanned is left and the budget still
+      // allows work, offer to scan the most recent unscanned game. The client runs the
+      // scan (Stockfish WASM), then reloads this queue.
+      let scanCandidate: {
+        id: string;
+        playedAt: string | null;
+        result: string | null;
+        opponent: string | null;
+      } | null = null;
+      const budgetRemains =
+        completedReviews < targetCount &&
+        !(completedReviews >= 1 && usedMinutes >= budgetMinutes);
+      if (ordered.length === 0 && budgetRemains) {
+        const [unscanned] = await gamesNeedingAnalysis(ctx.prisma, userId, 1);
+        if (unscanned) {
+          scanCandidate = {
+            id: unscanned.id,
+            playedAt: unscanned.playedAt
+              ? unscanned.playedAt.toISOString()
+              : null,
+            result: unscanned.result,
+            opponent:
+              gameIdentity(unscanned.pgn, unscanned.color).opponent ?? null,
+          };
+        }
+      }
+
+      const [anyGame] = await Promise.all([
+        ctx.prisma.importedGame.findFirst({
+          where: { userId },
+          select: { id: true },
+        }),
+      ]);
+
+      return {
+        budgetMinutes,
+        usedMinutes,
+        completedReviews,
+        targetCount,
+        hasGames: anyGame != null,
+        games: ordered.flatMap((queued) => {
+          const game = byId.get(queued.id);
+          if (!game) return [];
+          const identity = gameIdentity(game.pgn, game.color);
+          return [
+            {
+              id: game.id,
+              playedAt: game.playedAt ? game.playedAt.toISOString() : null,
+              color: game.color,
+              result: game.result,
+              timeControl: game.timeControl,
+              opening: game.opening,
+              opponent: identity.opponent ?? null,
+              opponentRating: game.opponentRating,
+              platform: game.platform,
+              externalGameId: game.externalGameId,
+              promptRung: analysisPromptRungFor(
+                game.playedAt ? nowMs - game.playedAt.getTime() : null,
+                cfg,
+              ),
+              externalUrl: platformGameUrl(game.platform, game.externalGameId),
+            },
+          ];
+        }),
+        scanCandidate,
+      };
+    }),
+
+  // Quiet nudge source (TEMP_ANALYSIS_QUEUE_PLAN §7 item 3): true while any unreviewed
+  // scanned game is younger than the fresh window. Derived on demand; no persistence.
+  freshness: publicProcedure.query(async ({ ctx }) => {
+    const userId = ctx.session?.user?.id;
+    if (!userId) return { hasFreshUnreviewed: false };
+    const cfg = loadMethodology();
+    const { freshWindowMs } = analysisReviewThresholds(cfg);
+    const games = await unreviewedGames(ctx.prisma, userId, 20);
+    const nowMs = systemClock.now();
+    return {
+      hasFreshUnreviewed: games.some((game) => {
+        if (!game.playedAt) return false;
+        const ageMs = nowMs - game.playedAt.getTime();
+        return ageMs >= 0 && ageMs < freshWindowMs;
+      }),
     };
   }),
 
@@ -432,6 +653,7 @@ export const analysisRouter = router({
           result: game.result,
           color: game.color,
           platform: game.platform,
+          externalGameId: game.externalGameId,
           timeControl: game.timeControl,
           opening: game.opening,
           eco: game.eco,

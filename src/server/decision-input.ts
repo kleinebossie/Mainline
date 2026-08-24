@@ -18,6 +18,7 @@ import {
   type ProgramDecisionInput,
 } from "@/lib/decision-input";
 import { findSkillStates, findDueScheduleStates } from "@/db/tracker";
+import { unreviewedGames } from "@/db/analysis";
 import {
   findActivityRecency,
   findRecentSkillStateSnapshots,
@@ -48,6 +49,7 @@ type Db = Pick<
   | "skillStateSnapshot"
   | "trainingPreferenceState"
   | "weeklyFocus"
+  | "importedGame"
   | "$transaction"
 >;
 
@@ -71,6 +73,7 @@ export interface AssembledSnapshot {
       resourceFit: Readonly<Record<string, number>>;
     };
     recentSuccessByTrack: { pattern?: number; calculation?: number };
+    hasUnreviewedGames: boolean;
   };
 }
 
@@ -118,6 +121,11 @@ export async function assembleProgramDecisionInput(
   const activityRecency = await findActivityRecency(db, userId, assembledAt);
 
   const recentSuccessByTrack = await gatherRecentSuccessByTrack(db, userId);
+
+  // The guided analysis queue only makes sense with unreviewed scanned games; the
+  // generator receives this as plain input so it stays query-free (L2).
+  const hasUnreviewedGames =
+    (await unreviewedGames(db, userId, 1)).length > 0;
 
   const trainingPrefRow = await findTrainingPreferenceState(db, userId);
   const activityFit = { ...trainingPrefRow.preferences.enjoyment };
@@ -191,6 +199,7 @@ export async function assembleProgramDecisionInput(
         resourceFit,
       },
       recentSuccessByTrack,
+      hasUnreviewedGames,
     },
   };
 }

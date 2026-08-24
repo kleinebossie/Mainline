@@ -26,10 +26,10 @@ import {
   generateGuestProgram,
   updateGuestProgramItemStatus,
   recordGuestActivityEvent,
-  hasSeenAnalysisIntro,
   DEFAULT_GUEST_CONSTRAINTS,
   type GuestSessionData,
 } from "@/lib/guest-session";
+import { guestHasFreshUnreviewed } from "@/app/analysis/session/guest-queue";
 import { trackFunnelEvent } from "@/lib/telemetry";
 
 type ProgramNotice = {
@@ -283,8 +283,8 @@ export function Today() {
           const url =
             delivery === "external"
               ? externalUrl
-              : isAnalysis && hasLinked && hasSeenAnalysisIntro()
-                ? "/analysis"
+              : isAnalysis && hasLinked
+                ? `/analysis/session?item=${it.id}`
                 : `/train/${it.id}`;
 
           return {
@@ -317,6 +317,29 @@ export function Today() {
   const program = today.data ?? guestAdaptedProgram;
   const staleProgram =
     program != null && !isSameUtcDay(program.scheduledDate, new Date());
+
+  // Freshness nudge (TEMP_ANALYSIS_QUEUE_PLAN §7 item 3): one quiet line while any
+  // unreviewed game is younger than the fresh window. Derived on render; no persistence.
+  const hasPendingAnalyse =
+    program?.items.some(
+      (it) =>
+        it.activityType === "analyse" &&
+        it.status !== "done" &&
+        it.status !== "skipped",
+    ) ?? false;
+  const freshness = trpc.analysis.freshness.useQuery(undefined, {
+    enabled: !isGuest && hasPendingAnalyse,
+    refetchOnWindowFocus: false,
+    retry: false,
+  });
+  const [guestFresh, setGuestFresh] = useState(false);
+  useEffect(() => {
+    if (!mounted || !isGuest) return;
+    setGuestFresh(guestHasFreshUnreviewed(Date.now()));
+  }, [mounted, isGuest, guestState]);
+  const showsFreshNudge =
+    hasPendingAnalyse &&
+    (isGuest ? guestFresh : freshness.data?.hasFreshUnreviewed === true);
 
   useEffect(() => {
     if (
@@ -680,6 +703,11 @@ export function Today() {
       )}
 
       <div id="today-work" className="scroll-mt-24">
+        {showsFreshNudge && (
+          <p className="text-graphite mb-3 border-l-2 border-evergreen/40 pl-3 font-serif text-sm leading-relaxed">
+            Includes yesterday&apos;s game, still fresh enough to recall.
+          </p>
+        )}
         <TodayBlockList
           items={program.items}
           ownedBooks={ownedBooks}

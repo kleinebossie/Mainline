@@ -108,7 +108,7 @@ describe("toTodayItem — external activities stay external (M14)", () => {
     expect(t.bookResource?.id).toBe("polgar_5334");
   });
 
-  it("analysis opens the analysis workflow, not the board puzzle trainer", () => {
+  it("analysis opens the guided queue session, not the board puzzle trainer", () => {
     const t = toTodayItem(
       item({
         id: "a1",
@@ -121,7 +121,7 @@ describe("toTodayItem — external activities stay external (M14)", () => {
       "lichess",
     );
     expect(t.delivery).toBe("internal");
-    expect(t.url).toBe("/analysis");
+    expect(t.url).toBe("/analysis/session?item=a1");
     expect(t.url ?? "").not.toContain("/train");
   });
 

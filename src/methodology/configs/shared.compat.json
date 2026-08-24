@@ -8,5 +8,63 @@
       "flag": "best-guess",
       "note": "Seeds required FSRS memory for an unseen curated item as Good while leaving it immediately due. This compatibility default has no chess-specific validation."
     }
+  },
+  "analysisReview": {
+    "freshWindowHours": {
+      "value": 24,
+      "grade": "C",
+      "tier": 2,
+      "citationKey": "cepeda2006",
+      "flag": "best-guess",
+      "note": "Recall of plans and intent decays fast; within roughly a day a player can still retrieve them without hints. Extrapolated from spacing and recency findings; no chess-specific study sets this window."
+    },
+    "recentWindowDays": {
+      "value": 7,
+      "grade": "C",
+      "tier": 2,
+      "citationKey": "cepeda2006",
+      "flag": "best-guess",
+      "note": "Past about a week, free recall of a game is unreliable, so prompts shift from recall to recognition. Extrapolated boundary, not a measured chess result."
+    },
+    "prompts": {
+      "fresh": {
+        "prompt": {
+          "value": "Walk me through your thinking. What was your plan, and where did you feel you lost control of the game?",
+          "grade": "C",
+          "tier": 2,
+          "citationKey": "roediger2006",
+          "flag": "best-guess",
+          "note": "Retrieval-first prompting before the engine shows anything. The exact wording is untested product copy."
+        }
+      },
+      "recent": {
+        "prompt": {
+          "value": "What do you remember about how this game went? Name anything that comes back before we look at the moves.",
+          "grade": "C",
+          "tier": 2,
+          "citationKey": "roediger2006",
+          "flag": "best-guess",
+          "note": "Free recall attempt before recognition aids appear. The exact wording is untested product copy."
+        }
+      },
+      "old": {
+        "prompt": {
+          "value": "Glance over the game details, then tell me whatever you remember about this game, even if it is only the result.",
+          "grade": "C",
+          "tier": 2,
+          "citationKey": "roediger2006",
+          "flag": "best-guess",
+          "note": "Recognition from metadata after memory has likely faded. The exact wording is untested product copy."
+        }
+      }
+    },
+    "recallWhy": {
+      "value": "Writing down your recollection before the engine speaks is retrieval practice. Recalling first strengthens memory more than reading the moves first. This effect comes from general learning research; the gain for chess review has not been measured.",
+      "grade": "C",
+      "tier": 2,
+      "citationKey": "roediger2006",
+      "flag": "best-guess",
+      "note": "The why-this note shown beside the reflection prompts. Retrieval practice is well replicated in general; the chess-review framing is extrapolation."
+    }
   }
 }

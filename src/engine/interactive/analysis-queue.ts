@@ -95,3 +95,45 @@ export function selectAnalysisQueue(
 
   return [...fresh, ...older];
 }
+
+function utcDayKey(epochMs: number): string {
+  const d = new Date(epochMs);
+  return `${d.getUTCFullYear()}-${d.getUTCMonth()}-${d.getUTCDate()}`;
+}
+
+/**
+ * Break ties between same-day games with the success-bias target (the band's win vs
+ * loss review ratio): when the target favors wins, won games go first inside each
+ * UTC-day group; when it favors losses, non-wins go first. Everything else keeps its
+ * incoming order. Pure and deterministic (L2).
+ */
+export function applySuccessBiasTiebreak(
+  games: readonly QueueGame[],
+  winShareTarget: number,
+): QueueGame[] {
+  const preferWins = winShareTarget >= 0.5;
+  const out: QueueGame[] = [];
+  let i = 0;
+  while (i < games.length) {
+    const head = games[i]!;
+    const dayKey =
+      head.playedAtMs !== null ? utcDayKey(head.playedAtMs) : null;
+    const sameDay = (g: QueueGame): boolean => {
+      if (g.playedAtMs === null) return dayKey === null;
+      return dayKey !== null && utcDayKey(g.playedAtMs) === dayKey;
+    };
+    let j = i;
+    const group: QueueGame[] = [];
+    while (j < games.length && sameDay(games[j]!)) {
+      group.push(games[j]!);
+      j += 1;
+    }
+    const preferred = group.filter((g) =>
+      preferWins ? g.result === "win" : g.result !== "win",
+    );
+    const rest = group.filter((g) => !preferred.includes(g));
+    out.push(...preferred, ...rest);
+    i = j;
+  }
+  return out;
+}

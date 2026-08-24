@@ -167,3 +167,189 @@ describe("analysis session security boundaries", () => {
     );
   });
 });
+
+describe("guided review queue authorization (queueGames)", () => {
+  const ITEM_DATE = new Date("2026-08-24T00:00:00Z");
+
+  function queueContext(
+    prisma: Record<string, unknown>,
+  ): ReturnType<typeof authorizedContext> {
+    return authorizedContext({
+      chessProfileSnapshot: { findFirst: vi.fn().mockResolvedValue(null) },
+      assessment: { findUnique: vi.fn().mockResolvedValue(null) },
+      activityEvent: { findMany: vi.fn().mockResolvedValue([]) },
+      importedGame: {
+        findFirst: vi.fn().mockResolvedValue(null),
+        findMany: vi.fn().mockResolvedValue([]),
+      },
+      ...prisma,
+    });
+  }
+
+  it("rejects a queue request for an item outside the caller's programs", async () => {
+    const findFirst = vi.fn().mockResolvedValue(null);
+    const context = queueContext({
+      programItem: { findFirst },
+    });
+
+    await expect(
+      analysisRouter
+        .createCaller(context)
+        .queueGames({ programItemId: "item-1" }),
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    expect(findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "item-1", program: { userId: "user-1" } },
+      }),
+    );
+  });
+
+  it("rejects a queue request for a non-analyse item", async () => {
+    const context = queueContext({
+      programItem: {
+        findFirst: vi.fn().mockResolvedValue({
+          id: "item-2",
+          activityType: "puzzle_theme",
+          params: {},
+          date: ITEM_DATE,
+        }),
+      },
+    });
+
+    await expect(
+      analysisRouter
+        .createCaller(context)
+        .queueGames({ programItemId: "item-2" }),
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+  });
+
+  it("returns the ordered queue plus the block's budget state for its own item", async () => {
+    const findEvents = vi.fn().mockResolvedValue([]);
+    const context = queueContext({
+      activityEvent: { findMany: findEvents },
+      programItem: {
+        findFirst: vi.fn().mockResolvedValue({
+          id: "item-3",
+          activityType: "analyse",
+          params: { budgetMinutes: 30 },
+          date: ITEM_DATE,
+        }),
+      },
+      importedGame: {
+        findFirst: vi.fn().mockResolvedValue({ id: "game-new" }),
+        findMany: vi.fn().mockResolvedValue([
+          {
+            id: "game-new",
+            platform: "lichess",
+            externalGameId: "abc123",
+            pgn: '[White "Me"]\n[Black "Rival"]\n',
+            color: "w",
+            result: "win",
+            playedAt: new Date(ITEM_DATE.getTime() - 3_600_000),
+            timeControl: "rapid",
+            opening: "Italian",
+            opponentRating: 1502,
+          },
+        ]),
+      },
+    });
+
+    const result = await analysisRouter
+      .createCaller(context)
+      .queueGames({ programItemId: "item-3" });
+
+    expect(result.budgetMinutes).toBe(30);
+    expect(result.targetCount).toBe(2);
+    expect(result.completedReviews).toBe(0);
+    expect(result.games).toHaveLength(1);
+    const game = result.games[0]!;
+    expect(game.id).toBe("game-new");
+    expect(game.opponent).toBe("Rival");
+    expect(game.promptRung).toBe("fresh");
+    expect(game.externalUrl).toBe("https://lichess.org/abc123");
+    // Budget accounting counts only this caller's reviews recorded today or later.
+    expect(findEvents).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          userId: "user-1",
+          type: "game_analysed",
+          occurredAt: { gte: ITEM_DATE },
+        }),
+      }),
+    );
+  });
+
+  it("offers the most recent unscanned game when the scanned queue is empty", async () => {
+    const unscanned = {
+      id: "game-unscanned",
+      platform: "chesscom",
+      externalGameId: "xyz789",
+      pgn: '[White "Me"]\n[Black "Rival"]\n',
+      color: "w",
+      result: "loss",
+      playedAt: new Date(ITEM_DATE.getTime() - 2 * 3_600_000),
+    };
+    const context = queueContext({
+      programItem: {
+        findFirst: vi.fn().mockResolvedValue({
+          id: "item-4",
+          activityType: "analyse",
+          params: {},
+          date: ITEM_DATE,
+        }),
+      },
+      // One fake serves both helpers: unreviewedGames asks for scanned rows
+      // (analysis.isNot) while gamesNeedingAnalysis asks for unscanned ones.
+      importedGame: {
+        findFirst: vi.fn().mockResolvedValue(null),
+        findMany: vi.fn(async ({
+          where,
+        }: {
+          where: { analysis?: { isNot?: unknown; is?: unknown } };
+        }) => {
+          const analysis = where.analysis;
+          if (analysis && "isNot" in analysis) return [];
+          if (analysis && "is" in analysis) return [unscanned];
+          throw new Error(
+            "Unexpected importedGame.findMany shape: " + JSON.stringify(where),
+          );
+        }),
+      },
+    });
+
+    const result = await analysisRouter
+      .createCaller(context)
+      .queueGames({ programItemId: "item-4" });
+
+    expect(result.games).toHaveLength(0);
+    expect(result.scanCandidate?.id).toBe("game-unscanned");
+    expect(result.scanCandidate?.opponent).toBe("Rival");
+  });
+
+  it("reports fresh unreviewed games only inside the configured window", async () => {
+    const hourAgo = new Date(Date.now() - 3_600_000);
+    const weekAgo = new Date(Date.now() - 10 * 86_400_000);
+    const makeContext = (playedAt: Date | null) =>
+      queueContext({
+        importedGame: {
+          findMany: vi.fn().mockResolvedValue([
+            {
+              id: "g1",
+              pgn: '[White "Me"]\n[Black "Rival"]\n',
+              playedAt,
+            },
+          ]),
+        },
+      });
+
+    await expect(
+      analysisRouter.createCaller(makeContext(hourAgo)).freshness(),
+    ).resolves.toEqual({ hasFreshUnreviewed: true });
+    await expect(
+      analysisRouter.createCaller(makeContext(weekAgo)).freshness(),
+    ).resolves.toEqual({ hasFreshUnreviewed: false });
+    await expect(
+      analysisRouter.createCaller(makeContext(null)).freshness(),
+    ).resolves.toEqual({ hasFreshUnreviewed: false });
+  });
+});

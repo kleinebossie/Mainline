@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Chess } from "chess.js";
 import { trpc } from "@/lib/trpc/react";
 import { PageShell } from "@/components/app-shell";
@@ -33,13 +33,24 @@ import {
   recordGuestActivityEvent,
   DEFAULT_GUEST_BASELINE,
 } from "@/lib/guest-session";
+import {
+  clearReviewProgress,
+  loadReviewProgress,
+  saveReviewProgress,
+} from "@/lib/review-progress";
 
 import {
+  analysisPromptFor,
+  analysisPromptRungFor,
+  analysisRecallWhy,
   bandForRating,
   gameAnalysisProtocol,
   loadMethodology,
   rationaleFor,
+  type AnalysisPromptRung,
+  type RationaleEntry,
 } from "@/methodology";
+import { platformGameUrl } from "@/integrations/catalog";
 import { systemClock } from "@/lib/clock";
 import type { RawGameFeatures } from "@/lib/raw-features";
 import { pgnTag } from "@/integrations/pgn";
@@ -64,9 +75,20 @@ function guestGameIdentity(pgn: string, color: string | null) {
 export function GameAnalysisFlow() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const gameId = params.gameId as string;
   const [mounted, setMounted] = useState(false);
   const startTimeRef = useRef<number | null>(null);
+
+  // Queue return routing (TEMP_ANALYSIS_QUEUE_PLAN §6.4): when the review was
+  // opened from the guided queue, come back to the queue instead of the dashboard.
+  const returnToQueue = searchParams.get("return") === "queue";
+  const queueItemId = searchParams.get("item");
+  const rungParam = searchParams.get("rung");
+  const queueRung: AnalysisPromptRung | null =
+    rungParam === "fresh" || rungParam === "recent" || rungParam === "old"
+      ? rungParam
+      : null;
 
   useEffect(() => {
     setMounted(true);
@@ -114,6 +136,8 @@ export function GameAnalysisFlow() {
       result: guestGameItem.result,
       color: guestGameItem.color,
       platform: guestGameItem.platform,
+      // Guest cache ids ARE the platform ids, so the deep link builds directly.
+      externalGameId: guestGameItem.id,
       timeControl: guestGameItem.timeControl,
       opening: guestGameItem.opening,
       eco: null,
@@ -177,6 +201,121 @@ export function GameAnalysisFlow() {
   const rationales = sessionQuery.data?.rationales ?? (isGuest ? guestData?.rationales : null);
   const isLoading = !mounted || (sessionQuery.isLoading && !guestData);
   const error = isGuest ? null : sessionQuery.error;
+
+  // One prompt ladder everywhere (feedback round 2, point 2): the queue passes its
+  // assigned rung; direct dashboard entries derive the same rung from game age, so
+  // prompt copy and calibration-pause behavior match either entry point.
+  const rung = useMemo<AnalysisPromptRung>(() => {
+    if (queueRung) return queueRung;
+    const playedMs = game?.playedAt
+      ? new Date(game.playedAt as unknown as string | Date).getTime()
+      : null;
+    if (playedMs === null || Number.isNaN(playedMs)) return "old";
+    try {
+      return analysisPromptRungFor(systemClock.now() - playedMs, loadMethodology());
+    } catch {
+      return "old";
+    }
+  }, [queueRung, game]);
+
+  const queuePrompt = useMemo(() => {
+    try {
+      return analysisPromptFor(rung, loadMethodology()).value;
+    } catch {
+      return null;
+    }
+  }, [rung]);
+
+  // The graded why-this note for the write-first step (retrieval practice). Rendered
+  // when the calibration pause is dropped so untimed reflections still carry their why.
+  const recallWhy = useMemo((): RationaleEntry | null => {
+    try {
+      const why = analysisRecallWhy(loadMethodology());
+      // Seam-8 honesty rule: C-grade copy renders softened.
+      return {
+        key: "analysis_review_recall_why",
+        value: why.value,
+        grade: why.grade,
+        tier: why.tier,
+        citationKey: why.citationKey,
+        flag: why.flag,
+        soften: true,
+      };
+    } catch {
+      return null;
+    }
+  }, []);
+
+  // Quiet deep link to the source platform, shown at every review stage.
+  const externalUrl = useMemo(() => {
+    if (!game) return null;
+    // Guest cache ids are the platform ids; server games carry externalGameId.
+    return platformGameUrl(game.platform, game.externalGameId ?? game.id);
+  }, [game]);
+
+  // Resume once per mount when the protocol is available: prefill the reflection
+  // note, restore answered moments, and jump to the first unfinished moment without
+  // replaying the reflection prompt (TEMP_ANALYSIS_QUEUE_PLAN §4.5).
+  const resumedRef = useRef(false);
+  useEffect(() => {
+    if (!session || resumedRef.current) return;
+    resumedRef.current = true;
+    const progress = loadReviewProgress(gameId);
+    if (!progress) return;
+    setReflectionNote(progress.reflectionNote);
+    const restoredOutcomes: Record<number, boolean> = {};
+    const restoredUcis: Record<number, string> = {};
+    let lastAnsweredIdx = -1;
+    progress.outcomes.forEach((outcome) => {
+      const idx = session.criticalMoments.findIndex(
+        (moment) => moment.ply === outcome.ply,
+      );
+      if (idx < 0) return;
+      restoredOutcomes[idx] = outcome.correct;
+      if (outcome.bestUci) restoredUcis[idx] = outcome.bestUci;
+      lastAnsweredIdx = Math.max(lastAnsweredIdx, idx);
+    });
+    if (progress.outcomes.length > 0) {
+      setOutcomes(restoredOutcomes);
+      setBestUcis(restoredUcis);
+      if (lastAnsweredIdx + 1 < session.criticalMoments.length) {
+        setCurrentMomentIdx(lastAnsweredIdx + 1);
+        setStep(2);
+      } else {
+        setStep(3);
+      }
+    }
+  }, [session, gameId]);
+
+  // Autosave at every step boundary: reflection edits, answered moments, reveals.
+  // Cleared after a successful save; never written past that point. A visit with
+  // nothing entered writes nothing, so abandoned reviews leave no stale resumes.
+  const savedRef = useRef(false);
+  useEffect(() => {
+    if (!session || savedRef.current) return;
+    if (
+      reflectionNote.trim().length === 0 &&
+      Object.keys(outcomes).length === 0 &&
+      step === 1
+    ) {
+      return;
+    }
+    saveReviewProgress(gameId, {
+      reflectionNote,
+      outcomes: session.criticalMoments.flatMap((moment, idx) =>
+        outcomes[idx] === undefined
+          ? []
+          : [
+              {
+                ply: moment.ply,
+                correct: outcomes[idx]!,
+                ...(bestUcis[idx] ? { bestUci: bestUcis[idx]! } : {}),
+              },
+            ],
+      ),
+      stepIndex: step,
+    });
+  }, [session, reflectionNote, outcomes, bestUcis, step, gameId]);
 
   const getEngine = useCallback(async (): Promise<AnalysisEngine> => {
     if (engineRef.current) return engineRef.current;
@@ -416,6 +555,10 @@ export function GameAnalysisFlow() {
       : undefined;
 
     try {
+      const returnTarget =
+        returnToQueue && queueItemId
+          ? `/analysis/session?item=${encodeURIComponent(queueItemId)}&done=${encodeURIComponent(gameId)}`
+          : "/analysis";
       if (isGuest) {
         recordGuestActivityEvent({
           type: "game_analysed",
@@ -427,7 +570,9 @@ export function GameAnalysisFlow() {
             ...(durationSeconds !== undefined ? { durationSeconds } : {}),
           },
         });
-        router.push("/analysis");
+        savedRef.current = true;
+        clearReviewProgress(gameId);
+        router.push(returnTarget);
         return;
       }
 
@@ -439,7 +584,9 @@ export function GameAnalysisFlow() {
         outcomes: saveOutcomes,
         durationSeconds,
       });
-      router.push("/analysis");
+      savedRef.current = true;
+      clearReviewProgress(gameId);
+      router.push(returnTarget);
     } catch (error) {
       setSaveError(
         errorMessage(
@@ -512,14 +659,21 @@ export function GameAnalysisFlow() {
             style={{ width: `${(step / 3) * 100}%` }}
           />
         </div>
-        <GameIdentity game={game} />
+        <GameIdentity game={game} externalUrl={externalUrl} />
         {step === 1 && (
           <CalibrationStep
-            prompt={session.calibrationPrompt}
+            prompt={queuePrompt ?? session.calibrationPrompt}
             reflectionNote={reflectionNote}
             countdown={countdown}
+            initialCountdown={Math.ceil(session.analysisUnlockDelay / 1000)}
+            // Games older than the fresh window skip the calibration pause entirely;
+            // fresh games keep the full timed protocol (feedback round 1, point 3).
+            mode={
+              rung === "recent" || rung === "old" ? "untimed" : "timed"
+            }
             skipped={skipCalibration}
             rationale={rationales.analysis_tilt_pause}
+            recallWhy={recallWhy}
             onReflectionChange={setReflectionNote}
             onSkip={() => setSkipCalibration(true)}
             onContinue={() => setStep(2)}

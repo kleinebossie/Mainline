@@ -339,4 +339,37 @@ describe("generateProgram (golden)", () => {
         .targetRating!;
     expect(target(hot)).toBeGreaterThan(target(seedOnly));
   });
+
+  it("emits the analyse block with a stamped budget when unreviewed games exist", () => {
+    const { items } = generateProgram({
+      band: "b1200_1600",
+      tacticalRating: 1300,
+      weaknessSignals: [],
+      dueItems: [],
+      constraints: { minutesPerDay: 30 },
+      hasUnreviewedGames: true,
+      clock,
+      config: cfg,
+    });
+
+    const analyse = items.find((i) => i.activityType === "analyse");
+    expect(analyse).toBeDefined();
+    expect(analyse!.params.budgetMinutes).toBe(analyse!.estMinutes);
+  });
+
+  it("omits the analyse block when the library has zero unreviewed games", () => {
+    const { items } = generateProgram({
+      band: "b1200_1600",
+      tacticalRating: 1300,
+      weaknessSignals: [],
+      dueItems: [],
+      constraints: { minutesPerDay: 30 },
+      hasUnreviewedGames: false,
+      clock,
+      config: cfg,
+    });
+
+    expect(items.find((i) => i.activityType === "analyse")).toBeUndefined();
+    expect(items.length).toBeGreaterThan(0);
+  });
 });

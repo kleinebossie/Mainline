@@ -55,6 +55,7 @@ type Db = Pick<
   | "weeklyFocus"
   | "rewardEvent"
   | "notificationPref"
+  | "importedGame"
   | "$transaction"
 >;
 
@@ -207,6 +208,7 @@ export async function prepareProgram(
     dueItems,
     constraints,
     recentSuccessByTrack,
+    hasUnreviewedGames,
   } = generateInput;
   const weeklyFocus = await ensureWeeklyFocus(db, userId, snapshot, cfg);
 
@@ -219,6 +221,7 @@ export async function prepareProgram(
     dueItems,
     constraints,
     recentSuccessByTrack,
+    hasUnreviewedGames,
     clock,
     config: cfg,
   });
@@ -494,7 +497,10 @@ function internalActivityUrl(
   activityType: string,
   programItemId: string,
 ): string | null {
-  if (activityType === "analyse") return "/analysis";
+  // The guided queue session replaces the dashboard hand-off for today blocks.
+  if (activityType === "analyse") {
+    return `/analysis/session?item=${encodeURIComponent(programItemId)}`;
+  }
   if (
     activityType === "puzzle_theme" ||
     activityType === "spaced_review" ||

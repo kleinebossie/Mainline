@@ -25,6 +25,7 @@ interface FakeOpts {
     payload: unknown;
     programItem: { params: unknown } | null;
   }[];
+  unreviewedGames?: string[];
   ratings?: unknown;
   ownedResources?: {
     kind: "book" | "course" | "membership" | "trainer" | "other";
@@ -129,6 +130,11 @@ function fakeDb(opts: FakeOpts) {
       }),
     },
     activityEvent: { findMany: async () => opts.recentAttempts ?? [] },
+    // The assembler checks for unreviewed scanned games before generating an
+    // analysis block; the fake returns the configured library by default.
+    importedGame: {
+      findMany: async () => (opts.unreviewedGames ?? []).map((id) => ({ id })),
+    },
     // P4: the assembler reads longitudinal state (latest skill rows, immutable history,
     // training preferences). The fakes return empty defaults so the assembled snapshot
     // pins "no prior history" deterministically.
@@ -197,7 +203,12 @@ const clock = fixedClock(1_700_000_000_000);
 
 describe("generateAndSaveProgram + getTodayProgram (round-trip)", () => {
   it("persists a graded session for a fresh user and shapes the /today DTO", async () => {
-    const db = fakeDb({ tacticalRating: 1300, minutesPerDay: 30 });
+    const db = fakeDb({
+      tacticalRating: 1300,
+      minutesPerDay: 30,
+      // One unreviewed scanned game keeps the analyse block eligible.
+      unreviewedGames: ["game-1"],
+    });
 
     const saved = await generateAndSaveProgram(db, "u1", clock);
     expect(saved).toEqual({
