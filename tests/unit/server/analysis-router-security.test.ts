@@ -167,3 +167,111 @@ describe("analysis session security boundaries", () => {
     );
   });
 });
+
+describe("guided review queue authorization (queueGames)", () => {
+  const ITEM_DATE = new Date("2026-08-24T00:00:00Z");
+
+  function queueContext(
+    prisma: Record<string, unknown>,
+  ): ReturnType<typeof authorizedContext> {
+    return authorizedContext({
+      chessProfileSnapshot: { findFirst: vi.fn().mockResolvedValue(null) },
+      assessment: { findUnique: vi.fn().mockResolvedValue(null) },
+      activityEvent: { findMany: vi.fn().mockResolvedValue([]) },
+      importedGame: { findMany: vi.fn().mockResolvedValue([]) },
+      ...prisma,
+    });
+  }
+
+  it("rejects a queue request for an item outside the caller's programs", async () => {
+    const findFirst = vi.fn().mockResolvedValue(null);
+    const context = queueContext({
+      programItem: { findFirst },
+    });
+
+    await expect(
+      analysisRouter
+        .createCaller(context)
+        .queueGames({ programItemId: "item-1" }),
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    expect(findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "item-1", program: { userId: "user-1" } },
+      }),
+    );
+  });
+
+  it("rejects a queue request for a non-analyse item", async () => {
+    const context = queueContext({
+      programItem: {
+        findFirst: vi.fn().mockResolvedValue({
+          id: "item-2",
+          activityType: "puzzle_theme",
+          params: {},
+          date: ITEM_DATE,
+        }),
+      },
+    });
+
+    await expect(
+      analysisRouter
+        .createCaller(context)
+        .queueGames({ programItemId: "item-2" }),
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+  });
+
+  it("returns the ordered queue plus the block's budget state for its own item", async () => {
+    const findEvents = vi.fn().mockResolvedValue([]);
+    const context = queueContext({
+      activityEvent: { findMany: findEvents },
+      programItem: {
+        findFirst: vi.fn().mockResolvedValue({
+          id: "item-3",
+          activityType: "analyse",
+          params: { budgetMinutes: 30 },
+          date: ITEM_DATE,
+        }),
+      },
+      importedGame: {
+        findMany: vi.fn().mockResolvedValue([
+          {
+            id: "game-new",
+            platform: "lichess",
+            externalGameId: "abc123",
+            pgn: '[White "Me"]\n[Black "Rival"]\n',
+            color: "w",
+            result: "win",
+            playedAt: new Date(ITEM_DATE.getTime() - 3_600_000),
+            timeControl: "rapid",
+            opening: "Italian",
+            opponentRating: 1502,
+          },
+        ]),
+      },
+    });
+
+    const result = await analysisRouter
+      .createCaller(context)
+      .queueGames({ programItemId: "item-3" });
+
+    expect(result.budgetMinutes).toBe(30);
+    expect(result.targetCount).toBe(2);
+    expect(result.completedReviews).toBe(0);
+    expect(result.games).toHaveLength(1);
+    const game = result.games[0]!;
+    expect(game.id).toBe("game-new");
+    expect(game.opponent).toBe("Rival");
+    expect(game.promptRung).toBe("fresh");
+    expect(game.externalUrl).toBe("https://lichess.org/abc123");
+    // Budget accounting counts only this caller's reviews recorded today or later.
+    expect(findEvents).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          userId: "user-1",
+          type: "game_analysed",
+          occurredAt: { gte: ITEM_DATE },
+        }),
+      }),
+    );
+  });
+});

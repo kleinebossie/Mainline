@@ -799,6 +799,28 @@ const modalitySchema = z.object({
   otbRationaleKey: z.string().min(1),
 });
 
+// Guided analysis queue (PR 2 of TEMP_ANALYSIS_QUEUE_PLAN). Rung boundaries and the
+// three recall-first prompts are graded leaves: the windows extrapolate spacing/recency
+// findings to chess review (no chess-specific study exists), so they stay Grade C and
+// carry a real anchor. Copy lives here directly (the trainingFit precedent) because the
+// loader's additive merge cannot extend the `rationale` table of frozen historic configs.
+const ANALYSIS_PROMPT_RUNGS = ["fresh", "recent", "old"] as const;
+
+const analysisReviewSchema = z.object({
+  // A game younger than this is "fresh": the player can still recall plans and intent,
+  // so the prompt asks for it (recognition aids stay hidden). Extrapolated from
+  // spacing/recency effects; not chess-specific.
+  freshWindowHours: gradedValue(z.number().positive()),
+  // Beyond this age the game counts as "old": memory is assumed gone, so the prompt
+  // falls back to recognition from metadata.
+  recentWindowDays: gradedValue(z.number().positive()),
+  // One graded prompt copy per rung; prompts get less specific as the game gets older.
+  prompts: z.record(
+    z.enum(ANALYSIS_PROMPT_RUNGS),
+    z.object({ prompt: gradedValue(z.string().min(1)) }),
+  ),
+});
+
 /** Recursively collect every citationKey appearing on a GradedValue in the config. */
 function collectCitationKeys(node: unknown, into: Set<string>): void {
   if (Array.isArray(node)) {
@@ -835,6 +857,7 @@ export const methodologyConfigSchema = z
     endgameCurriculum: endgameCurriculumSchema,
     bookStudy: bookStudySchema,
     modality: modalitySchema,
+    analysisReview: analysisReviewSchema.optional(),
   })
   .superRefine((cfg, ctx) => {
     // L3 — every citationKey must resolve to a ledger anchor (fail-closed, §2.6).
@@ -860,6 +883,7 @@ export const methodologyConfigSchema = z
       cfg.endgameCurriculum,
       cfg.bookStudy,
       cfg.modality,
+      cfg.analysisReview,
     ]) {
       collectCitationKeys(section, usedCitations);
     }
@@ -1309,3 +1333,7 @@ export type ActiveReproductionConfig = GameAnalysisConfig["activeReproduction"];
 export type RplFilteringConfig = GameAnalysisConfig["rplFiltering"];
 export type SrsIntegrationConfig = GameAnalysisConfig["srsIntegration"];
 export type GameSelectionConfig = GameAnalysisConfig["gameSelection"];
+export type AnalysisReviewConfig = NonNullable<
+  MethodologyConfig["analysisReview"]
+>;
+export type AnalysisPromptRung = (typeof ANALYSIS_PROMPT_RUNGS)[number];

@@ -1,4 +1,6 @@
 import type { TodayItem, TodayProgram } from "@/server/program";
+import { calculateTargetCount } from "@/engine/interactive/analysis-queue";
+import { loadMethodology } from "@/methodology";
 
 export function humanizeFocusArea(focusArea: string): string {
   const words = focusArea.replace(/_/g, " ").trim();
@@ -114,7 +116,21 @@ export function itemSummary(item: TodayItem): string {
       : "Study a recommended book, then log the session here.";
   }
   if (item.activityType === "analyse") {
-    return "Review one game with the engine withheld until you have tried first.";
+    // Queue copy per TEMP_ANALYSIS_QUEUE_PLAN §6.5: state the shape of the block.
+    // The average review duration comes from methodology config only (L1).
+    const analyseActivity = loadMethodology().activities.find(
+      (a) => a.id === "analyse_own_games",
+    );
+    const avgReviewMinutes = analyseActivity?.estMinutes.value;
+    if (!avgReviewMinutes || avgReviewMinutes <= 0) {
+      return "A guided review queue for your recent games.";
+    }
+    const budget =
+      item.params.budgetMinutes ?? item.estMinutes ?? avgReviewMinutes;
+    const games = calculateTargetCount(budget, avgReviewMinutes);
+    return `A guided queue: about ${games} ${
+      games === 1 ? "game" : "games"
+    } within ${Math.max(1, Math.ceil(budget))} min.`;
   }
   if (item.activityType === "study") {
     return "Use the recommended external study material, then log the work.";

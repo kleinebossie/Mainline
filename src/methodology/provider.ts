@@ -2717,3 +2717,71 @@ export function gameAnalysisProtocol(
       cfg.gameAnalysis.activeReproduction.revealAfterMisses.value,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Guided analysis queue — prompt-ladder readers (TEMP_ANALYSIS_QUEUE_PLAN §6.1).
+// Pure (L2); every boundary and every prompt string comes from the config's
+// `analysisReview` section (L1), each leaf graded with a real citation (L3).
+// ---------------------------------------------------------------------------
+
+export type AnalysisPromptRung = "fresh" | "recent" | "old";
+
+export interface AnalysisReviewThresholds {
+  freshWindowMs: number;
+  recentWindowMs: number;
+}
+
+/** The graded rung boundaries in milliseconds, for callers that compare ages. */
+export function analysisReviewThresholds(
+  cfg: MethodologyConfig,
+): AnalysisReviewThresholds {
+  const review = requireAnalysisReview(cfg);
+  return {
+    freshWindowMs: review.freshWindowHours.value * HOUR_MS,
+    recentWindowMs: review.recentWindowDays.value * DAY_MS,
+  };
+}
+
+/**
+ * Assign the prompt rung by game age. A game without a known play time is treated
+ * as old: recognition aids are always safe, assumed recall is not.
+ */
+export function analysisPromptRungFor(
+  gameAgeMs: number | null,
+  cfg: MethodologyConfig,
+): AnalysisPromptRung {
+  if (gameAgeMs === null) return "old";
+  const { freshWindowMs, recentWindowMs } = analysisReviewThresholds(cfg);
+  if (gameAgeMs < freshWindowMs) return "fresh";
+  if (gameAgeMs < recentWindowMs) return "recent";
+  return "old";
+}
+
+const HOUR_MS = 3_600_000;
+
+/** One graded prompt copy leaf from the `analysisReview` config section. */
+export type AnalysisPromptCopy = NonNullable<
+  NonNullable<MethodologyConfig["analysisReview"]>["prompts"]["fresh"]
+>["prompt"];
+
+/** The graded prompt copy for one rung; throws when the section is misconfigured. */
+export function analysisPromptFor(
+  rung: AnalysisPromptRung,
+  cfg: MethodologyConfig,
+): AnalysisPromptCopy {
+  const entry = requireAnalysisReview(cfg).prompts[rung];
+  if (!entry) {
+    throw new Error(`No analysis review prompt configured for rung "${rung}"`);
+  }
+  return entry.prompt;
+}
+
+function requireAnalysisReview(cfg: MethodologyConfig) {
+  const review = cfg.analysisReview;
+  if (!review) {
+    throw new Error(
+      "This methodology config has no analysisReview section; upgrade the config to use the guided review queue.",
+    );
+  }
+  return review;
+}

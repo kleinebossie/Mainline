@@ -42,6 +42,8 @@ export interface ProgramItemParams {
   workedExample?: boolean;
   formats?: string[];
   gameCount?: number;
+  /** Review-time budget for analyse blocks; the queue reconciles against it. */
+  budgetMinutes?: number;
   dueItemRefs?: string[];
   bookResource?: ProgramBookResource;
   studyMinutes?: number;
@@ -91,6 +93,8 @@ export interface GenerateProgramInput {
     resourceFit?: Readonly<Record<string, number>>;
   };
   recentSuccessByTrack?: { pattern?: number; calculation?: number };
+  /** False removes the analyse candidate: no unreviewed scanned games exist to review. */
+  hasUnreviewedGames?: boolean;
   clock: Clock;
   config: MethodologyConfig;
 }
@@ -199,13 +203,21 @@ export function generateProgram(
     cfg,
   );
 
+  // An analysis block without unreviewed scanned games cannot run, so it is never
+  // served (locked product decision 11). The flag arrives as plain input; the
+  // generator performs no queries (L2).
+  const servable =
+    input.hasUnreviewedGames === false
+      ? ordered.filter((c) => c.activityType !== "analyse")
+      : ordered;
+
   const MAX_EXPOSURE_CANDIDATES = 100;
-  if (ordered.length > MAX_EXPOSURE_CANDIDATES) {
+  if (servable.length > MAX_EXPOSURE_CANDIDATES) {
     throw new Error(
-      `Recommendation exposure has ${ordered.length} eligible candidates; maximum complete snapshot is ${MAX_EXPOSURE_CANDIDATES}`,
+      `Recommendation exposure has ${servable.length} eligible candidates; maximum complete snapshot is ${MAX_EXPOSURE_CANDIDATES}`,
     );
   }
-  const eligibility = ordered.map(
+  const eligibility = servable.map(
     (candidate, rank): RecommendationCandidateSnapshot => {
       const rationale = rationaleFor(candidate.rationaleKey, cfg);
       return {
@@ -229,7 +241,7 @@ export function generateProgram(
   // Methodology owns unit costs and caps; the packer only performs fit arithmetic.
   const vol = cfg.prioritization.volume;
   const dose = vol.dailyPuzzleDose.value;
-  const enriched = ordered.map((c) => {
+  const enriched = servable.map((c) => {
     let divisible: Divisible | undefined;
     if (
       c.activityType === "spaced_review" ||
@@ -333,6 +345,9 @@ export function generateProgram(
         track: null,
         formats,
         ...(isPlayGame && p.units != null ? { gameCount: p.units } : {}),
+        ...(candidate.activityType === "analyse"
+          ? { budgetMinutes: estMinutes }
+          : {}),
         ...(candidate.activityType === "book" && candidate.bookResource
           ? {
               bookResource: candidate.bookResource,

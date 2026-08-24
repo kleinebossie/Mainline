@@ -55,6 +55,7 @@ function fakeDb(
       resetAt: Date | null;
       updatedAt: Date;
     } | null;
+    unreviewedGames?: string[];
     ratings?: unknown;
   } = {},
 ) {
@@ -97,6 +98,10 @@ function fakeDb(
     resourceRef: { findMany: async () => [] },
     program: { findFirst: async () => null },
     practiceItem: { upsert: async () => ({ id: "pi_0" }) },
+    importedGame: {
+      findMany: async () =>
+        (opts.unreviewedGames ?? []).map((id) => ({ id })),
+    },
     scheduleState: { findMany: async () => opts.due ?? [] },
     lichessPuzzle: { findMany: async () => [] },
     activityEvent: { findMany: async () => opts.activityEvents ?? [] },
@@ -174,6 +179,24 @@ describe("assembleProgramDecisionInput — the single typed state assembler (P4)
       snapshot.constraints.minutesPerDay,
     );
     expect(generateInput.dueItems).toEqual([]);
+    // The generator receives the unreviewed-library flag as plain input (L2):
+    // empty library → false, so no analysis block is served.
+    expect(generateInput.hasUnreviewedGames).toBe(false);
+  });
+
+  it("flags the presence of unreviewed scanned games for the generator", async () => {
+    const db = fakeDb({
+      tacticalRating: 1100,
+      minutesPerDay: 30,
+      unreviewedGames: ["game-1"],
+    });
+    const { generateInput } = await assembleProgramDecisionInput(
+      db,
+      "u1",
+      clock,
+      cfg,
+    );
+    expect(generateInput.hasUnreviewedGames).toBe(true);
   });
 
   it("embeds immutable skill history (SkillStateSnapshot rows) into the snapshot", async () => {

@@ -35,6 +35,21 @@ export function platformPlayUrl(platform: string | null | undefined): string {
     : "https://lichess.org/";
 }
 
+/** Deep link to one archived game on its platform; null when no page is constructible
+ *  (manual imports and unknown platforms have none). Reference data, not a graded
+ *  methodology decision (L1). */
+export function platformGameUrl(
+  platform: string | null | undefined,
+  externalGameId: string,
+): string | null {
+  if (!externalGameId) return null;
+  if (platform === "lichess") return `https://lichess.org/${externalGameId}`;
+  if (platform === "chesscom") {
+    return `https://www.chess.com/game/live/${externalGameId}`;
+  }
+  return null;
+}
+
 /** Build one `lichess_puzzle_theme` ResourceRef per trainable theme. */
 export function buildResourceCatalog(
   themes: readonly string[],

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  applySuccessBiasTiebreak,
   calculateTargetCount,
   calculateUsedReviewMinutes,
   isAnalysisBlockComplete,
@@ -103,6 +104,67 @@ describe("selectAnalysisQueue", () => {
       "old-1",
       "null-1",
       "null-2",
+    ]);
+  });
+});
+
+describe("applySuccessBiasTiebreak", () => {
+  const DAY_MS = 86_400_000;
+  const HOUR = 3_600_000;
+  const base = 1_700_000_000_000;
+  // Two games per UTC day, most recent first within the day.
+  const dayGames = (day: number): QueueGame[] => [
+    {
+      id: `d${day}-a`,
+      playedAtMs: base - day * DAY_MS,
+      result: "win",
+    },
+    {
+      id: `d${day}-b`,
+      playedAtMs: base - day * DAY_MS - HOUR,
+      result: "loss",
+    },
+  ];
+
+  it("puts wins first within a same-day group when wins are favored", () => {
+    const games = [...dayGames(0), ...dayGames(1)];
+    const ordered = applySuccessBiasTiebreak(games, 0.7);
+    expect(ordered.map((g) => g.id)).toEqual([
+      "d0-a",
+      "d0-b",
+      "d1-a",
+      "d1-b",
+    ]);
+  });
+
+  it("puts non-wins first when losses are favored", () => {
+    const games = [...dayGames(0), ...dayGames(1)];
+    const ordered = applySuccessBiasTiebreak(games, 0.3);
+    expect(ordered.map((g) => g.id)).toEqual([
+      "d0-b",
+      "d0-a",
+      "d1-b",
+      "d1-a",
+    ]);
+  });
+
+  it("never moves a game across day groups", () => {
+    const games = [...dayGames(0), ...dayGames(1)];
+    const ordered = applySuccessBiasTiebreak(games, 0.3);
+    const days = ordered.map((g) =>
+      Math.floor((base - (g.playedAtMs ?? 0)) / DAY_MS),
+    );
+    expect(days).toEqual([0, 0, 1, 1]);
+  });
+
+  it("keeps order stable for equal results", () => {
+    const games: QueueGame[] = [
+      { id: "w1", playedAtMs: base, result: "win" },
+      { id: "w2", playedAtMs: base - HOUR, result: "win" },
+    ];
+    expect(applySuccessBiasTiebreak(games, 0.3).map((g) => g.id)).toEqual([
+      "w1",
+      "w2",
     ]);
   });
 });
