@@ -49,7 +49,7 @@
       },
       "old": {
         "prompt": {
-          "value": "Read the game info below. Before we reveal anything, tell me whatever you remember, even if it is only the result.",
+          "value": "Glance over the game details, then tell me whatever you remember about this game, even if it is only the result.",
           "grade": "C",
           "tier": 2,
           "citationKey": "roediger2006",

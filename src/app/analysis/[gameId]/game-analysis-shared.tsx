@@ -2,7 +2,15 @@ import { formatGameDate, platformLabel, resultLabel } from "@/lib/format-game";
 import { cn } from "@/lib/utils";
 import type { GameAnalysisGame } from "@/app/analysis/[gameId]/game-analysis-types";
 
-export function GameIdentity({ game }: { game: GameAnalysisGame }) {
+export function GameIdentity({
+  game,
+  externalUrl,
+}: {
+  game: GameAnalysisGame;
+  /** Deep link to the game on its platform; rendered as one quiet line (feedback
+   *  round 2): useful at every stage of analysis, never shouted. */
+  externalUrl?: string | null;
+}) {
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border border-line bg-card px-5 py-3.5 shadow-sheet settle">
       <div className="flex items-center gap-2">
@@ -61,6 +69,19 @@ export function GameIdentity({ game }: { game: GameAnalysisGame }) {
         )}
         <span aria-hidden>·</span>
         <span>{formatGameDate(game.playedAt, game.platform)}</span>
+        {externalUrl && (
+          <>
+            <span aria-hidden>·</span>
+            <a
+              href={externalUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline decoration-line underline-offset-2 transition-colors hover:text-ink"
+            >
+              View on {platformLabel(game.platform)} ↗
+            </a>
+          </>
+        )}
       </div>
       {(game.event || game.opening) && (
         <p className="basis-full border-t border-line/60 pt-2 font-serif text-xs text-graphite">

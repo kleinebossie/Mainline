@@ -41,12 +41,14 @@ import {
 
 import {
   analysisPromptFor,
+  analysisPromptRungFor,
   bandForRating,
   gameAnalysisProtocol,
   loadMethodology,
   rationaleFor,
   type AnalysisPromptRung,
 } from "@/methodology";
+import { platformGameUrl } from "@/integrations/catalog";
 import { systemClock } from "@/lib/clock";
 import type { RawGameFeatures } from "@/lib/raw-features";
 import { pgnTag } from "@/integrations/pgn";
@@ -81,20 +83,10 @@ export function GameAnalysisFlow() {
   const returnToQueue = searchParams.get("return") === "queue";
   const queueItemId = searchParams.get("item");
   const rungParam = searchParams.get("rung");
-  const rung: AnalysisPromptRung | null =
+  const queueRung: AnalysisPromptRung | null =
     rungParam === "fresh" || rungParam === "recent" || rungParam === "old"
       ? rungParam
       : null;
-  // The queue assigns the reflection prompt by game age; direct dashboard entries
-  // keep the protocol's per-band calibration prompt.
-  const queuePrompt = useMemo(() => {
-    if (!rung) return null;
-    try {
-      return analysisPromptFor(rung, loadMethodology()).value;
-    } catch {
-      return null;
-    }
-  }, [rung]);
 
   useEffect(() => {
     setMounted(true);
@@ -142,6 +134,8 @@ export function GameAnalysisFlow() {
       result: guestGameItem.result,
       color: guestGameItem.color,
       platform: guestGameItem.platform,
+      // Guest cache ids ARE the platform ids, so the deep link builds directly.
+      externalGameId: guestGameItem.id,
       timeControl: guestGameItem.timeControl,
       opening: guestGameItem.opening,
       eco: null,
@@ -205,6 +199,37 @@ export function GameAnalysisFlow() {
   const rationales = sessionQuery.data?.rationales ?? (isGuest ? guestData?.rationales : null);
   const isLoading = !mounted || (sessionQuery.isLoading && !guestData);
   const error = isGuest ? null : sessionQuery.error;
+
+  // One prompt ladder everywhere (feedback round 2, point 2): the queue passes its
+  // assigned rung; direct dashboard entries derive the same rung from game age, so
+  // prompt copy and calibration-pause behavior match either entry point.
+  const rung = useMemo<AnalysisPromptRung>(() => {
+    if (queueRung) return queueRung;
+    const playedMs = game?.playedAt
+      ? new Date(game.playedAt as unknown as string | Date).getTime()
+      : null;
+    if (playedMs === null || Number.isNaN(playedMs)) return "old";
+    try {
+      return analysisPromptRungFor(systemClock.now() - playedMs, loadMethodology());
+    } catch {
+      return "old";
+    }
+  }, [queueRung, game]);
+
+  const queuePrompt = useMemo(() => {
+    try {
+      return analysisPromptFor(rung, loadMethodology()).value;
+    } catch {
+      return null;
+    }
+  }, [rung]);
+
+  // Quiet deep link to the source platform, shown at every review stage.
+  const externalUrl = useMemo(() => {
+    if (!game) return null;
+    // Guest cache ids are the platform ids; server games carry externalGameId.
+    return platformGameUrl(game.platform, game.externalGameId ?? game.id);
+  }, [game]);
 
   // Resume once per mount when the protocol is available: prefill the reflection
   // note, restore answered moments, and jump to the first unfinished moment without
@@ -612,7 +637,7 @@ export function GameAnalysisFlow() {
             style={{ width: `${(step / 3) * 100}%` }}
           />
         </div>
-        <GameIdentity game={game} />
+        <GameIdentity game={game} externalUrl={externalUrl} />
         {step === 1 && (
           <CalibrationStep
             prompt={queuePrompt ?? session.calibrationPrompt}

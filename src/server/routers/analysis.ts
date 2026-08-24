@@ -643,6 +643,7 @@ export const analysisRouter = router({
           result: game.result,
           color: game.color,
           platform: game.platform,
+          externalGameId: game.externalGameId,
           timeControl: game.timeControl,
           opening: game.opening,
           eco: game.eco,

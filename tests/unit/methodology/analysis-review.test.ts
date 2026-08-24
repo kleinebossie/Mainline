@@ -55,6 +55,8 @@ describe("analysis review prompt ladder", () => {
     // The fresh prompt asks for plan and intent; the old prompt only asks for
     // whatever memory remains. Pin that ordering honestly.
     expect(analysisPromptFor("fresh", cfg).value).toMatch(/plan/i);
-    expect(analysisPromptFor("old", cfg).value).toMatch(/game info|remember/i);
+    expect(analysisPromptFor("old", cfg).value).toMatch(/remember/i);
+    // Prompts never point at page positions; the identity card carries the info.
+    expect(analysisPromptFor("old", cfg).value).not.toMatch(/below/i);
   });
 });
