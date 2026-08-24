@@ -178,7 +178,10 @@ describe("guided review queue authorization (queueGames)", () => {
       chessProfileSnapshot: { findFirst: vi.fn().mockResolvedValue(null) },
       assessment: { findUnique: vi.fn().mockResolvedValue(null) },
       activityEvent: { findMany: vi.fn().mockResolvedValue([]) },
-      importedGame: { findMany: vi.fn().mockResolvedValue([]) },
+      importedGame: {
+        findFirst: vi.fn().mockResolvedValue(null),
+        findMany: vi.fn().mockResolvedValue([]),
+      },
       ...prisma,
     });
   }
@@ -233,6 +236,7 @@ describe("guided review queue authorization (queueGames)", () => {
         }),
       },
       importedGame: {
+        findFirst: vi.fn().mockResolvedValue({ id: "game-new" }),
         findMany: vi.fn().mockResolvedValue([
           {
             id: "game-new",
@@ -297,6 +301,7 @@ describe("guided review queue authorization (queueGames)", () => {
       // One fake serves both helpers: unreviewedGames asks for scanned rows
       // (analysis.isNot) while gamesNeedingAnalysis asks for unscanned ones.
       importedGame: {
+        findFirst: vi.fn().mockResolvedValue(null),
         findMany: vi.fn(async ({
           where,
         }: {

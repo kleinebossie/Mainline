@@ -48,6 +48,7 @@ const baseInput = {
   avgReviewMinutes: 15,
   thresholds: { freshWindowMs: DAY_MS, recentWindowMs: 7 * DAY_MS },
   winShareTarget: null,
+  hasGames: true,
   promptRungOf: (ageMs: number | null) =>
     ageMs === null || ageMs >= DAY_MS ? ("old" as const) : ("fresh" as const),
 };

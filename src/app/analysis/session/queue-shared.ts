@@ -32,6 +32,8 @@ export interface ReviewQueueData {
   usedMinutes: number;
   completedReviews: number;
   targetCount: number;
+  /** Whether the player has ANY imported games at all (drives personalized empties). */
+  hasGames: boolean;
   games: QueueGameView[];
   scanCandidate: QueueScanCandidate | null;
 }

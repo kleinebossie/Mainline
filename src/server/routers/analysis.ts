@@ -228,6 +228,7 @@ export const analysisRouter = router({
           usedMinutes: 0,
           completedReviews: 0,
           targetCount: 0,
+          hasGames: false,
           games: [],
           scanCandidate: null,
         };
@@ -260,6 +261,7 @@ export const analysisRouter = router({
           usedMinutes: 0,
           completedReviews: 0,
           targetCount: 0,
+          hasGames: false,
           games: [],
           scanCandidate: null,
         };
@@ -365,11 +367,19 @@ export const analysisRouter = router({
         }
       }
 
+      const [anyGame] = await Promise.all([
+        ctx.prisma.importedGame.findFirst({
+          where: { userId },
+          select: { id: true },
+        }),
+      ]);
+
       return {
         budgetMinutes,
         usedMinutes,
         completedReviews,
         targetCount,
+        hasGames: anyGame != null,
         games: ordered.flatMap((queued) => {
           const game = byId.get(queued.id);
           if (!game) return [];

@@ -75,6 +75,8 @@ export interface GuestQueueInput {
   avgReviewMinutes: number;
   thresholds: AnalysisReviewThresholds;
   winShareTarget: number | null;
+  /** Whether the guest has ANY games in the cache (scanned or not). */
+  hasGames: boolean;
   /** Assigns the prompt rung by game age; injected so the core stays config-free. */
   promptRungOf: (gameAgeMs: number | null) => AnalysisPromptRung;
 }
@@ -160,6 +162,7 @@ export function buildGuestQueueData(input: GuestQueueInput): ReviewQueueData {
     usedMinutes,
     completedReviews,
     targetCount,
+    hasGames: input.hasGames,
     games: ordered.flatMap((queued): QueueGameView[] => {
       const game = byId.get(queued.id);
       if (!game) return [];
@@ -213,6 +216,7 @@ export function deriveGuestQueue(
       usedMinutes: 0,
       completedReviews: 0,
       targetCount: 0,
+      hasGames: false,
       games: [],
       scanCandidate: null,
     };
@@ -228,6 +232,7 @@ export function deriveGuestQueue(
     day.getUTCDate(),
   );
 
+  const cachedGames = readGuestGamesCache();
   const baseline = session.baseline;
   const band = bandForRating(
     baseline?.tacticalRatingEstimate ?? cfg.assessment.calibration.startRating.value,
@@ -243,13 +248,14 @@ export function deriveGuestQueue(
       params: item.params,
       status: item.status,
     },
-    games: readGuestGamesCache(),
+    games: cachedGames,
     events: session.activityEvents,
     dayStartMs,
     nowMs,
     avgReviewMinutes,
     thresholds: analysisReviewThresholds(cfg),
     winShareTarget: ratio ? ratio.winPct / 100 : null,
+    hasGames: cachedGames.length > 0,
     promptRungOf: (ageMs) => analysisPromptRungFor(ageMs, cfg),
   });
 }

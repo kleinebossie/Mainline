@@ -230,6 +230,7 @@ export function AnalysisQueueSession() {
           usedMinutes: 0,
           completedReviews: 0,
           targetCount: 0,
+          hasGames: false,
           games: [],
           scanCandidate: null,
         };
@@ -438,11 +439,8 @@ export function AnalysisQueueSession() {
               completedReviews={data.completedReviews}
               usedMinutes={data.usedMinutes}
               minutesLeft={minutesLeft}
-              emptyLibrary={
-                data.completedReviews === 0 &&
-                data.games.length === 0 &&
-                data.scanCandidate === null
-              }
+              hasGames={data.hasGames}
+              isGuest={isGuest}
             />
           )}
 
@@ -601,38 +599,60 @@ function WrapUpCard({
   completedReviews,
   usedMinutes,
   minutesLeft,
-  emptyLibrary,
+  hasGames,
+  isGuest,
 }: {
   completedReviews: number;
   usedMinutes: number;
   minutesLeft: number;
-  emptyLibrary: boolean;
+  /** Whether the player has ANY imported games; shapes the personalized empty. */
+  hasGames: boolean;
+  isGuest: boolean;
 }) {
-  const heading = emptyLibrary
-    ? "No games are waiting for review"
-    : "Review block complete";
-  const message = emptyLibrary
-    ? "Your library has no scanned games ready for review yet. Sync your games or open Analysis to scan one, then come back."
-    : `You reviewed ${completedReviews} ${
+  const nothingToDo = completedReviews === 0;
+  const heading = !nothingToDo
+    ? "Review block complete"
+    : !hasGames
+      ? "Nothing to analyse yet"
+      : "No games are waiting for review";
+  const message = !nothingToDo
+    ? `You reviewed ${completedReviews} ${
         completedReviews === 1 ? "game" : "games"
       } today (${formatMinutes(usedMinutes)}).${
         minutesLeft <= 0 ? " You used the full planned budget." : ""
-      } Blunders from these games come back as spaced drills.`;
+      } Blunders from these games come back as spaced drills.`
+    : !hasGames
+      ? isGuest
+        ? "Mainline can only analyse games it knows about, and none are here yet. Connect your Chess.com or Lichess account to pull recent games automatically, or import a PGN by hand."
+        : "Mainline can only analyse games it knows about, and none are here yet. Connect a chess account to sync games, or import a PGN file from the Analysis page."
+      : "Every scanned game in your library has been reviewed. Play or import new games, then generate a fresh session.";
+  const primaryAction = !nothingToDo
+    ? { href: "/today", label: "Back to Today" }
+    : !hasGames && isGuest
+      ? { href: "/connections", label: "Connect chess account →" }
+      : !hasGames
+        ? { href: "/analysis", label: "Open Analysis" }
+        : { href: "/today", label: "Back to Today" };
   return (
     <Card className="p-5 sm:p-6">
       <div className="flex flex-col gap-4">
         <p className="eyebrow text-evergreen">{heading}</p>
         <p className="font-serif text-base leading-relaxed text-ink">{message}</p>
         <div className="flex flex-wrap items-center gap-3 border-t border-line pt-4">
-          <Link href="/today" className={buttonVariants({ size: "sm" })}>
-            Back to Today
-          </Link>
           <Link
-            href="/analysis"
-            className={buttonVariants({ variant: "ghost", size: "sm" })}
+            href={primaryAction.href}
+            className={buttonVariants({ size: "sm" })}
           >
-            Browse all games
+            {primaryAction.label}
           </Link>
+          {!nothingToDo || primaryAction.href !== "/today" ? (
+            <Link
+              href={primaryAction.href === "/today" ? "/analysis" : "/today"}
+              className={buttonVariants({ variant: "ghost", size: "sm" })}
+            >
+              {primaryAction.href === "/today" ? "Browse all games" : "Back to Today"}
+            </Link>
+          ) : null}
         </div>
       </div>
     </Card>
