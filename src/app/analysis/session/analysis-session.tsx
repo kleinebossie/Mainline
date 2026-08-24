@@ -15,9 +15,12 @@ import { DEFAULT_ANALYSIS_DEPTH } from "@/analysis/worker-config";
 import type { RawGameFeatures } from "@/lib/raw-features";
 import {
   analysisPromptFor,
+  analysisRecallWhy,
   loadMethodology,
   type AnalysisPromptRung,
+  type RationaleEntry,
 } from "@/methodology";
+import { MethodologyRationaleCard } from "@/components/methodology-rationale-card";
 import {
   deriveGuestQueue,
 } from "@/app/analysis/session/guest-queue";
@@ -513,6 +516,27 @@ function useQueuePrompt(rung: AnalysisPromptRung): string {
   ]);
 }
 
+/** The graded why-this note for the write-first reflection step. */
+function useRecallWhy(): RationaleEntry | null {
+  return useMemo(() => {
+    try {
+      const why = analysisRecallWhy(loadMethodology());
+      // Seam-8 honesty rule: C-grade copy renders softened.
+      return {
+        key: "analysis_review_recall_why",
+        value: why.value,
+        grade: why.grade,
+        tier: why.tier,
+        citationKey: why.citationKey,
+        flag: why.flag,
+        soften: true,
+      };
+    } catch {
+      return null;
+    }
+  }, []);
+}
+
 function NextPrompt({ rung }: { rung: AnalysisPromptRung }) {
   const prompt = useQueuePrompt(rung);
   return (
@@ -558,6 +582,7 @@ function PreGameCard({
   programItemId: string;
 }) {
   const prompt = useQueuePrompt(game.promptRung);
+  const recallWhy = useRecallWhy();
   const reviewHref = `/analysis/${game.id}?return=queue&item=${encodeURIComponent(programItemId)}&rung=${game.promptRung}`;
   return (
     <Card className="p-5 sm:p-6" gutter="C">
@@ -575,6 +600,10 @@ function PreGameCard({
         <blockquote className="border-l-2 border-evergreen/40 py-1 pl-4">
           <p className="font-serif text-lg leading-relaxed text-ink">{prompt}</p>
         </blockquote>
+
+        {recallWhy && (
+          <MethodologyRationaleCard rationale={recallWhy} confidence="low" />
+        )}
 
         <div className="flex flex-wrap items-center gap-3 border-t border-line pt-4">
           <Link

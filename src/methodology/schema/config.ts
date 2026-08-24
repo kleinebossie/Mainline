@@ -819,6 +819,10 @@ const analysisReviewSchema = z.object({
     z.enum(ANALYSIS_PROMPT_RUNGS),
     z.object({ prompt: gradedValue(z.string().min(1)) }),
   ),
+  // The graded "why" note for the whole ladder: writing a recollection before the
+  // engine speaks is retrieval practice (testing effect). One leaf serves every rung;
+  // the UI renders it beside the prompts so the write-first step never looks arbitrary.
+  recallWhy: gradedValue(z.string().min(1)),
 });
 
 /** Recursively collect every citationKey appearing on a GradedValue in the config. */

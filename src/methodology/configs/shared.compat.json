@@ -57,6 +57,14 @@
           "note": "Recognition from metadata after memory has likely faded. The exact wording is untested product copy."
         }
       }
+    },
+    "recallWhy": {
+      "value": "Writing down your recollection before the engine speaks is retrieval practice. Recalling first strengthens memory more than reading the moves first. This effect comes from general learning research; the gain for chess review has not been measured.",
+      "grade": "C",
+      "tier": 2,
+      "citationKey": "roediger2006",
+      "flag": "best-guess",
+      "note": "The why-this note shown beside the reflection prompts. Retrieval practice is well replicated in general; the chess-review framing is extrapolation."
     }
   }
 }

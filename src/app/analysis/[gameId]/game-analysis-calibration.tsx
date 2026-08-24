@@ -1,4 +1,5 @@
 import type { GameAnalysisRationale } from "@/app/analysis/[gameId]/game-analysis-types";
+import type { RationaleEntry } from "@/methodology";
 import { MethodologyRationaleCard } from "@/components/methodology-rationale-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,6 +20,7 @@ export function CalibrationStep({
   mode = "timed",
   skipped,
   rationale,
+  recallWhy,
   onReflectionChange,
   onSkip,
   onContinue,
@@ -31,6 +33,9 @@ export function CalibrationStep({
   mode?: "timed" | "untimed";
   skipped: boolean;
   rationale: GameAnalysisRationale;
+  /** Graded why-this note for the write-first step (retrieval practice); shown when
+   *  the pause is dropped so the reflection never looks arbitrary. */
+  recallWhy?: RationaleEntry | null;
   onReflectionChange: (value: string) => void;
   onSkip: () => void;
   onContinue: () => void;
@@ -106,6 +111,12 @@ export function CalibrationStep({
           {!untimed && (
             <div className="mt-4 border-t border-line/60 pt-4">
               <MethodologyRationaleCard rationale={rationale} />
+            </div>
+          )}
+
+          {untimed && recallWhy && (
+            <div className="mt-4 border-t border-line/60 pt-4">
+              <MethodologyRationaleCard rationale={recallWhy} />
             </div>
           )}
         </CardContent>

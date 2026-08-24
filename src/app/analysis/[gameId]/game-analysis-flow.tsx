@@ -42,11 +42,13 @@ import {
 import {
   analysisPromptFor,
   analysisPromptRungFor,
+  analysisRecallWhy,
   bandForRating,
   gameAnalysisProtocol,
   loadMethodology,
   rationaleFor,
   type AnalysisPromptRung,
+  type RationaleEntry,
 } from "@/methodology";
 import { platformGameUrl } from "@/integrations/catalog";
 import { systemClock } from "@/lib/clock";
@@ -223,6 +225,26 @@ export function GameAnalysisFlow() {
       return null;
     }
   }, [rung]);
+
+  // The graded why-this note for the write-first step (retrieval practice). Rendered
+  // when the calibration pause is dropped so untimed reflections still carry their why.
+  const recallWhy = useMemo((): RationaleEntry | null => {
+    try {
+      const why = analysisRecallWhy(loadMethodology());
+      // Seam-8 honesty rule: C-grade copy renders softened.
+      return {
+        key: "analysis_review_recall_why",
+        value: why.value,
+        grade: why.grade,
+        tier: why.tier,
+        citationKey: why.citationKey,
+        flag: why.flag,
+        soften: true,
+      };
+    } catch {
+      return null;
+    }
+  }, []);
 
   // Quiet deep link to the source platform, shown at every review stage.
   const externalUrl = useMemo(() => {
@@ -651,6 +673,7 @@ export function GameAnalysisFlow() {
             }
             skipped={skipCalibration}
             rationale={rationales.analysis_tilt_pause}
+            recallWhy={recallWhy}
             onReflectionChange={setReflectionNote}
             onSkip={() => setSkipCalibration(true)}
             onContinue={() => setStep(2)}

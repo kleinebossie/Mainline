@@ -8,6 +8,7 @@ import { loadMethodology } from "@/methodology/loader";
 import {
   analysisPromptFor,
   analysisPromptRungFor,
+  analysisRecallWhy,
   analysisReviewThresholds,
 } from "@/methodology/provider";
 import { isGradedValue } from "@/methodology/schema/graded";
@@ -58,5 +59,15 @@ describe("analysis review prompt ladder", () => {
     expect(analysisPromptFor("old", cfg).value).toMatch(/remember/i);
     // Prompts never point at page positions; the identity card carries the info.
     expect(analysisPromptFor("old", cfg).value).not.toMatch(/below/i);
+  });
+
+  it("carries a graded why-this note for the write-first step (retrieval practice)", () => {
+    const why = analysisRecallWhy(cfg);
+    expect(isGradedValue(why)).toBe(true);
+    expect(why.grade).toBe("C");
+    expect(why.citationKey).toBe("roediger2006");
+    // Honesty: the note states the evidence boundary, never a chess-specific claim.
+    expect(why.value).toMatch(/retrieval practice/i);
+    expect(why.value).toMatch(/has not been measured/);
   });
 });

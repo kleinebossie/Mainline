@@ -66,6 +66,7 @@ export {
   analysisReviewThresholds,
   analysisPromptRungFor,
   analysisPromptFor,
+  analysisRecallWhy,
   type AnalysisPromptRung,
   type AnalysisPromptCopy,
   type AnalysisReviewThresholds,

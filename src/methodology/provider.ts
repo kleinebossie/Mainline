@@ -2785,3 +2785,8 @@ function requireAnalysisReview(cfg: MethodologyConfig) {
   }
   return review;
 }
+
+/** The graded why-this note for the write-first reflection step (retrieval practice). */
+export function analysisRecallWhy(cfg: MethodologyConfig): AnalysisPromptCopy {
+  return requireAnalysisReview(cfg).recallWhy;
+}
