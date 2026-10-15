@@ -19,10 +19,7 @@ import {
 import { errorMessage } from "@/lib/error-presentation";
 import { ManualGameImport } from "@/app/analysis/manual-game-import";
 import { DEFAULT_ANALYSIS_DEPTH } from "@/analysis/worker-config";
-import {
-  getGuestSession,
-  type GuestConnection,
-} from "@/lib/guest-session";
+import { getGuestSession, type GuestConnection } from "@/lib/guest-session";
 
 function resultChipClass(result: string | null | undefined): string {
   if (result === "win") return "bg-grade-a/10 text-grade-a";
@@ -325,7 +322,7 @@ export function AnalysisDashboard() {
 
   return (
     <PageShell
-      eyebrow="Structured game review"
+      kicker="Structured game review"
       title="Review your games"
       lede="Pick one of your games, think through its critical moments before seeing engine feedback, then schedule the mistakes for review."
       width="default"
@@ -346,14 +343,14 @@ export function AnalysisDashboard() {
         <section className="flex flex-col gap-4">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div className="flex flex-col gap-0.5">
-              <h2 className="eyebrow">Your games · pick one to review</h2>
+              <h2>Your games · pick one to review</h2>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               {platforms.length > 0 && (
                 <div
                   role="group"
                   aria-label="Primary platform"
-                  className="flex items-center gap-0.5 rounded-md border border-line bg-card p-0.5"
+                  className="sheet flex items-center gap-0.5 p-0.5"
                 >
                   {platforms.map((p) => (
                     <button
@@ -364,7 +361,7 @@ export function AnalysisDashboard() {
                       className={cn(
                         "min-h-8 rounded px-2.5 py-1 font-mono text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-paper",
                         selectedPlatform === p
-                          ? "bg-evergreen text-paper"
+                          ? "bg-tile text-paper"
                           : "text-graphite hover:text-ink",
                       )}
                     >
@@ -457,13 +454,11 @@ export function AnalysisDashboard() {
           )}
 
           {platforms.length === 0 && games.length === 0 ? (
-            <Card className="border-line bg-card shadow-sheet">
+            <Card className="sheet">
               <CardContent className="flex flex-col gap-5 py-6">
                 <div className="flex flex-col gap-2">
-                  <p className="eyebrow text-evergreen">
-                    Automatic game imports
-                  </p>
-                  <h3 className="font-serif text-xl font-semibold text-ink">
+                  <p className="label-ink">Automatic game imports</p>
+                  <h3 className="text-xl font-semibold text-ink">
                     Connect a chess account to sync your games automatically.
                   </h3>
                   <p className="font-serif text-sm text-graphite leading-relaxed max-w-xl">
@@ -472,7 +467,7 @@ export function AnalysisDashboard() {
                     your daily blunder drills.
                   </p>
                 </div>
-                <div className="flex flex-wrap items-center gap-3 border-t border-line/80 pt-4">
+                <div className="flex flex-wrap items-center gap-3 border-t border-rule/80 pt-4">
                   <Link
                     href="/connections"
                     className={buttonVariants({
@@ -480,7 +475,7 @@ export function AnalysisDashboard() {
                       size: "sm",
                     })}
                   >
-                    Connect chess account →
+                    Connect chess account
                   </Link>
                   <Link
                     href="/signin"
@@ -513,7 +508,7 @@ export function AnalysisDashboard() {
             <Card gutter="B">
               <CardContent className="flex flex-col gap-6 py-6">
                 <div className="flex flex-col gap-2 text-center">
-                  <h3 className="font-serif text-xl font-bold text-ink">
+                  <h3 className="text-xl font-bold text-ink">
                     Start converting your real games into personal drills
                   </h3>
                   <p className="text-graphite font-serif text-sm max-w-xl mx-auto leading-relaxed">
@@ -526,7 +521,7 @@ export function AnalysisDashboard() {
                 </div>
 
                 {selectedPlatform !== "manual" && (
-                  <div className="flex flex-wrap justify-center gap-3 border-t border-line/80 pt-4">
+                  <div className="flex flex-wrap justify-center gap-3 border-t border-rule/80 pt-4">
                     <Button
                       size="sm"
                       disabled={sync.isPending || isGuestSyncing}
@@ -556,19 +551,19 @@ export function AnalysisDashboard() {
               {games.map((g) => (
                 <div
                   key={g.id}
-                  className="flex flex-col gap-3 rounded-lg border border-line bg-card px-4 py-3 shadow-sheet transition-colors hover:border-ink/20 sm:flex-row sm:items-center sm:justify-between"
+                  className="sheet flex flex-col gap-3 px-4 py-3 transition-colors hover:border-ink/20 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div className="flex min-w-0 flex-col gap-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <span
                         className={cn(
-                          "rounded px-1.5 py-0.5 font-mono text-[0.6rem] font-bold uppercase",
+                          "rounded px-1.5 py-0.5 font-mono text-[0.6rem] font-bold",
                           resultChipClass(g.result),
                         )}
                       >
                         {resultLabel(g.result)}
                       </span>
-                      <span className="truncate font-serif text-sm font-semibold text-ink">
+                      <span className="truncate text-sm font-semibold text-ink">
                         {colorWord(g.color)} vs {g.opponent ?? "Opponent"}
                         {g.opponentRating != null && (
                           <span className="text-graphite font-mono text-xs">
@@ -578,7 +573,7 @@ export function AnalysisDashboard() {
                         )}
                       </span>
                       {g.analyzed && (
-                        <span className="rounded bg-evergreen/10 px-1.5 py-0.5 font-mono text-[0.55rem] font-bold uppercase tracking-wide text-evergreen">
+                        <span className="rounded bg-tile/10 px-1.5 py-0.5 font-mono text-[0.55rem] font-bold uppercase tracking-wide text-tile">
                           Scanned
                         </span>
                       )}
@@ -635,7 +630,7 @@ export function AnalysisDashboard() {
         {/* Honest one-line recommendation (Seam 4.1 §Step5): no curated list, since the
             player can already pick any game above. */}
         {ratio && successBiasRationale && (
-          <section className="flex flex-col gap-3 rounded-lg border border-line bg-card px-5 py-4 shadow-sheet">
+          <section className="sheet flex flex-col gap-3 px-5 py-4">
             <p className="text-ink font-serif text-sm leading-relaxed">
               When picking a game above, aim for roughly{" "}
               <span className="font-mono font-semibold">

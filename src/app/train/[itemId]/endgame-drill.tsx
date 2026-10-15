@@ -38,8 +38,9 @@ import { cn } from "@/lib/utils";
 // outcome is auto-logged (`drill_done`) and FSRS-rescheduled by the existing loop, unchanged.
 
 type AnalysisEngine = import("@/analysis").StockfishAnalysisEngine;
-type TrainData =
-  NonNullable<inferRouterOutputs<AppRouter>["program"]["getTrainItem"]>;
+type TrainData = NonNullable<
+  inferRouterOutputs<AppRouter>["program"]["getTrainItem"]
+>;
 
 // Infra constants (client responsiveness / runaway-game guard), NOT methodology (L1).
 const ENGINE_DEPTH = 12;
@@ -322,7 +323,7 @@ export function EndgameDrillSession({
       <div className="flex flex-col gap-6 py-6 settle">
         <Card gutter="A">
           <CardHeader>
-            <CardTitle className="font-serif text-2xl font-bold">
+            <CardTitle className="text-2xl font-bold">
               {positions.length === 0
                 ? "No endgame drills due"
                 : "Endgame session complete"}
@@ -338,13 +339,11 @@ export function EndgameDrillSession({
             </p>
 
             {data.nextItem && (
-              <div className="rounded-md border border-evergreen/30 bg-evergreen/[0.04] p-3 sm:p-4">
+              <div className="rounded-md border border-tile/30 bg-tile/[0.04] p-3 sm:p-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p className="eyebrow text-evergreen">
-                      Next in today&apos;s session
-                    </p>
-                    <p className="mt-0.5 font-serif text-base font-semibold text-ink">
+                    <p className="label-ink">Next in today&apos;s session</p>
+                    <p className="mt-0.5 text-base font-semibold text-ink">
                       Block {data.nextItem.orderIndex + 1}:{" "}
                       {data.nextItem.label}
                     </p>
@@ -430,12 +429,12 @@ export function EndgameDrillSession({
 
   return (
     <div className="flex flex-col gap-6 py-6 settle">
-      <div className="flex flex-col gap-2 border-b border-line pb-3 sm:flex-row sm:items-baseline sm:justify-between">
+      <div className="flex flex-col gap-2 border-b border-rule pb-3 sm:flex-row sm:items-baseline sm:justify-between">
         <div className="flex flex-col gap-1">
-          <p className="eyebrow !text-[0.65rem] uppercase tracking-wider">
+          <p className="label !text-[0.65rem] uppercase tracking-wider">
             Endgame drill · {data.item.label}
           </p>
-          <h1 className="text-ink font-serif text-3xl font-bold tracking-tight">
+          <h1 className="text-ink text-3xl font-bold tracking-tight">
             {current?.label ?? "Current endgame"}
           </h1>
         </div>
@@ -449,7 +448,7 @@ export function EndgameDrillSession({
           <div
             className={`${BOARD_SIZE_CLASS} flex items-center justify-between px-1`}
           >
-            <span className="eyebrow !text-[0.6rem]">
+            <span className="label !text-[0.6rem]">
               Objective: {objectiveLabel}
             </span>
             <span className="text-graphite font-mono text-xs">
@@ -538,8 +537,8 @@ export function EndgameDrillSession({
 
               {/* Tablebase ground truth (optional oracle). */}
               {verdict && (
-                <div className="flex flex-col gap-1.5 rounded-md border border-line bg-paper/40 p-4">
-                  <span className="text-graphite font-mono text-[0.65rem] font-semibold uppercase tracking-wider">
+                <div className="flex flex-col gap-1.5 rounded-md border border-rule bg-sheet p-4">
+                  <span className="text-graphite font-mono text-[0.65rem] font-semibold tracking-wider">
                     Tablebase ground truth
                   </span>
                   <p className="text-sm font-serif text-ink leading-relaxed">
@@ -566,9 +565,7 @@ export function EndgameDrillSession({
                   <span
                     className={cn(
                       "font-serif text-lg font-semibold",
-                      result.correct
-                        ? "text-evergreen-bright"
-                        : "text-destructive",
+                      result.correct ? "text-sage" : "text-destructive",
                     )}
                   >
                     {result.correct ? "✓ Objective met" : "✗ Not this time"}
@@ -579,7 +576,7 @@ export function EndgameDrillSession({
                 </div>
               )}
 
-              <div className="flex flex-col gap-2 border-t border-line/80 pt-4">
+              <div className="flex flex-col gap-2 border-t border-rule/80 pt-4">
                 {status === "done" ? (
                   <Button
                     onClick={goNext}

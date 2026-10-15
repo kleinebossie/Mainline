@@ -56,8 +56,9 @@ import { getGuestTrainItemData } from "@/lib/guest-solvables";
 // program.getTrainItem. Both render on the same board + redo flow; only the solve-state
 // construction (a puzzle has an opponent setup move, a drill does not) and the logged event
 // type differ by `kind`.
-type TrainData =
-  NonNullable<inferRouterOutputs<AppRouter>["program"]["getTrainItem"]>;
+type TrainData = NonNullable<
+  inferRouterOutputs<AppRouter>["program"]["getTrainItem"]
+>;
 type Solvable = TrainData["solvables"][number];
 
 interface TrainItemProps {
@@ -82,26 +83,25 @@ export function TrainItem({ programItemId }: TrainItemProps) {
   }, [mounted, programItemId]);
 
   const {
-
     data: serverData,
     isLoading: serverLoading,
     error: serverError,
     refetch,
     isFetching,
-  } = trpc.program.getTrainItem.useQuery(
-    { programItemId },
-    { retry: false },
-  );
+  } = trpc.program.getTrainItem.useQuery({ programItemId }, { retry: false });
 
   const guestTrainData = useMemo(() => {
     return guestItem ? getGuestTrainItemData(guestItem) : null;
   }, [guestItem]);
 
   const isGuest = Boolean(
-    !serverLoading && (serverError != null || !serverData) && guestTrainData != null
+    !serverLoading &&
+    (serverError != null || !serverData) &&
+    guestTrainData != null,
   );
 
-  const data = serverData ?? (isGuest ? (guestTrainData as unknown as TrainData) : null);
+  const data =
+    serverData ?? (isGuest ? (guestTrainData as unknown as TrainData) : null);
   const isLoading = !mounted || (serverLoading && !guestTrainData);
   const error = isGuest ? null : serverError;
 
@@ -675,10 +675,10 @@ export function TrainItem({ programItemId }: TrainItemProps) {
     if (!hasAnyGames) {
       return (
         <div className="settle mx-auto flex w-full max-w-2xl flex-col gap-5 py-6">
-          <Card className="overflow-hidden p-6 sm:p-8 bg-card shadow-sheet">
+          <Card className="sheet overflow-hidden p-6 sm:p-8">
             <div className="flex flex-col gap-4">
-              <p className="eyebrow text-evergreen">Game Analysis</p>
-              <h1 className="font-serif text-2xl sm:text-3xl font-semibold leading-tight text-ink">
+              <p className="label-ink">Game Analysis</p>
+              <h1 className="text-2xl sm:text-3xl font-semibold leading-tight text-ink">
                 Nothing to analyse yet
               </h1>
               <p className="font-serif text-sm leading-relaxed text-graphite">
@@ -693,7 +693,9 @@ export function TrainItem({ programItemId }: TrainItemProps) {
                       games import automatically.
                     </>
                   ) : (
-                    <>Sync your connected chess account from the Analysis page.</>
+                    <>
+                      Sync your connected chess account from the Analysis page.
+                    </>
                   )}
                 </li>
                 <li>Import a PGN file by hand from the Analysis page.</li>
@@ -704,7 +706,7 @@ export function TrainItem({ programItemId }: TrainItemProps) {
                     href="/connections"
                     className={buttonVariants({ variant: "default" })}
                   >
-                    Connect chess account →
+                    Connect chess account
                   </Link>
                 ) : null}
                 <Link
@@ -718,7 +720,7 @@ export function TrainItem({ programItemId }: TrainItemProps) {
                   Open Analysis
                 </Link>
               </div>
-              <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-line pt-4">
+              <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-rule pt-4">
                 <p className="text-graphite font-serif text-sm">
                   Already reviewed a game somewhere else?
                 </p>
@@ -746,10 +748,10 @@ export function TrainItem({ programItemId }: TrainItemProps) {
 
     return (
       <div className="settle mx-auto flex w-full max-w-2xl flex-col gap-5 py-6">
-        <Card className="overflow-hidden p-6 sm:p-8 bg-card shadow-sheet">
+        <Card className="sheet overflow-hidden p-6 sm:p-8">
           <div className="flex flex-col gap-4">
-            <p className="eyebrow text-evergreen">Game Analysis</p>
-            <h1 className="font-serif text-2xl sm:text-3xl font-semibold leading-tight text-ink">
+            <p className="label-ink">Game Analysis</p>
+            <h1 className="text-2xl sm:text-3xl font-semibold leading-tight text-ink">
               Reviewed a game on your own? Log it.
             </h1>
             <p className="font-serif text-sm leading-relaxed text-graphite">
@@ -862,7 +864,7 @@ export function TrainItem({ programItemId }: TrainItemProps) {
         )}
         <Card gutter="A">
           <CardHeader>
-            <CardTitle className="font-serif text-2xl font-bold">
+            <CardTitle className="text-2xl font-bold">
               {completionHeading}
             </CardTitle>
           </CardHeader>
@@ -871,7 +873,7 @@ export function TrainItem({ programItemId }: TrainItemProps) {
               {completionMessage}
             </p>
             {solvables.length > 0 && (
-              <p className="font-mono text-xs text-evergreen border-l-2 border-evergreen/40 pl-3">
+              <p className="font-mono text-xs text-tile border-l-[3px] border-biro/45 pl-3">
                 {solvables.length - retestQueue.length} of {solvables.length}{" "}
                 positions correct on first attempt (
                 {Math.round(
@@ -883,13 +885,11 @@ export function TrainItem({ programItemId }: TrainItemProps) {
             )}
 
             {data.nextItem && (
-              <div className="rounded-md border border-evergreen/30 bg-evergreen/[0.04] p-3 sm:p-4">
+              <div className="rounded-md border border-tile/30 bg-tile/[0.04] p-3 sm:p-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p className="eyebrow text-evergreen">
-                      Next in today&apos;s session
-                    </p>
-                    <p className="mt-0.5 font-serif text-base font-semibold text-ink">
+                    <p className="label-ink">Next in today&apos;s session</p>
+                    <p className="mt-0.5 text-base font-semibold text-ink">
                       Block {data.nextItem.orderIndex + 1}:{" "}
                       {data.nextItem.label}
                     </p>
@@ -980,7 +980,7 @@ export function TrainItem({ programItemId }: TrainItemProps) {
       <div className="flex flex-col gap-6 py-6 settle max-w-xl mx-auto">
         <Card gutter="C">
           <CardHeader>
-            <CardTitle className="font-serif text-2xl font-bold text-center">
+            <CardTitle className="text-2xl font-bold text-center">
               Desirable difficulty: spacing interval
             </CardTitle>
           </CardHeader>
@@ -994,14 +994,14 @@ export function TrainItem({ programItemId }: TrainItemProps) {
                 Scheduled block left: {formattedSessionTime}
               </p>
             )}
-            <div className="bg-paper/40 border rounded-md p-6 my-2">
-              <p className="eyebrow !text-xs mb-2">Retest countdown</p>
+            <div className="bg-sheet border rounded-md p-6 my-2">
+              <p className="label !text-xs mb-2">Retest countdown</p>
               <p className="text-5xl font-mono font-bold text-ink tracking-tight tabular-nums">
                 {formattedTime}
               </p>
             </div>
 
-            <blockquote className="border-l-4 border-evergreen/40 pl-4 py-1 text-left text-sm text-graphite italic font-serif leading-relaxed">
+            <blockquote className="border-l-4 border-tile/40 pl-4 py-1 text-left text-sm text-graphite italic font-serif leading-relaxed">
               &ldquo;{data.redoFlow.rationale.value}&rdquo;
               <div className="mt-2 flex items-center justify-end not-italic">
                 <GradeMark
@@ -1011,7 +1011,7 @@ export function TrainItem({ programItemId }: TrainItemProps) {
               </div>
             </blockquote>
 
-            <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4 border-t border-line">
+            <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4 border-t border-rule">
               <Button variant="outline" size="sm" onClick={skipDelay}>
                 I&apos;ve waited {delayMinutes} min. Retest now
               </Button>
@@ -1058,10 +1058,10 @@ export function TrainItem({ programItemId }: TrainItemProps) {
           retryLabel="Try saving result"
         />
       )}
-      <div className="flex flex-col gap-3 border-b border-line pb-4 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-3 border-b border-rule pb-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex flex-col gap-1.5 min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="eyebrow !text-[0.65rem] uppercase tracking-wider">
+            <p className="label !text-[0.65rem] uppercase tracking-wider">
               {phaseLabel} · {data.item.label}
             </p>
             <GradeMark
@@ -1069,7 +1069,7 @@ export function TrainItem({ programItemId }: TrainItemProps) {
               tier={data.item.evidenceTier}
             />
           </div>
-          <h1 className="text-ink font-serif text-2xl font-bold tracking-tight sm:text-3xl">
+          <h1 className="text-ink text-2xl font-bold tracking-tight sm:text-3xl">
             {phase === "retest"
               ? "Retest this position"
               : isDrill
@@ -1093,7 +1093,7 @@ export function TrainItem({ programItemId }: TrainItemProps) {
           <div
             className={`${BOARD_SIZE_CLASS} flex items-center justify-between px-1`}
           >
-            <span className="eyebrow !text-[0.6rem]">
+            <span className="label !text-[0.6rem]">
               {orientation === "white" ? "White" : "Black"} to move
             </span>
             <span className="text-graphite font-mono text-xs">
@@ -1158,13 +1158,13 @@ export function TrainItem({ programItemId }: TrainItemProps) {
                   the move the engine prefers.
                 </p>
               )}
-              <div className="flex flex-col gap-2 rounded-md border border-line bg-paper/50 p-4">
+              <div className="flex flex-col gap-2 rounded-md border border-rule bg-sheet p-4">
                 <span
                   className={cn(
                     "font-serif text-lg font-semibold",
-                    solveStatus === "solved" && "text-evergreen-bright",
+                    solveStatus === "solved" && "text-sage",
                     solveStatus === "wrong" && "text-destructive",
-                    solveStatus === "correct" && "text-evergreen",
+                    solveStatus === "correct" && "text-tile",
                     solveStatus === "pending" && "text-graphite",
                   )}
                 >
@@ -1184,8 +1184,8 @@ export function TrainItem({ programItemId }: TrainItemProps) {
 
               {/* Scaffolded Hint Display (Phase 1) */}
               {hintActive && (
-                <div className="flex flex-col gap-2 rounded-md border border-evergreen/20 bg-evergreen/5 p-4 transition-all settle">
-                  <span className="text-evergreen font-mono text-xs font-semibold uppercase tracking-wider">
+                <div className="flex flex-col gap-2 rounded-md border border-tile/20 bg-tile/5 p-4 transition-all settle">
+                  <span className="text-tile font-mono text-xs font-semibold tracking-wider">
                     Hint
                   </span>
                   <p className="text-sm font-serif text-ink leading-relaxed">
@@ -1195,7 +1195,7 @@ export function TrainItem({ programItemId }: TrainItemProps) {
                         <>
                           {" "}
                           Look for:{" "}
-                          <span className="font-medium text-evergreen">
+                          <span className="font-medium text-tile">
                             {current.themes
                               .map(humanizeTheme)
                               .slice(0, 3)
@@ -1214,7 +1214,7 @@ export function TrainItem({ programItemId }: TrainItemProps) {
               )}
 
               {/* Action Buttons */}
-              <div className="flex flex-col gap-2 border-t border-line/80 pt-4">
+              <div className="flex flex-col gap-2 border-t border-rule/80 pt-4">
                 {solveStatus === "solved" ? (
                   <Button
                     onClick={() => handleNext()}

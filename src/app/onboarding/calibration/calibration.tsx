@@ -57,9 +57,7 @@ export function Calibration() {
   );
   const [primaryFormat, setPrimaryFormat] = useState<string | null>(() => {
     if (typeof window !== "undefined") {
-      return (
-        getGuestSession().constraints?.formatPrefs?.formats?.[0] ?? null
-      );
+      return getGuestSession().constraints?.formatPrefs?.formats?.[0] ?? null;
     }
     return null;
   });
@@ -219,13 +217,11 @@ export function Calibration() {
 
   if (state.data.locked) {
     return (
-      <Card className="settle border-line bg-card shadow-sheet p-6 sm:p-8">
+      <Card className="sheet settle p-6 sm:p-8">
         <div className="flex flex-col gap-5">
           <div>
-            <p className="eyebrow text-evergreen">
-              Tactical Calibration · Locked
-            </p>
-            <h2 className="font-serif text-2xl sm:text-3xl font-semibold mt-1">
+            <p className="label-ink">Tactical Calibration · Locked</p>
+            <h2 className="text-2xl sm:text-3xl font-semibold mt-1">
               Connect a chess account to unlock calibration
             </h2>
             <p className="text-graphite text-sm sm:text-base font-serif leading-relaxed mt-2 max-w-xl">
@@ -238,7 +234,7 @@ export function Calibration() {
               href="/connections"
               className={buttonVariants({ size: "default" })}
             >
-              Connect chess account →
+              Connect chess account
             </Link>
             <Link
               href="/today"
@@ -247,7 +243,7 @@ export function Calibration() {
                 size: "default",
               })}
             >
-              Skip to Today&apos;s training →
+              Skip to Today&apos;s training
             </Link>
           </div>
         </div>
@@ -261,16 +257,16 @@ export function Calibration() {
 
   if (completed || !activeTrack) {
     return (
-      <Card className="settle border-line bg-card shadow-sheet p-6 sm:p-8">
+      <Card className="sheet settle p-6 sm:p-8">
         <div className="flex flex-col gap-5">
           <div>
-            <p className="eyebrow text-evergreen">Calibration complete</p>
-            <h2 className="font-serif text-2xl sm:text-3xl font-semibold mt-1">
+            <p className="label-ink">Calibration complete</p>
+            <h2 className="text-2xl sm:text-3xl font-semibold mt-1">
               Your calibration is already finished
             </h2>
             <p className="text-graphite text-sm sm:text-base font-serif leading-relaxed mt-2 max-w-xl">
-              You can review your full baseline on the reveal page, or retake the
-              3-puzzle calibration.
+              You can review your full baseline on the reveal page, or retake
+              the 3-puzzle calibration.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3 pt-2">
@@ -278,7 +274,7 @@ export function Calibration() {
               href="/onboarding/reveal"
               className={buttonVariants({ size: "default" })}
             >
-              Continue to reveal →
+              Continue to reveal
             </Link>
             <Button
               type="button"
@@ -304,17 +300,16 @@ export function Calibration() {
       primaryFormat,
     });
 
-
   return (
     <Card className="settle">
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between gap-3">
-          <p className="eyebrow !text-[0.65rem]">Tactical Calibration</p>
-          <p className="text-graphite font-mono text-[0.65rem] uppercase tracking-wider">
+          <p className="label !text-[0.65rem]">Tactical Calibration</p>
+          <p className="text-graphite font-mono text-[0.65rem] tracking-wider">
             3 puzzles
           </p>
         </div>
-        <CardTitle className="font-serif text-2xl sm:text-3xl font-semibold mt-1">
+        <CardTitle className="text-2xl sm:text-3xl font-semibold mt-1">
           Puzzle {activeTrack.next.itemNumber} of {maxItems}
         </CardTitle>
         <p className="text-graphite text-sm leading-relaxed mt-1">
@@ -343,10 +338,10 @@ export function Calibration() {
               className={cn(
                 "h-1.5 flex-1 rounded-full transition-colors",
                 i < activeTrack.next.itemNumber - 1
-                  ? "bg-evergreen"
+                  ? "bg-tile"
                   : i === activeTrack.next.itemNumber - 1
-                    ? "bg-evergreen/50"
-                    : "bg-line",
+                    ? "bg-tile/50"
+                    : "bg-rule",
               )}
             />
           ))}
@@ -359,11 +354,11 @@ export function Calibration() {
               <div
                 className={`${BOARD_SIZE_CLASS} flex items-center justify-between px-1`}
               >
-                <span className="eyebrow !text-[0.6rem]">
+                <span className="label !text-[0.6rem]">
                   {orientation === "white" ? "White" : "Black"} to move
                 </span>
                 {isAdvancing ? (
-                  <span className="inline-flex items-center gap-1.5 font-mono text-xs font-semibold text-evergreen animate-pulse">
+                  <span className="inline-flex items-center gap-1.5 font-mono text-xs font-semibold text-tile animate-pulse">
                     <Loader2 className="h-3 w-3 animate-spin" />
                     Loading next puzzle…
                   </span>
@@ -378,7 +373,10 @@ export function Calibration() {
                 onMove={handleMove}
                 orientation={orientation}
                 disabled={
-                  pending || isAdvancing || solveStatus === "solved" || solveStatus === "wrong"
+                  pending ||
+                  isAdvancing ||
+                  solveStatus === "solved" ||
+                  solveStatus === "wrong"
                 }
                 showEvalBar={affordances?.showEvalBar ?? false}
                 showLegalMoveDots={affordances?.showLegalMoveDots ?? false}
@@ -396,15 +394,15 @@ export function Calibration() {
               </div>
             </div>
 
-        {/* Info Sidebar */}
+            {/* Info Sidebar */}
             <div className="flex flex-col gap-4">
-              <div className="flex flex-col gap-2 rounded-md border border-line bg-paper/50 p-4">
+              <div className="flex flex-col gap-2 rounded-md border border-rule bg-sheet p-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-ink font-mono text-xs font-semibold uppercase tracking-wider">
+                  <span className="text-ink font-mono text-xs font-semibold tracking-wider">
                     Solve status:
                   </span>
                   {isAdvancing && (
-                    <span className="inline-flex items-center gap-1 font-mono text-[0.65rem] text-evergreen animate-pulse">
+                    <span className="inline-flex items-center gap-1 font-mono text-[0.65rem] text-tile animate-pulse">
                       <Loader2 className="h-3 w-3 animate-spin" />
                       Loading next…
                     </span>
@@ -413,9 +411,9 @@ export function Calibration() {
                 <div
                   className={cn(
                     "font-serif text-lg font-semibold flex flex-col gap-1",
-                    solveStatus === "solved" && "text-evergreen-bright",
+                    solveStatus === "solved" && "text-sage",
                     solveStatus === "wrong" && "text-destructive",
-                    solveStatus === "correct" && "text-evergreen",
+                    solveStatus === "correct" && "text-tile",
                     solveStatus === "pending" && "text-graphite",
                   )}
                 >
@@ -423,18 +421,21 @@ export function Calibration() {
                     {solveStatus === "solved" && "✓ Solved"}
                     {solveStatus === "wrong" && "✗ Incorrect"}
                     {solveStatus === "correct" && "✓ Correct move"}
-                    {solveStatus === "pending" && (isAdvancing ? "Loading next puzzle…" : "Solve the puzzle…")}
+                    {solveStatus === "pending" &&
+                      (isAdvancing
+                        ? "Loading next puzzle…"
+                        : "Solve the puzzle…")}
                   </div>
                   {isAdvancing && (
                     <p className="text-xs font-mono font-normal text-graphite flex items-center gap-1.5 pt-0.5">
-                      <Loader2 className="h-3 w-3 animate-spin text-evergreen shrink-0" />
+                      <Loader2 className="h-3 w-3 animate-spin text-tile shrink-0" />
                       Next puzzle loading…
                     </p>
                   )}
                 </div>
               </div>
 
-              <div className="flex flex-col gap-2 border-t border-line/80 pt-4">
+              <div className="flex flex-col gap-2 border-t border-rule/80 pt-4">
                 <Button
                   variant="outline"
                   onClick={handleSkip}
@@ -443,7 +444,7 @@ export function Calibration() {
                 >
                   {isAdvancing ? (
                     <>
-                      <Loader2 className="h-4 w-4 animate-spin text-evergreen" />
+                      <Loader2 className="h-4 w-4 animate-spin text-tile" />
                       <span>Loading next puzzle…</span>
                     </>
                   ) : (
@@ -455,8 +456,8 @@ export function Calibration() {
           </div>
         ) : (
           <>
-            <div className="bg-paper/60 rounded-md border p-5 text-center">
-              <p className="eyebrow !text-[0.65rem] mb-1">
+            <div className="bg-sheet rounded-md border p-5 text-center">
+              <p className="label !text-[0.65rem] mb-1">
                 Puzzle strength target
               </p>
               <p className="text-4xl font-mono font-bold tracking-tight text-ink tabular-nums">

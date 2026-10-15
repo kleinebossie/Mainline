@@ -7,17 +7,19 @@ import { cn } from "@/lib/utils";
 
 // Controlled board: the parent owns the FEN; this component derives legal moves and notation.
 
-const LIGHT_SQUARE = "var(--board-light, #e9e7d8)";
-const DARK_SQUARE = "var(--board-dark, #6f8a7d)";
-const SELECT_FILL = "rgba(111, 138, 125, 0.45)";
-const SELECT_RING = "inset 0 0 0 3px rgba(47, 64, 57, 0.85)";
-const HINT_FILL = "rgba(214, 158, 46, 0.5)";
+// Board materials come from the palette (planning/DESIGN.md): neutral squares, and blue
+// biro only where the reader has acted or can act.
+const LIGHT_SQUARE = "var(--board-light, #e6e8e1)";
+const DARK_SQUARE = "var(--board-dark, #6e8479)";
+const SELECT_FILL = "rgba(29, 64, 192, 0.34)";
+const SELECT_RING = "inset 0 0 0 3px rgba(29, 64, 192, 0.9)";
+const HINT_FILL = "rgba(154, 100, 8, 0.4)";
 const DEST_DOT =
-  "radial-gradient(circle, rgba(35, 48, 43, 0.32) 17%, transparent 19%)";
-const CAPTURE_RING = "inset 0 0 0 4px rgba(35, 48, 43, 0.32)";
-const HOVER_RING = "inset 0 0 0 3px rgba(111, 138, 125, 0.6)";
+  "radial-gradient(circle, rgba(28, 33, 31, 0.3) 17%, transparent 19%)";
+const CAPTURE_RING = "inset 0 0 0 4px rgba(28, 33, 31, 0.32)";
+const HOVER_RING = "inset 0 0 0 3px rgba(29, 64, 192, 0.45)";
 const CHECK_FILL =
-  "radial-gradient(circle, rgba(176, 58, 46, 0.85) 0%, rgba(176, 58, 46, 0.3) 50%, transparent 72%)";
+  "radial-gradient(circle, rgba(174, 49, 32, 0.85) 0%, rgba(174, 49, 32, 0.3) 50%, transparent 72%)";
 
 /** Canonical responsive measure for every chessboard in the app. */
 export const BOARD_SIZE_CLASS = "w-full max-w-[32rem]";
@@ -223,8 +225,8 @@ export function InteractiveBoard({
       darkSquareStyle: { backgroundColor: DARK_SQUARE },
       lightSquareStyle: { backgroundColor: LIGHT_SQUARE },
       boardStyle: {
-        borderRadius: "0.5rem",
-        boxShadow: "0 1px 0 rgba(0,0,0,0.04)",
+        borderRadius: "6px",
+        boxShadow: "inset 0 0 0 1px rgba(28, 33, 31, 0.16)",
       },
       squareStyles,
       onSquareClick: handleSquareClick,
@@ -253,14 +255,14 @@ export function InteractiveBoard({
 
   return (
     <div
-      className={cn("flex items-stretch gap-2", className, BOARD_SIZE_CLASS)}
+      className={cn("flex items-stretch gap-2.5", className, BOARD_SIZE_CLASS)}
     >
       {showEvalBar && evalCp != null && <EvalBar cp={evalCp} />}
       <div className="relative aspect-square min-w-0 flex-1 select-none overflow-hidden rounded-lg">
         {mounted ? (
           <Chessboard options={options} />
         ) : (
-          <div className="h-full w-full rounded-lg border border-line bg-paper/40" />
+          <div className="h-full w-full rounded-lg border border-rule bg-sheet" />
         )}
       </div>
     </div>
@@ -272,11 +274,11 @@ function EvalBar({ cp }: { cp: number }) {
   const whiteShare = 0.5 + 0.5 * Math.tanh(cp / 400); // smooth win-probability-ish map
   return (
     <div
-      className="relative w-2 shrink-0 overflow-hidden rounded-sm border border-ink/20 bg-ink"
+      className="bg-ink relative w-2 shrink-0 overflow-hidden rounded-[1px]"
       aria-hidden
     >
       <div
-        className="absolute inset-x-0 bottom-0 bg-paper"
+        className="bg-sheet absolute inset-x-0 bottom-0"
         style={{ height: `${Math.round(whiteShare * 100)}%` }}
       />
     </div>

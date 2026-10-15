@@ -6,7 +6,7 @@ import { ConnectionsManager } from "@/app/connections/connections-manager";
 export default function ConnectionsPage() {
   return (
     <PageShell
-      eyebrow="Game sources"
+      kicker="Game sources"
       title="Connections"
       lede="Link your chess accounts so Mainline can analyse your games."
     >

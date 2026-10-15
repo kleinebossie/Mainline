@@ -14,7 +14,8 @@ export function LandingTelemetry() {
     });
 
     if (typeof window !== "undefined") {
-      const revealSeen = localStorage.getItem("mainline_reveal_seen") === "true";
+      const revealSeen =
+        localStorage.getItem("mainline_reveal_seen") === "true";
       const session = getGuestSession();
       if (revealSeen || session.program != null) {
         router.replace("/today");
@@ -24,4 +25,3 @@ export function LandingTelemetry() {
 
   return null;
 }
-

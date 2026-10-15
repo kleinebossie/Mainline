@@ -21,9 +21,7 @@ import {
   type RationaleEntry,
 } from "@/methodology";
 import { MethodologyRationaleCard } from "@/components/methodology-rationale-card";
-import {
-  deriveGuestQueue,
-} from "@/app/analysis/session/guest-queue";
+import { deriveGuestQueue } from "@/app/analysis/session/guest-queue";
 import {
   getGuestSession,
   updateGuestProgramItemStatus,
@@ -95,9 +93,9 @@ function GameMetadataLine({ game }: { game: QueueGameView }) {
             href={game.externalUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="underline decoration-line underline-offset-2 hover:text-ink"
+            className="underline decoration-rule underline-offset-2 hover:text-ink"
           >
-            View on {game.platform === "chesscom" ? "Chess.com" : "Lichess"} ↗
+            View on {game.platform === "chesscom" ? "Chess.com" : "Lichess"}
           </a>
         </>
       )}
@@ -226,17 +224,15 @@ export function AnalysisQueueSession() {
     if (programItemId == null) return;
     setGuestLoading(true);
     try {
-      let derived =
-        deriveGuestQueue(programItemId, Date.now()) ??
-        {
-          budgetMinutes: 0,
-          usedMinutes: 0,
-          completedReviews: 0,
-          targetCount: 0,
-          hasGames: false,
-          games: [],
-          scanCandidate: null,
-        };
+      let derived = deriveGuestQueue(programItemId, Date.now()) ?? {
+        budgetMinutes: 0,
+        usedMinutes: 0,
+        completedReviews: 0,
+        targetCount: 0,
+        hasGames: false,
+        games: [],
+        scanCandidate: null,
+      };
       // A fresh guest with a connection but an empty cache pulls recent games first.
       if (
         readGuestGamesCache().length === 0 &&
@@ -320,7 +316,8 @@ export function AnalysisQueueSession() {
   const data: ReviewQueueData | undefined = isGuest
     ? (guestData ?? undefined)
     : (queueQuery.data as ReviewQueueData | undefined);
-  const isLoading = !authResolved || (isGuest ? guestLoading : queueQuery.isLoading);
+  const isLoading =
+    !authResolved || (isGuest ? guestLoading : queueQuery.isLoading);
   const error = isGuest ? null : queueQuery.error;
 
   const state = useMemo(() => {
@@ -394,7 +391,7 @@ export function AnalysisQueueSession() {
 
   return (
     <PageShell
-      eyebrow="Guided game review"
+      kicker="Guided game review"
       title="Review your games"
       lede={
         data.completedReviews > 0
@@ -450,70 +447,70 @@ export function AnalysisQueueSession() {
         {scanningId === null &&
           scanError === null &&
           state.kind === "breather" && (
-          <Card className="p-5 sm:p-6" gutter="C">
-            <div className="flex flex-col gap-4">
-              <p className="eyebrow text-evergreen">
-                Game {data.completedReviews} done
-              </p>
-              <p className="font-serif text-xl font-semibold leading-snug text-ink">
-                {formatMinutes(minutesLeft)}
-                {minutesLeft > 0
-                  ? " left in this block."
-                  : " used. That covers the planned budget."}
-              </p>
-              <p className="text-graphite font-serif text-sm leading-relaxed">
-                About{" "}
-                {Math.max(1, data.targetCount - data.completedReviews)} more{" "}
-                {data.targetCount - data.completedReviews === 1
-                  ? "game"
-                  : "games"}{" "}
-                fit the plan.
-              </p>
-              <div className="border-t border-line pt-4">
-                <p className="eyebrow">{RUNG_LABELS[state.head.promptRung]}</p>
-                <p className="mt-2 font-serif text-base font-medium leading-relaxed text-ink">
-                  {state.head.opponent ?? "A game"}
-                  {state.head.playedAt
-                    ? `, played ${playedLabel(state.head.playedAt)}`
-                    : ""}
-                  . Next prompt:
+            <Card className="p-5 sm:p-6" gutter="C">
+              <div className="flex flex-col gap-4">
+                <p className="label-ink">Game {data.completedReviews} done</p>
+                <p className="text-xl font-semibold leading-snug text-ink">
+                  {formatMinutes(minutesLeft)}
+                  {minutesLeft > 0
+                    ? " left in this block."
+                    : " used. That covers the planned budget."}
                 </p>
-                <NextPrompt rung={state.head.promptRung} />
-                <GameMetadataLine game={state.head} />
+                <p className="text-graphite font-serif text-sm leading-relaxed">
+                  About {Math.max(1, data.targetCount - data.completedReviews)}{" "}
+                  more{" "}
+                  {data.targetCount - data.completedReviews === 1
+                    ? "game"
+                    : "games"}{" "}
+                  fit the plan.
+                </p>
+                <div className="border-t border-rule pt-4">
+                  <p className="label">{RUNG_LABELS[state.head.promptRung]}</p>
+                  <p className="mt-2 font-serif text-base font-medium leading-relaxed text-ink">
+                    {state.head.opponent ?? "A game"}
+                    {state.head.playedAt
+                      ? `, played ${playedLabel(state.head.playedAt)}`
+                      : ""}
+                    . Next prompt:
+                  </p>
+                  <NextPrompt rung={state.head.promptRung} />
+                  <GameMetadataLine game={state.head} />
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <Button onClick={() => setReturningFromReview(false)}>
+                    Continue
+                  </Button>
+                  <Link
+                    href="/today"
+                    className={buttonVariants({ variant: "ghost", size: "sm" })}
+                  >
+                    Back to Today
+                  </Link>
+                </div>
+                <p className="text-graphite font-mono text-[0.65rem] leading-relaxed">
+                  Stopping here keeps the block open. Mainline checks the budget
+                  only between games, so your next review always runs to its
+                  end.
+                </p>
               </div>
-              <div className="flex flex-wrap items-center gap-3">
-                <Button onClick={() => setReturningFromReview(false)}>
-                  Continue
-                </Button>
-                <Link
-                  href="/today"
-                  className={buttonVariants({ variant: "ghost", size: "sm" })}
-                >
-                  Back to Today
-                </Link>
-              </div>
-              <p className="text-graphite font-mono text-[0.65rem] leading-relaxed">
-                Stopping here keeps the block open. Mainline checks the budget
-                only between games, so your next review always runs to its end.
-              </p>
-            </div>
-          </Card>
-        )}
+            </Card>
+          )}
 
         {scanningId === null &&
           scanError === null &&
           state.kind === "pre-game" && (
-          <PreGameCard game={state.head} programItemId={programItemId} />
-        )}
+            <PreGameCard game={state.head} programItemId={programItemId} />
+          )}
       </div>
     </PageShell>
   );
 }
 
 function useQueuePrompt(rung: AnalysisPromptRung): string {
-  return useMemo(() => analysisPromptFor(rung, loadMethodology()).value, [
-    rung,
-  ]);
+  return useMemo(
+    () => analysisPromptFor(rung, loadMethodology()).value,
+    [rung],
+  );
 }
 
 /** The graded why-this note for the write-first reflection step. */
@@ -565,8 +562,8 @@ function QueueProgressStrip({
           key={index}
           className={
             index < completed
-              ? "h-2 rounded-full border border-evergreen bg-evergreen"
-              : "h-2 rounded-full border border-line bg-paper"
+              ? "h-2 rounded-full border border-tile bg-tile"
+              : "h-2 rounded-full border border-rule bg-paper"
           }
         />
       ))}
@@ -588,8 +585,8 @@ function PreGameCard({
     <Card className="p-5 sm:p-6" gutter="C">
       <article className="flex flex-col gap-4">
         <div>
-          <p className="eyebrow">{RUNG_LABELS[game.promptRung]}</p>
-          <h2 className="mt-1 font-serif text-2xl font-semibold leading-tight text-ink">
+          <p className="label">{RUNG_LABELS[game.promptRung]}</p>
+          <h2 className="mt-1 text-2xl font-semibold leading-tight text-ink">
             {game.opponent ?? "An unreviewed game"}
           </h2>
           <div className="mt-2">
@@ -597,20 +594,22 @@ function PreGameCard({
           </div>
         </div>
 
-        <blockquote className="border-l-2 border-evergreen/40 py-1 pl-4">
-          <p className="font-serif text-lg leading-relaxed text-ink">{prompt}</p>
+        <blockquote className="border-l-[3px] border-biro/45 py-1 pl-4">
+          <p className="font-serif text-lg leading-relaxed text-ink">
+            {prompt}
+          </p>
         </blockquote>
 
         {recallWhy && (
           <MethodologyRationaleCard rationale={recallWhy} confidence="low" />
         )}
 
-        <div className="flex flex-wrap items-center gap-3 border-t border-line pt-4">
+        <div className="flex flex-wrap items-center gap-3 border-t border-rule pt-4">
           <Link
             href={reviewHref}
             className={cn(buttonVariants({ size: "lg" }), "h-11 px-6")}
           >
-            Start review →
+            Start review
           </Link>
           <Link
             href="/today"
@@ -658,16 +657,18 @@ function WrapUpCard({
   const primaryAction = !nothingToDo
     ? { href: "/today", label: "Back to Today" }
     : !hasGames && isGuest
-      ? { href: "/connections", label: "Connect chess account →" }
+      ? { href: "/connections", label: "Connect chess account" }
       : !hasGames
         ? { href: "/analysis", label: "Open Analysis" }
         : { href: "/today", label: "Back to Today" };
   return (
     <Card className="p-5 sm:p-6">
       <div className="flex flex-col gap-4">
-        <p className="eyebrow text-evergreen">{heading}</p>
-        <p className="font-serif text-base leading-relaxed text-ink">{message}</p>
-        <div className="flex flex-wrap items-center gap-3 border-t border-line pt-4">
+        <p className="label-ink">{heading}</p>
+        <p className="font-serif text-base leading-relaxed text-ink">
+          {message}
+        </p>
+        <div className="flex flex-wrap items-center gap-3 border-t border-rule pt-4">
           <Link
             href={primaryAction.href}
             className={buttonVariants({ size: "sm" })}
@@ -679,7 +680,9 @@ function WrapUpCard({
               href={primaryAction.href === "/today" ? "/analysis" : "/today"}
               className={buttonVariants({ variant: "ghost", size: "sm" })}
             >
-              {primaryAction.href === "/today" ? "Browse all games" : "Back to Today"}
+              {primaryAction.href === "/today"
+                ? "Browse all games"
+                : "Back to Today"}
             </Link>
           ) : null}
         </div>

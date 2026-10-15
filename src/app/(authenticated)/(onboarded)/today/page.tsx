@@ -6,7 +6,7 @@ import { Today } from "@/app/today/today";
 // for each (the honesty brand, VISION §2). The session adapts as outcomes are logged (M7).
 export default function TodayPage() {
   return (
-    <PageShell eyebrow="Your training" title="Today" width="wide">
+    <PageShell kicker="Your training" title="Today" width="wide">
       <Today />
     </PageShell>
   );

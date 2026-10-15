@@ -56,7 +56,7 @@ describe("ConnectionsManager", () => {
     expect(html).toContain("Locked");
     expect(html).toContain("Connect an account above to unlock calibration.");
     expect(html).toContain("disabled");
-    expect(html).toContain("Skip connecting accounts and go to Today →");
+    expect(html).toContain("Skip connecting accounts and go to Today");
   });
 
   it("renders active calibration link when accounts are connected", () => {
@@ -77,7 +77,7 @@ describe("ConnectionsManager", () => {
 
     expect(html).toContain("Lichess");
     expect(html).toContain("testuser");
-    expect(html).toContain("Continue to calibration →");
+    expect(html).toContain("Continue to calibration");
     expect(html).toContain('href="/onboarding/calibration"');
     expect(html).not.toContain("Connect an account above to unlock calibration.");
   });

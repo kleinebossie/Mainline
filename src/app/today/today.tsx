@@ -528,15 +528,15 @@ export function Today() {
     return (
       <div className="flex min-w-0 flex-col gap-5">
         {isGuest && (
-          <aside className="rounded-lg border border-evergreen/40 bg-evergreen/[0.06] p-4 shadow-sheet">
+          <aside className="rounded-lg border border-tile/40 bg-tile/[0.06] p-4 shadow-sheet">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-3">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-evergreen/15 text-evergreen">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-biro/15 text-tile">
                   <Sparkles className="h-4 w-4" />
                 </div>
                 <div>
-                  <p className="font-serif text-sm font-semibold text-ink">
-                    Training as Guest
+                  <p className="text-sm font-semibold text-ink">
+                    Training as a guest
                   </p>
                   <p className="font-serif text-xs text-graphite">
                     Sign in with Lichess or Google to sync your training across
@@ -548,7 +548,7 @@ export function Today() {
                 href="/signin"
                 className={buttonVariants({ size: "sm", variant: "default" })}
               >
-                Sign in to sync →
+                Sign in to sync
               </Link>
             </div>
           </aside>
@@ -611,15 +611,15 @@ export function Today() {
   return (
     <div className="flex min-w-0 flex-col gap-5">
       {isGuest && (
-        <aside className="rounded-lg border border-evergreen/40 bg-evergreen/[0.06] p-4 shadow-sheet">
+        <aside className="sheet bg-biro/[0.045] p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-evergreen/15 text-evergreen">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-biro/10 text-biro">
                 <Sparkles className="h-4 w-4" />
               </div>
               <div>
-                <p className="font-serif text-sm font-semibold text-ink">
-                  Training as Guest
+                <p className="text-sm font-semibold text-ink">
+                  Training as a guest
                 </p>
                 <p className="font-serif text-xs text-graphite">
                   Sign in with Lichess or Google to sync your training across
@@ -631,7 +631,7 @@ export function Today() {
               href="/signin"
               className={buttonVariants({ size: "sm", variant: "default" })}
             >
-              Sign in to sync →
+              Sign in to sync
             </Link>
           </div>
         </aside>
@@ -641,9 +641,7 @@ export function Today() {
         program={program}
         due={due}
         actualMinutes={
-          isGuest
-            ? guestMinutesLogged
-            : (currentHistory?.actualMinutes ?? null)
+          isGuest ? guestMinutesLogged : (currentHistory?.actualMinutes ?? null)
         }
         actualMeasuredEvents={
           isGuest
@@ -704,7 +702,7 @@ export function Today() {
 
       <div id="today-work" className="scroll-mt-24">
         {showsFreshNudge && (
-          <p className="text-graphite mb-3 border-l-2 border-evergreen/40 pl-3 font-serif text-sm leading-relaxed">
+          <p className="text-graphite mb-3 border-l-[3px] border-biro/45 pl-3 font-serif text-sm leading-relaxed">
             Includes yesterday&apos;s game, still fresh enough to recall.
           </p>
         )}
@@ -763,7 +761,7 @@ export function Today() {
       </div>
 
       {log.data && log.data.scheduledReviews > 0 && (
-        <p className="text-graphite border-l-2 border-evergreen/40 pl-3 font-mono text-xs leading-relaxed">
+        <p className="text-graphite border-l-[3px] border-biro/45 pl-3 font-mono text-xs leading-relaxed">
           Training logged. Review work queued to come back spaced over the next
           days.
         </p>
@@ -785,7 +783,7 @@ export function Today() {
       {log.data?.rewardEvents.map((event, index) => (
         <p
           key={`${event.type}-${index}`}
-          className="text-ink border-l-2 border-evergreen/40 pl-3 font-serif text-sm leading-relaxed"
+          className="text-ink border-l-[3px] border-biro/45 pl-3 font-serif text-sm leading-relaxed"
         >
           {event.text}
         </p>
@@ -827,14 +825,14 @@ function TrainingFeedbackPrompt({ refreshKey }: { refreshKey: string }) {
   const prompt = claim.data;
   if (!prompt) return null;
   return (
-    <aside className="rounded-md border border-line bg-paper/60 px-4 py-3 shadow-sheet">
+    <aside className="rounded-md border border-rule bg-sheet px-4 py-3 shadow-sheet">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="eyebrow">Quick check-in</p>
+          <p className="label">Quick check-in</p>
           <p className="text-graphite mt-1 font-serif text-sm leading-relaxed">
             {prompt.text}
           </p>
-          <p className="text-graphite mt-1 font-mono text-[0.65rem] uppercase tracking-[0.1em]">
+          <p className="text-graphite mt-1 font-mono text-[0.65rem]">
             Grade {prompt.grade} · Tier {prompt.tier} · {prompt.citationKey}
           </p>
         </div>

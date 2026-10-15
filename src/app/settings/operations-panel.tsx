@@ -30,9 +30,9 @@ export function OperationsPanel() {
 
   return (
     <section className="flex flex-col gap-4">
-      <div className="border-line/80 flex items-end justify-between border-b pb-3">
+      <div className="border-rule/80 flex items-end justify-between border-b pb-3">
         <div>
-          <h2 className="eyebrow">Operations</h2>
+          <h2>Operations</h2>
           <p className="text-graphite mt-2 text-sm">
             Safe job status only. Payloads and account data are not shown.
           </p>
@@ -68,7 +68,7 @@ export function OperationsPanel() {
       <div className="flex flex-col gap-2">
         {jobs.data?.map((job) => (
           <article
-            className="bg-card grid gap-2 rounded-md border p-4 sm:grid-cols-[1fr_auto]"
+            className="sheet grid gap-2 p-4 sm:grid-cols-[1fr_auto]"
             key={job.id}
           >
             <div>
@@ -98,7 +98,7 @@ export function OperationsPanel() {
         ))}
       </div>
 
-      <div className="bg-card mt-4 flex flex-col gap-3 rounded-md border p-4">
+      <div className="sheet mt-4 flex flex-col gap-3 p-4">
         <div>
           <p className="font-mono text-xs font-semibold">
             Controlled observational export

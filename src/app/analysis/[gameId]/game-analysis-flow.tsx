@@ -107,7 +107,6 @@ export function GameAnalysisFlow() {
     return null;
   }, [mounted, gameId]);
 
-
   const guestData = useMemo(() => {
     if (!guestGameItem) return null;
     const cfg = loadMethodology();
@@ -196,9 +195,11 @@ export function GameAnalysisFlow() {
   const engineQueueRef = useRef<Promise<unknown>>(Promise.resolve());
   const saveRequestIdRef = useRef<string | null>(null);
 
-  const session = sessionQuery.data?.session ?? (isGuest ? guestData?.session : null);
+  const session =
+    sessionQuery.data?.session ?? (isGuest ? guestData?.session : null);
   const game = sessionQuery.data?.game ?? (isGuest ? guestData?.game : null);
-  const rationales = sessionQuery.data?.rationales ?? (isGuest ? guestData?.rationales : null);
+  const rationales =
+    sessionQuery.data?.rationales ?? (isGuest ? guestData?.rationales : null);
   const isLoading = !mounted || (sessionQuery.isLoading && !guestData);
   const error = isGuest ? null : sessionQuery.error;
 
@@ -212,7 +213,10 @@ export function GameAnalysisFlow() {
       : null;
     if (playedMs === null || Number.isNaN(playedMs)) return "old";
     try {
-      return analysisPromptRungFor(systemClock.now() - playedMs, loadMethodology());
+      return analysisPromptRungFor(
+        systemClock.now() - playedMs,
+        loadMethodology(),
+      );
     } catch {
       return "old";
     }
@@ -642,7 +646,7 @@ export function GameAnalysisFlow() {
 
   return (
     <PageShell
-      eyebrow={`Step ${step} of 3 · Game Review`}
+      kicker={`Step ${step} of 3 · Game Review`}
       title={
         step === 1
           ? "Emotional calibration"
@@ -655,7 +659,7 @@ export function GameAnalysisFlow() {
       <div className="flex flex-col gap-6">
         <div className="h-1 w-full rounded-full bg-ink/10">
           <div
-            className="h-1 rounded-full bg-evergreen transition-all duration-300"
+            className="h-1 rounded-full bg-tile transition-all duration-300"
             style={{ width: `${(step / 3) * 100}%` }}
           />
         </div>
@@ -668,9 +672,7 @@ export function GameAnalysisFlow() {
             initialCountdown={Math.ceil(session.analysisUnlockDelay / 1000)}
             // Games older than the fresh window skip the calibration pause entirely;
             // fresh games keep the full timed protocol (feedback round 1, point 3).
-            mode={
-              rung === "recent" || rung === "old" ? "untimed" : "timed"
-            }
+            mode={rung === "recent" || rung === "old" ? "untimed" : "timed"}
             skipped={skipCalibration}
             rationale={rationales.analysis_tilt_pause}
             recallWhy={recallWhy}

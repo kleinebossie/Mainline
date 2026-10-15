@@ -64,9 +64,7 @@ export function AnalysisRunner() {
     summary.error?.data?.code === "UNAUTHORIZED";
 
   const guestPendingGames = guestGames.filter((g) => !g.analyzed);
-  const gamesToAnalyze = isGuestMode
-    ? guestPendingGames
-    : (pending.data ?? []);
+  const gamesToAnalyze = isGuestMode ? guestPendingGames : (pending.data ?? []);
   const pendingCount = isGuestMode
     ? guestPendingGames.length
     : (pending.data?.length ?? 0);
@@ -159,8 +157,8 @@ export function AnalysisRunner() {
 
   return (
     <section className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-4 border-b border-line/80 pb-3">
-        <h2 className="eyebrow">Game analysis</h2>
+      <div className="flex items-center justify-between gap-4 border-b border-rule/80 pb-3">
+        <h2>Game analysis</h2>
         <Button
           type="button"
           size="sm"

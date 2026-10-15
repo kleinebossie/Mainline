@@ -49,7 +49,7 @@ export function ErrorNotice({
     <StatusMessage
       tone="error"
       heading={copy.heading}
-      className={cn("border-l-[3px] bg-paper-raised/90", className)}
+      className={cn("bg-sheet rounded-[6px] border border-brick/25", className)}
     >
       <p>{copy.message}</p>
       {showActions && (

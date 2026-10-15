@@ -42,7 +42,7 @@ export function CalibrationTrackGauges({
             className="flex flex-col gap-2 rounded-md border bg-paper/30 p-4"
           >
             <div className="flex items-center justify-between gap-3">
-              <span className="font-serif text-base font-semibold text-ink">
+              <span className="text-base font-semibold text-ink">
                 {track.label}
               </span>
               <span className="flex items-center gap-2">
@@ -52,13 +52,13 @@ export function CalibrationTrackGauges({
                 <GradeMark grade={track.estimate.evidenceGrade} />
               </span>
             </div>
-            <div className="relative h-3 w-full overflow-hidden rounded-sm border border-line bg-ink/5 dark:bg-ink/20">
+            <div className="relative h-3 w-full overflow-hidden rounded-sm border border-rule bg-ink/5 dark:bg-ink/20">
               <div
-                className="absolute top-0 bottom-0 border-x border-evergreen/30 bg-evergreen/15 dark:bg-evergreen/35"
+                className="absolute top-0 bottom-0 border-x border-tile/30 bg-biro/15 dark:bg-tile/35"
                 style={{ left: `${left}%`, width: `${width}%` }}
               />
               <div
-                className="absolute top-0 bottom-0 w-0.5 bg-evergreen"
+                className="absolute top-0 bottom-0 w-0.5 bg-tile"
                 style={{ left: `${ratingPercent(rating)}%` }}
               />
             </div>

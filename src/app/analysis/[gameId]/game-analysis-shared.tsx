@@ -12,7 +12,7 @@ export function GameIdentity({
   externalUrl?: string | null;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border border-line bg-card px-5 py-3.5 shadow-sheet settle">
+    <div className="sheet flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3.5 settle">
       <div className="flex items-center gap-2">
         <span
           className={cn(
@@ -21,11 +21,11 @@ export function GameIdentity({
               ? "bg-paper"
               : game.color === "b"
                 ? "bg-ink"
-                : "border-line bg-line",
+                : "border-rule bg-rule",
           )}
           aria-hidden
         />
-        <span className="font-serif text-base font-semibold text-ink">
+        <span className="text-base font-semibold text-ink">
           {game.you ?? "You"}
         </span>
         {game.userRating != null && (
@@ -34,11 +34,11 @@ export function GameIdentity({
           </span>
         )}
       </div>
-      <span className="text-graphite font-mono text-[0.65rem] uppercase tracking-wider">
+      <span className="text-graphite font-mono text-[0.65rem] tracking-wider">
         vs
       </span>
       <div className="flex items-center gap-2">
-        <span className="font-serif text-base font-semibold text-ink">
+        <span className="text-base font-semibold text-ink">
           {game.opponent ?? "Opponent"}
         </span>
         {game.opponentRating != null && (
@@ -49,7 +49,7 @@ export function GameIdentity({
       </div>
       <span
         className={cn(
-          "rounded px-2 py-0.5 font-mono text-[0.65rem] font-bold uppercase tracking-wide",
+          "rounded px-2 py-0.5 font-mono text-[0.65rem] font-bold tracking-wide",
           game.result === "win"
             ? "bg-grade-a/10 text-grade-a"
             : game.result === "loss"
@@ -76,15 +76,15 @@ export function GameIdentity({
               href={externalUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="underline decoration-line underline-offset-2 transition-colors hover:text-ink"
+              className="underline decoration-rule underline-offset-2 transition-colors hover:text-ink"
             >
-              View on {platformLabel(game.platform)} ↗
+              View on {platformLabel(game.platform)}
             </a>
           </>
         )}
       </div>
       {(game.event || game.opening) && (
-        <p className="basis-full border-t border-line/60 pt-2 font-serif text-xs text-graphite">
+        <p className="basis-full border-t border-rule/60 pt-2 font-serif text-xs text-graphite">
           {game.event ? game.event : null}
           {game.event && game.opening ? " · " : null}
           {game.opening

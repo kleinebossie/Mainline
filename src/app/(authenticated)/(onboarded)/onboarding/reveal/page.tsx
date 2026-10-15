@@ -18,7 +18,7 @@ export default async function RevealPage() {
 
   return (
     <PageShell
-      eyebrow="Step 4 of setup"
+      kicker="Step 4 of setup"
       title="Where you stand"
       lede="Built from what you do, not what you say. Mainline never overstates how strong the evidence is."
       width="wide"

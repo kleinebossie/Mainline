@@ -3,88 +3,142 @@
 @tailwind utilities;
 
 /*
-  Mainline — "The Analysis Sheet"
-  A calm scientific instrument built from chess's own materials: notation, evaluation,
-  annotation glyphs. Cool drafting-paper + ink, one evergreen "eval" accent. Color encodes
-  evidence and nothing else (VISION §2). The shadcn token names are kept and remapped to
-  this palette so the whole app re-skins from one place.
+  Mainline — "The Annotated Scoresheet".
+  The interface is built from chess's own artifacts: a PGN game score (numbered lines with
+  annotation glyphs), the engine eval bar, the analysis diagram, and a reader's blue biro.
+  Colour law: the green→brick ramp carries evidence and nothing else; blue carries "you can
+  act here / you are here". See planning/DESIGN.md for the token system this file implements.
 */
 @layer base {
   :root {
-    /* — raw palette (HSL triplets) — */
-    --paper: 80 14% 93%; /* cool graph-paper ground (board light-square echo) */
-    --paper-raised: 75 24% 97%; /* cards / raised surfaces */
-    --ink: 210 13% 9%; /* near-black notation ink */
-    --graphite: 210 7% 38%; /* muted / secondary text */
-    --line: 84 12% 84%; /* hairline rules + the faint grid */
-    --evergreen: 152 39% 30%; /* primary · Grade A "best line" */
-    --evergreen-bright: 150 39% 41%; /* hover / Grade B */
-    --amber: 38 70% 38%; /* Grade C "dubious" */
-    --clay: 12 56% 42%; /* Grade D "blunder" · destructive */
-    --board-light: #e9e7d8;
-    --board-dark: #6f8a7d;
+    /* type roles (self-hosted via @fontsource — no third-party font request, VISION §7) */
+    --font-archivo: "Archivo Variable";
+    --font-newsreader: "Newsreader Variable";
+    --font-plex-mono: "IBM Plex Mono";
 
-    /* — evidence grade ramp (the signature; chess annotation grammar) — */
-    --grade-a: var(--evergreen);
-    --grade-b: var(--evergreen-bright);
-    --grade-c: var(--amber);
-    --grade-d: var(--clay);
+    /* — raw palette — */
+    --paper: 90 6% 95%; /* printer paper, not cream */
+    --sheet: 100 12% 97.5%; /* raised surfaces / diagram plates */
+    --ink: 162 8% 12%; /* notation ink */
+    --graphite: 163 6% 40%; /* pencil-grey secondary text */
+    --rule: 96 7% 84%; /* hairlines */
+    --biro: 227 74% 43%; /* interaction ink */
+    --biro-wash: 227 60% 46%;
+    --tile: 167 73% 19%; /* Grade A · done */
+    --sage: 160 34% 36%; /* Grade B */
+    --ochre: 38 90% 32%; /* Grade C */
+    --brick: 7 69% 40%; /* Grade D · destructive */
+
+    --board-light: #e6e8e1;
+    --board-dark: #6e8479;
+
+    /* — evidence grade ramp (chess annotation grammar) — */
+    --grade-a: var(--tile);
+    --grade-b: var(--sage);
+    --grade-c: var(--ochre);
+    --grade-d: var(--brick);
 
     /* — shadcn surface remap (existing utility classes adopt the palette) — */
     --background: var(--paper);
     --foreground: var(--ink);
-    --card: var(--paper-raised);
+    --card: var(--sheet);
     --card-foreground: var(--ink);
-    --popover: var(--paper-raised);
+    --popover: var(--sheet);
     --popover-foreground: var(--ink);
-    --primary: var(--evergreen);
-    --primary-foreground: 75 24% 97%;
-    --secondary: 150 12% 89%;
+    --primary: var(--biro);
+    --primary-foreground: 100 20% 98%;
+    --secondary: 96 8% 91%;
     --secondary-foreground: var(--ink);
-    --muted: 84 10% 90%;
+    --muted: 96 7% 92%;
     --muted-foreground: var(--graphite);
-    --accent: 150 14% 88%;
-    --accent-foreground: 152 39% 22%;
-    --destructive: var(--clay);
-    --destructive-foreground: 75 24% 97%;
-    --border: var(--line);
-    --input: 84 12% 80%;
-    --ring: var(--evergreen);
-    --radius: 0.4rem;
+    --accent: 227 60% 95%;
+    --accent-foreground: 227 74% 28%;
+    --destructive: var(--brick);
+    --destructive-foreground: 100 20% 98%;
+    --border: var(--rule);
+    --input: 96 7% 78%;
+    --ring: var(--biro);
+    --radius: 2px;
+  }
+
+  /*
+    Night board. The palette follows the system preference today; the same values sit on
+    `.dark` so a manual toggle can take over later without touching a single component.
+  */
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: 175 7% 10%;
+      --sheet: 175 6% 14%;
+      --ink: 100 8% 92%;
+      --graphite: 150 5% 62%;
+      --rule: 170 5% 24%;
+      --biro: 215 92% 68%;
+      --biro-wash: 215 60% 40%;
+      --tile: 158 55% 55%;
+      --sage: 158 32% 52%;
+      --ochre: 40 88% 60%;
+      --brick: 9 75% 62%;
+
+      --board-light: #454d49;
+      --board-dark: #2b332f;
+
+      --background: var(--paper);
+      --foreground: var(--ink);
+      --card: var(--sheet);
+      --card-foreground: var(--ink);
+      --popover: var(--sheet);
+      --popover-foreground: var(--ink);
+      --primary: var(--biro);
+      --primary-foreground: 175 20% 8%;
+      --secondary: 175 6% 19%;
+      --secondary-foreground: var(--ink);
+      --muted: 175 6% 17%;
+      --muted-foreground: var(--graphite);
+      --accent: 215 40% 20%;
+      --accent-foreground: 215 92% 82%;
+      --destructive: var(--brick);
+      --destructive-foreground: 175 20% 8%;
+      --border: var(--rule);
+      --input: 170 5% 30%;
+      --ring: var(--biro);
+    }
   }
 
   .dark {
-    --paper: 210 13% 9%;
-    --paper-raised: 210 12% 12%;
-    --ink: 80 14% 93%;
-    --graphite: 210 8% 62%;
-    --line: 210 10% 22%;
-    --evergreen: 150 39% 45%;
-    --evergreen-bright: 150 45% 55%;
-    --amber: 38 64% 52%;
-    --clay: 12 58% 56%;
-    --board-light: #3a443f;
-    --board-dark: #23302b;
+    --paper: 175 7% 10%;
+    --sheet: 175 6% 14%;
+    --ink: 100 8% 92%;
+    --graphite: 150 5% 62%;
+    --rule: 170 5% 24%;
+    --biro: 215 92% 68%;
+    --biro-wash: 215 60% 40%;
+    --tile: 158 55% 55%;
+    --sage: 158 32% 52%;
+    --ochre: 40 88% 60%;
+    --brick: 9 75% 62%;
+
+    --board-light: #454d49;
+    --board-dark: #2b332f;
 
     --background: var(--paper);
     --foreground: var(--ink);
-    --card: var(--paper-raised);
+    --card: var(--sheet);
     --card-foreground: var(--ink);
-    --popover: var(--paper-raised);
+    --popover: var(--sheet);
     --popover-foreground: var(--ink);
-    --primary: var(--evergreen);
-    --primary-foreground: 210 13% 9%;
-    --secondary: 210 10% 18%;
+    --primary: var(--biro);
+    --primary-foreground: 175 20% 8%;
+    --secondary: 175 6% 19%;
     --secondary-foreground: var(--ink);
-    --muted: 210 10% 16%;
+    --muted: 175 6% 17%;
     --muted-foreground: var(--graphite);
-    --accent: 210 10% 18%;
-    --accent-foreground: 80 14% 93%;
-    --destructive: var(--clay);
-    --destructive-foreground: 210 13% 9%;
-    --border: var(--line);
-    --input: 210 10% 26%;
-    --ring: var(--evergreen-bright);
+    --accent: 215 40% 20%;
+    --accent-foreground: 215 92% 82%;
+    --destructive: var(--brick);
+    --destructive-foreground: 175 20% 8%;
+    --border: var(--rule);
+    --input: 170 5% 30%;
+    --ring: var(--biro);
   }
 }
 
@@ -93,136 +147,260 @@
     @apply border-border;
   }
 
-  body {
-    /* the human voice reads by default; the machine readout opts in via font-mono */
-    font-family: var(--font-fraunces), Georgia, serif;
-    /* faint graph-paper grid — the analysis sheet beneath everything */
-    background-color: hsl(var(--paper));
-    background-image:
-      linear-gradient(hsl(var(--line) / 0.4) 1px, transparent 1px),
-      linear-gradient(90deg, hsl(var(--line) / 0.4) 1px, transparent 1px);
-    background-size: 28px 28px;
-    background-position: -1px -1px;
-    background-attachment: fixed;
+  html {
+    /* the interface voice is the grotesque; prose opts in with font-serif */
+    font-family: var(--font-archivo), system-ui, sans-serif;
+    font-synthesis-weight: none;
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+    scroll-padding-top: 4.5rem;
   }
 
-  /* tighter, more deliberate display setting for the human voice */
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
+
+  body {
+    background-color: hsl(var(--paper));
+    color: hsl(var(--ink));
+    font-variant-numeric: tabular-nums;
+  }
+
+  /*
+    Headings are display lettering: Archivo set expanded and tight, the way tournament
+    wall-chart numbers are. Serif is reserved for prose you read in sentences.
+  */
   h1,
   h2,
   h3 {
-    font-feature-settings: "ss01";
-    letter-spacing: -0.015em;
+    font-family: var(--font-archivo), system-ui, sans-serif;
+    font-stretch: 112%;
+    font-weight: 660;
+    letter-spacing: -0.022em;
+    line-height: 1.08;
     text-wrap: balance;
   }
 
-  /* honest data should always align; the machine readout is tabular */
+  h4,
+  h5 {
+    font-family: var(--font-archivo), system-ui, sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.012em;
+  }
+
+  /* honest data always aligns; the machine readout is tabular */
   .font-mono {
-    font-feature-settings: "zero" 1;
+    font-variant-numeric: tabular-nums;
   }
 
   ::selection {
-    background-color: hsl(var(--evergreen) / 0.22);
+    background-color: hsl(var(--biro) / 0.18);
   }
 
-  a:focus-visible {
+  :focus-visible {
     outline: 2px solid hsl(var(--ring));
-    outline-offset: 3px;
+    outline-offset: 2px;
   }
 }
 
 @layer components {
-  /* The eyebrow — a small mono label that names a section like a notation header. */
-  .eyebrow {
-    @apply text-graphite font-mono text-[0.7rem] font-medium uppercase leading-tight;
-    letter-spacing: 0.18em;
+  /*
+    The one label style. It names a field or a group in sentence case — a caption, not a
+    shout. (Replaces the old ALL-CAPS tracked eyebrow.)
+  */
+  .label {
+    @apply text-graphite text-xs font-medium leading-snug;
+  }
+  .label-ink {
+    @apply text-ink text-xs font-semibold leading-snug;
   }
 
-  /* Choice controls share one generous hit area and a visible group focus state. */
+  /* Display lettering for the largest type on a page. */
+  .display {
+    font-family: var(--font-archivo), system-ui, sans-serif;
+    font-stretch: 118%;
+    font-weight: 720;
+    letter-spacing: -0.03em;
+    line-height: 0.98;
+  }
+
+  /* Prose: rationale, caveats, anything read in sentences. */
+  .prose-sheet {
+    @apply font-serif text-ink;
+    font-size: 1.0375rem;
+    line-height: 1.68;
+    max-width: 68ch;
+  }
+
+  /* A sheet is a page of the program: flat, hairline-ruled, no blur shadows. */
+  .sheet {
+    @apply bg-card rounded-[6px] border border-rule;
+    box-shadow: 0 1px 0 hsl(var(--ink) / 0.04);
+  }
+  .dark .sheet {
+    box-shadow: 0 1px 0 hsl(0 0% 0% / 0.3);
+  }
+
+  /* A section title carries its own rule: the rule is the divider, not ornament. */
+  .section-title {
+    font-size: 1.3rem;
+    line-height: 1.16;
+    letter-spacing: -0.02em;
+    font-weight: 620;
+    border-bottom: 1px solid hsl(var(--rule));
+    padding-bottom: 0.55rem;
+    margin-bottom: 1rem;
+  }
+
+  /* A page section's head: title, one line of prose, a rule. Replaces the old caps eyebrow. */
+  .section-head {
+    @apply flex flex-col gap-1.5 border-b border-rule pb-3;
+  }
+  .section-head > h2,
+  .section-head > h3 {
+    font-size: 1.35rem;
+    line-height: 1.16;
+    letter-spacing: -0.02em;
+  }
+  @media (min-width: 640px) {
+    .section-head > h2,
+    .section-head > h3 {
+      font-size: 1.55rem;
+    }
+  }
+
+  /* Ruled rows: the scoresheet grid. A rule divides, it never decorates. */
+  .rule-list > * + * {
+    border-top: 1px solid hsl(var(--rule));
+  }
+
+  /* Choice controls share one hit area and a visible selected state (biro = actionable). */
   .choice-control {
-    @apply text-ink flex min-h-10 cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 font-serif text-sm transition-colors hover:bg-ink/[0.035] focus-within:bg-paper-raised focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-paper;
+    @apply text-ink flex min-h-11 cursor-pointer items-center gap-3 rounded-[3px] px-2.5 py-2 text-sm transition-colors;
+  }
+  .choice-control:hover {
+    background-color: hsl(var(--ink) / 0.03);
+  }
+  .choice-control:has(input:checked) {
+    background-color: hsl(var(--biro) / 0.07);
+    box-shadow: inset 2px 0 0 hsl(var(--biro));
   }
   .choice-control input {
-    @apply border-input accent-evergreen h-4 w-4 shrink-0 bg-paper-raised;
+    @apply h-4 w-4 shrink-0 rounded-[2px];
+    accent-color: hsl(var(--biro));
+    background-color: hsl(var(--sheet));
   }
 
   /*
-    The eval-gutter — the recurring structural device. A thin vertical bar on the leading
-    edge of a card, tinted by the item's evidence grade, like the engine eval bar beside an
-    analysis line. Structure encodes evidence (VISION §2).
+    THE SIGNATURE — the eval meter. On a block it is the engine bar beside an analysis line:
+    its colour is the evidence grade, its fill is how much of the bar that grade earns.
+    Structure encodes evidence; an unverified claim can never fill the bar (L3).
   */
-  .eval-gutter {
+  .meter {
     position: relative;
-    overflow: hidden;
-    transition:
-      transform 160ms ease,
-      box-shadow 160ms ease,
-      border-color 160ms ease,
-      background-color 160ms ease;
+    --meter-fill: 100%;
+    --meter-color: hsl(var(--rule));
   }
-  .eval-gutter::before {
+  .meter::before {
     content: "";
     position: absolute;
     inset: 0 auto 0 0;
-    width: 3px;
-    background: var(--gutter, hsl(var(--line)));
-    transition: width 160ms ease;
-  }
-  .eval-gutter:hover::before {
-    width: 5px;
-  }
-  .eval-gutter:hover {
-    border-color: hsl(var(--ink) / 0.15);
-    background-color: hsl(var(--paper-raised) / 0.98);
-    transform: translateY(-1px);
-    box-shadow:
-      0 4px 12px -2px hsl(var(--ink) / 0.05),
-      0 1px 2px hsl(var(--ink) / 0.03);
-  }
-  .dark .eval-gutter:hover {
-    border-color: hsl(var(--line) / 1.5);
-    background-color: hsl(var(--paper-raised) / 1.04);
-  }
-  .eval-gutter[data-grade="A"] {
-    --gutter: hsl(var(--grade-a));
-  }
-  .eval-gutter[data-grade="B"] {
-    --gutter: hsl(var(--grade-b));
-  }
-  .eval-gutter[data-grade="C"] {
-    --gutter: hsl(var(--grade-c));
-  }
-  .eval-gutter[data-grade="D"] {
-    --gutter: hsl(var(--grade-d));
-  }
-  .eval-gutter[data-provisional="true"]::before {
-    /* placeholder / thin evidence reads as a dashed, unresolved bar — never solid fact */
-    background: repeating-linear-gradient(
-      hsl(var(--grade-c)) 0 5px,
-      transparent 5px 9px
+    width: 4px;
+    border-top-left-radius: 6px;
+    border-bottom-left-radius: 6px;
+    background: linear-gradient(
+      to top,
+      var(--meter-color) 0 var(--meter-fill),
+      hsl(var(--ink) / 0.08) var(--meter-fill) 100%
     );
+    transition: width 140ms ease;
+  }
+  .meter[data-grade="A"] {
+    --meter-fill: 100%;
+    --meter-color: hsl(var(--grade-a));
+  }
+  .meter[data-grade="B"] {
+    --meter-fill: 72%;
+    --meter-color: hsl(var(--grade-b));
+  }
+  .meter[data-grade="C"] {
+    --meter-fill: 46%;
+    --meter-color: hsl(var(--grade-c));
+  }
+  .meter[data-grade="D"] {
+    --meter-fill: 22%;
+    --meter-color: hsl(var(--grade-d));
+  }
+  .meter[data-provisional="true"]::before {
+    /* thin evidence is not settled fact: the bar reads as a dashed rule */
+    background: repeating-linear-gradient(
+      to bottom,
+      var(--meter-color) 0 5px,
+      hsl(var(--rule) / 0.6) 5px 9px
+    );
+  }
+  .meter:hover::before {
+    width: 6px;
   }
 
-  /* A special header block representing today's entry */
-  .focus-card {
+  /*
+    The session bar: the same meter at page scale, on the app rail's edge. Filled bottom-up
+    with the share of today's planned minutes already trained; skipped minutes hatch in brick.
+  */
+  .session-bar {
     position: relative;
-    background-image: radial-gradient(
-      hsl(var(--evergreen) / 0.04) 1px,
-      transparent 1px
-    );
-    background-size: 14px 14px;
-    border-left-width: 3px !important;
-    border-left-color: hsl(var(--evergreen)) !important;
+    width: 7px;
+    border-radius: 1px;
+    background: hsl(var(--ink) / 0.14);
+    overflow: hidden;
   }
-  .dark .focus-card {
-    background-image: radial-gradient(
-      hsl(var(--evergreen-bright) / 0.06) 1px,
-      transparent 1px
+  .session-bar > .bar-fill,
+  .session-bar > .bar-skip {
+    position: absolute;
+    transition:
+      height 420ms cubic-bezier(0.2, 0.7, 0.2, 1),
+      width 420ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+  .session-bar > .bar-fill {
+    inset: auto 0 0 0;
+    background: hsl(var(--biro));
+  }
+  /* on the mobile strip the same meter lies down */
+  .session-bar[data-orient="row"] > .bar-fill {
+    inset: 0 auto 0 0;
+    height: 100%;
+  }
+  .session-bar[data-orient="row"] > .bar-skip {
+    top: 0;
+    bottom: 0;
+    height: auto;
+  }
+  .session-bar > .bar-skip {
+    inset: auto 0 0 0;
+    background: repeating-linear-gradient(
+      to bottom,
+      hsl(var(--brick) / 0.85) 0 3px,
+      hsl(var(--brick) / 0.25) 3px 6px
     );
+  }
+  .session-bar[data-orient="row"] > .bar-skip {
+    background: repeating-linear-gradient(
+      to right,
+      hsl(var(--brick) / 0.85) 0 3px,
+      hsl(var(--brick) / 0.25) 3px 6px
+    );
+  }
+  /* nothing planned yet: the bar shows its own outline instead of an empty fill */
+  .session-bar[data-empty="true"] {
+    background: transparent;
+    box-shadow: inset 0 0 0 1px hsl(var(--rule));
   }
 }
 
 @layer utilities {
-  /* page-load "reach depth" — the instrument settling, used once and quietly */
+  /* page-load "the sheet settles" — one orchestrated moment, used once, on the landing page */
   @keyframes settle-in {
     from {
       opacity: 0;
@@ -234,7 +412,21 @@
     }
   }
   .settle {
-    animation: settle-in 0.5s cubic-bezier(0.2, 0.6, 0.2, 1) both;
+    animation: settle-in 0.45s cubic-bezier(0.2, 0.6, 0.2, 1) both;
+  }
+
+  /* the session bar filling to today's share, once, on load */
+  @keyframes bar-rise {
+    from {
+      transform: scaleY(0);
+    }
+    to {
+      transform: scaleY(1);
+    }
+  }
+  .bar-rise {
+    transform-origin: bottom;
+    animation: bar-rise 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
   }
 
   /* Indeterminate top progress bar: one segment sliding across the track. */
@@ -251,21 +443,19 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .settle {
-      animation: none;
-    }
+    .settle,
+    .bar-rise,
     .loading-slide,
     .animate-spin {
       animation: none;
     }
-    .eval-gutter {
+    .session-bar > .bar-fill {
       transition: none;
-      transform: none !important;
-      box-shadow: none !important;
     }
-    .eval-gutter::before,
-    .eval-gutter:hover::before {
+    .meter::before,
+    .meter:hover::before {
       transition: none;
+      width: 4px;
     }
   }
 }

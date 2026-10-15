@@ -22,13 +22,13 @@ export default async function SettingsPage() {
 
   return (
     <PageShell
-      eyebrow="Training and account controls"
+      kicker="Training and account controls"
       title="Settings"
       lede="Set real constraints, review assessment inputs, and tell Mainline where delivery can improve."
     >
       <div className="flex flex-col gap-14">
         <section className="flex flex-col gap-4">
-          <h2 className="eyebrow border-b border-line/80 pb-3">Your plan</h2>
+          <h2 className="section-title">Your plan</h2>
           <p className="text-graphite text-sm leading-relaxed font-serif">
             Time, goals, formats and your if-then plan. Saving updates the
             program. Regenerate Today to see it reflected.
@@ -36,17 +36,17 @@ export default async function SettingsPage() {
           <ConstraintsForm
             ifThenRationale={ifThenRationale}
             continueHref="/today"
-            continueLabel="Go to Today →"
+            continueLabel="Go to Today"
           />
         </section>
 
         <section id="feedback" className="scroll-mt-24 flex flex-col gap-4">
-          <h2 className="eyebrow border-b border-line/80 pb-3">Feedback</h2>
+          <h2 className="section-title">Feedback</h2>
           <FeedbackPanel />
         </section>
 
         <section id="analysis" className="scroll-mt-24 flex flex-col gap-4">
-          <h2 className="eyebrow border-b border-line/80 pb-3">Analysis</h2>
+          <h2 className="section-title">Analysis</h2>
           <AnalysisRunner />
         </section>
 
@@ -54,7 +54,7 @@ export default async function SettingsPage() {
 
         {account?.role === "admin" && (
           <section id="admin" className="scroll-mt-24 flex flex-col gap-4">
-            <h2 className="eyebrow border-b border-line/80 pb-3">Operations</h2>
+            <h2 className="section-title">Operations</h2>
             <OperationsPanel />
           </section>
         )}

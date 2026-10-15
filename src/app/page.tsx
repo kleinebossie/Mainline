@@ -1,96 +1,143 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { LandingIcon, type LandingIconName } from "@/components/landing-icons";
-
-import { cn } from "@/lib/utils";
-import { beginSelectedBetaSignIn } from "@/app/signin/actions";
-import { PendingSubmitButton } from "@/components/pending-submit-button";
 import { buttonVariants } from "@/components/ui/button";
+import { PendingSubmitButton } from "@/components/pending-submit-button";
 import { HomepageBlunderAnalyzer } from "@/components/homepage-blunder-analyzer";
 import { LandingTelemetry } from "@/components/landing-telemetry";
 import { GuestLandingButton } from "@/components/guest-landing-button";
 import { prisma } from "@/db/client";
-
+import { beginSelectedBetaSignIn } from "@/app/signin/actions";
+import { cn } from "@/lib/utils";
 import { auth } from "@/server/auth";
 import { getPostAuthDestination } from "@/server/onboarding";
 
+// The landing page is a copy of the product's own artifact: a session typed as a game
+// score, graded like an annotation, measured like an eval bar. No dark hero panel, no
+// feature cards, no promises about rating.
+
 const SETUP_STEPS = [
   {
-    label: "Constrain",
     title: "Set your constraints",
     detail:
-      "Set your daily time budget, format preferences, goals, and owned books.",
+      "Minutes per day, which days you actually train, your format, and the books you own.",
   },
   {
-    label: "Connect",
     title: "Connect your accounts",
     detail:
-      "Link Lichess or Chess.com to import your public games and tactical mistakes.",
+      "Link Lichess or Chess.com. Mainline reads your public games, read-only, and never touches your password.",
   },
   {
-    label: "Calibrate",
-    title: "Measure your baseline",
+    title: "Calibrate your tactics",
     detail:
-      "Solve a short 3-puzzle check to estimate tactical rating and blunder patterns.",
+      "Three positions, timed. Enough to place you in a difficulty band without asking you to rate yourself.",
   },
   {
-    label: "Reveal",
-    title: "See your starting profile",
+    title: "Read your starting profile",
     detail:
-      "Review your tactical rating, game signals, and initial training priorities.",
+      "Where your games are actually decided, which patterns repeat, and how much of it Mainline has evidence for.",
   },
   {
-    label: "Train",
-    title: "Start your daily session",
+    title: "Train the session it builds",
     detail:
-      "Train with personalized blocks that adapt as you complete exercises and play games.",
+      "Solve, review, log. Each result moves the next day's plan. Nothing is a fixed curriculum.",
   },
 ] as const;
 
-interface PrincipleItem {
-  icon: LandingIconName;
-  title: string;
-  detail: string;
-}
-
-const PRINCIPLES: PrincipleItem[] = [
+const PRINCIPLES = [
   {
-    icon: "help",
-    title: "Every recommendation shows evidence",
+    title: "Every recommendation shows its evidence",
     detail:
-      "Every training block displays its evidence grade, research citations, and scheduling reason.",
+      "Each block carries a grade, the study it comes from, and a plain answer to why it is in front of you today.",
   },
   {
-    icon: "shield-alert",
     title: "No rating promises",
     detail:
-      "No study proves that specific chess training causes rating gains. Mainline uses best evidence without false certainty.",
+      "No study proves that any training method raises rating. Mainline uses the best evidence available and says so.",
   },
   {
-    icon: "refresh",
-    title: "Adapts to your play",
+    title: "The plan moves when you do",
     detail:
-      "New games, mistake drills, and completed reviews reshape what Mainline schedules next.",
+      "New games, failed puzzles, and skipped blocks feed back into the next session the same day.",
   },
   {
-    icon: "shield-check",
-    title: "Your data stays private",
+    title: "Your games stay yours",
     detail:
-      "Connections are read-only. We do not sell your data, and you can export or delete your account at any time.",
+      "Read-only connections, no advertising, no third-party trackers. Export or delete everything in Settings.",
   },
   {
-    icon: "cpu",
-    title: "No runtime AI",
+    title: "No chatbots deciding your training",
     detail:
-      "Mainline uses deterministic algorithms and a client-side Stockfish engine, never generative chatbots.",
+      "Deterministic scheduling and Stockfish compiled to WebAssembly, running on your machine.",
   },
   {
-    icon: "unlock",
-    title: "Core training is never paywalled",
+    title: "Nothing good behind a paywall",
     detail:
-      "Mainline is free and ad-free. Optional supporter tiers fund hosting without locking training features.",
+      "Every training feature and every methodology file is free. Patronage pays for hosting, nothing unlocks it.",
   },
-];
+] as const;
+
+const GRADES = [
+  {
+    glyph: "!!",
+    grade: "Grade A",
+    meaning: "Strong, replicated evidence",
+    detail:
+      "Spaced retrieval practice and repairing your own blunders. Repeated in chess-specific studies.",
+    fill: 100,
+    cls: "text-grade-a",
+  },
+  {
+    glyph: "!",
+    grade: "Grade B",
+    meaning: "Suggestive, thinly replicated",
+    detail:
+      "Explicit process goals and pre-move checklists. Good general evidence, less of it in chess.",
+    fill: 72,
+    cls: "text-grade-b",
+  },
+  {
+    glyph: "?!",
+    grade: "Grade C",
+    meaning: "Theory and best guess",
+    detail:
+      "Tactical motif taxonomy drills. A plausible mechanism, limited direct measurement.",
+    fill: 46,
+    cls: "text-grade-c",
+  },
+  {
+    glyph: "??",
+    grade: "Grade D",
+    meaning: "Popular, unsupported",
+    detail:
+      "Passive master-game replay. Mainline names these and leaves them out of your plan.",
+    fill: 22,
+    cls: "text-grade-d",
+  },
+] as const;
+
+const SAMPLE_BLOCKS = [
+  {
+    minutes: "12 min",
+    title: "Blunder drill from your own games",
+    note: "Three positions where you lost the most material last week.",
+    glyph: "!!",
+    cls: "text-grade-a",
+  },
+  {
+    minutes: "6 min",
+    title: "Spaced review: king and pawn endings",
+    note: "Queued by the scheduler because you missed two of them.",
+    glyph: "!",
+    cls: "text-grade-b",
+  },
+  {
+    minutes: "2 min",
+    title: "Log one rated game",
+    note: "Play it on Lichess. Mainline reads it tomorrow.",
+    glyph: "?!",
+    cls: "text-grade-c",
+  },
+] as const;
 
 export default async function Home() {
   const session = await auth();
@@ -105,35 +152,35 @@ export default async function Home() {
 
   return (
     <main className="min-h-screen overflow-x-clip">
-      <header className="bg-paper/90 sticky top-0 z-30 border-b border-line/80 backdrop-blur-md">
+      <header className="bg-paper/90 sticky top-0 z-30 border-b border-rule backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-6 px-4 sm:px-6">
           <Link
             href="/"
-            className="rounded-sm font-mono text-sm font-bold uppercase tracking-[0.2em] text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className="rounded-[2px] text-[1.0625rem] font-bold uppercase tracking-[-0.005em] text-ink [font-stretch:118%]"
           >
             Mainline
-            <span className="text-evergreen tracking-normal" aria-hidden>
+            <span
+              className="font-mono text-[0.8rem] lowercase tracking-normal text-biro"
+              aria-hidden
+            >
               ·!
             </span>
           </Link>
           <nav
             aria-label="Landing page navigation"
-            className="hidden items-center gap-5 font-mono text-xs text-graphite md:flex"
+            className="hidden items-center gap-6 text-[0.875rem] text-graphite md:flex"
           >
-            <a
-              className="transition-colors hover:text-ink"
-              href="#blunder-analyzer"
-            >
-              Analyze games
+            <a className="transition-colors hover:text-ink" href="#analyzer">
+              Analyze your games
+            </a>
+            <a className="transition-colors hover:text-ink" href="#grades">
+              Evidence grades
             </a>
             <a
               className="transition-colors hover:text-ink"
               href="#how-it-works"
             >
-              How it works
-            </a>
-            <a className="transition-colors hover:text-ink" href="#principles">
-              Principles
+              How setup works
             </a>
           </nav>
           <a
@@ -146,116 +193,115 @@ export default async function Home() {
       </header>
       <LandingTelemetry />
 
-      <section className="relative border-b border-line/80">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-y-0 left-1/2 hidden w-px bg-line/80 lg:block"
-        />
-        <div className="mx-auto grid max-w-6xl lg:grid-cols-2">
-          <div className="settle flex flex-col justify-center px-4 py-12 sm:px-6 sm:py-20 lg:min-h-[690px] lg:pr-16">
-            <p className="eyebrow text-evergreen">
-              Evidence-based chess training
-            </p>
-            <h1 className="mt-4 max-w-xl font-serif text-4xl font-semibold leading-[1.02] tracking-[-0.03em] sm:text-6xl lg:text-7xl">
+      <section className="border-b border-rule">
+        <div className="mx-auto grid max-w-6xl gap-y-12 px-4 py-14 sm:px-6 sm:py-20 lg:grid-cols-[1fr_0.92fr] lg:gap-x-16 lg:py-24">
+          <div className="settle flex max-w-xl flex-col justify-center">
+            <h1 className="display max-w-[13ch] text-[2.9rem] leading-[0.96] sm:text-[4rem] lg:text-[4.4rem]">
               Stop guessing what to train.
             </h1>
-            <p className="mt-6 max-w-lg font-serif text-lg leading-relaxed text-graphite sm:text-2xl">
-              Mainline converts your games, goals, and daily time into an
-              adaptive training program grounded in learning science.
+            <p className="font-serif mt-6 max-w-[46ch] text-[1.15rem] leading-[1.6] text-graphite">
+              Mainline reads your games, finds the mistakes that keep deciding
+              them, and builds a short training session for the time you
+              actually have. Every block says why it is there and how solid the
+              evidence behind it is.
             </p>
-            <p className="mt-4 max-w-lg text-sm sm:text-base leading-relaxed text-graphite">
-              Instead of giving you endless random puzzles, Mainline targets
-              your measured mistakes and schedules spaced reviews.
-            </p>
-            <div className="mt-8 flex flex-col sm:flex-row sm:items-center gap-3.5">
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
               <a
-                href="#blunder-analyzer"
+                href="#analyzer"
                 className={buttonVariants({
                   size: "lg",
-                  className: "w-full sm:w-auto text-center justify-center",
+                  className: "justify-center text-center",
                 })}
               >
                 Analyze my games
               </a>
               <a
                 href="#how-it-works"
-                className="text-center rounded-sm font-mono text-xs sm:text-sm text-graphite underline decoration-line underline-offset-4 transition-colors hover:text-ink py-1"
+                className={cn(
+                  buttonVariants({ variant: "link", size: "lg" }),
+                  "justify-center px-1",
+                )}
               >
                 See how setup works
               </a>
             </div>
-            <p className="mt-4 font-mono text-[0.68rem] uppercase tracking-[0.12em] text-graphite">
-              Open beta · no sign-in required
+            <p className="mt-6 font-mono text-[0.75rem] text-graphite">
+              Open beta. Free, and no sign-in needed to try it below.
             </p>
           </div>
 
-          <div className="settle flex items-center bg-ink px-4 py-12 text-paper [animation-delay:100ms] sm:px-6 sm:py-16 lg:min-h-[690px] lg:pl-16">
-            <div className="mx-auto w-full max-w-md">
-              <div className="flex items-end justify-between gap-4 border-b border-paper/15 pb-4">
-                <div>
-                  <p className="font-mono text-[0.65rem] uppercase tracking-[0.2em] text-evergreen-bright">
-                    Example daily session
-                  </p>
-                  <h2 className="mt-2 font-serif text-2xl font-semibold">
-                    Structured daily training
-                  </h2>
-                </div>
-                <span className="font-mono text-xs text-paper/50">Today</span>
-              </div>
-
-              <div className="grid grid-cols-[1fr_auto] gap-x-5 gap-y-3 border-b border-paper/15 py-5 font-mono text-xs">
-                <span className="text-paper/50">Time budget</span>
-                <span>25 minutes</span>
-                <span className="text-paper/50">Primary weakness</span>
-                <span>tactical conversions</span>
-                <span className="text-paper/50">Format goal</span>
-                <span>rapid chess</span>
-                <span className="text-paper/50">Due reviews</span>
-                <span>2 blocks</span>
-              </div>
-
-              <div className="relative space-y-3 py-6 before:absolute before:bottom-10 before:left-[1.18rem] before:top-10 before:w-px before:bg-evergreen-bright/40">
-                <TrainingBlock
-                  number="1"
-                  minutes="10 min"
-                  title="Blunder drills from your games"
-                  reason="Positions extracted directly from your recent losses."
-                  delay="[animation-delay:150ms]"
-                />
-                <TrainingBlock
-                  number="2"
-                  minutes="8 min"
-                  title="Spaced repetition reviews"
-                  reason="Scheduled based on past mistake review intervals."
-                  delay="[animation-delay:250ms]"
-                />
-                <TrainingBlock
-                  number="3"
-                  minutes="7 min"
-                  title="Endgame conversion drills"
-                  reason="Practical endgame structures matched to your rating."
-                  delay="[animation-delay:350ms]"
-                />
-              </div>
-
-              <div className="border-t border-dashed border-paper/20 pt-4">
-                <p className="flex items-start gap-3 font-serif text-sm leading-relaxed text-paper/65">
-                  <LandingIcon
-                    name="help"
-                    className="mt-0.5 h-4 w-4 shrink-0 text-evergreen-bright"
-                  />
-                  Every block includes an evidence grade, data source, and
-                  clear explanation of uncertainty.
-                </p>
-              </div>
+          {/* The product's own artifact, typeset as a session: this is what you get. */}
+          <div
+            className="settle sheet self-center p-5 [animation-delay:120ms] sm:p-6"
+            style={{ animationDelay: "120ms" }}
+          >
+            <div className="border-b border-rule pb-3">
+              <p className="flex flex-wrap items-baseline justify-between gap-x-3 font-mono text-[0.75rem] text-graphite">
+                <span>Tuesday, 20 minutes available</span>
+                <span className="text-ink">20 min planned</span>
+              </p>
+              <h2 className="mt-1.5 text-[1.4rem] leading-tight">
+                Your session, as Mainline writes it
+              </h2>
             </div>
+
+            <div className="flex gap-5">
+              <div
+                className="session-bar mt-1 w-[9px] shrink-0 self-stretch"
+                role="img"
+                aria-label="Twelve of twenty minutes trained"
+              >
+                <span
+                  className="bar-fill bar-rise h-[60%]"
+                  style={{ height: "60%" }}
+                  aria-hidden
+                />
+              </div>
+              <ol className="rule-list min-w-0 flex-1">
+                {SAMPLE_BLOCKS.map((block, index) => (
+                  <li key={block.title} className="flex gap-3 py-3 first:pt-1">
+                    <span className="font-mono pt-px text-[0.8rem] text-graphite">
+                      {index + 1}.
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="flex flex-wrap items-baseline gap-2 text-[1rem] leading-snug">
+                        <span>{block.title}</span>
+                        <span
+                          className={cn(
+                            "font-mono text-[0.8rem] font-bold leading-none",
+                            block.cls,
+                          )}
+                          aria-hidden
+                        >
+                          {block.glyph}
+                        </span>
+                      </h3>
+                      <p className="font-serif mt-1 text-[0.88rem] leading-relaxed text-graphite">
+                        {block.note}
+                      </p>
+                    </div>
+                    <span className="font-mono shrink-0 pt-px text-[0.72rem] text-graphite">
+                      {block.minutes}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+
+            <p className="mt-3 border-t border-tile/40 pt-3 font-serif text-[0.88rem] leading-relaxed text-graphite">
+              <span className="font-mono text-[0.72rem] font-semibold text-tile">
+                12 of 20 min done
+              </span>{" "}
+              The bar beside the list is the only progress meter here. It fills
+              with trained minutes, never with streaks.
+            </p>
           </div>
         </div>
       </section>
 
       <section
-        id="blunder-analyzer"
-        className="scroll-mt-16 border-b border-line/80 bg-paper py-14 sm:py-20"
+        id="analyzer"
+        className="scroll-mt-20 border-b border-rule bg-sheet/60 py-14 sm:py-20"
       >
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <HomepageBlunderAnalyzer />
@@ -263,39 +309,100 @@ export default async function Home() {
       </section>
 
       <section
-        id="how-it-works"
-        className="scroll-mt-16 border-b border-line/80 bg-paper-raised/70"
+        id="grades"
+        className="scroll-mt-20 border-b border-rule py-14 sm:py-20"
       >
-        <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-24">
-          <div className="grid gap-8 lg:grid-cols-[0.72fr_1.28fr] lg:gap-16">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <div className="grid gap-8 lg:grid-cols-[0.78fr_1.22fr] lg:gap-16">
             <div>
-              <p className="eyebrow">Onboarding flow</p>
-              <h2 className="mt-4 font-serif text-4xl font-semibold leading-tight sm:text-5xl">
-                Five steps to your tailored daily session.
+              <h2 className="text-[2rem] leading-tight sm:text-[2.6rem]">
+                Four grades. That is the whole honesty policy.
               </h2>
-              <p className="mt-5 max-w-md leading-relaxed text-graphite">
-                Setup configures your constraints and analyzes your game
-                baseline. You can adjust settings at any time.
+              <p className="font-serif mt-4 max-w-[44ch] text-[1.05rem] leading-relaxed text-graphite">
+                Mainline borrows the annotation marks chess already uses: A
+                strong recommendation gets the same grammar as a strong move,
+                and a weak one is marked weak rather than left out quietly.
               </p>
             </div>
+            <ul className="rule-list">
+              {GRADES.map((grade) => (
+                <li
+                  key={grade.grade}
+                  className="grid grid-cols-[2.25rem_1fr] items-baseline gap-x-4 gap-y-1 py-4 sm:grid-cols-[2.25rem_15rem_1fr] sm:gap-x-6"
+                >
+                  <span
+                    className={cn(
+                      "font-mono text-[1.05rem] font-bold leading-none",
+                      grade.cls,
+                    )}
+                    aria-hidden
+                  >
+                    {grade.glyph}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-[1rem] font-semibold">
+                      {grade.grade}
+                      <span className="font-normal text-graphite">
+                        {" "}
+                        {grade.meaning}
+                      </span>
+                    </p>
+                    <span
+                      className="bg-rule relative mt-2 block h-1.5 w-full max-w-[12rem] overflow-hidden rounded-[1px]"
+                      aria-hidden
+                    >
+                      <span
+                        className={cn(
+                          "absolute inset-y-0 left-0 rounded-[1px]",
+                          grade.grade === "Grade A" && "bg-grade-a",
+                          grade.grade === "Grade B" && "bg-grade-b",
+                          grade.grade === "Grade C" && "bg-grade-c",
+                          grade.grade === "Grade D" && "bg-grade-d",
+                        )}
+                        style={{ width: `${grade.fill}%` }}
+                      />
+                    </span>
+                  </div>
+                  <p className="font-serif col-span-2 text-[0.95rem] leading-relaxed text-graphite sm:col-span-1">
+                    {grade.detail}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </section>
 
-            <ol className="border-t border-line">
+      <section
+        id="how-it-works"
+        className="scroll-mt-20 border-b border-rule py-14 sm:py-20"
+      >
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <div className="grid gap-8 lg:grid-cols-[0.78fr_1.22fr] lg:gap-16">
+            <div>
+              <h2 className="text-[2rem] leading-tight sm:text-[2.6rem]">
+                Setup is five steps, then a loop.
+              </h2>
+              <p className="font-serif mt-4 max-w-[44ch] text-[1.05rem] leading-relaxed text-graphite">
+                Nothing here is a course you have to finish. It takes about four
+                minutes, and every value it writes down stays editable in
+                Settings.
+              </p>
+            </div>
+            <ol className="rule-list">
               {SETUP_STEPS.map((step, index) => (
                 <li
-                  key={step.label}
-                  className="grid gap-2 border-b border-line py-5 sm:grid-cols-[2rem_7rem_1fr] sm:items-baseline sm:gap-4"
+                  key={step.title}
+                  className="grid grid-cols-[2.25rem_1fr] gap-x-4 py-4 sm:gap-x-6"
                 >
-                  <span className="font-mono text-xs text-evergreen">
-                    {index + 1}
+                  <span className="font-mono text-[0.85rem] font-semibold text-graphite">
+                    {index + 1}.
                   </span>
-                  <span className="font-mono text-xs font-semibold uppercase tracking-[0.12em] text-ink">
-                    {step.label}
-                  </span>
-                  <div>
-                    <h3 className="font-serif text-lg font-semibold">
+                  <div className="min-w-0">
+                    <h3 className="text-[1.05rem] leading-snug">
                       {step.title}
                     </h3>
-                    <p className="mt-1 text-sm leading-relaxed text-graphite">
+                    <p className="font-serif mt-1 max-w-[54ch] text-[0.95rem] leading-relaxed text-graphite">
                       {step.detail}
                     </p>
                   </div>
@@ -303,42 +410,31 @@ export default async function Home() {
               ))}
             </ol>
           </div>
-          <p className="ml-auto mt-10 max-w-2xl border-l-2 border-evergreen/50 pl-5 font-serif text-xl leading-relaxed text-ink">
-            After setup, the daily loop is simple: train your blocks, play your
-            games, and let new outcomes adapt your next session.
+          <p className="font-serif mt-10 max-w-[60ch] border-l-[3px] border-biro/45 pl-4 text-[1.05rem] leading-relaxed text-ink">
+            After that the loop is short: train the blocks, play your games, and
+            let the results change what tomorrow asks for.
           </p>
         </div>
       </section>
 
-      <section id="principles" className="scroll-mt-16 border-b border-line/80">
-        <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-24">
-          <div className="max-w-2xl">
-            <p className="eyebrow">Methodology</p>
-            <h2 className="mt-4 font-serif text-4xl font-semibold leading-tight sm:text-5xl">
-              Scientific honesty in every recommendation.
-            </h2>
-            <p className="mt-5 text-lg leading-relaxed text-graphite">
-              Mainline uses peer-reviewed cognitive science without claiming
-              false guarantees. All methodology rationales are public and open.
-            </p>
-          </div>
-
-          <div className="mt-12 grid border-l border-t border-line sm:grid-cols-2 lg:grid-cols-3">
+      <section
+        id="principles"
+        className="scroll-mt-20 border-b border-rule py-14 sm:py-20"
+      >
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <h2 className="max-w-[22ch] text-[2rem] leading-tight sm:text-[2.6rem]">
+            What Mainline will not do to you.
+          </h2>
+          <div className="mt-10 grid gap-x-14 sm:grid-cols-2">
             {PRINCIPLES.map((principle) => (
               <article
                 key={principle.title}
-                className="border-b border-r border-line bg-paper-raised/50 p-6 sm:p-7"
+                className="border-t border-rule py-5"
               >
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-line/80 bg-paper text-evergreen shadow-xs">
-                  <LandingIcon
-                    name={principle.icon}
-                    className="h-5 w-5 stroke-[1.75]"
-                  />
-                </div>
-                <h3 className="mt-5 font-serif text-xl font-semibold leading-snug">
+                <h3 className="text-[1.1rem] leading-snug">
                   {principle.title}
                 </h3>
-                <p className="mt-3 text-sm leading-relaxed text-graphite">
+                <p className="font-serif mt-1.5 max-w-[46ch] text-[0.95rem] leading-relaxed text-graphite">
                   {principle.detail}
                 </p>
               </article>
@@ -347,40 +443,34 @@ export default async function Home() {
         </div>
       </section>
 
-      <section id="get-started" className="scroll-mt-16 bg-ink text-paper">
-        <div className="mx-auto grid max-w-6xl gap-12 px-4 py-20 sm:px-6 sm:py-24 lg:grid-cols-[1fr_0.82fr] lg:items-center lg:gap-20">
+      <section id="get-started" className="scroll-mt-20 py-14 sm:py-20">
+        <div className="mx-auto grid max-w-6xl gap-12 px-4 sm:px-6 lg:grid-cols-[1fr_0.78fr] lg:gap-20">
           <div>
-            <p className="font-mono text-[0.68rem] font-medium uppercase tracking-[0.2em] text-evergreen-bright">
-              Get started
-            </p>
-            <h2 className="mt-5 max-w-xl font-serif text-4xl font-semibold leading-tight sm:text-6xl">
-              Build your personal training plan.
+            <h2 className="text-[2.2rem] leading-[1.05] sm:text-[3rem]">
+              Write your next session.
             </h2>
-            <p className="mt-6 max-w-lg text-lg leading-relaxed text-paper/65">
-              Mainline is in open beta. Sign in to connect your games or try a
-              local guest session.
+            <p className="font-serif mt-5 max-w-[46ch] text-[1.1rem] leading-relaxed text-graphite">
+              Sign in with the account your games are already on, or open a
+              guest session kept entirely in this browser. Nothing is shared,
+              and the guest session can be migrated to an account later.
             </p>
           </div>
 
           <form
             action={beginSelectedBetaSignIn}
-            className="bg-paper text-ink rounded-lg border border-paper/10 p-6 shadow-sheet sm:p-8"
+            className="sheet p-5 sm:p-6"
+            id="beta-sign-in"
           >
-            <h3 className="font-serif text-xl font-semibold">
-              Get started in open beta
-            </h3>
-            <p className="mt-1 text-sm text-graphite">
-              Sign in with your chess or Google account to build your plan.
+            <h3 className="text-[1.2rem] leading-snug">Get started</h3>
+            <p className="font-serif mt-1 text-[0.95rem] leading-relaxed text-graphite">
+              Takes about four minutes, including the tactical calibration.
             </p>
-            <div className="mt-6 grid gap-3">
+            <div className="mt-5 grid gap-3">
               <PendingSubmitButton
                 name="provider"
                 value="lichess"
                 pendingLabel="Opening Lichess…"
-                className={buttonVariants({
-                  size: "lg",
-                  className: "w-full",
-                })}
+                className={buttonVariants({ size: "lg", className: "w-full" })}
               >
                 Continue with Lichess
               </PendingSubmitButton>
@@ -398,63 +488,24 @@ export default async function Home() {
                   Continue with Google
                 </PendingSubmitButton>
               )}
-              <div className="relative my-1 flex items-center justify-center">
-                <div className="w-full border-t border-line" />
-                <span className="bg-paper px-3 font-mono text-[0.65rem] uppercase text-graphite">
-                  or
-                </span>
-              </div>
               <GuestLandingButton />
             </div>
-            <p className="mt-6 border-t border-line pt-5 text-center font-mono text-[0.68rem] leading-relaxed text-graphite">
-
-              Read-only connections · no password stored · export or delete your
-              data at any time
+            <p className="font-mono mt-5 border-t border-rule pt-4 text-[0.72rem] leading-relaxed text-graphite">
+              Read-only connections. No password is stored. Export or delete
+              your account whenever you like.
             </p>
           </form>
         </div>
       </section>
 
-      <footer className="border-t border-paper/10 bg-ink text-paper/50">
-        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-7 font-mono text-[0.68rem] sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <span className="uppercase tracking-[0.18em]">
-            Mainline · science-based chess training
+      <footer className="border-t border-rule bg-sheet/70">
+        <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-6 text-[0.78rem] text-graphite sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <span className="font-semibold uppercase tracking-[-0.005em] text-ink [font-stretch:112%]">
+            Mainline
           </span>
-          <span>No ads · no runtime AI · no rating promises</span>
+          <span>Science-based chess training. Open source under AGPL-3.0.</span>
         </div>
       </footer>
     </main>
-  );
-}
-
-function TrainingBlock({
-  number,
-  minutes,
-  title,
-  reason,
-  delay = "[animation-delay:150ms]",
-}: {
-  number: string;
-  minutes: string;
-  title: string;
-  reason: string;
-  delay?: string;
-}) {
-  return (
-    <div
-      className={cn(
-        "settle relative grid grid-cols-[2.4rem_1fr_auto] items-start gap-3 rounded-md border border-paper/10 bg-paper/[0.04] p-3.5",
-        delay,
-      )}
-    >
-      <span className="relative z-10 flex h-6 w-6 items-center justify-center rounded-full bg-evergreen font-mono text-[0.65rem] font-semibold text-primary-foreground">
-        {number}
-      </span>
-      <div>
-        <h3 className="font-serif text-base font-semibold">{title}</h3>
-        <p className="mt-1 text-xs leading-relaxed text-paper/50">{reason}</p>
-      </div>
-      <span className="font-mono text-[0.68rem] text-paper/50">{minutes}</span>
-    </div>
   );
 }

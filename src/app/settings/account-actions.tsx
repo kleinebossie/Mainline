@@ -144,7 +144,7 @@ export function AccountActions() {
   return (
     <section id="data" className="flex flex-col gap-7 scroll-mt-20">
       <div className="flex flex-col gap-3">
-        <h2 className="eyebrow border-line/80 border-b pb-3">
+        <h2 className="label border-rule/80 border-b pb-3">
           Privacy and your data
         </h2>
         <p className="text-graphite text-sm leading-relaxed font-serif">
@@ -162,7 +162,7 @@ export function AccountActions() {
         </p>
       </div>
 
-      <div className="bg-card flex flex-col gap-4 rounded-md border p-5">
+      <div className="sheet flex flex-col gap-4 p-5">
         {isGuestMode ? (
           <div>
             <h3 className="font-serif text-lg">
@@ -178,7 +178,7 @@ export function AccountActions() {
                 href="/signin"
                 className={buttonVariants({ variant: "outline", size: "sm" })}
               >
-                Sign in with Lichess →
+                Sign in with Lichess
               </Link>
             </div>
           </div>
@@ -280,11 +280,9 @@ export function AccountActions() {
       </div>
 
       {hasGuestBrowserData && !isGuestMode && (
-        <div className="bg-card flex flex-col gap-4 rounded-md border p-5">
+        <div className="sheet flex flex-col gap-4 p-5">
           <div>
-            <h3 className="font-serif text-lg font-semibold">
-              Local browser guest data
-            </h3>
+            <h3 className="text-lg font-semibold">Local browser guest data</h3>
             <p className="text-graphite mt-1 text-sm font-serif leading-relaxed">
               This browser stores local guest training data. You are currently
               signed in to your cloud account. Mainline keeps your guest data
@@ -348,7 +346,7 @@ export function AccountActions() {
                   onChange={(e) => setDeleteConfirmText(e.target.value)}
                   placeholder='Type "DELETE" to confirm'
                   aria-label="Confirm account deletion"
-                  className="h-9 rounded-md border border-clay/50 bg-paper-raised px-3 font-mono text-xs text-ink outline-none focus:ring-2 focus:ring-ring"
+                  className="h-9 rounded-md border border-brick/50 bg-sheet px-3 font-mono text-xs text-ink outline-none focus:ring-2 focus:ring-ring"
                 />
               )}
               <Button

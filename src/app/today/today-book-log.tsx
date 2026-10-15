@@ -209,7 +209,7 @@ export function BookLogForm({
 
   return (
     <form
-      className="flex flex-col gap-4 border-t border-line/80 pt-4"
+      className="flex flex-col gap-4 border-t border-rule/80 pt-4"
       onSubmit={(event) => {
         event.preventDefault();
         onLog();
@@ -217,7 +217,7 @@ export function BookLogForm({
     >
       <TransparencyCardGroup items={rationaleItems} defaultCollapsed={false} />
       <div className="flex flex-col gap-1">
-        <h3 className="font-serif text-sm font-semibold text-ink">
+        <h3 className="text-sm font-semibold text-ink">
           Log your study session
         </h3>
         {scheduledBook && (
@@ -229,11 +229,11 @@ export function BookLogForm({
       </div>
 
       {assignedChapter && (
-        <div className="rounded-md border border-line/80 bg-paper/60 p-3">
-          <span className="eyebrow !text-[0.62rem] text-graphite">
+        <div className="rounded-md border border-rule/80 bg-sheet p-3">
+          <span className="label !text-[0.62rem] text-graphite">
             Scheduled assignment
           </span>
-          <p className="mt-0.5 font-serif text-sm font-semibold text-ink">
+          <p className="mt-0.5 text-sm font-semibold text-ink">
             Today: {selectedBook?.title ?? "Book"} Chapter{" "}
             {assignedChapter.chapter}: {assignedChapter.title}{" "}
             <span className="font-mono text-xs font-normal text-graphite">
@@ -245,7 +245,7 @@ export function BookLogForm({
 
       <div className="flex flex-col gap-3">
         <div className="flex flex-col gap-1.5 font-serif text-xs">
-          <span className="eyebrow !text-[0.62rem]">Outcome rating</span>
+          <span className="label !text-[0.62rem]">Outcome rating</span>
           <div className="grid grid-cols-3 gap-2">
             {OUTCOME_BUTTONS.map((opt) => {
               const isSelected = outcome === opt.id;
@@ -259,8 +259,8 @@ export function BookLogForm({
                   }}
                   className={`flex flex-col items-center justify-center rounded-md border p-2.5 text-center transition-all ${
                     isSelected
-                      ? "border-evergreen bg-evergreen/10 text-ink font-semibold shadow-xs"
-                      : "border-line/80 bg-paper/30 text-graphite hover:border-line hover:bg-paper/70"
+                      ? "border-tile bg-tile/10 text-ink font-semibold shadow-xs"
+                      : "border-rule/80 bg-paper/30 text-graphite hover:border-rule hover:bg-sheet"
                   }`}
                   aria-pressed={isSelected}
                 >
@@ -278,7 +278,7 @@ export function BookLogForm({
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <label className="flex flex-col gap-1.5 font-serif text-xs">
-            <span className="eyebrow !text-[0.62rem]">
+            <span className="label !text-[0.62rem]">
               Confirmed time (minutes)
             </span>
             <Input
@@ -310,17 +310,17 @@ export function BookLogForm({
         </div>
 
         {showAdvanced && (
-          <div className="grid grid-cols-1 gap-4 rounded-md border border-line/60 bg-paper/20 p-3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 rounded-md border border-rule/60 bg-paper/20 p-3 sm:grid-cols-2">
             {scheduledBook ? (
               <div className="flex flex-col gap-1.5 font-serif text-xs">
-                <span className="eyebrow !text-[0.62rem]">Book</span>
+                <span className="label !text-[0.62rem]">Book</span>
                 <span className="text-ink text-sm leading-snug">
                   {scheduledBook.title}
                 </span>
               </div>
             ) : (
               <label className="flex flex-col gap-1.5 font-serif text-xs">
-                <span className="eyebrow !text-[0.62rem]">Book</span>
+                <span className="label !text-[0.62rem]">Book</span>
                 <Select
                   value={bookId}
                   onChange={(e) => setBookId(e.target.value)}
@@ -335,7 +335,7 @@ export function BookLogForm({
             )}
 
             <label className="flex flex-col gap-1.5 font-serif text-xs">
-              <span className="eyebrow !text-[0.62rem]">Chapter number</span>
+              <span className="label !text-[0.62rem]">Chapter number</span>
               <Input
                 type="number"
                 min={0}
@@ -353,7 +353,7 @@ export function BookLogForm({
             </label>
 
             <label className="flex flex-col gap-1.5 font-serif text-xs">
-              <span className="eyebrow !text-[0.62rem]">{unitLabel}</span>
+              <span className="label !text-[0.62rem]">{unitLabel}</span>
               <Input
                 type="number"
                 min={1}
@@ -369,7 +369,7 @@ export function BookLogForm({
             </label>
 
             <label className="flex flex-col gap-1.5 font-serif text-xs">
-              <span className="eyebrow !text-[0.62rem]">
+              <span className="label !text-[0.62rem]">
                 Custom success rate (%)
               </span>
               <Input
@@ -388,9 +388,7 @@ export function BookLogForm({
 
             {selectedBook?.category === "tactics" && (
               <label className="flex flex-col gap-1.5 font-serif text-xs">
-                <span className="eyebrow !text-[0.62rem]">
-                  Woodpecker cycle
-                </span>
+                <span className="label !text-[0.62rem]">Woodpecker cycle</span>
                 <Input
                   type="number"
                   min={1}
@@ -431,7 +429,7 @@ export function BookLogForm({
       )}
 
       {log.data?.feedback && feedbackCopy && (
-        <p className="text-graphite border-l-2 border-evergreen/40 pl-3 font-serif text-sm leading-relaxed">
+        <p className="text-graphite border-l-[3px] border-biro/45 pl-3 font-serif text-sm leading-relaxed">
           {FEEDBACK_SUMMARY[log.data.feedback.verdict]}
         </p>
       )}

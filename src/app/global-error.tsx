@@ -14,17 +14,17 @@ export default function GlobalError({
       <head>
         <style>{`
           :root {
-            --paper: 80 14% 93%;
-            --ink: 210 13% 9%;
-            --graphite: 210 7% 38%;
-            --line: 84 12% 84%;
-            --clay: 12 56% 42%;
-            --evergreen: 152 39% 30%;
+            --paper: 90 6% 95%;
+            --ink: 162 8% 12%;
+            --graphite: 163 6% 40%;
+            --rule: 96 7% 84%;
+            --brick: 7 69% 40%;
+            --tile: 167 73% 19%;
           }
           body {
-            background-color: #f1f2eb;
-            color: #14171a;
-            font-family: Georgia, serif;
+            background-color: #f1f2f0;
+            color: #1c211f;
+            font-family: system-ui, sans-serif;
           }
         `}</style>
       </head>

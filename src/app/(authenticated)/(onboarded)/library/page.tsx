@@ -9,7 +9,7 @@ import { Library } from "@/app/library/library-view";
 export default function LibraryPage() {
   return (
     <PageShell
-      eyebrow="Books, courses & over-the-board"
+      kicker="Books, courses & over-the-board"
       title="Library"
       lede="The parts of training we keep deliberately external: recommended, never hosted. Study them the right way, log what you do, and the rest of your plan adapts around it."
     >

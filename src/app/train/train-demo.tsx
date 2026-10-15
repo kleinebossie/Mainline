@@ -214,7 +214,7 @@ export function TrainDemo() {
     <PageShell width="wide">
       <div className="flex flex-col gap-6 py-6 settle">
         <div className="flex flex-col gap-1.5">
-          <h1 className="font-serif text-3xl font-semibold tracking-tight">
+          <h1 className="text-3xl font-semibold tracking-tight">
             Practice board
           </h1>
           <p className="text-graphite font-serif text-sm">
@@ -305,17 +305,17 @@ export function TrainDemo() {
                     (rook a1 → a8) to solve.
                   </p>
 
-                  <div className="flex flex-col gap-2 rounded-md border border-line bg-paper/50 p-4">
-                    <span className="text-ink font-mono text-xs font-semibold uppercase tracking-wider">
+                  <div className="flex flex-col gap-2 rounded-md border border-rule bg-sheet p-4">
+                    <span className="text-ink font-mono text-xs font-semibold tracking-wider">
                       Solve status:
                     </span>
                     <span
                       id="solving-status"
                       className={cn(
                         "font-serif text-lg font-semibold",
-                        solveStatus === "solved" && "text-evergreen-bright",
+                        solveStatus === "solved" && "text-sage",
                         solveStatus === "wrong" && "text-destructive",
-                        solveStatus === "correct" && "text-evergreen",
+                        solveStatus === "correct" && "text-tile",
                         solveStatus === "pending" && "text-graphite",
                       )}
                     >
@@ -363,17 +363,17 @@ export function TrainDemo() {
                           : "Start Stockfish engine"}
                       </Button>
                     ) : (
-                      <div className="text-evergreen font-mono text-xs font-semibold">
+                      <div className="text-tile font-mono text-xs font-semibold">
                         ✓ Engine ready. Make your first move.
                       </div>
                     )}
                   </div>
 
-                  <div className="flex flex-col gap-2 border-t border-line/80 pt-4">
-                    <span className="text-ink font-mono text-xs font-semibold uppercase tracking-wider">
+                  <div className="flex flex-col gap-2 border-t border-rule/80 pt-4">
+                    <span className="text-ink font-mono text-xs font-semibold tracking-wider">
                       Game history:
                     </span>
-                    <div className="h-28 overflow-y-auto rounded-md border border-line bg-paper p-2 font-mono text-xs flex flex-col gap-1">
+                    <div className="h-28 overflow-y-auto rounded-md border border-rule bg-paper p-2 font-mono text-xs flex flex-col gap-1">
                       {sparHistory.length === 0 ? (
                         <span className="text-graphite/60 italic">
                           No moves played yet.
@@ -427,15 +427,15 @@ export function TrainDemo() {
                     + Queen vs King endgame.
                   </p>
 
-                  <div className="flex flex-col gap-2 rounded-md border border-line bg-paper/50 p-4">
-                    <span className="text-ink font-mono text-xs font-semibold uppercase tracking-wider">
+                  <div className="flex flex-col gap-2 rounded-md border border-rule bg-sheet p-4">
+                    <span className="text-ink font-mono text-xs font-semibold tracking-wider">
                       Endgame result:
                     </span>
                     <span
                       id="endgame-status"
                       className={cn(
                         "font-serif text-lg font-semibold",
-                        endgameResult?.correct && "text-evergreen-bright",
+                        endgameResult?.correct && "text-sage",
                         endgameResult &&
                           !endgameResult.correct &&
                           "text-destructive",

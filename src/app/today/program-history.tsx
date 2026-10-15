@@ -62,13 +62,11 @@ export function ProgramArchive({
   const hasError = error != null && error !== false;
 
   return (
-    <section className="overflow-hidden rounded-lg border bg-card shadow-sheet">
-      <div className="flex flex-wrap items-end justify-between gap-3 border-b border-line px-4 py-3 sm:px-5">
+    <section className="sheet overflow-hidden">
+      <div className="flex flex-wrap items-end justify-between gap-3 border-b border-rule px-4 py-3 sm:px-5">
         <div>
-          <p className="eyebrow">Program</p>
-          <h2 className="mt-1 font-serif text-lg font-semibold text-ink">
-            History
-          </h2>
+          <p className="label">Program</p>
+          <h2 className="mt-1 text-lg font-semibold text-ink">History</h2>
         </div>
         <p className="max-w-md text-right font-mono text-[0.68rem] leading-relaxed text-graphite">
           Earlier sessions keep their original outcomes and reasons.
@@ -108,9 +106,9 @@ export function ProgramArchive({
       )}
 
       {(hasMore || (hasError && entries.length > 0)) && (
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-4 py-3 sm:px-5">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-rule px-4 py-3 sm:px-5">
           {hasError ? (
-            <span className="text-sm text-clay">
+            <span className="text-sm text-brick">
               Earlier versions could not be loaded.
             </span>
           ) : (
@@ -178,7 +176,7 @@ function ProgramDay({
   );
 
   return (
-    <li className={cn("relative", current && "bg-evergreen/[0.035]")}>
+    <li className={cn("relative", current && "bg-tile/[0.035]")}>
       <details open={first && !current ? true : undefined}>
         <summary className="cursor-pointer list-none px-4 py-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:px-5 [&::-webkit-details-marker]:hidden">
           <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -187,21 +185,17 @@ function ProgramDay({
                 aria-hidden
                 className={cn(
                   "mt-1 h-3 w-3 shrink-0 rounded-full border-2",
-                  current
-                    ? "border-evergreen bg-evergreen"
-                    : "border-line bg-paper-raised",
+                  current ? "border-tile bg-tile" : "border-rule bg-sheet",
                 )}
               />
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className="font-serif font-semibold text-ink">
-                    {scheduled}
-                  </p>
-                  <span className="rounded-sm border border-line px-2 py-0.5 font-mono text-[0.62rem] uppercase tracking-[0.1em] text-graphite">
+                  <p className="font-semibold text-ink">{scheduled}</p>
+                  <span className="rounded-sm border border-rule px-2 py-0.5 font-mono text-[0.62rem] text-graphite">
                     {current ? "Current session" : "Earlier session"}
                   </span>
                   {day.entries.length > 1 && (
-                    <span className="rounded-sm border border-line px-2 py-0.5 font-mono text-[0.62rem] text-graphite">
+                    <span className="rounded-sm border border-rule px-2 py-0.5 font-mono text-[0.62rem] text-graphite">
                       {day.entries.length} plan versions
                     </span>
                   )}
@@ -236,7 +230,7 @@ function ProgramDay({
             {eventCount === 1 ? "event" : "events"}
           </p>
         </summary>
-        <div className="border-t border-line/80 bg-paper/35 px-4 py-3 sm:px-5">
+        <div className="border-t border-rule/80 bg-paper/35 px-4 py-3 sm:px-5">
           <ol className="space-y-3">
             {day.entries.map((entry, index) => (
               <ProgramVersion
@@ -268,12 +262,12 @@ function ProgramVersion({
   ).length;
 
   return (
-    <li className="rounded-md border border-line/80 bg-card">
+    <li className="sheet">
       <details open={first ? true : undefined}>
         <summary className="cursor-pointer list-none px-3 py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
           <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
             <div>
-              <p className="font-serif text-sm font-semibold text-ink">
+              <p className="text-sm font-semibold text-ink">
                 {current ? "Current plan" : "Earlier plan"}
               </p>
               <p className="mt-1 font-mono text-[0.63rem] text-graphite">
@@ -306,16 +300,13 @@ function ProgramVersion({
             </div>
           </div>
         </summary>
-        <div className="border-t border-line/80 px-3 py-3">
+        <div className="border-t border-rule/80 px-3 py-3">
           <ol className="space-y-2">
             {entry.items.map((item) => (
-              <li
-                key={item.id}
-                className="rounded-md border border-line/80 bg-card px-3 py-3"
-              >
+              <li key={item.id} className="sheet px-3 py-3">
                 <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="font-serif text-sm font-semibold text-ink">
+                    <p className="text-sm font-semibold text-ink">
                       {item.label}
                     </p>
                     <p className="mt-1 font-mono text-[0.63rem] capitalize text-graphite">
@@ -345,7 +336,7 @@ function ProgramVersion({
                   </div>
                 </div>
                 <details className="mt-2">
-                  <summary className="cursor-pointer font-mono text-[0.65rem] text-evergreen focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  <summary className="cursor-pointer font-mono text-[0.65rem] text-tile focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                     Original rationale and evidence
                   </summary>
                   <p className="mt-2 text-xs leading-relaxed text-graphite">
@@ -391,9 +382,7 @@ function TimeMetric({
 }) {
   return (
     <div>
-      <p className="font-mono text-[0.58rem] uppercase tracking-[0.1em] text-graphite">
-        {label}
-      </p>
+      <p className="font-mono text-[0.58rem] text-graphite">{label}</p>
       <p
         className={cn(
           "mt-0.5 font-mono tabular-nums text-ink",

@@ -9,7 +9,7 @@ import { getGuestSession } from "@/lib/guest-session";
 export function GuestLandingButton() {
   const router = useRouter();
   const [destination, setDestination] = useState("/onboarding/constraints");
-  const [label, setLabel] = useState("Continue as guest →");
+  const [label, setLabel] = useState("Continue as guest");
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -27,16 +27,16 @@ export function GuestLandingButton() {
       (session.calibrationResponses && session.calibrationResponses.length >= 3)
     ) {
       setDestination("/onboarding/reveal");
-      setLabel("Resume setup (Step 4: Reveal) →");
+      setLabel("Resume setup (Step 4: Reveal)");
     } else if (session.connections && session.connections.length > 0) {
       setDestination("/onboarding/calibration");
-      setLabel("Resume setup (Step 3: Calibration) →");
+      setLabel("Resume setup (Step 3: Calibration)");
     } else if (session.constraints != null) {
       setDestination("/connections");
-      setLabel("Resume setup (Step 2: Connect) →");
+      setLabel("Resume setup (Step 2: Connect)");
     } else {
       setDestination("/onboarding/constraints");
-      setLabel("Continue as guest →");
+      setLabel("Continue as guest");
     }
   }, [router]);
 
@@ -44,10 +44,9 @@ export function GuestLandingButton() {
     <Link
       href={destination}
       className={buttonVariants({
-        variant: "ghost",
+        variant: "outline",
         size: "lg",
-        className:
-          "w-full border border-line text-ink hover:bg-paper-raised font-serif",
+        className: "w-full",
       })}
     >
       {label}

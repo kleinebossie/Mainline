@@ -101,6 +101,8 @@ Automated tests enforce three architectural boundaries:
 
 For complete specifications, read [VISION.md](file:///home/joebos/programming/Mainline/planning/VISION.md), [BUILD.md](file:///home/joebos/programming/Mainline/planning/BUILD.md), and [METHODOLOGY.md](file:///home/joebos/programming/Mainline/planning/METHODOLOGY.md).
 
+The interface follows one visual system, documented in [DESIGN.md](file:///home/joebos/programming/Mainline/planning/DESIGN.md): evidence grades are the only colour that carries meaning, and the eval bar is the only progress meter.
+
 ---
 
 ## Local development

@@ -90,12 +90,12 @@ test("Today states stay clear and responsive", async ({ page }, testInfo) => {
 
   await mountWithAppStyles(page, renderState("today-done"));
   await expect(
-    page.getByText("All training complete", { exact: true }),
+    page.getByText("Training complete", { exact: true }),
   ).toBeVisible();
 
   await mountWithAppStyles(page, renderState("today-mixed"));
   await expect(
-    page.getByText("Session finished with skips", { exact: true }),
+    page.getByText("Finished with skips", { exact: true }),
   ).toBeVisible();
 });
 

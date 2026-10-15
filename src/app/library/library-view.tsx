@@ -69,12 +69,12 @@ function ProtocolStep({
   children: ReactNode;
 }) {
   return (
-    <li className="flex flex-col gap-1 border-b border-line/70 pb-4 last:border-b-0">
+    <li className="flex flex-col gap-1 border-b border-rule pb-4 last:border-b-0">
       <div className="flex items-baseline gap-2">
-        <span className="eyebrow !text-[0.62rem] text-evergreen shrink-0">
+        <span className="label !text-[0.62rem] text-graphite shrink-0">
           Step {step}
         </span>
-        <h3 className="text-ink font-serif text-base font-semibold leading-snug">
+        <h3 className="text-ink text-base font-semibold leading-snug">
           {title}
         </h3>
       </div>
@@ -144,12 +144,10 @@ function BookStudyProtocol({ protocol }: { protocol: Protocol }) {
         </ol>
 
         {hasWoodpecker && (
-          <div className="border-evergreen/30 bg-evergreen/5 rounded-md border p-4">
+          <div className="border-tile/30 bg-tile/5 rounded-md border p-4">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h3 className="font-serif text-base font-semibold">
-                Woodpecker spacing
-              </h3>
-              <span className="text-graphite font-mono text-[0.7rem] uppercase tracking-[0.12em]">
+              <h3 className="text-base font-semibold">Woodpecker spacing</h3>
+              <span className="text-graphite font-mono text-[0.7rem]">
                 at least {protocol.woodpecker.recommendedMinCycles} cycles
               </span>
             </div>
@@ -157,7 +155,7 @@ function BookStudyProtocol({ protocol }: { protocol: Protocol }) {
               {protocol.woodpecker.cycles.map((cycle) => (
                 <div
                   key={cycle.cycle}
-                  className="rounded-sm border border-line/80 bg-paper/70 px-3 py-2"
+                  className="rounded-sm border border-rule/80 bg-sheet px-3 py-2"
                 >
                   <p className="text-ink font-mono text-xs tabular-nums">
                     Cycle {cycle.cycle}
@@ -221,7 +219,7 @@ export function Library() {
 
       {/* --- 2D/3D modality + over-the-board calibration (gated by play medium) --- */}
       <section className="flex flex-col gap-4">
-        <h2 className="font-serif text-2xl font-semibold tracking-tight">
+        <h2 className="text-2xl font-semibold tracking-tight">
           Screen vs. board
         </h2>
         <Card gutter={asEvidenceGrade(data.modality.split.grade)}>
@@ -240,8 +238,8 @@ export function Library() {
                 <p className="text-ink font-serif text-sm leading-relaxed">
                   {data.modality.physicalBoardAdvice}
                 </p>
-                <div className="border-l-2 border-evergreen/40 pl-3">
-                  <p className="eyebrow !text-[0.62rem]">
+                <div className="border-l-[3px] border-biro/45 pl-3">
+                  <p className="label !text-[0.62rem]">
                     Over-the-board tournament simulation
                   </p>
                   <p className="text-ink mt-1 font-serif text-sm leading-relaxed">
@@ -278,7 +276,7 @@ export function Library() {
 
       {/* --- Recommended books --- */}
       <section className="flex flex-col gap-4">
-        <h2 className="font-serif text-2xl font-semibold tracking-tight">
+        <h2 className="text-2xl font-semibold tracking-tight">
           Recommended for you
         </h2>
         <p className="text-graphite font-serif text-sm leading-relaxed -mt-2">
@@ -300,7 +298,7 @@ export function Library() {
                 <CardTitle className="flex flex-wrap items-baseline justify-between gap-2">
                   <span>{b.title}</span>
                   {b.owned && (
-                    <span className="text-evergreen border-evergreen/40 bg-evergreen/10 rounded-sm border px-2 py-0.5 font-mono text-[0.62rem] uppercase tracking-wide">
+                    <span className="text-tile border-tile/40 bg-tile/10 rounded-sm border px-2 py-0.5 font-mono text-[0.62rem] tracking-wide">
                       You own this
                     </span>
                   )}
@@ -325,7 +323,7 @@ export function Library() {
       {/* --- Progress --- */}
       {data.progress.length > 0 && (
         <section className="flex flex-col gap-4">
-          <h2 className="font-serif text-2xl font-semibold tracking-tight">
+          <h2 className="text-2xl font-semibold tracking-tight">
             Your progress
           </h2>
           {data.progress.map((p) => (

@@ -51,7 +51,8 @@ const TIERED_FALLBACK_DRILLS: Record<string, BlunderDrillData> = {
     solutionLine: ["d5c7", "e8d8", "c7a8"],
     source: "starter",
     title: "Execute the tactical fork",
-    description: "White can fork the king and rook. Find the winning knight move.",
+    description:
+      "White can fork the king and rook. Find the winning knight move.",
   },
   pin: {
     fen: "r1bqk2r/pppp1ppp/2n5/4p3/2B1P3/3P1N2/PPP2PPP/RNBQK2R w KQkq - 1 6",
@@ -73,7 +74,8 @@ const TIERED_FALLBACK_DRILLS: Record<string, BlunderDrillData> = {
     solutionLine: ["d1d8"],
     source: "starter",
     title: "Punish the back-rank mistake",
-    description: "Black left the back rank undefended. Find the winning tactical move.",
+    description:
+      "Black left the back rank undefended. Find the winning tactical move.",
   },
 };
 
@@ -128,8 +130,7 @@ export function InstantBlunderDrill({
 
   const [solveState, setSolveState] = useState<SolveState>(() => ({
     position: initialDrill?.fen ?? defaultStarter.fen,
-    solutionLine:
-      initialDrill?.solutionLine ?? defaultStarter.solutionLine,
+    solutionLine: initialDrill?.solutionLine ?? defaultStarter.solutionLine,
     cursor: 0,
     startedMs: systemClock.now(),
     attempts: 0,
@@ -217,7 +218,6 @@ export function InstantBlunderDrill({
         setLoading(false);
         return;
       }
-
 
       if (typeof window === "undefined" || typeof Worker === "undefined") {
         setDrill(STARTER_BLUNDER_DRILL);
@@ -337,7 +337,6 @@ export function InstantBlunderDrill({
     personalizedQuery.data,
   ]);
 
-
   const playerColor = useMemo(() => {
     try {
       return new Chess(drill.fen).turn();
@@ -403,10 +402,10 @@ export function InstantBlunderDrill({
     <Card className={cn("settle [animation-delay:120ms]", className)}>
       <CardHeader className="pb-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <CardTitle className="font-serif text-2xl font-semibold">
+          <CardTitle className="text-2xl font-semibold">
             {drill.title ?? "Instant blunder drill"}
           </CardTitle>
-          <span className="rounded border border-line bg-paper/60 px-2 py-0.5 font-mono text-[11px] text-graphite uppercase tracking-wider">
+          <span className="rounded border border-rule bg-sheet px-2 py-0.5 font-mono text-[11px] text-graphite uppercase tracking-wider">
             {drill.source === "game" ? "Your game" : "Starter drill"}
           </span>
         </div>
@@ -432,8 +431,8 @@ export function InstantBlunderDrill({
             </div>
 
             <div className="flex flex-1 flex-col gap-4 w-full">
-              <div className="flex items-center justify-between border-b border-line/80 pb-3">
-                <div className="flex items-center gap-2 font-mono text-xs font-semibold uppercase tracking-wider text-ink">
+              <div className="flex items-center justify-between border-b border-rule/80 pb-3">
+                <div className="flex items-center gap-2 font-mono text-xs font-semibold tracking-wider text-ink">
                   <span
                     className={cn(
                       "inline-block h-3 w-3 rounded-full border",
@@ -453,8 +452,8 @@ export function InstantBlunderDrill({
               </div>
 
               {solveStatus === "solved" && (
-                <div className="flex flex-col gap-3 rounded-lg border border-evergreen/30 bg-evergreen/10 p-4 text-ink">
-                  <div className="flex items-center gap-2 text-evergreen font-semibold text-sm">
+                <div className="flex flex-col gap-3 rounded-lg border border-tile/30 bg-tile/10 p-4 text-ink">
+                  <div className="flex items-center gap-2 text-tile font-semibold text-sm">
                     <Check className="h-4 w-4" />
                     <span>Correct. You found the winning tactic.</span>
                   </div>
@@ -469,7 +468,7 @@ export function InstantBlunderDrill({
                         onClick={onContinue}
                         className="w-full sm:w-auto"
                       >
-                        Continue to daily training →
+                        Continue to daily training
                       </Button>
                     ) : (
                       <Link
@@ -479,7 +478,7 @@ export function InstantBlunderDrill({
                           "w-full sm:w-auto text-center",
                         )}
                       >
-                        Continue to daily training →
+                        Continue to daily training
                       </Link>
                     )}
                   </div>
@@ -487,7 +486,7 @@ export function InstantBlunderDrill({
               )}
 
               {solveStatus === "wrong" && (
-                <div className="flex items-center justify-between gap-3 rounded-lg border border-clay/30 bg-clay/10 p-3 text-clay">
+                <div className="flex items-center justify-between gap-3 rounded-lg border border-brick/30 bg-brick/10 p-3 text-brick">
                   <span className="text-sm font-medium">
                     Not quite. Try another move.
                   </span>
@@ -505,7 +504,7 @@ export function InstantBlunderDrill({
               )}
 
               {solveStatus === "pending" && (
-                <div className="flex flex-col gap-2 rounded-lg border border-line bg-paper/40 p-4">
+                <div className="flex flex-col gap-2 rounded-lg border border-rule bg-sheet p-4">
                   <p className="text-sm font-serif text-ink">
                     Make the best move on the board to solve this position.
                   </p>
@@ -516,7 +515,7 @@ export function InstantBlunderDrill({
               )}
 
               {solveStatus === "correct" && (
-                <div className="flex items-center gap-2 rounded-lg border border-evergreen/20 bg-evergreen/5 p-3 text-evergreen text-sm font-medium">
+                <div className="flex items-center gap-2 rounded-lg border border-tile/20 bg-tile/5 p-3 text-tile text-sm font-medium">
                   <span>Good move. Keep going.</span>
                 </div>
               )}

@@ -19,10 +19,9 @@ import {
   rowStatusLabel,
   sessionMinuteCap,
 } from "@/app/today/today-copy";
-import { asEvidenceGrade } from "@/components/evidence";
+import { GradeGlyph, asEvidenceGrade } from "@/components/evidence";
 import { TransparencyCard } from "@/components/transparency-card";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   MAX_MINUTES_PER_DAY,
@@ -36,6 +35,10 @@ type LogOutcomeInput = {
   type: "skip" | "puzzle_attempt" | "drill_done" | "game_played";
   correct?: boolean;
 };
+
+// Today is typeset as a game score: one numbered line per block, the annotation glyph for
+// its evidence grade at the end of the title, and the eval meter on the leading edge. A
+// session really is a sequence, so the numbering carries information (planning/DESIGN.md).
 
 export function EmptyTodayCard({
   timeInput,
@@ -51,16 +54,15 @@ export function EmptyTodayCard({
   onRegenerate: () => void;
 }) {
   return (
-    <Card gutter="A" className="focus-card p-6 shadow-sheet">
-      <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="eyebrow">Today&apos;s Training</p>
-          <h2 className="mt-1 font-serif text-2xl font-semibold text-ink">
-            Your constraints are set
+    <section className="sheet settle p-4 sm:p-5">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="max-w-md">
+          <h2 className="text-[1.4rem] leading-tight">
+            Your constraints are set. Say how long you have.
           </h2>
-          <p className="text-graphite mt-1 max-w-md font-serif text-sm leading-relaxed">
-            Choose today&apos;s available time budget to build your adapted
-            training session.
+          <p className="font-serif mt-1.5 text-[0.95rem] leading-relaxed text-graphite">
+            Mainline fills the time with the work your games say you need,
+            shortest first.
           </p>
         </div>
         <TimeEdit
@@ -72,7 +74,31 @@ export function EmptyTodayCard({
           empty
         />
       </div>
-    </Card>
+    </section>
+  );
+}
+
+function Readout({
+  label,
+  value,
+  note,
+}: {
+  label: string;
+  value: string;
+  note?: string | null;
+}) {
+  return (
+    <div className="flex min-w-0 flex-wrap items-baseline gap-x-2.5 gap-y-0.5 py-2">
+      <dt className="label shrink-0">{label}</dt>
+      <dd className="font-mono text-[1.05rem] font-semibold leading-none text-ink">
+        {value}
+      </dd>
+      {note && (
+        <dd className="font-mono text-[0.7rem] leading-snug text-graphite">
+          {note}
+        </dd>
+      )}
+    </div>
   );
 }
 
@@ -126,9 +152,10 @@ export function TodayHeader({
       ? "No training scheduled"
       : allHandled
         ? skipped === 0
-          ? "All training complete"
-          : "Session finished with skips"
+          ? "Training complete"
+          : "Finished with skips"
         : "Session in progress";
+
   const handleRegenerateWithConfirm = () => {
     if (done > 0) {
       if (
@@ -143,125 +170,19 @@ export function TodayHeader({
   };
 
   return (
-    <section className="bg-card focus-card rounded-lg border p-4 shadow-sheet settle sm:p-5">
-      <div className="mb-5 border-b border-line pb-4">
-        <div className="flex flex-wrap items-end justify-between gap-2">
-          <div>
-            <p className="eyebrow">{statusTitle}</p>
-            <p className="mt-1 font-sans text-lg font-semibold text-ink">
-              {program.items.length === 0
-                ? "Nothing is waiting for you today."
-                : `${done} done, ${skipped} skipped, ${remaining} remaining`}
-            </p>
-          </div>
-        </div>
-        {program.items.length > 0 && (
-          <div
-            className="mt-3 grid gap-1"
-            style={{
-              gridTemplateColumns: `repeat(${program.items.length}, minmax(0, 1fr))`,
-            }}
-            aria-label={`${done} done, ${skipped} skipped, ${remaining} remaining`}
-          >
-            {program.items.map((item) => (
-              <span
-                key={item.id}
-                className={cn(
-                  "h-2 rounded-full border",
-                  item.status === "done" && "border-evergreen bg-evergreen",
-                  item.status === "skipped" &&
-                    "border-clay bg-[repeating-linear-gradient(135deg,hsl(var(--clay))_0_3px,transparent_3px_6px)]",
-                  item.status !== "done" &&
-                    item.status !== "skipped" &&
-                    "border-line bg-paper",
-                )}
-                title={rowStatusLabel(item)}
-              />
-            ))}
-          </div>
-        )}
-        {allHandled && skipped > 0 && (
-          <p className="mt-3 text-sm text-graphite">
-            Undo any skip below to return that block to the session.
+    <section className="sheet settle p-4 sm:p-5">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+        <div className="min-w-0">
+          <h2 className="text-[1.5rem] leading-tight sm:text-[1.75rem]">
+            {statusTitle}
+          </h2>
+          <p className="mt-1 font-mono text-[0.78rem] text-graphite">
+            {program.items.length === 0
+              ? "Nothing is waiting for you today"
+              : `${done} of ${program.items.length} blocks done${
+                  skipped > 0 ? `, ${skipped} skipped` : ""
+                }${remaining > 0 ? `, ${remaining} left` : ""}`}
           </p>
-        )}
-      </div>
-
-      {program.items.length > 0 && !allHandled && nextItem && (
-        <div
-          id="today-primary-action-card"
-          className="mb-5 rounded-lg border border-evergreen/35 bg-evergreen/[0.04] p-4 sm:p-5"
-        >
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-w-0 flex-1">
-              <p className="eyebrow text-evergreen">
-                {isFirstBlock ? "Ready to begin" : "Session in progress"}
-              </p>
-              <h3 className="mt-0.5 font-serif text-xl font-semibold text-ink sm:text-2xl">
-                {isFirstBlock
-                  ? "Start today's session"
-                  : "Continue your session"}
-              </h3>
-              <p className="text-graphite mt-1 font-serif text-sm">
-                <span>
-                  Block {nextItemIndex + 1} of {program.items.length}:{" "}
-                </span>
-                <span className="font-semibold text-ink">{nextItem.label}</span>
-                {nextItem.estMinutes != null && (
-                  <span className="font-mono text-xs text-graphite ml-1.5">
-                    ({formatMinuteCap(nextItem.estMinutes)})
-                  </span>
-                )}
-              </p>
-            </div>
-            <div className="shrink-0">
-              <TodayHeroButton
-                item={nextItem}
-                isFirstBlock={isFirstBlock}
-                nextItemIndex={nextItemIndex}
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className="flex min-w-0 flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-        <div className="min-w-0 flex-1">
-          <p className="eyebrow">Today</p>
-          <div className="mt-3 grid max-w-md grid-cols-2 gap-5">
-            <div>
-              <p className="font-mono text-[0.62rem] uppercase tracking-[0.12em] text-graphite">
-                Planned
-              </p>
-              <h2 className="mt-1 font-serif text-xl font-semibold leading-tight text-ink sm:text-2xl">
-                {sessionMinuteCap(program)}
-              </h2>
-            </div>
-            <div className="border-l border-line pl-5">
-              <p className="font-mono text-[0.62rem] uppercase tracking-[0.12em] text-graphite">
-                Actual, measured
-              </p>
-              <p className="mt-1 font-serif text-xl font-semibold leading-tight text-ink sm:text-2xl">
-                {historyLoading
-                  ? "Loading…"
-                  : notStarted || actualMinutes === 0 || actualMinutes == null
-                    ? "0 min"
-                    : formatMeasuredMinutes(
-                        actualMinutes,
-                        actualMeasurementTruncated,
-                      )}
-              </p>
-              {!historyLoading && !historyError && !notStarted && actualMinutes != null && actualMinutes > 0 && (
-                <p className="mt-1 font-mono text-[0.6rem] leading-relaxed text-graphite">
-                  {formatMeasurementCoverage(
-                    actualMeasuredEvents,
-                    actualEventCount,
-                    actualMeasurementTruncated,
-                  )}
-                </p>
-              )}
-            </div>
-          </div>
         </div>
         <TimeEdit
           timeInput={timeInput}
@@ -274,18 +195,108 @@ export function TodayHeader({
         />
       </div>
 
-      <div className="mt-3">
+      {program.items.length > 0 && (
+        <div
+          className="mt-4 flex gap-1"
+          style={{
+            gridTemplateColumns: `repeat(${program.items.length}, minmax(0, 1fr))`,
+          }}
+          role="img"
+          aria-label={`${done} done, ${skipped} skipped, ${remaining} remaining`}
+        >
+          {program.items.map((item) => (
+            <span
+              key={item.id}
+              className={cn(
+                "h-1.5 flex-1 rounded-[1px]",
+                item.status === "done" && "bg-tile",
+                item.status === "skipped" &&
+                  "bg-[repeating-linear-gradient(to_right,hsl(var(--brick))_0_3px,transparent_3px_6px)]",
+                item.status !== "done" &&
+                  item.status !== "skipped" &&
+                  "bg-rule",
+              )}
+              title={rowStatusLabel(item)}
+            />
+          ))}
+        </div>
+      )}
+
+      <dl className="mt-4 grid gap-x-8 border-t border-rule sm:grid-cols-2">
+        <Readout label="Planned" value={sessionMinuteCap(program)} />
+        <Readout
+          label="Measured on the clock"
+          value={
+            historyLoading
+              ? "Loading"
+              : notStarted || actualMinutes === 0 || actualMinutes == null
+                ? "0 min"
+                : formatMeasuredMinutes(
+                    actualMinutes,
+                    actualMeasurementTruncated,
+                  )
+          }
+          note={
+            !historyLoading &&
+            !historyError &&
+            !notStarted &&
+            actualMinutes != null &&
+            actualMinutes > 0
+              ? formatMeasurementCoverage(
+                  actualMeasuredEvents,
+                  actualEventCount,
+                  actualMeasurementTruncated,
+                )
+              : null
+          }
+        />
+      </dl>
+
+      {program.items.length > 0 && !allHandled && nextItem && (
+        <div className="mt-4 rounded-[3px] bg-biro/[0.05] p-3 [box-shadow:inset_3px_0_0_hsl(var(--biro))] sm:p-3.5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="min-w-0 text-[0.95rem] leading-snug">
+              <span className="font-mono text-[0.72rem] font-semibold text-biro">
+                {isFirstBlock ? "Start here" : "Up next"}
+              </span>
+              <br />
+              <span className="font-mono text-graphite mr-1.5 text-[0.85rem]">
+                {nextItemIndex + 1}.
+              </span>
+              <span className="font-semibold">{nextItem.label}</span>
+              {nextItem.estMinutes != null && (
+                <span className="font-mono text-graphite ml-1.5 text-[0.78rem]">
+                  {formatMinuteCap(nextItem.estMinutes)}
+                </span>
+              )}
+            </p>
+            <TodayHeroButton
+              item={nextItem}
+              isFirstBlock={isFirstBlock}
+              nextItemIndex={nextItemIndex}
+            />
+          </div>
+        </div>
+      )}
+
+      {allHandled && skipped > 0 && (
+        <p className="font-serif mt-3 text-[0.9rem] leading-relaxed text-graphite">
+          Open a skipped block below to put it back in today&apos;s session.
+        </p>
+      )}
+
+      <div className="mt-4 border-t border-rule pt-3">
         <button
           type="button"
           onClick={() => setGoalOpen((open) => !open)}
           aria-expanded={goalOpen}
           aria-controls="today-process-goal"
-          className="eyebrow flex cursor-pointer items-center gap-2 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
+          className="inline-flex min-h-8 cursor-pointer items-center gap-1.5 rounded-[2px] pr-1 text-[0.85rem] font-medium text-graphite transition-colors hover:text-ink"
         >
           <span>Today&apos;s goal</span>
           <ChevronDown
             className={cn(
-              "h-3.5 w-3.5 shrink-0 text-graphite transition-transform duration-200",
+              "h-3.5 w-3.5 shrink-0 transition-transform duration-200",
               !goalOpen && "-rotate-90",
             )}
             aria-hidden="true"
@@ -294,7 +305,7 @@ export function TodayHeader({
         {goalOpen && (
           <p
             id="today-process-goal"
-            className="text-ink mt-2 font-serif text-[0.95rem] leading-relaxed"
+            className="font-serif mt-1.5 max-w-[62ch] text-[1rem] leading-relaxed text-ink"
           >
             {program.honesty.processGoal}
           </p>
@@ -310,12 +321,13 @@ export function TodayHeader({
         confidence={program.honesty.expectationsEvidence.confidence}
         soften={program.honesty.expectationsEvidence.soften}
         flag={program.honesty.expectationsEvidence.flag}
-        className="mt-4"
+        className="mt-3"
       />
 
       {due > 0 && (
-        <p className="text-evergreen mt-3 font-mono text-xs">
-          New review work is ready for your next plan update.
+        <p className="mt-3 font-mono text-[0.75rem] text-graphite">
+          <span className="text-biro">New</span> review work is ready for your
+          next plan update.
         </p>
       )}
     </section>
@@ -332,20 +344,21 @@ function TodayHeroButton({
   nextItemIndex: number;
 }) {
   const label = isFirstBlock
-    ? "Start Session"
-    : `Continue Session (Block ${nextItemIndex + 1})`;
+    ? "Start session"
+    : `Continue at block ${nextItemIndex + 1}`;
 
   const isExternal =
     item.delivery === "external" ||
     Boolean(item.externalUrl) ||
     Boolean(
       item.url &&
-        (item.url.startsWith("http://") ||
-          item.url.startsWith("https://") ||
-          item.url.startsWith("//")),
+      (item.url.startsWith("http://") ||
+        item.url.startsWith("https://") ||
+        item.url.startsWith("//")),
     );
 
   const targetExternalUrl = item.externalUrl ?? (isExternal ? item.url : null);
+  const className = cn(buttonVariants({ size: "sm" }), "shrink-0 px-4");
 
   if (isExternal && targetExternalUrl) {
     return (
@@ -354,29 +367,17 @@ function TodayHeroButton({
         href={targetExternalUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className={cn(
-          buttonVariants({ variant: "default", size: "lg" }),
-          "h-11 px-6 text-sm font-medium shadow-xs gap-2 shrink-0 bg-evergreen hover:bg-evergreen-bright text-paper",
-        )}
+        className={className}
       >
         <span>{label}</span>
-        <span aria-hidden="true">↗</span>
       </a>
     );
   }
 
   if (item.url) {
     return (
-      <Link
-        id="today-start-session-link"
-        href={item.url}
-        className={cn(
-          buttonVariants({ variant: "default", size: "lg" }),
-          "h-11 px-6 text-sm font-medium shadow-xs gap-2 shrink-0 bg-evergreen hover:bg-evergreen-bright text-paper",
-        )}
-      >
+      <Link id="today-start-session-link" href={item.url} className={className}>
         <span>{label}</span>
-        <span aria-hidden="true">→</span>
       </Link>
     );
   }
@@ -385,13 +386,9 @@ function TodayHeroButton({
     <a
       id="today-start-session-link"
       href={`#today-block-card-${item.id}`}
-      className={cn(
-        buttonVariants({ variant: "default", size: "lg" }),
-        "h-11 px-6 text-sm font-medium shadow-xs gap-2 shrink-0 bg-evergreen hover:bg-evergreen-bright text-paper",
-      )}
+      className={className}
     >
       <span>{label}</span>
-      <span aria-hidden="true">↓</span>
     </a>
   );
 }
@@ -418,12 +415,15 @@ function TimeEdit({
   return (
     <div
       className={cn(
-        "flex min-w-0 flex-col gap-2",
+        "flex min-w-0 flex-col gap-1.5",
         compact && "w-full sm:w-auto sm:items-end",
       )}
     >
-      <label htmlFor="today-time-input" className="font-serif text-sm text-ink">
-        How much time do you have today?
+      <label
+        htmlFor="today-time-input"
+        className="text-[0.85rem] font-medium text-ink"
+      >
+        Minutes available today
       </label>
       <div className="flex min-w-0 flex-wrap items-center gap-2">
         <Input
@@ -436,25 +436,22 @@ function TimeEdit({
           disabled={timeBusy}
           aria-invalid={!timeValid && timeInput !== ""}
           aria-describedby="today-time-help"
-          className="h-9 w-20 font-mono text-sm"
+          className="h-9 w-[4.5rem]"
         />
-        <span className="text-graphite font-mono text-xs">min</span>
+        <span className="font-mono text-[0.75rem] text-graphite">min</span>
         <Button
           type="button"
           size="sm"
           variant={!timeValid && !timeBusy ? "outline" : "default"}
           disabled={timeBusy || !timeValid || (!empty && !changed)}
           onClick={onRegenerate}
-          className={cn(
-            !timeValid && !timeBusy && "border-evergreen/30 text-evergreen/50",
-          )}
         >
           {timeBusy ? "Updating…" : empty ? "Build session" : "Update plan"}
         </Button>
       </div>
       <p
         id="today-time-help"
-        className="text-graphite font-mono text-[0.65rem]"
+        className="font-mono text-[0.68rem] leading-snug text-graphite"
       >
         {`${MIN_MINUTES_PER_DAY}-${MAX_MINUTES_PER_DAY} min (${formatMinuteCap(MAX_MINUTES_PER_DAY)})`}
       </p>
@@ -484,10 +481,7 @@ export function TodayBlockList({
   const activeItem = firstIncompleteItem(items);
 
   return (
-    <div
-      className="flex min-w-0 flex-col gap-3"
-      aria-label="Today training blocks"
-    >
+    <ol className="sheet overflow-hidden" aria-label="Today's training blocks">
       {items.map((item, index) => (
         <TodayBlockCard
           key={item.id}
@@ -503,7 +497,7 @@ export function TodayBlockList({
           defaultDetailsOpen={defaultDetailsOpen}
         />
       ))}
-    </div>
+    </ol>
   );
 }
 
@@ -543,113 +537,98 @@ function TodayBlockCard({
     primaryActionKind(item) === "external";
 
   return (
-    <Card
+    <li
       id={`today-block-card-${item.id}`}
-      gutter={asEvidenceGrade(item.evidenceGrade)}
-      provisional={item.soften}
+      aria-current={isUpNext && !closed ? "true" : undefined}
+      data-grade={asEvidenceGrade(item.evidenceGrade)}
+      data-provisional={item.soften ? "true" : undefined}
       className={cn(
-        "settle min-w-0",
-        isUpNext && !closed && "ring-1 ring-evergreen/40 border-evergreen/40",
-        item.status === "done" && "border-evergreen/35 bg-evergreen/[0.025]",
-        item.status === "skipped" && "border-clay/40 bg-clay/[0.035]",
+        "meter scroll-mt-24 relative py-4 pl-6 pr-4 transition-colors sm:pl-7",
+        index > 0 && "border-t border-rule",
+        isUpNext && !closed && "bg-biro/[0.04]",
+        item.status === "done" && "bg-tile/[0.035]",
+        item.status === "skipped" && "bg-brick/[0.03]",
       )}
-      style={{ animationDelay: `${(index + 1) * 70}ms` }}
     >
-      <article className="flex min-w-0 flex-col gap-3 p-4 sm:p-5">
-        <div className="flex min-w-0 flex-wrap items-start justify-between gap-x-4 gap-y-3">
-          <div className="flex min-w-0 flex-1 items-start gap-3">
-            <span
-              className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-sm border border-line bg-paper/70 font-mono text-xs tabular-nums text-evergreen"
-              aria-label={`Block ${index + 1}`}
-            >
-              {index + 1}
-            </span>
-            <div className="min-w-0 flex-1">
-              <h2 className="break-words font-serif text-base font-semibold leading-snug text-ink sm:text-lg">
+      <div className="flex min-w-0 flex-wrap items-start justify-between gap-x-4 gap-y-3">
+        <div className="flex min-w-0 flex-1 items-start gap-3">
+          <span
+            className="font-mono mt-px shrink-0 text-[0.85rem] font-semibold text-graphite"
+            aria-label={`Block ${index + 1}`}
+          >
+            {index + 1}.
+          </span>
+          <div className="min-w-0 flex-1">
+            <h3 className="flex flex-wrap items-baseline gap-x-2 text-[1.02rem] font-semibold leading-snug">
+              <span className={cn(closed && "text-graphite")}>
                 {item.label}
-              </h2>
-              <div className="text-graphite mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 font-mono text-xs tabular-nums">
-                <span>{formatMinuteCap(item.estMinutes)}</span>
-                <span aria-hidden="true">·</span>
-                <span>{rowStatusLabel(item)}</span>
-                {isUpNext && !closed && (
-                  <>
-                    <span aria-hidden="true">·</span>
-                    <span className="rounded-xs border border-evergreen/40 bg-evergreen/10 px-1.5 py-0.5 font-mono text-[0.62rem] uppercase tracking-wider text-evergreen font-semibold">
-                      Up next
-                    </span>
-                  </>
-                )}
-                {isExternal && (
-                  <>
-                    <span aria-hidden="true">·</span>
-                    <span className="rounded-xs border border-line/80 bg-paper/60 px-1 py-0.5 font-mono text-[0.62rem] uppercase tracking-wider text-graphite">
-                      External
-                    </span>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-          <div className="flex max-w-full flex-wrap items-center justify-start gap-2 sm:justify-end">
-            <TodayPrimaryAction
-              item={item}
-              busy={busy}
-              onLogOutcome={onLogOutcome}
-            />
-            {closed && (
-              <FinalStatusPill
-                item={item}
-                busy={busy}
-                onUndoSkip={() => onUndoSkip(item.id)}
+              </span>
+              <GradeGlyph
+                grade={item.evidenceGrade}
+                className="text-[0.8rem]"
               />
-            )}
+            </h3>
+            <p className="font-mono mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[0.72rem] text-graphite">
+              <span>{formatMinuteCap(item.estMinutes)}</span>
+              <span aria-hidden>·</span>
+              <span>{rowStatusLabel(item)}</span>
+              {isExternal && <span>outside Mainline</span>}
+            </p>
           </div>
         </div>
-
-        <p className="text-graphite min-w-0 text-sm leading-relaxed">
-          {itemSummary(item)}
-        </p>
-
-        <div className="flex min-w-0 flex-wrap items-center gap-2 border-t border-line/80 pt-3">
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            aria-expanded={detailsOpen}
-            aria-controls={detailsId}
-            onClick={() => setDetailsOpen((open) => !open)}
-          >
-            {detailsOpen
-              ? "Hide details"
-              : isBook
-                ? "Why / log"
-                : "Why / evidence"}
-          </Button>
-          <TodayLogActions
+        <div className="flex max-w-full flex-wrap items-center justify-start gap-2 sm:justify-end">
+          <TodayPrimaryAction
             item={item}
             busy={busy}
             onLogOutcome={onLogOutcome}
           />
+          {closed && (
+            <FinalStatusPill
+              item={item}
+              busy={busy}
+              onUndoSkip={() => onUndoSkip(item.id)}
+            />
+          )}
         </div>
+      </div>
 
-        {detailsOpen && (
-          <TodayBlockDetails
-            id={detailsId}
-            item={item}
-            isBook={isBook}
-            libraryLoading={libraryLoading}
-            bookOptions={bookOptions}
-            scheduledBook={scheduledBook}
-            busy={busy}
-            onBookLogged={onBookLogged}
-            onSkip={() =>
-              onLogOutcome({ programItemId: item.id, type: "skip" })
-            }
-          />
-        )}
-      </article>
-    </Card>
+      <p className="font-serif mt-2 min-w-0 max-w-[66ch] pl-0 text-[0.92rem] leading-relaxed text-graphite">
+        {itemSummary(item)}
+      </p>
+
+      <div className="mt-2.5 flex min-w-0 flex-wrap items-center gap-2">
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          aria-expanded={detailsOpen}
+          aria-controls={detailsId}
+          onClick={() => setDetailsOpen((open) => !open)}
+          className="-ml-1.5 px-1.5"
+        >
+          {detailsOpen
+            ? "Hide the evidence"
+            : isBook
+              ? "Why, and log time"
+              : "Why this"}
+        </Button>
+        <TodayLogActions item={item} busy={busy} onLogOutcome={onLogOutcome} />
+      </div>
+
+      {detailsOpen && (
+        <TodayBlockDetails
+          id={detailsId}
+          item={item}
+          isBook={isBook}
+          libraryLoading={libraryLoading}
+          bookOptions={bookOptions}
+          scheduledBook={scheduledBook}
+          busy={busy}
+          onBookLogged={onBookLogged}
+          onSkip={() => onLogOutcome({ programItemId: item.id, type: "skip" })}
+        />
+      )}
+    </li>
   );
 }
 
@@ -814,12 +793,13 @@ function FinalStatusPill({
     <div className="flex items-center gap-2">
       <span
         className={cn(
-          "rounded-sm border px-2.5 py-1.5 font-mono text-xs font-semibold",
+          "font-mono inline-flex items-center gap-1.5 rounded-[2px] px-1.5 py-1 text-[0.72rem] font-semibold",
           item.status === "done"
-            ? "border-evergreen/35 bg-evergreen/10 text-evergreen"
-            : "border-clay/40 bg-clay/10 text-clay",
+            ? "bg-tile/10 text-tile"
+            : "bg-brick/10 text-brick",
         )}
       >
+        <span aria-hidden>{item.status === "done" ? "✓" : "–"}</span>
         {rowStatusLabel(item)}
       </span>
       {item.status === "skipped" && (
@@ -870,7 +850,7 @@ function TodayBlockDetails({
   return (
     <div
       id={id}
-      className="flex min-w-0 flex-col gap-4 rounded-md bg-paper/45 p-3 sm:p-4"
+      className="mt-3 flex min-w-0 flex-col gap-4 rounded-[3px] bg-ink/[0.025] p-3 sm:p-4"
     >
       {!showsBookLog && (
         <TransparencyCard
@@ -886,16 +866,18 @@ function TodayBlockDetails({
       )}
 
       {fitExplanation && (
-        <div className="border-l-2 border-evergreen/40 pl-3 text-sm leading-relaxed text-ink">
-          <p className="font-serif">
-            {fitExplanation.text}{" "}
-            <span className="font-mono text-[0.65rem] uppercase tracking-[0.08em] text-graphite">
-              Grade {fitExplanation.evidenceGrade} · Tier{" "}
-              {fitExplanation.evidenceTier} · {fitExplanation.citationKey}
-            </span>
+        <div className="max-w-[66ch] border-l-[3px] border-biro/45 pl-3">
+          <p className="font-serif text-[0.92rem] leading-relaxed text-ink">
+            {fitExplanation.text}
+          </p>
+          <p className="font-mono mt-1 text-[0.7rem] text-graphite">
+            Grade {fitExplanation.evidenceGrade}, tier{" "}
+            {fitExplanation.evidenceTier}
+            <span className="text-ink"> · </span>
+            {fitExplanation.citationKey}
           </p>
           {fitExplanation.soften && (
-            <p className="text-graphite mt-1 font-mono text-[0.68rem] leading-relaxed">
+            <p className="font-serif mt-1 text-[0.82rem] italic leading-relaxed text-graphite">
               {fitExplanation.flag === "best-guess"
                 ? "Best-guess delivery rule, not evidence that this activity works better."
                 : "Low-confidence delivery rule, not evidence that this activity works better."}
@@ -905,28 +887,21 @@ function TodayBlockDetails({
       )}
 
       {meta.length > 0 && (
-        <div className="flex min-w-0 flex-wrap gap-1.5">
-          {meta.map((label) => (
-            <span
-              key={label}
-              className="rounded-sm border border-line/80 bg-paper/50 px-2 py-1 font-mono text-[0.65rem] uppercase tracking-[0.12em] text-graphite"
-            >
-              {label}
-            </span>
-          ))}
-        </div>
+        <p className="font-mono text-[0.72rem] leading-relaxed text-graphite">
+          <span className="text-ink">Signals</span> {meta.join(", ")}
+        </p>
       )}
 
       {isBook && !closed ? (
         scheduledBook == null && libraryLoading ? (
-          <p className="text-graphite font-mono text-xs">
-            Loading owned books…
+          <p className="font-mono text-[0.75rem] text-graphite">
+            Loading the books you own…
           </p>
         ) : bookOptions.length === 0 ? (
-          <div className="flex flex-col gap-2 border-t border-line/80 pt-4">
-            <p className="text-graphite font-serif text-sm">
+          <div className="flex flex-col gap-2 border-t border-rule pt-3">
+            <p className="font-serif text-[0.92rem] leading-relaxed text-graphite">
               You don&apos;t own any recommended books at your level yet. Add
-              books you own in Settings, then regenerate Today.
+              the books you own in Settings, then rebuild today&apos;s session.
             </p>
             <Button
               type="button"

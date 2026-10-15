@@ -117,7 +117,9 @@ describe("TransparencyCard", () => {
         defaultCollapsed={false}
       />,
     );
-    expect(html).toContain('role="button"');
+    // a native <button> carries the role; the popover contract is what matters
+    expect(html).toContain("<button");
+    expect(html).toContain('aria-haspopup="dialog"');
     expect(html).toContain('aria-haspopup="dialog"');
     expect(html).toContain("general learning science");
   });

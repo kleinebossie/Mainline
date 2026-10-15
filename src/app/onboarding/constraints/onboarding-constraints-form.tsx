@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Clock, Monitor, SlidersHorizontal, Trophy, Zap } from "lucide-react";
 
-
 import { trpc } from "@/lib/trpc/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -102,7 +101,7 @@ const MODALITY_OPTIONS: readonly ModalityOption[] = [
 
 export function OnboardingConstraintsForm({
   continueHref = "/connections",
-  continueLabel = "Continue setup →",
+  continueLabel = "Continue setup",
 }: {
   continueHref?: string;
   continueLabel?: string;
@@ -132,7 +131,6 @@ export function OnboardingConstraintsForm({
     return <StatusMessage tone="loading">Loading your plan…</StatusMessage>;
   }
 
-
   const initial: ConstraintsInput = {
     minutesPerDay:
       guestConstraints?.minutesPerDay ?? current.data?.minutesPerDay ?? 20,
@@ -156,10 +154,8 @@ export function OnboardingConstraintsForm({
           }))
         : []),
     formatPrefs: {
-      formats:
-        guestConstraints?.formatPrefs?.formats ??
-        current.data?.formatPrefs?.formats ??
-        ["rapid"],
+      formats: guestConstraints?.formatPrefs?.formats ??
+        current.data?.formatPrefs?.formats ?? ["rapid"],
       preferredVariety:
         guestConstraints?.formatPrefs?.preferredVariety ??
         current.data?.formatPrefs?.preferredVariety ??
@@ -174,7 +170,6 @@ export function OnboardingConstraintsForm({
   };
 
   const isGuestMode = hasGuest || Boolean(current.error) || !current.data;
-
 
   return (
     <StreamlinedForm
@@ -222,7 +217,6 @@ function StreamlinedForm({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [nextDestination, setNextDestination] = useState<string>(continueHref);
-
 
   const save = trpc.constraints.save.useMutation({
     onSuccess: () => {
@@ -314,7 +308,6 @@ function StreamlinedForm({
       },
     });
 
-
     if (destination === "/today") {
       generateGuestProgram();
     }
@@ -368,10 +361,10 @@ function StreamlinedForm({
       {/* 1. Daily Time Budget */}
       <fieldset className="flex flex-col gap-4">
         <div className="flex flex-col gap-1">
-          <span className="eyebrow !text-[0.65rem] !tracking-wider">
+          <span className="label !text-[0.65rem] !tracking-wider">
             01 / Daily time budget
           </span>
-          <legend className="font-serif text-lg font-semibold text-ink">
+          <legend className="text-lg font-semibold text-ink">
             How much time can you train each day?
           </legend>
           <p className="text-graphite font-serif text-sm leading-relaxed">
@@ -391,8 +384,8 @@ function StreamlinedForm({
                 className={cn(
                   "flex items-center gap-1.5 rounded-md border px-3.5 py-2 font-mono text-xs font-medium transition-all",
                   isSelected
-                    ? "border-evergreen bg-evergreen text-primary-foreground shadow-sm"
-                    : "border-line bg-paper-raised text-ink hover:border-ink/20 hover:bg-ink/[0.03]",
+                    ? "border-tile bg-tile text-primary-foreground shadow-sm"
+                    : "border-rule bg-sheet text-ink hover:border-ink/20 hover:bg-ink/[0.03]",
                 )}
               >
                 <Clock className="h-3.5 w-3.5" />
@@ -400,7 +393,7 @@ function StreamlinedForm({
                 {preset === 20 && (
                   <span
                     className={cn(
-                      "ml-1 font-mono text-[0.6rem] uppercase tracking-wider",
+                      "ml-1 font-mono text-[0.6rem] tracking-wider",
                       isSelected
                         ? "text-primary-foreground/90"
                         : "text-graphite",
@@ -438,10 +431,10 @@ function StreamlinedForm({
       {/* 2. Primary Format */}
       <fieldset className="flex flex-col gap-4">
         <div className="flex flex-col gap-1">
-          <span className="eyebrow !text-[0.65rem] !tracking-wider">
+          <span className="label !text-[0.65rem] !tracking-wider">
             02 / Primary format
           </span>
-          <legend className="font-serif text-lg font-semibold text-ink">
+          <legend className="text-lg font-semibold text-ink">
             What is your main game format?
           </legend>
           <p className="text-graphite font-serif text-sm leading-relaxed">
@@ -461,8 +454,8 @@ function StreamlinedForm({
                 className={cn(
                   "relative flex cursor-pointer flex-col justify-between rounded-lg border p-4 transition-all shadow-sheet",
                   isSelected
-                    ? "border-evergreen bg-evergreen/[0.05] ring-2 ring-evergreen/40"
-                    : "border-line bg-card hover:border-ink/20 hover:bg-paper-raised",
+                    ? "border-tile bg-tile/[0.05] ring-2 ring-tile/40"
+                    : "border-rule bg-card hover:border-ink/20 hover:bg-sheet",
                 )}
               >
                 <div className="flex flex-col gap-2">
@@ -471,15 +464,15 @@ function StreamlinedForm({
                       <Icon
                         className={cn(
                           "h-4 w-4",
-                          isSelected ? "text-evergreen" : "text-graphite",
+                          isSelected ? "text-biro" : "text-graphite",
                         )}
                       />
-                      <span className="font-serif text-base font-semibold text-ink">
+                      <span className="text-base font-semibold text-ink">
                         {opt.title}
                       </span>
                     </div>
                     {opt.badge && (
-                      <span className="rounded bg-evergreen/10 px-1.5 py-0.5 font-mono text-[0.6rem] font-medium text-evergreen uppercase tracking-wider">
+                      <span className="rounded-[2px] bg-biro/[0.08] px-1.5 py-0.5 font-mono text-[0.6rem] font-medium text-biro">
                         {opt.badge}
                       </span>
                     )}
@@ -492,7 +485,7 @@ function StreamlinedForm({
                   </p>
                 </div>
 
-                <div className="mt-4 flex items-center justify-between border-t border-line/60 pt-3">
+                <div className="mt-4 flex items-center justify-between border-t border-rule/60 pt-3">
                   <span className="font-serif text-xs text-graphite">
                     {isSelected ? "Selected" : "Select"}
                   </span>
@@ -503,7 +496,7 @@ function StreamlinedForm({
                     value={opt.id}
                     checked={isSelected}
                     onChange={() => handleFormatChange(opt.id)}
-                    className="border-input accent-evergreen h-4 w-4"
+                    className="border-input accent-tile h-4 w-4"
                   />
                 </div>
               </label>
@@ -531,10 +524,10 @@ function StreamlinedForm({
       {/* 3. Screen vs Physical Board */}
       <fieldset className="flex flex-col gap-4">
         <div className="flex flex-col gap-1">
-          <span className="eyebrow !text-[0.65rem] !tracking-wider">
+          <span className="label !text-[0.65rem] !tracking-wider">
             03 / Board modality
           </span>
-          <legend className="font-serif text-lg font-semibold text-ink">
+          <legend className="text-lg font-semibold text-ink">
             Where do you mostly play?
           </legend>
           <p className="text-graphite font-serif text-sm leading-relaxed">
@@ -553,8 +546,8 @@ function StreamlinedForm({
                 className={cn(
                   "relative flex cursor-pointer flex-col justify-between rounded-lg border p-4 transition-all shadow-sheet",
                   isSelected
-                    ? "border-evergreen bg-evergreen/[0.05] ring-2 ring-evergreen/40"
-                    : "border-line bg-card hover:border-ink/20 hover:bg-paper-raised",
+                    ? "border-tile bg-tile/[0.05] ring-2 ring-tile/40"
+                    : "border-rule bg-card hover:border-ink/20 hover:bg-sheet",
                 )}
               >
                 <div className="flex flex-col gap-1.5">
@@ -562,10 +555,10 @@ function StreamlinedForm({
                     <Monitor
                       className={cn(
                         "h-4 w-4",
-                        isSelected ? "text-evergreen" : "text-graphite",
+                        isSelected ? "text-biro" : "text-graphite",
                       )}
                     />
-                    <span className="font-serif text-base font-semibold text-ink">
+                    <span className="text-base font-semibold text-ink">
                       {opt.title}
                     </span>
                   </div>
@@ -577,7 +570,7 @@ function StreamlinedForm({
                   </p>
                 </div>
 
-                <div className="mt-4 flex items-center justify-between border-t border-line/60 pt-3">
+                <div className="mt-4 flex items-center justify-between border-t border-rule/60 pt-3">
                   <span className="font-serif text-xs text-graphite">
                     {isSelected ? "Selected" : "Select"}
                   </span>
@@ -588,7 +581,7 @@ function StreamlinedForm({
                     value={opt.id}
                     checked={isSelected}
                     onChange={() => handleFocusChange(opt.id)}
-                    className="border-input accent-evergreen h-4 w-4"
+                    className="border-input accent-tile h-4 w-4"
                   />
                 </div>
               </label>
@@ -598,18 +591,18 @@ function StreamlinedForm({
       </fieldset>
 
       {/* Settings Signpost Card */}
-      <div className="bg-paper-raised/80 rounded-lg border border-line/80 p-4 shadow-sheet">
+      <div className="bg-sheet/80 rounded-lg border border-rule/80 p-4 shadow-sheet">
         <div className="flex items-start gap-3">
-          <div className="rounded-md border border-line bg-paper p-2 text-graphite shrink-0">
+          <div className="rounded-md border border-rule bg-paper p-2 text-graphite shrink-0">
             <SlidersHorizontal className="h-4 w-4" />
           </div>
 
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2">
-              <p className="font-serif text-sm font-semibold text-ink">
+              <p className="text-sm font-semibold text-ink">
                 Advanced settings live in Settings
               </p>
-              <span className="rounded bg-line/60 px-1.5 py-0.5 font-mono text-[0.6rem] font-medium uppercase tracking-wider text-graphite">
+              <span className="rounded bg-rule/60 px-1.5 py-0.5 font-mono text-[0.6rem] font-medium tracking-wider text-graphite">
                 Customizable later
               </span>
             </div>
@@ -624,7 +617,7 @@ function StreamlinedForm({
       </div>
 
       {/* Actions */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 border-t border-line/80 pt-6 mt-2">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 border-t border-rule/80 pt-6 mt-2">
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
           <Button
             type="submit"
@@ -635,7 +628,7 @@ function StreamlinedForm({
           >
             {submitting || (save.isPending && nextDestination === "/today")
               ? "Saving & building session…"
-              : "Build my first session →"}
+              : "Build my first session"}
           </Button>
           <Button
             type="submit"
@@ -649,7 +642,7 @@ function StreamlinedForm({
             }
             className="w-full sm:w-auto"
           >
-            {continueLabel ?? "Continue setup →"}
+            {continueLabel ?? "Continue setup"}
           </Button>
         </div>
         {error && <StatusMessage tone="error">{error}</StatusMessage>}

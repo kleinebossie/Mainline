@@ -8,17 +8,17 @@ export default function NotFound() {
     <main className="mx-auto flex min-h-screen max-w-2xl items-center px-5 py-12 sm:px-8">
       <section aria-labelledby="not-found-title" className="w-full">
         <div className="mb-7 flex items-center gap-3" aria-hidden>
-          <span className="font-mono text-xs font-semibold uppercase tracking-[0.16em] text-graphite">
+          <span className="font-mono text-xs font-semibold text-graphite">
             Line not found
           </span>
-          <span className="h-px flex-1 bg-line" />
+          <span className="h-px flex-1 bg-rule" />
           <span className="font-mono text-xs font-semibold text-graphite">
             404
           </span>
         </div>
         <h1
           id="not-found-title"
-          className="font-serif text-4xl font-semibold leading-tight sm:text-5xl"
+          className="text-4xl font-semibold leading-tight sm:text-5xl"
         >
           There is no page at this address.
         </h1>

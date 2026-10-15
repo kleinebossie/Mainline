@@ -1,16 +1,15 @@
 "use client";
 
-// TransparencyCard: The honesty-brand component (BUILD.md §7.6). It renders the
-// "why this / why now" rationale snapshotted on a ProgramItem (L3) as a chess-style
-// annotation: the evidence grade as an interactive badge, confidence as an eval meter,
-// and a dashed/struck treatment for thin or provisional evidence so it can never read as
-// established fact (VISION §2).
+// TransparencyCard: the honesty-brand component (BUILD.md §7.6). It renders the
+// "why this / why now" rationale snapshotted on a ProgramItem (L3) as a margin note: the
+// evidence grade as an annotation glyph, confidence as an eval meter, and a dashed rule for
+// thin or provisional evidence so it can never read as established fact (VISION §2).
 
 import { useId, useState } from "react";
-import { CircleHelp, ChevronDown } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import {
   GradeMark,
-  ConfidenceBar,
+  ConfidenceMeter,
   ProvisionalTag,
 } from "@/components/evidence";
 import { cn } from "@/lib/utils";
@@ -48,35 +47,27 @@ function TransparencyDetails({
   grouped: boolean;
 }) {
   return (
-    <section
-      className={cn(
-        grouped && "border-l-2 border-line/40 pl-3 py-3 first:pt-2 last:pb-0",
-      )}
-    >
-      {item.title && (
-        <h3 className="text-graphite font-mono text-[0.7rem] font-semibold uppercase tracking-[0.12em]">
-          {item.title}
-        </h3>
-      )}
-      <p className="text-ink mt-2 font-serif text-[0.95rem] leading-relaxed">
+    <section className={cn(grouped && "py-3 first:pt-1 last:pb-1")}>
+      {item.title && <h3 className="label-ink">{item.title}</h3>}
+      <p className="font-serif mt-1.5 text-[0.95rem] leading-relaxed text-ink">
         {item.rationaleText}
       </p>
 
-      <div className="mt-3.5 flex flex-wrap items-center gap-x-4 gap-y-2">
+      <div className="mt-2.5 flex flex-wrap items-center gap-x-5 gap-y-2">
         <GradeMark grade={item.evidenceGrade} tier={item.evidenceTier} />
-        <ConfidenceBar confidence={item.confidence} />
+        <ConfidenceMeter confidence={item.confidence} />
       </div>
 
       {item.soften && (
-        <p className="text-graphite mt-3 border-l-2 border-amber/50 pl-3 font-serif text-sm italic leading-relaxed">
-          Honest caveat: the evidence here is thin. Treat this as a best-guess
-          starting point, not a proven prescription. No training activity is
-          proven to cause a rating gain.
+        <p className="font-serif mt-2.5 border-l-[3px] border-dashed border-ochre/60 pl-2.5 text-[0.88rem] italic leading-relaxed text-graphite">
+          The evidence here is thin. Treat this as a best-guess starting point,
+          not a proven prescription. No training activity is proven to cause a
+          rating gain.
         </p>
       )}
 
-      <p className="text-graphite mt-3 font-mono text-[0.7rem]">
-        <span className="uppercase tracking-[0.12em]">Evidence source</span> ·{" "}
+      <p className="mt-2.5 font-mono text-[0.72rem] leading-relaxed text-graphite">
+        <span className="text-ink">Source</span>{" "}
         {item.citationSource ?? item.citationKey}
       </p>
     </section>
@@ -99,7 +90,8 @@ function TransparencyDisclosure({
   return (
     <div
       className={cn(
-        "bg-paper/60 rounded-md border border-dashed p-4",
+        "rounded-[3px] border-l-[3px] border-rule bg-ink/[0.02] py-2.5 pl-3 pr-2",
+        hasProvisional && "border-dashed border-ochre/55",
         className,
       )}
       role="note"
@@ -111,19 +103,15 @@ function TransparencyDisclosure({
             onClick={() => setCollapsed((prev) => !prev)}
             aria-expanded={expanded}
             aria-controls={contentId}
-            className="eyebrow group flex cursor-pointer items-center gap-2 rounded-sm text-graphite transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
+            className="group inline-flex min-h-8 cursor-pointer items-center gap-1.5 rounded-[2px] pr-1 text-[0.85rem] font-medium text-graphite transition-colors hover:text-ink"
           >
-            <CircleHelp
-              className="h-3.5 w-3.5 shrink-0 text-evergreen"
-              aria-hidden="true"
-            />
             <span>Why this?</span>
-            <span className="font-mono text-[0.62rem] text-graphite/70 group-hover:text-ink">
-              ({collapsed ? "click to expand" : "click to collapse"})
+            <span className="font-mono text-[0.7rem] text-graphite/80 group-hover:text-ink">
+              {expanded ? "hide" : "show"}
             </span>
             <ChevronDown
               className={cn(
-                "h-3.5 w-3.5 shrink-0 text-graphite transition-transform duration-200 group-hover:text-ink",
+                "h-3.5 w-3.5 shrink-0 transition-transform duration-200",
                 collapsed && "-rotate-90",
               )}
               aria-hidden="true"

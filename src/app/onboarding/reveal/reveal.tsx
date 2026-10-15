@@ -25,7 +25,7 @@ export function FirstSessionAction({
   onBuild: () => void;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-3 border-t border-line/80 pt-5">
+    <div className="flex flex-wrap items-center gap-3 border-t border-rule/80 pt-5">
       {error != null && (
         <ErrorNotice
           error={error}
@@ -44,7 +44,7 @@ export function FirstSessionAction({
           ? "Building your session..."
           : error
             ? "Try building again"
-            : "Build my first session →"}
+            : "Build my first session"}
       </Button>
     </div>
   );
@@ -64,7 +64,9 @@ export function Reveal() {
   const router = useRouter();
   const utils = trpc.useUtils();
   const [mounted, setMounted] = useState(false);
-  const [guestSession, setGuestSession] = useState<GuestSessionData | null>(null);
+  const [guestSession, setGuestSession] = useState<GuestSessionData | null>(
+    null,
+  );
 
   useEffect(() => {
     setMounted(true);
@@ -114,7 +116,8 @@ export function Reveal() {
 
   const completed = Boolean(state.data?.completed || isGuestCalibrated);
 
-  const { mutate: markRevealSeenMutate } = trpc.account.markRevealSeen.useMutation();
+  const { mutate: markRevealSeenMutate } =
+    trpc.account.markRevealSeen.useMutation();
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -122,7 +125,6 @@ export function Reveal() {
     }
     markRevealSeenMutate();
   }, [markRevealSeenMutate]);
-
 
   if (!mounted || state.isLoading) {
     return (
@@ -198,11 +200,11 @@ export function Reveal() {
 
   if (!completed || !estimate) {
     return (
-      <Card className="settle border-line bg-card shadow-sheet p-6 sm:p-8">
+      <Card className="sheet settle p-6 sm:p-8">
         <div className="flex flex-col gap-5">
           <div>
-            <p className="eyebrow text-evergreen">Step 4 of setup</p>
-            <h2 className="font-serif text-2xl sm:text-3xl font-semibold mt-1">
+            <p className="label-ink">Step 4 of setup</p>
+            <h2 className="text-2xl sm:text-3xl font-semibold mt-1">
               Tactical calibration not completed yet
             </h2>
             <p className="text-graphite text-sm sm:text-base font-serif leading-relaxed mt-2 max-w-xl">
@@ -216,7 +218,7 @@ export function Reveal() {
               href="/onboarding/calibration"
               className={buttonVariants({ size: "default" })}
             >
-              Start 3-puzzle calibration →
+              Start 3-puzzle calibration
             </Link>
             <Link
               href="/today"
@@ -225,7 +227,7 @@ export function Reveal() {
                 size: "default",
               })}
             >
-              Skip to Today&apos;s training →
+              Skip to Today&apos;s training
             </Link>
           </div>
         </div>
@@ -241,7 +243,6 @@ export function Reveal() {
   const supportingError = !isGuest
     ? (signals.error ?? constraints.error ?? library.error ?? null)
     : null;
-
 
   return (
     <div className="flex flex-col gap-6">
@@ -264,7 +265,7 @@ export function Reveal() {
       {/* 1 — the measured, multi-dimensional baseline */}
       <Card gutter={estimate.evidenceGrade as EvidenceGrade} className="settle">
         <CardHeader className="pb-4">
-          <CardTitle className="font-serif text-2xl font-semibold">
+          <CardTitle className="text-2xl font-semibold">
             Your starting baseline
           </CardTitle>
           <p className="text-graphite font-mono text-sm mt-1">
@@ -277,11 +278,11 @@ export function Reveal() {
         <CardContent className="flex flex-col gap-5">
           <CalibrationTrackGauges tracks={tracks} />
 
-          <div className="bg-paper/60 rounded-md border border-dashed p-4">
+          <div className="bg-sheet rounded-md border border-dashed p-4">
             <div className="flex items-center gap-2 mb-3">
               <GradeMark grade={estimate.evidenceGrade} />
               {estimate.flag && (
-                <span className="border-clay/40 bg-clay/10 text-clay rounded px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider">
+                <span className="border-brick/40 bg-brick/10 text-brick rounded px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider">
                   {estimate.flag}
                 </span>
               )}
@@ -297,7 +298,7 @@ export function Reveal() {
       {/* 2 — what the games actually reveal (Seam 3), honestly gated */}
       <Card className="settle [animation-delay:80ms]">
         <CardHeader className="pb-4">
-          <CardTitle className="font-serif text-2xl font-semibold">
+          <CardTitle className="text-2xl font-semibold">
             What your games reveal
           </CardTitle>
         </CardHeader>
@@ -317,7 +318,7 @@ export function Reveal() {
                 href="/analysis"
                 className={buttonVariants({ variant: "outline", size: "sm" })}
               >
-                Analyse my games →
+                Analyse my games
               </Link>
             </div>
           ) : signals.data.signals.length === 0 ? (
@@ -334,25 +335,27 @@ export function Reveal() {
                 {signals.data.gamesAnalysed === 1 ? "" : "s"}:
               </p>
               <TransparencyCardGroup
-                items={signals.data.signals.map((signal: {
-                  dimensionLabel: string;
-                  rationaleText: string;
-                  evidenceGrade: string;
-                  evidenceTier: number;
-                  citationKey: string;
-                  citationSource: string | null;
-                  confidence: string;
-                  soften: boolean;
-                }) => ({
-                  title: signal.dimensionLabel,
-                  rationaleText: signal.rationaleText,
-                  evidenceGrade: signal.evidenceGrade,
-                  evidenceTier: signal.evidenceTier,
-                  citationKey: signal.citationKey,
-                  citationSource: signal.citationSource,
-                  confidence: signal.confidence,
-                  soften: signal.soften,
-                }))}
+                items={signals.data.signals.map(
+                  (signal: {
+                    dimensionLabel: string;
+                    rationaleText: string;
+                    evidenceGrade: string;
+                    evidenceTier: number;
+                    citationKey: string;
+                    citationSource: string | null;
+                    confidence: string;
+                    soften: boolean;
+                  }) => ({
+                    title: signal.dimensionLabel,
+                    rationaleText: signal.rationaleText,
+                    evidenceGrade: signal.evidenceGrade,
+                    evidenceTier: signal.evidenceTier,
+                    citationKey: signal.citationKey,
+                    citationSource: signal.citationSource,
+                    confidence: signal.confidence,
+                    soften: signal.soften,
+                  }),
+                )}
               />
             </div>
           )}
@@ -375,11 +378,10 @@ export function Reveal() {
         }}
       />
 
-
       {/* 3 — what you said you want, and how we reconcile it */}
       <Card className="settle [animation-delay:160ms]">
         <CardHeader className="pb-4">
-          <CardTitle className="font-serif text-2xl font-semibold">
+          <CardTitle className="text-2xl font-semibold">
             What you told us you want
           </CardTitle>
         </CardHeader>
@@ -389,7 +391,7 @@ export function Reveal() {
               {goals.map((g, i) => (
                 <li
                   key={`${g.kind}-${i}`}
-                  className="border-line bg-paper/40 text-ink rounded-full border px-3 py-1 font-mono text-xs"
+                  className="border-rule bg-sheet text-ink rounded-full border px-3 py-1 font-mono text-xs"
                 >
                   {g.label}
                 </li>
@@ -401,7 +403,7 @@ export function Reveal() {
               Settings.
             </p>
           )}
-          <p className="text-graphite text-sm leading-relaxed font-serif border-t border-line/80 pt-4">
+          <p className="text-graphite text-sm leading-relaxed font-serif border-t border-rule/80 pt-4">
             You stay in control. Where your games and your goals point the same
             way, we lean in hard. Where they disagree, we trust your{" "}
             <span className="text-ink font-medium">games</span> for the
@@ -426,7 +428,6 @@ export function Reveal() {
               });
             }}
           />
-
         </CardContent>
       </Card>
     </div>

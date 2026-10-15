@@ -135,8 +135,8 @@ export function ConnectionsManager() {
 
   return (
     <div className="flex flex-col gap-10">
-      <div className="flex flex-col gap-2 rounded-md border border-line bg-paper/60 p-4">
-        <h3 className="font-serif text-base font-semibold text-ink">
+      <div className="flex flex-col gap-2 rounded-md border border-rule bg-sheet p-4">
+        <h3 className="text-base font-semibold text-ink">
           Connect your accounts to enable blunder practice
         </h3>
         <p className="text-graphite font-serif text-sm leading-relaxed">
@@ -146,13 +146,13 @@ export function ConnectionsManager() {
       </div>
 
       <section className="flex flex-col gap-4">
-        <h2 className="eyebrow border-b border-line/80 pb-3">Lichess</h2>
+        <h2 className="section-title">Lichess</h2>
         <p className="text-graphite text-sm leading-relaxed font-serif">
           Link by username to import public profile and game data. Your Lichess
           password and token are not stored.
         </p>
         <div className="flex max-w-md flex-col gap-2">
-          <label htmlFor="lichess-username" className="eyebrow !text-[0.65rem]">
+          <label htmlFor="lichess-username" className="label !text-[0.65rem]">
             Lichess username
           </label>
           <form
@@ -197,15 +197,12 @@ export function ConnectionsManager() {
       </section>
 
       <section className="flex flex-col gap-4">
-        <h2 className="eyebrow border-b border-line/80 pb-3">Chess.com</h2>
+        <h2 className="section-title">Chess.com</h2>
         <p className="text-graphite text-sm leading-relaxed font-serif">
           Link by username (read-only public data; no password or token stored).
         </p>
         <div className="flex max-w-md flex-col gap-2">
-          <label
-            htmlFor="chesscom-username"
-            className="eyebrow !text-[0.65rem]"
-          >
+          <label htmlFor="chesscom-username" className="label !text-[0.65rem]">
             Chess.com username
           </label>
           <form
@@ -250,9 +247,7 @@ export function ConnectionsManager() {
       </section>
 
       <section className="flex flex-col gap-4">
-        <h2 className="eyebrow border-b border-line/80 pb-3">
-          Connected accounts
-        </h2>
+        <h2 className="section-title">Connected accounts</h2>
         {error?.scope === "disconnect" && (
           <StatusMessage tone="error" heading="Account still connected">
             {error.message}
@@ -276,7 +271,7 @@ export function ConnectionsManager() {
             {displayedConnections.map((conn) => (
               <li
                 key={conn.id}
-                className="bg-card flex flex-col gap-3 rounded-lg border p-4 shadow-sheet sm:flex-row sm:items-center sm:justify-between"
+                className="sheet flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
               >
                 <span className="text-sm">
                   <span className="font-serif text-base font-medium">
@@ -287,7 +282,7 @@ export function ConnectionsManager() {
                     {conn.externalUsername}
                   </span>
                   {conn.status !== "active" && (
-                    <span className="text-clay font-mono text-xs">
+                    <span className="text-brick font-mono text-xs">
                       {" "}
                       ({conn.status})
                     </span>
@@ -302,7 +297,7 @@ export function ConnectionsManager() {
                     setError(null);
                     disconnect.mutate({ id: conn.id });
                   }}
-                  className="self-start text-clay hover:bg-clay/[0.06] hover:text-clay sm:self-auto"
+                  className="self-start text-brick hover:bg-brick/[0.06] hover:text-brick sm:self-auto"
                 >
                   {disconnect.isPending && disconnect.variables?.id === conn.id
                     ? "Disconnecting…"
@@ -318,7 +313,7 @@ export function ConnectionsManager() {
         )}
       </section>
 
-      <div className="flex flex-col gap-4 border-t border-line/80 pt-6">
+      <div className="flex flex-col gap-4 border-t border-rule/80 pt-6">
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
           <div className="flex flex-col items-center sm:items-center gap-1.5 w-full sm:w-auto">
             {displayedConnections.length > 0 ? (
@@ -330,7 +325,7 @@ export function ConnectionsManager() {
                   className: "w-full sm:w-auto text-center justify-center",
                 })}
               >
-                Continue to calibration →
+                Continue to calibration
               </Link>
             ) : (
               <>
@@ -340,11 +335,14 @@ export function ConnectionsManager() {
                   variant="outline"
                   disabled
                   aria-disabled="true"
-                  className="w-full sm:w-auto opacity-60 cursor-not-allowed border-line bg-paper-raised text-graphite inline-flex items-center justify-center gap-2"
+                  className="w-full sm:w-auto opacity-60 cursor-not-allowed border-rule bg-sheet text-graphite inline-flex items-center justify-center gap-2"
                 >
-                  <Lock className="h-4 w-4 text-graphite/70" aria-hidden="true" />
+                  <Lock
+                    className="h-4 w-4 text-graphite/70"
+                    aria-hidden="true"
+                  />
                   <span>Continue to calibration</span>
-                  <span className="font-mono text-[0.65rem] uppercase tracking-wider text-graphite/80 bg-line/60 px-1.5 py-0.5 rounded ml-1">
+                  <span className="font-mono text-[0.65rem] tracking-wider text-graphite/80 bg-rule/60 px-1.5 py-0.5 rounded ml-1">
                     Locked
                   </span>
                 </Button>
@@ -360,14 +358,14 @@ export function ConnectionsManager() {
             className={buttonVariants({
               variant: "outline",
               size: "lg",
-              className: "font-serif text-graphite hover:text-ink w-full sm:w-auto text-center justify-center",
+              className:
+                "font-serif text-graphite hover:text-ink w-full sm:w-auto text-center justify-center",
             })}
           >
-            Skip connecting accounts and go to Today →
+            Skip connecting accounts and go to Today
           </Link>
         </div>
       </div>
     </div>
   );
 }
-

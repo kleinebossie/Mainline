@@ -4,6 +4,7 @@ import { auth } from "@/server/auth";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
 import { buttonVariants } from "@/components/ui/button";
 import { ErrorNotice } from "@/components/ui/error-notice";
+import { GuestLandingButton } from "@/components/guest-landing-button";
 import { Wordmark } from "@/components/app-shell";
 import { beginSelectedBetaSignIn } from "@/app/signin/actions";
 import { prisma } from "@/db/client";
@@ -60,60 +61,66 @@ export default async function SignInPage({
   );
 
   return (
-    <main className="flex min-h-screen items-center justify-center p-6">
-      <div className="settle w-full max-w-sm">
-        <div className="mb-8 flex flex-col items-center gap-4 text-center">
-          <Wordmark className="text-base" />
-          <h1 className="font-serif text-3xl font-semibold tracking-tight">
-            Sign in
-          </h1>
-          <p className="text-graphite text-sm leading-relaxed">
-            Mainline is in open beta. Sign in with Lichess or Google. No
-            password is ever stored.
-          </p>
-        </div>
+    <main className="bg-paper flex min-h-screen items-center justify-center p-5">
+      <div className="settle w-full max-w-[26rem]">
+        <Wordmark className="text-[1.15rem]" />
+
+        <h1 className="mt-10 text-[2.1rem] leading-none">
+          Sign in to Mainline
+        </h1>
+        <p className="font-serif mt-2.5 text-[0.98rem] leading-relaxed text-graphite">
+          Mainline is in open beta. Sign in with the account your games are
+          already on. No password is stored.
+        </p>
 
         {signInError && (
           <ErrorNotice
-            className="mb-4"
+            className="mt-5"
             heading={signInError.heading}
             message={signInError.message}
           />
         )}
 
-        <div className="bg-card rounded-lg border p-6 shadow-sheet">
-          <form action={beginSelectedBetaSignIn}>
-            <div className="grid gap-3">
-              <PendingSubmitButton
-                name="provider"
-                value="lichess"
-                pendingLabel="Opening Lichess…"
-                className={buttonVariants({ size: "lg", className: "w-full" })}
-              >
-                Continue with Lichess
-              </PendingSubmitButton>
-              {googleEnabled && (
-                <PendingSubmitButton
-                  name="provider"
-                  value="google"
-                  pendingLabel="Opening Google…"
-                  className={buttonVariants({
-                    variant: "outline",
-                    size: "lg",
-                    className: "w-full",
-                  })}
-                >
-                  Continue with Google
-                </PendingSubmitButton>
-              )}
-            </div>
-          </form>
+        <form
+          action={beginSelectedBetaSignIn}
+          className="sheet mt-6 flex flex-col gap-3 p-5"
+        >
+          <PendingSubmitButton
+            name="provider"
+            value="lichess"
+            pendingLabel="Opening Lichess…"
+            className={buttonVariants({ size: "lg", className: "w-full" })}
+          >
+            Continue with Lichess
+          </PendingSubmitButton>
+          {googleEnabled && (
+            <PendingSubmitButton
+              name="provider"
+              value="google"
+              pendingLabel="Opening Google…"
+              className={buttonVariants({
+                variant: "outline",
+                size: "lg",
+                className: "w-full",
+              })}
+            >
+              Continue with Google
+            </PendingSubmitButton>
+          )}
 
-          <p className="text-graphite mt-5 border-t border-line/80 pt-4 text-center font-mono text-[0.7rem] leading-relaxed">
-            Connected game access is read-only. Your training data is exportable
-            and deletable at any time.
+          <div className="mt-1 flex items-center gap-3">
+            <span className="h-px flex-1 bg-rule" aria-hidden />
+            <span className="font-mono text-[0.7rem] text-graphite">or</span>
+            <span className="h-px flex-1 bg-rule" aria-hidden />
+          </div>
+
+          <GuestLandingButton />
+
+          <p className="font-mono mt-1 border-t border-rule pt-4 text-[0.72rem] leading-relaxed text-graphite">
+            Connections are read-only. Export or delete your training data from
+            Settings at any time.
           </p>
-        </div>
+        </form>
       </div>
     </main>
   );

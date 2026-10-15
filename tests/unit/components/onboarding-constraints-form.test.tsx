@@ -84,7 +84,7 @@ describe("OnboardingConstraintsForm", () => {
     );
 
     // Action buttons
-    expect(html).toContain("Build my first session →");
-    expect(html).toContain("Continue setup →");
+    expect(html).toContain("Build my first session");
+    expect(html).toContain("Continue setup");
   });
 });

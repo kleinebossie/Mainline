@@ -74,10 +74,8 @@ function header(statuses: string[], timeChanged = false) {
 
 describe("Today session state", () => {
   it("distinguishes complete, mixed, and in-progress sessions", () => {
-    expect(header(["done", "done"])).toContain("All training complete");
-    expect(header(["done", "skipped"])).toContain(
-      "Session finished with skips",
-    );
+    expect(header(["done", "done"])).toContain("Training complete");
+    expect(header(["done", "skipped"])).toContain("Finished with skips");
     expect(header(["done", "todo"])).toContain("Session in progress");
   });
 
@@ -112,32 +110,33 @@ describe("Today session state", () => {
     expect(html).toContain("Undo skip");
   });
 
-  it("shows a prominent Start Session button for a fresh session", () => {
+  it("shows a prominent start action for a fresh session", () => {
     const html = header(["todo", "todo", "todo"]);
 
-    expect(html).toContain("Start Session");
-    expect(html).toContain("Ready to begin");
-    expect(html).toContain("Start today&#x27;s session");
-    expect(html).toContain("Block 1 of 3:");
+    expect(html).toContain("Start session");
+    expect(html).toContain("Start here");
+    expect(html).toContain("0 of 3 blocks done, 3 left");
+    // the action aims at the first block rather than a page anchor above it
+    expect(html).toContain('href="#today-block-card-0"');
   });
 
-  it("shows Continue Session button pointing to the active incomplete block", () => {
+  it("shows a continue action pointing at the active incomplete block", () => {
     const html = header(["done", "todo", "todo"]);
 
-    expect(html).toContain("Continue Session (Block 2)");
+    expect(html).toContain("Continue at block 2");
     expect(html).toContain("Session in progress");
-    expect(html).toContain("Continue your session");
-    expect(html).toContain("Block 2 of 3:");
+    expect(html).toContain("Up next");
+    expect(html).toContain("1 of 3 blocks done, 2 left");
   });
 
   it("does not show Start Session CTA when all blocks are complete", () => {
     const html = header(["done", "done", "done"]);
 
-    expect(html).not.toContain("today-primary-action-card");
-    expect(html).toContain("All training complete");
+    expect(html).not.toContain("today-start-session-link");
+    expect(html).toContain("Training complete");
   });
 
-  it("labels the first incomplete block with an Up next badge", () => {
+  it("marks the first incomplete block as the one to do next", () => {
     const html = renderToStaticMarkup(
       <TodayBlockList
         items={[item("0", "done"), item("1", "todo"), item("2", "todo")]}
@@ -149,6 +148,9 @@ describe("Today session state", () => {
       />,
     );
 
-    expect(html).toContain("Up next");
+    // the row itself is announced as current; the visible "Up next" wording
+    // lives once, in the session header, instead of repeating per row
+    expect(html).toContain('aria-current="true"');
+    expect(html.match(/aria-current="true"/g)).toHaveLength(1);
   });
 });

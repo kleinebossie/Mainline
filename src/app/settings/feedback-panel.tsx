@@ -160,8 +160,8 @@ export function FeedbackPanel() {
       <Card id="training-fit" gutter="A" className="scroll-mt-24 p-5 sm:p-6">
         <div className="flex flex-col gap-5">
           <div>
-            <p className="eyebrow">Training fit</p>
-            <h3 className="mt-2 font-serif text-xl font-semibold text-ink">
+            <p className="label">Training fit</p>
+            <h3 className="mt-2 text-xl font-semibold text-ink">
               Tell us how delivery fit your life
             </h3>
             <p className="text-graphite mt-2 max-w-2xl text-sm leading-relaxed">
@@ -255,7 +255,7 @@ export function FeedbackPanel() {
                   return (
                     <label
                       key={tag.value}
-                      className="flex cursor-pointer items-center gap-2 rounded-md border border-line bg-paper/50 px-3 py-2 font-mono text-xs text-graphite"
+                      className="flex cursor-pointer items-center gap-2 rounded-md border border-rule bg-sheet px-3 py-2 font-mono text-xs text-graphite"
                     >
                       <input
                         id={`frictionTag-${tag.value}`}
@@ -310,7 +310,7 @@ export function FeedbackPanel() {
             )}
           </form>
 
-          <div className="border-t border-line pt-5">
+          <div className="border-t border-rule pt-5">
             <label className="flex max-w-md flex-col gap-2 font-mono text-xs text-graphite">
               Optional positive delivery preference
               <Select
@@ -366,8 +366,8 @@ export function FeedbackPanel() {
       <Card id="product-feedback" className="scroll-mt-24 p-5 sm:p-6">
         <form className="flex flex-col gap-4" onSubmit={onProductSubmit}>
           <div>
-            <p className="eyebrow">Product feedback</p>
-            <h3 className="mt-2 font-serif text-xl font-semibold text-ink">
+            <p className="label">Product feedback</p>
+            <h3 className="mt-2 text-xl font-semibold text-ink">
               Report a problem or share an idea
             </h3>
             <p className="text-graphite mt-2 text-sm leading-relaxed">

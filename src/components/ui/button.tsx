@@ -3,32 +3,29 @@ import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
 
-// Controls read as commands on an instrument: monospace, lightly tracked, crisp. The
-// machine-readout voice (VISION §4: Engine⟷Methodology) extends to the things you press.
+// Controls are named by what they do, in the UI voice (sentence case, no arrows, no
+// tracked caps). Blue is the interaction colour, so the primary control is the only thing
+// on a screen that wears it (planning/DESIGN.md §Colour law).
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md font-mono text-sm font-medium tracking-tight transition-[color,background-color,border-color,box-shadow,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-paper disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-45 active:translate-y-px",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[3px] text-[0.875rem] font-medium tracking-[-0.005em] transition-[color,background-color,border-color,box-shadow] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-paper disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-45 active:translate-y-px",
   {
     variants: {
       variant: {
-        default:
-          "bg-evergreen text-primary-foreground shadow-sm hover:bg-evergreen-bright",
+        default: "bg-biro text-sheet hover:bg-biro/90",
         outline:
-          "border border-ink/25 bg-transparent text-ink hover:border-ink/50 hover:bg-ink/[0.04]",
+          "border border-ink/25 bg-sheet text-ink hover:border-ink/45 hover:bg-ink/[0.03]",
         secondary: "bg-secondary text-secondary-foreground hover:bg-accent",
         ghost: "text-graphite hover:bg-ink/[0.05] hover:text-ink",
-        destructive:
-          "bg-clay text-destructive-foreground shadow-sm hover:bg-clay/90",
+        destructive: "bg-brick text-sheet hover:bg-brick/90",
+        link: "text-biro underline decoration-rule underline-offset-4 hover:decoration-biro",
       },
       size: {
         default: "h-10 min-w-10 px-4 py-2",
-        sm: "h-9 min-w-9 px-3 text-xs",
-        lg: "h-12 rounded-md px-7 text-base",
+        sm: "h-9 min-w-9 px-3 text-[0.8125rem]",
+        lg: "h-12 px-6 text-[0.95rem]",
       },
     },
-    defaultVariants: {
-      variant: "default",
-      size: "default",
-    },
+    defaultVariants: { variant: "default", size: "default" },
   },
 );
 

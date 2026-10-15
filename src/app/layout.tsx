@@ -1,29 +1,22 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
-import { Fraunces, IBM_Plex_Mono } from "next/font/google";
+
+// Fonts are self-hosted (no third-party font request at runtime — VISION §7: no ads, no
+// tracking scripts) and split by role, per planning/DESIGN.md:
+//   Archivo  — UI + display lettering (variable width: headings are set expanded)
+//   Newsreader — prose only: rationale, caveats, landing copy
+//   IBM Plex Mono — data only: move numbers, minutes, ratings, grade glyphs
+import "@fontsource-variable/archivo/standard.css";
+import "@fontsource-variable/newsreader/standard.css";
+import "@fontsource-variable/newsreader/standard-italic.css";
+import "@fontsource/ibm-plex-mono/400.css";
+import "@fontsource/ibm-plex-mono/500.css";
+import "@fontsource/ibm-plex-mono/600.css";
 import "./globals.css";
 import { TRPCReactProvider } from "@/lib/trpc/react";
 import { ServiceWorkerRegistration } from "@/components/service-worker-registration";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
-
-// Two families, split by role — the product's Engine⟷Methodology, human⟷machine split.
-// Fraunces is the human voice (titles, prose, honest declarations); IBM Plex Mono is the
-// machine readout (data, grades, labels, controls-as-commands).
-const fraunces = Fraunces({
-  subsets: ["latin"],
-  style: ["normal", "italic"],
-  display: "swap",
-  variable: "--font-fraunces",
-});
-
-const plexMono = IBM_Plex_Mono({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  style: ["normal", "italic"],
-  display: "swap",
-  variable: "--font-plex-mono",
-});
 
 export const metadata: Metadata = {
   title: "Mainline: the honest chess training program",
@@ -39,14 +32,17 @@ export const metadata: Metadata = {
   formatDetection: { telephone: false },
 };
 
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f1f2f0" },
+    { media: "(prefers-color-scheme: dark)", color: "#171a19" },
+  ],
+};
+
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html
-      lang="en"
-      className={`${fraunces.variable} ${plexMono.variable} scroll-smooth`}
-      suppressHydrationWarning
-    >
-      <body className="bg-paper text-ink min-h-screen antialiased">
+    <html lang="en" suppressHydrationWarning>
+      <body className="bg-sheet text-ink min-h-screen antialiased">
         <TRPCReactProvider>{children}</TRPCReactProvider>
         <ServiceWorkerRegistration />
         {(process.env.VERCEL || process.env.NEXT_PUBLIC_VERCEL_ENV) && (

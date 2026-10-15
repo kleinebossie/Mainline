@@ -4,11 +4,13 @@ import { cn } from "@/lib/utils";
 
 type StatusTone = "loading" | "neutral" | "success" | "error";
 
-const TONE_CLASSES: Record<StatusTone, string> = {
-  loading: "border-line bg-paper/70 text-graphite",
-  neutral: "border-line bg-paper/70 text-graphite",
-  success: "border-evergreen/35 bg-evergreen/5 text-evergreen",
-  error: "border-clay/35 bg-clay/[0.06] text-clay",
+// Feedback sits on the sheet as a marginal note: a leading rule in the tone colour, never a
+// coloured box that shouts. Errors state what happened and what to press next.
+const TONE_CLASSES: Record<StatusTone, { rule: string; text: string }> = {
+  loading: { rule: "bg-rule", text: "text-graphite" },
+  neutral: { rule: "bg-rule", text: "text-graphite" },
+  success: { rule: "bg-tile", text: "text-ink" },
+  error: { rule: "bg-brick", text: "text-ink" },
 };
 
 const TONE_MARKS: Record<Exclude<StatusTone, "loading">, string> = {
@@ -35,6 +37,7 @@ const StatusMessage = React.forwardRef<HTMLDivElement, StatusMessageProps>(
     },
     ref,
   ) => {
+    const toneClass = TONE_CLASSES[tone];
     return (
       <div
         ref={ref}
@@ -42,12 +45,19 @@ const StatusMessage = React.forwardRef<HTMLDivElement, StatusMessageProps>(
         aria-live={ariaLive ?? (tone === "error" ? "assertive" : "polite")}
         aria-busy={tone === "loading" ? true : undefined}
         className={cn(
-          "flex items-start gap-3 rounded-md border px-4 py-3",
-          TONE_CLASSES[tone],
+          "relative flex gap-3 py-3 pl-4 pr-1 text-sm",
+          toneClass.text,
           className,
         )}
         {...props}
       >
+        <span
+          aria-hidden
+          className={cn(
+            "absolute inset-y-1 left-0 w-[3px] rounded-[1px]",
+            toneClass.rule,
+          )}
+        />
         {tone === "loading" ? (
           <span
             aria-hidden
@@ -58,21 +68,21 @@ const StatusMessage = React.forwardRef<HTMLDivElement, StatusMessageProps>(
         ) : (
           <span
             aria-hidden
-            className="flex h-5 w-5 shrink-0 items-center justify-center rounded-sm border border-current/25 font-mono text-xs font-semibold leading-none"
+            className="mt-px flex h-5 w-5 shrink-0 items-center justify-center rounded-[2px] border border-rule font-mono text-[0.7rem] font-semibold leading-none"
           >
             {TONE_MARKS[tone]}
           </span>
         )}
         <div className="min-w-0">
           {heading && (
-            <p className="font-mono text-xs font-semibold uppercase tracking-[0.1em]">
+            <p className="text-[0.9rem] font-semibold leading-snug">
               {heading}
             </p>
           )}
           {children && (
             <div
               className={cn(
-                "font-serif text-sm leading-relaxed",
+                "font-serif text-[0.95rem] leading-relaxed",
                 heading && "mt-1",
               )}
             >

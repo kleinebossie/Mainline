@@ -79,7 +79,7 @@ export function CalibrationStep({
                 {String(countdown % 60).padStart(2, "0")}
               </span>
             ) : showsCompletedMark ? (
-              <span className="text-evergreen font-mono text-xs font-semibold">
+              <span className="text-tile font-mono text-xs font-semibold">
                 ✓ Calibration delay completed
               </span>
             ) : (
@@ -92,7 +92,7 @@ export function CalibrationStep({
           </div>
 
           {!untimed && initialCountdown > 0 && incomplete && !skipped && (
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line/60 pt-3">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-rule/60 pt-3">
               <p className="text-grade-d font-serif text-xs">
                 Skipping this reflection isn&apos;t recommended. See the
                 rationale below.
@@ -109,13 +109,13 @@ export function CalibrationStep({
           )}
 
           {!untimed && (
-            <div className="mt-4 border-t border-line/60 pt-4">
+            <div className="mt-4 border-t border-rule/60 pt-4">
               <MethodologyRationaleCard rationale={rationale} />
             </div>
           )}
 
           {untimed && recallWhy && (
-            <div className="mt-4 border-t border-line/60 pt-4">
+            <div className="mt-4 border-t border-rule/60 pt-4">
               <MethodologyRationaleCard rationale={recallWhy} />
             </div>
           )}

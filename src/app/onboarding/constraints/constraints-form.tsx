@@ -71,7 +71,7 @@ import { getGuestSession, saveGuestConstraints } from "@/lib/guest-session";
 export function ConstraintsForm({
   ifThenRationale,
   continueHref = "/onboarding/reveal",
-  continueLabel = "Continue →",
+  continueLabel = "Continue",
 }: {
   ifThenRationale: RationaleEntry;
   continueHref?: string;
@@ -404,7 +404,7 @@ function Form({
       )}
       <fieldset className="grid grid-cols-1 gap-6 sm:grid-cols-2">
         <label className="flex flex-col gap-2 font-serif text-sm font-medium">
-          <span className="eyebrow !text-[0.65rem] !tracking-wider">
+          <span className="label !text-[0.65rem] !tracking-wider">
             Minutes per day
           </span>
           <Input
@@ -426,7 +426,7 @@ function Form({
           </span>
         </label>
         <label className="flex flex-col gap-2 font-serif text-sm font-medium">
-          <span className="eyebrow !text-[0.65rem] !tracking-wider">
+          <span className="label !text-[0.65rem] !tracking-wider">
             Days per week
           </span>
           <Input
@@ -445,7 +445,7 @@ function Form({
       </fieldset>
 
       <fieldset className="flex flex-col gap-4">
-        <legend className="eyebrow border-b border-line/80 pb-2 w-full mb-2">
+        <legend className="section-title block w-full">
           What do you want from training?
         </legend>
         <div className="flex flex-col gap-2.5">
@@ -480,9 +480,9 @@ function Form({
       </fieldset>
 
       <fieldset className="flex flex-col gap-4">
-        <legend className="eyebrow border-b border-line/80 pb-2 w-full mb-2">
+        <legend className="section-title block w-full">
           Which formats do you play?{" "}
-          <span className="text-clay normal-case tracking-normal font-normal">
+          <span className="text-brick normal-case tracking-normal font-normal">
             required
           </span>
         </legend>
@@ -518,7 +518,7 @@ function Form({
         {/* M14: the play medium drives the 2D/3D modality + over-the-board recommendations
             and the board interface restrictions (Seam 4 §4.4). */}
         <div className="mt-3 flex flex-col gap-2">
-          <span className="eyebrow !text-[0.65rem] !tracking-wider">
+          <span className="label !text-[0.65rem] !tracking-wider">
             Where do you mostly play?
           </span>
           <div className="flex flex-col gap-2">
@@ -547,7 +547,7 @@ function Form({
       </fieldset>
 
       <fieldset className="flex flex-col gap-4">
-        <legend className="eyebrow border-b border-line/80 pb-2 w-full mb-2">
+        <legend className="section-title block w-full">
           Where do you prefer to play?
         </legend>
         <p className="text-graphite font-serif text-sm leading-relaxed -mt-1 mb-1">
@@ -570,7 +570,7 @@ function Form({
               />
               {platformLabel(p)}
               {connectedPlatforms.includes(p) && (
-                <span className="text-evergreen font-mono text-[0.65rem] uppercase tracking-wider">
+                <span className="text-tile font-mono text-[0.65rem] tracking-wider">
                   connected
                 </span>
               )}
@@ -580,7 +580,7 @@ function Form({
       </fieldset>
 
       <fieldset className="flex flex-col gap-4">
-        <legend className="eyebrow border-b border-line/80 pb-2 w-full mb-2">
+        <legend className="section-title block w-full">
           What do you already own?
         </legend>
         <p className="text-graphite font-serif text-sm leading-relaxed -mt-1 mb-1">
@@ -592,10 +592,10 @@ function Form({
             {ownedResources.map((r, i) => (
               <li
                 key={`${r.kind}-${r.label}-${i}`}
-                className="bg-paper/40 flex items-center justify-between gap-3 rounded-md border border-line px-3 py-2"
+                className="bg-sheet flex items-center justify-between gap-3 rounded-md border border-rule px-3 py-2"
               >
                 <span className="font-serif text-sm text-ink">
-                  <span className="text-graphite font-mono text-[0.7rem] uppercase tracking-wider mr-2">
+                  <span className="text-graphite font-mono text-[0.7rem] tracking-wider mr-2">
                     {RESOURCE_KIND_LABELS[r.kind]}
                   </span>
                   {r.label}
@@ -606,7 +606,7 @@ function Form({
                   aria-label={`Remove ${r.label}`}
                   variant="ghost"
                   size="sm"
-                  className="-mr-2 shrink-0 text-clay hover:bg-clay/[0.06] hover:text-clay"
+                  className="-mr-2 shrink-0 text-brick hover:bg-brick/[0.06] hover:text-brick"
                 >
                   Remove
                 </Button>
@@ -705,7 +705,7 @@ function Form({
       </fieldset>
 
       <fieldset className="flex flex-col gap-4">
-        <legend className="eyebrow border-b border-line/80 pb-2 w-full mb-2">
+        <legend className="section-title block w-full">
           How do you like to train?
         </legend>
         <div className="flex flex-col gap-2.5">
@@ -742,7 +742,7 @@ function Form({
       </fieldset>
 
       <fieldset className="flex flex-col gap-4">
-        <legend className="eyebrow border-b border-line/80 pb-2 w-full mb-1">
+        <legend className="section-title block w-full">
           Your if-then plan
         </legend>
         <MethodologyRationaleCard rationale={ifThenRationale} />
@@ -786,12 +786,12 @@ function Form({
         </div>
       </fieldset>
 
-      <div className="flex flex-wrap items-center gap-4 border-t border-line/80 pt-6 mt-4">
+      <div className="flex flex-wrap items-center gap-4 border-t border-rule/80 pt-6 mt-4">
         <Button type="submit" disabled={save.isPending}>
           {save.isPending ? "Saving…" : "Save constraints"}
         </Button>
         {isDirty && !saved && (
-          <span className="rounded-sm border border-amber/40 bg-amber/10 px-2.5 py-1 font-mono text-[0.68rem] font-semibold uppercase text-amber">
+          <span className="rounded-sm border border-ochre/40 bg-ochre/10 px-2.5 py-1 font-mono text-[0.68rem] font-semibold text-ochre">
             Unsaved changes
           </span>
         )}

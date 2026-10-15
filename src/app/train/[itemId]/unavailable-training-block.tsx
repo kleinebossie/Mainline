@@ -41,8 +41,8 @@ export function UnavailableTrainingBlock({
             </span>
           </div>
           <div className="flex flex-col justify-center p-6 sm:p-8">
-            <p className="eyebrow">Position set empty</p>
-            <h1 className="mt-3 font-serif text-3xl font-semibold leading-tight text-ink">
+            <p className="label">Position set empty</p>
+            <h1 className="mt-3 text-3xl font-semibold leading-tight text-ink">
               This block has no positions left to train.
             </h1>
             <p className="mt-4 max-w-lg font-serif text-sm leading-relaxed text-graphite">

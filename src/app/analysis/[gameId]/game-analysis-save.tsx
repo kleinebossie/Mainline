@@ -43,8 +43,8 @@ export function SaveReviewStep({
                 and add them to the review schedule.
               </p>
 
-              <div className="flex flex-col gap-3 rounded-lg border bg-card p-4">
-                <h4 className="text-graphite font-mono text-xs font-semibold uppercase">
+              <div className="sheet flex flex-col gap-3 p-4">
+                <h4 className="text-graphite font-mono text-xs font-semibold">
                   Puzzles to schedule
                 </h4>
                 {session.criticalMoments.map((moment, index) => (

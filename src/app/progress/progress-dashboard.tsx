@@ -7,14 +7,14 @@ import { cn } from "@/lib/utils";
 import { StatusMessage } from "@/components/ui/status-message";
 import { ErrorNotice } from "@/components/ui/error-notice";
 import { GradeMark } from "@/components/evidence";
+import { Panel, Stat } from "@/components/panel";
+import { buttonVariants } from "@/components/ui/button";
 import { TransparencyCardGroup } from "@/components/transparency-card";
 import { getGuestSession, type GuestSessionData } from "@/lib/guest-session";
 import type { AppRouter } from "@/server/routers/_app";
 import type { inferRouterOutputs } from "@trpc/server";
 
 type ProgressSummary = inferRouterOutputs<AppRouter>["progress"]["summary"];
-
-
 
 function RecoveryNote({
   event,
@@ -30,19 +30,22 @@ function RecoveryNote({
   return (
     <aside
       aria-labelledby={`recovery-note-${event.id ?? "current"}`}
-      className="relative overflow-hidden rounded-lg border border-amber/45 bg-amber/10 p-4 shadow-sheet sm:p-5"
+      className="sheet relative overflow-hidden border-ochre/40 bg-ochre/[0.07] p-4 sm:p-5"
     >
-      <span aria-hidden className="absolute inset-y-0 left-0 w-1 bg-amber" />
+      <span
+        aria-hidden
+        className="absolute inset-y-0 left-0 w-[3px] bg-ochre"
+      />
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="max-w-3xl pl-1">
           <div className="flex flex-wrap items-center gap-2">
             <p
               id={`recovery-note-${event.id ?? "current"}`}
-              className="font-mono text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-ink"
+              className="font-mono text-[0.68rem] font-semibold text-ink"
             >
               Return to the board
             </p>
-            <span className="rounded-sm border border-ink/10 px-1.5 py-0.5 font-mono text-[0.65rem] uppercase text-ink">
+            <span className="rounded-sm border border-ink/10 px-1.5 py-0.5 font-mono text-[0.65rem] text-ink">
               Grade {event.evidenceGrade} / Tier {event.evidenceTier}
             </span>
           </div>
@@ -53,7 +56,7 @@ function RecoveryNote({
             {event.citationSource ?? event.citationKey}
           </p>
           {failed && (
-            <p role="alert" className="mt-2 text-sm text-clay">
+            <p role="alert" className="mt-2 text-sm text-brick">
               The note is still here. Try clearing it again.
             </p>
           )}
@@ -62,7 +65,10 @@ function RecoveryNote({
           type="button"
           onClick={onClear}
           disabled={pending || event.id === null}
-          className="inline-flex min-h-9 shrink-0 items-center justify-center rounded-sm border border-ink/15 bg-card px-3 font-mono text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-ink transition-colors hover:bg-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
+          className={cn(
+            buttonVariants({ variant: "outline", size: "sm" }),
+            "shrink-0",
+          )}
         >
           {pending
             ? "Clearing note…"
@@ -87,15 +93,12 @@ function StatTile({
   className?: string;
 }) {
   return (
-    <div
-      className={cn("rounded-lg border bg-card p-4 shadow-sheet", className)}
-    >
-      <p className="eyebrow">{label}</p>
-      <p className="mt-2 font-mono text-3xl font-semibold tabular-nums text-ink">
-        {value}
-      </p>
-      <p className="mt-1 text-sm leading-relaxed text-graphite">{detail}</p>
-    </div>
+    <Stat
+      label={label}
+      value={value}
+      note={detail}
+      className={cn("sm:border-l sm:border-rule sm:pl-5", className)}
+    />
   );
 }
 
@@ -107,7 +110,7 @@ function ConsistencyGrid({
   return (
     <div className="flex flex-col gap-2">
       <div
-        className="grid grid-flow-col grid-rows-7 gap-[3px] overflow-x-auto pb-1"
+        className="grid grid-flow-col grid-rows-7 [grid-auto-columns:max-content] justify-start gap-[3px] overflow-x-auto pb-1"
         role="img"
         aria-label="Consistency grid over the methodology-owned practice window"
       >
@@ -117,7 +120,7 @@ function ConsistencyGrid({
             title={`${cell.date.toLocaleDateString()} - ${cell.active ? "trained" : "no logged practice"}`}
             className={cn(
               "h-3 w-3 shrink-0 rounded-[2px]",
-              cell.active ? "bg-evergreen" : "bg-ink/10",
+              cell.active ? "bg-tile" : "bg-ink/10",
             )}
           />
         ))}
@@ -125,7 +128,7 @@ function ConsistencyGrid({
       <div className="flex items-center gap-4 font-mono text-[0.62rem] text-graphite">
         <span className="flex items-center gap-1.5">
           <span
-            className="h-2.5 w-2.5 rounded-[2px] bg-evergreen"
+            className="h-2.5 w-2.5 rounded-[2px] bg-tile"
             aria-hidden="true"
           />
           Trained
@@ -156,23 +159,21 @@ function SkillSignals({
 }) {
   if (skills.length === 0) {
     return (
-      <div className="rounded-lg border bg-card p-5 shadow-sheet flex flex-col justify-between">
+      <div className="sheet p-5 flex flex-col justify-between">
         <div>
-          <p className="eyebrow">Skill signals</p>
-          <p className="mt-2 font-serif text-lg font-semibold">
-            No skill estimates yet
-          </p>
+          <p className="label">Skill signals</p>
+          <p className="mt-2 text-lg font-semibold">No skill estimates yet</p>
           <p className="mt-1 text-sm text-graphite font-serif leading-relaxed">
             Complete the 3-puzzle tactical calibration or in-app training blocks
             to establish your skill estimates.
           </p>
         </div>
-        <div className="mt-4 pt-4 border-t border-line/60">
+        <div className="mt-4 pt-4 border-t border-rule/60">
           <Link
             href="/onboarding/calibration"
-            className="inline-flex items-center gap-1 rounded-sm border border-line bg-paper/70 px-3 py-1.5 font-mono text-xs uppercase text-ink transition-colors hover:border-ink/20 hover:bg-paper"
+            className="inline-flex items-center gap-1 rounded-sm border border-rule bg-sheet px-3 py-1.5 font-mono text-xs text-ink transition-colors hover:border-ink/20 hover:bg-ink/[0.04]"
           >
-            Start calibration →
+            Start calibration
           </Link>
         </div>
       </div>
@@ -180,7 +181,7 @@ function SkillSignals({
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <ul className="rule-list">
       {skills.map((skill) => {
         const isRating = skill.isRating || skill.estimate > 100;
         const isLowSample = skill.sampleSize < 3;
@@ -189,24 +190,19 @@ function SkillSignals({
           : `${Math.round(skill.estimate * 100)}% ± ${Math.round(skill.uncertainty * 100)}%`;
 
         return (
-          <div
-            key={skill.dimension}
-            className="rounded-lg border bg-card p-4 shadow-sheet"
-          >
-            <div className="flex flex-wrap items-start justify-between gap-2">
-              <p className="font-serif text-base font-semibold">
-                {skill.label}
-              </p>
+          <li key={skill.dimension} className="py-3.5 first:pt-0 last:pb-0">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+              <p className="text-[0.98rem] font-semibold">{skill.label}</p>
               <span className="font-mono text-sm font-semibold tabular-nums text-ink">
                 {isLowSample ? "Gathering data" : displayValue}
               </span>
             </div>
-            <div className="mt-3 h-2 rounded-sm bg-ink/10 overflow-hidden">
+            <div className="mt-2 h-1.5 overflow-hidden rounded-[1px] bg-ink/[0.09]">
               {isLowSample ? (
-                <div className="h-2 w-full rounded-sm bg-[repeating-linear-gradient(135deg,hsl(var(--evergreen)/0.3)_0_4px,transparent_4px_8px)]" />
+                <div className="h-full w-full bg-[repeating-linear-gradient(to_right,hsl(var(--rule))_0_4px,transparent_4px_8px)]" />
               ) : isRating ? (
                 <div
-                  className="h-2 rounded-sm bg-evergreen"
+                  className="h-full bg-tile"
                   style={{
                     width: `${Math.max(
                       10,
@@ -219,7 +215,7 @@ function SkillSignals({
                 />
               ) : (
                 <div
-                  className="h-2 rounded-sm bg-evergreen"
+                  className="h-full bg-tile"
                   style={{
                     width: `${Math.max(
                       0,
@@ -229,14 +225,14 @@ function SkillSignals({
                 />
               )}
             </div>
-            <p className="mt-2 font-mono text-[0.68rem] uppercase tracking-[0.12em] text-graphite">
+            <p className="font-mono mt-1.5 text-[0.68rem] text-graphite">
               {skill.sampleSize} logged interaction
               {skill.sampleSize === 1 ? "" : "s"}
             </p>
-          </div>
+          </li>
         );
       })}
-    </div>
+    </ul>
   );
 }
 
@@ -251,28 +247,23 @@ function RatingSignal({
 }) {
   if (!rating) {
     return (
-      <div
-        className={cn(
-          "rounded-lg border bg-card p-5 shadow-sheet flex flex-col justify-between",
-          className,
-        )}
-      >
+      <div className={cn("sheet p-4 sm:p-5", className)}>
         <div>
-          <p className="eyebrow">Rating noise</p>
-          <p className="mt-2 font-serif text-lg font-semibold">
+          <p className="label">Rating noise</p>
+          <p className="mt-1.5 text-[1.15rem] font-semibold">
             No rating data yet
           </p>
-          <p className="mt-1 text-sm text-graphite">
-            Link a Lichess or Chess.com account to track your rating noise and
-            format signals.
+          <p className="font-serif mt-1 text-[0.92rem] leading-relaxed text-graphite">
+            Link a Lichess or Chess.com account and Mainline will track the
+            rating band beside the noise that surrounds it.
           </p>
         </div>
-        <div className="mt-4 pt-4 border-t border-line/60">
+        <div className="mt-4 border-t border-rule pt-4">
           <Link
             href="/connections"
-            className="inline-flex items-center gap-1 rounded-sm border border-line bg-paper/70 px-3 py-1.5 font-mono text-xs uppercase text-ink transition-colors hover:border-ink/20 hover:bg-paper"
+            className={buttonVariants({ variant: "outline", size: "sm" })}
           >
-            Connect accounts →
+            Connect your accounts
           </Link>
         </div>
       </div>
@@ -283,14 +274,12 @@ function RatingSignal({
   const showFormatsSetup = rating.platformSet && !rating.formatsSet;
 
   return (
-    <div
-      className={cn("rounded-lg border bg-card p-4 shadow-sheet", className)}
-    >
+    <div className={cn("sheet p-4 sm:p-5", className)}>
       {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-line/60 pb-4">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-rule pb-3">
         <div>
-          <p className="eyebrow">Rating noise</p>
-          <p className="mt-1 font-serif text-lg font-semibold">
+          <p className="label">Rating signal</p>
+          <p className="mt-1 text-[1.15rem] font-semibold">
             {rating.platformLabel}
           </p>
         </div>
@@ -298,17 +287,17 @@ function RatingSignal({
           {showPlatformSetup && (
             <Link
               href="/connections"
-              className="inline-flex items-center gap-1 rounded-sm border border-line bg-paper/70 px-2.5 py-1 font-mono text-[0.7rem] uppercase text-graphite transition-colors hover:border-ink/20 hover:bg-paper"
+              className={buttonVariants({ variant: "ghost", size: "sm" })}
             >
-              Connect accounts →
+              Connect accounts
             </Link>
           )}
           {showFormatsSetup && (
             <Link
               href="/onboarding/constraints"
-              className="inline-flex items-center gap-1 rounded-sm border border-line bg-paper/70 px-2.5 py-1 font-mono text-[0.7rem] uppercase text-graphite transition-colors hover:border-ink/20 hover:bg-paper"
+              className="inline-flex items-center gap-1 rounded-sm border border-rule bg-sheet px-2.5 py-1 font-mono text-[0.7rem] text-graphite transition-colors hover:border-ink/20 hover:bg-ink/[0.04]"
             >
-              Choose time controls →
+              Choose time controls
             </Link>
           )}
         </div>
@@ -346,12 +335,12 @@ function RatingSignal({
               return (
                 <div
                   key={format.format}
-                  className={cn(index > 0 && "border-t border-line/40", "py-4")}
+                  className={cn(index > 0 && "border-t border-rule/40", "py-4")}
                 >
                   {/* Row 1: label, rating + rd, CI */}
                   <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
                     {/* Time control */}
-                    <span className="font-serif text-base font-semibold min-w-[4.5rem]">
+                    <span className="text-base font-semibold min-w-[4.5rem]">
                       {format.label}
                     </span>
 
@@ -421,9 +410,7 @@ function RatingSignal({
                     <span
                       className={cn(
                         "font-mono text-[0.68rem]",
-                        format.realProgress
-                          ? "text-evergreen"
-                          : "text-graphite/65",
+                        format.realProgress ? "text-tile" : "text-graphite/65",
                       )}
                     >
                       {progressLabel}
@@ -432,7 +419,7 @@ function RatingSignal({
 
                   {/* Expectation text */}
                   {format.expectation && (
-                    <p className="mt-2 border-l-2 border-line/60 pl-3 text-sm leading-relaxed text-graphite/75">
+                    <p className="mt-2 border-l-2 border-rule/60 pl-3 text-sm leading-relaxed text-graphite/75">
                       {format.expectation.text}
                     </p>
                   )}
@@ -643,44 +630,44 @@ export function ProgressDashboard() {
         )}
 
         {/* Row 1: Consistency Grid */}
-        <section className="rounded-lg border bg-card p-5 shadow-sheet flex flex-col justify-between">
-          <div className="flex flex-wrap items-baseline justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <p className="eyebrow">Consistency</p>
-              <GradeMark
-                grade={data.evidence.progressSurface.evidenceGrade}
-                tier={data.evidence.progressSurface.evidenceTier}
-              />
-            </div>
-            <span className="font-mono text-xs text-graphite">
-              {data.consistency.streak.activeDayCount} active day
-              {data.consistency.streak.activeDayCount === 1 ? "" : "s"} ·{" "}
-              {data.consistency.streak.windowDays}-day window
-            </span>
+        <Panel
+          title="Consistency"
+          aside={`${data.consistency.streak.activeDayCount} active day${
+            data.consistency.streak.activeDayCount === 1 ? "" : "s"
+          } in ${data.consistency.streak.windowDays} days`}
+        >
+          <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
+            <p className="text-[1.55rem] leading-none">
+              {data.consistency.streak.day > 0
+                ? `Day ${data.consistency.streak.day} of ${data.consistency.streak.cap}`
+                : "Ready for a fresh cycle"}
+            </p>
+            <GradeMark
+              grade={data.evidence.progressSurface.evidenceGrade}
+              tier={data.evidence.progressSurface.evidenceTier}
+            />
           </div>
-          <p className="mt-2 font-serif text-2xl font-semibold">
-            {data.consistency.streak.day > 0
-              ? `Day ${data.consistency.streak.day} of ${data.consistency.streak.cap}`
-              : "Ready for a fresh cycle"}
-          </p>
           <div className="mt-5">
             <ConsistencyGrid grid={data.consistency.grid} />
           </div>
-        </section>
+        </Panel>
 
         {/* Row 2: Standardized Quick Stats */}
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <section className="grid grid-cols-1 gap-3 border-y border-rule py-4 sm:grid-cols-3 sm:gap-0 sm:border-t-0 sm:py-0">
           <StatTile
+            className="sm:pt-4 sm:pb-4"
             label="Blocks completed"
             value={String(effectiveWork.completedBlocks)}
-            detail={`Last ${effectiveWork.windowDays}-day cycle (${effectiveWork.skippedBlocks} skipped).`}
+            detail={`${effectiveWork.skippedBlocks} skipped in this cycle`}
           />
           <StatTile
+            className="sm:pt-4 sm:pb-4"
             label="Minutes logged"
             value={String(effectiveWork.minutesLogged)}
-            detail="Total training time across current cycle."
+            detail={`Across the last ${effectiveWork.windowDays} days`}
           />
           <StatTile
+            className="sm:pt-4 sm:pb-4 sm:border-r"
             label="Reviews due"
             value={String(data.reviews.dueCount)}
             detail={dueDetail}
@@ -688,18 +675,12 @@ export function ProgressDashboard() {
         </section>
 
         {/* Row 3: Skill Signals */}
-        <section className="rounded-lg border bg-card p-5 shadow-sheet flex flex-col">
-          <div className="flex items-center justify-between border-b border-line/80 pb-3">
-            <h2 className="eyebrow">Skill signals</h2>
-            <GradeMark
-              grade={data.evidence.skill.evidenceGrade}
-              tier={data.evidence.skill.evidenceTier}
-            />
-          </div>
-          <div className="mt-4">
-            <SkillSignals skills={effectiveSkills} />
-          </div>
-        </section>
+        <Panel
+          title="Skill signals"
+          aside={`Graded ${data.evidence.skill.evidenceGrade}, tier ${data.evidence.skill.evidenceTier}`}
+        >
+          <SkillSignals skills={effectiveSkills} />
+        </Panel>
 
         {/* Row 4: Rating Signals & Noise Warnings */}
         <section className="grid grid-cols-1 gap-6">
@@ -754,7 +735,7 @@ export function ProgressDashboard() {
         />
       </div>
 
-      <p className="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-graphite ml-2">
+      <p className="font-mono text-[0.68rem] text-graphite ml-2">
         Methodology {data.methodologyVersion}
       </p>
     </div>

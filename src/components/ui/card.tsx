@@ -3,9 +3,9 @@ import * as React from "react";
 import type { EvidenceGrade } from "@/components/evidence";
 import { cn } from "@/lib/utils";
 
-// A card is an "analysis entry" on the sheet: raised paper, a hairline, a soft shadow.
-// Pass `gutter` (an evidence grade) to light the leading eval-gutter that ties a card to
-// how strong its evidence is.
+// A card is one entry on the sheet: flat paper, a hairline, a 1px lift. Pass `gutter` (an
+// evidence grade) to light the eval meter on its leading edge — colour is the grade, fill
+// height is how much of the bar that grade earns, so thin evidence never fills the bar.
 const Card = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div"> & {
@@ -18,8 +18,8 @@ const Card = React.forwardRef<
     data-grade={gutter}
     data-provisional={provisional ? "true" : undefined}
     className={cn(
-      "bg-card text-card-foreground rounded-lg border shadow-sheet",
-      gutter && "eval-gutter",
+      "sheet text-card-foreground rounded-[6px]",
+      gutter && "meter",
       className,
     )}
     {...props}
@@ -33,7 +33,7 @@ const CardHeader = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("flex flex-col space-y-1.5 p-6", className)}
+    className={cn("flex flex-col gap-1.5 p-5", className)}
     {...props}
   />
 ));
@@ -44,7 +44,7 @@ const CardTitle = React.forwardRef<HTMLDivElement, React.ComponentProps<"div">>(
     <div
       ref={ref}
       className={cn(
-        "font-serif text-2xl font-semibold leading-tight tracking-tight",
+        "text-[1.15rem] font-semibold leading-[1.2] tracking-[-0.02em]",
         className,
       )}
       {...props}
@@ -57,7 +57,7 @@ const CardContent = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div">
 >(({ className, ...props }, ref) => (
-  <div ref={ref} className={cn("p-6 pt-0", className)} {...props} />
+  <div ref={ref} className={cn("p-5 pt-0", className)} {...props} />
 ));
 CardContent.displayName = "CardContent";
 

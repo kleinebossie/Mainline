@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { Check } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -89,7 +88,6 @@ export function OnboardingSteps({ status }: { status: OnboardingStatus }) {
     };
   });
 
-
   const doneCount = steps.filter((step) => step.done).length;
   const requiredDone = steps.filter(
     (step) => step.required && step.done,
@@ -102,33 +100,32 @@ export function OnboardingSteps({ status }: { status: OnboardingStatus }) {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="bg-card rounded-lg border p-5 shadow-sheet">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="eyebrow !text-[0.65rem]">Setup progress</p>
-            <p className="font-serif text-lg font-semibold mt-1">
-              {doneCount} of {steps.length} steps done
-            </p>
-          </div>
-          <div className="grid grid-cols-5 gap-1.5" aria-hidden>
-            {steps.map((step) => (
-              <span
-                key={step.href}
-                className={cn(
-                  "h-2 w-8 rounded-full transition-colors sm:w-10",
-                  step.done ? "bg-evergreen" : "bg-line",
-                )}
-              />
-            ))}
-          </div>
+      <div className="sheet flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <p className="font-mono text-[0.85rem] font-semibold text-ink">
+          {doneCount} of {steps.length} steps done
+        </p>
+        <div
+          className="flex gap-1"
+          role="img"
+          aria-label={`${doneCount} of ${steps.length} setup steps complete`}
+        >
+          {steps.map((step) => (
+            <span
+              key={step.href}
+              className={cn(
+                "h-1.5 w-8 rounded-[1px] sm:w-12",
+                step.done ? "bg-biro" : "bg-ink/[0.12]",
+              )}
+            />
+          ))}
         </div>
       </div>
 
       {isComplete ? (
-        <div className="bg-paper-raised border border-evergreen/40 rounded-lg p-5 shadow-sheet flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="sheet flex flex-col items-start justify-between gap-4 border-tile/45 p-5 sm:flex-row sm:items-center">
           <div>
-            <p className="eyebrow text-evergreen">Ready to train</p>
-            <p className="font-serif text-lg font-semibold text-ink mt-1">
+            <p className="label-ink">Ready to train</p>
+            <p className="text-lg font-semibold text-ink mt-1">
               Your first daily training session is ready
             </p>
             <p className="text-graphite font-serif text-sm mt-0.5 max-w-lg">
@@ -140,15 +137,12 @@ export function OnboardingSteps({ status }: { status: OnboardingStatus }) {
             href="/today"
             className={cn(buttonVariants({ size: "default" }), "shrink-0")}
           >
-            Start Today&apos;s session →
+            Start Today&apos;s session
           </Link>
         </div>
       ) : (
-        <div
-          className="rounded-lg border border-line bg-card px-4 py-3"
-          role="status"
-        >
-          <p className="font-serif text-sm font-semibold text-ink">
+        <div className="sheet px-4 py-3" role="status">
+          <p className="text-sm font-semibold">
             {`${requiredDone} of ${requiredCount} required steps done`}
           </p>
           <p className="mt-1 text-sm text-graphite">
@@ -157,64 +151,68 @@ export function OnboardingSteps({ status }: { status: OnboardingStatus }) {
         </div>
       )}
 
-      <ol className="flex flex-col gap-4">
+      <ol className="sheet rule-list" aria-label="Setup steps">
         {steps.map((step, i) => {
           const isNext = step === nextStep;
           return (
             <li
               key={step.href}
               className={cn(
-                "bg-card flex flex-col items-stretch gap-4 rounded-lg border p-4 shadow-sheet transition-all sm:flex-row sm:items-center sm:justify-between",
-                isNext && "ring-2 ring-evergreen/40 border-evergreen/40",
+                "relative flex flex-col items-stretch gap-3 py-4 pl-6 pr-4 sm:flex-row sm:items-center sm:justify-between",
+                isNext && !step.done && "bg-biro/[0.04]",
               )}
             >
-              <div className="flex items-start gap-3.5">
+              {isNext && !step.done && (
+                <span
+                  aria-hidden
+                  className="absolute inset-y-0 left-0 w-[3px] bg-biro"
+                />
+              )}
+              <div className="flex min-w-0 items-start gap-3">
                 <span
                   aria-hidden
                   className={cn(
-                    "mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-mono font-medium transition-colors",
+                    "font-mono mt-px shrink-0 text-[0.85rem] font-semibold",
                     step.done
-                      ? "border-evergreen bg-evergreen text-primary-foreground"
+                      ? "text-tile"
                       : isNext
-                        ? "border-evergreen bg-evergreen/10 text-evergreen"
-                        : "border-line text-graphite bg-paper",
+                        ? "text-biro"
+                        : "text-graphite",
                   )}
                 >
-                  {step.done ? (
-                    <Check
-                      className="h-3.5 w-3.5 stroke-[2.5]"
-                      aria-hidden="true"
-                    />
-                  ) : (
-                    i + 1
-                  )}
+                  {i + 1}.
                 </span>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <p className="font-serif text-base font-semibold leading-tight">
+                <div className="min-w-0">
+                  <p className="flex flex-wrap items-baseline gap-x-2 text-[1.02rem] font-semibold leading-snug">
+                    <span className={step.done ? "text-graphite" : undefined}>
                       {step.title}
-                    </p>
-                    {step.required && (
-                      <span className="text-graphite font-mono text-[0.6rem] uppercase tracking-wider">
-                        required
+                    </span>
+                    {step.done ? (
+                      <span className="font-mono text-[0.72rem] font-semibold text-tile">
+                        done
                       </span>
+                    ) : (
+                      step.required && (
+                        <span className="font-mono text-[0.7rem] text-graphite">
+                          required
+                        </span>
+                      )
                     )}
-                  </div>
-                  <p className="text-graphite text-sm leading-relaxed mt-1">
+                  </p>
+                  <p className="font-serif mt-1 max-w-[52ch] text-[0.92rem] leading-relaxed text-graphite">
                     {step.detail}
                   </p>
-                  {!step.done && !isNext && i > 0 && (
-                    <p className="mt-1 font-mono text-[0.65rem] text-graphite">
-                      Complete the step above to unlock.
-                    </p>
-                  )}
                 </div>
               </div>
               <Link
                 href={step.href}
                 className={cn(
                   buttonVariants({
-                    variant: step.done ? "outline" : "default",
+                    variant: step.done
+                      ? "outline"
+                      : isNext
+                        ? "default"
+                        : "ghost",
                     size: "sm",
                   }),
                   "shrink-0",

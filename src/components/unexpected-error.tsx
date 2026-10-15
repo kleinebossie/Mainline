@@ -23,18 +23,18 @@ export function UnexpectedError({
   return (
     <section className="mx-auto w-full max-w-2xl" aria-labelledby="error-title">
       <div className="mb-7 flex items-center gap-3" aria-hidden>
-        <span className="font-mono text-xs font-semibold uppercase tracking-[0.16em] text-clay">
+        <span className="font-mono text-xs font-semibold text-brick">
           Line interrupted
         </span>
-        <span className="h-px flex-1 bg-clay/35" />
-        <span className="flex h-7 w-7 items-center justify-center rounded-sm border border-clay/35 font-mono text-xs font-bold text-clay">
+        <span className="h-px flex-1 bg-brick/35" />
+        <span className="flex h-7 w-7 items-center justify-center rounded-sm border border-brick/35 font-mono text-xs font-bold text-brick">
           !
         </span>
       </div>
 
       <h1
         id="error-title"
-        className="max-w-xl font-serif text-4xl font-semibold leading-tight sm:text-5xl"
+        className="max-w-xl text-4xl font-semibold leading-tight sm:text-5xl"
       >
         This page could not finish loading.
       </h1>
@@ -61,7 +61,7 @@ export function UnexpectedError({
         </Link>
       </div>
 
-      <div className="mt-10 border-t border-line pt-4 font-mono text-[0.68rem] leading-relaxed text-graphite">
+      <div className="mt-10 border-t border-rule pt-4 font-mono text-[0.68rem] leading-relaxed text-graphite">
         <p>
           Error reports exclude game data, account credentials, and form text.
         </p>

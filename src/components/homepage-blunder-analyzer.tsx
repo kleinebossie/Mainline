@@ -1,9 +1,14 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useRouter } from "next/navigation";
 import { Chess } from "chess.js";
-import { Check, RotateCcw, Sparkles, Target } from "lucide-react";
 
 import { trpc } from "@/lib/trpc/react";
 import { Button } from "@/components/ui/button";
@@ -17,7 +22,10 @@ import { stepSolve, type SolveState } from "@/engine/interactive/session";
 import { systemClock } from "@/lib/clock";
 import { trackFunnelEvent } from "@/lib/telemetry";
 import { saveGuestBaseline, saveGuestConnection } from "@/lib/guest-session";
-import { detectTacticalMotif, type TacticalMotif } from "@/analysis/motif-detector";
+import {
+  detectTacticalMotif,
+  type TacticalMotif,
+} from "@/analysis/motif-detector";
 import { cn } from "@/lib/utils";
 
 const QUICK_EXAMPLES = [
@@ -70,7 +78,8 @@ export function HomepageBlunderAnalyzer() {
   const [attempts, setAttempts] = useState<number>(0);
   const [startTime, setStartTime] = useState<number>(0);
 
-  const [activeBlindspot, setActiveBlindspot] = useState<DisplayBlindspot | null>(null);
+  const [activeBlindspot, setActiveBlindspot] =
+    useState<DisplayBlindspot | null>(null);
   const [activeDrill, setActiveDrill] = useState<DisplayDrill | null>(null);
   const [isWasmScanning, setIsWasmScanning] = useState<boolean>(false);
   const [scanStatusMessage, setScanStatusMessage] = useState<string>("");
@@ -205,13 +214,18 @@ export function HomepageBlunderAnalyzer() {
               depth: 10,
             });
 
-            if (evalResult.bestMove && scanSessionIdRef.current === currentSession) {
+            if (
+              evalResult.bestMove &&
+              scanSessionIdRef.current === currentSession
+            ) {
               const motif: TacticalMotif = detectTacticalMotif(
                 topBlunder.fen,
                 evalResult.bestMove,
               );
 
-              const measuredRate = (totalBlunders / gamesToScan.length).toFixed(1);
+              const measuredRate = (totalBlunders / gamesToScan.length).toFixed(
+                1,
+              );
               const upgradedBlindspot: DisplayBlindspot = {
                 title: motif.title,
                 description: motif.description,
@@ -341,47 +355,50 @@ export function HomepageBlunderAnalyzer() {
 
   return (
     <div className="w-full">
-      {/* Input Search Hero Card */}
-      <div className="rounded-xl border border-line bg-paper-raised/80 p-6 shadow-sheet sm:p-8">
-        <div>
-          <p className="eyebrow text-evergreen">Interactive blunder analyzer</p>
-          <h2 className="mt-3 font-serif text-2xl font-semibold sm:text-4xl">
-            Find the tactical blindspots in your games.
-          </h2>
-          <p className="mt-2 max-w-2xl font-serif text-sm leading-relaxed text-graphite sm:text-base">
-            Enter your public chess username. Stockfish scans your games locally
-            to identify recurring mistake patterns.
+      {/* The live demo: the most characteristic thing Mainline does, up front. */}
+      <div className="sheet p-5 sm:p-7">
+        <div className="mb-4 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-rule pb-2.5">
+          <p className="label-ink">Blunder analyzer</p>
+          <p className="font-mono text-[0.72rem] text-graphite">
+            Stockfish runs in your browser
           </p>
         </div>
 
-        <form onSubmit={handleAnalyze} className="mt-6 flex flex-col gap-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="font-mono text-xs text-graphite">Platform:</span>
-            <div className="flex rounded-md border border-line bg-paper p-0.5">
-              <button
-                type="button"
-                onClick={() => setPlatform("lichess")}
-                className={cn(
-                  "rounded px-3 py-1 font-mono text-xs font-medium transition-colors",
-                  platform === "lichess"
-                    ? "bg-ink text-paper"
-                    : "text-graphite hover:text-ink",
-                )}
-              >
-                Lichess
-              </button>
-              <button
-                type="button"
-                onClick={() => setPlatform("chesscom")}
-                className={cn(
-                  "rounded px-3 py-1 font-mono text-xs font-medium transition-colors",
-                  platform === "chesscom"
-                    ? "bg-ink text-paper"
-                    : "text-graphite hover:text-ink",
-                )}
-              >
-                Chess.com
-              </button>
+        <h2 className="max-w-[22ch] text-[1.75rem] leading-[1.06] sm:text-[2.35rem]">
+          Paste a username. Get the position you keep missing.
+        </h2>
+        <p className="font-serif mt-3 max-w-[52ch] text-[1rem] leading-relaxed text-graphite">
+          Mainline reads your public games, finds the turning points where you
+          lost the most, and sets one up here for you to repair. Nothing is
+          stored and no account is needed.
+        </p>
+
+        <form onSubmit={handleAnalyze} className="mt-6 flex flex-col gap-3">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <span className="font-mono text-[0.75rem] text-graphite">
+              Platform
+            </span>
+            <div
+              role="group"
+              aria-label="Platform to read games from"
+              className="inline-flex overflow-hidden rounded-[3px] border border-rule"
+            >
+              {(["lichess", "chesscom"] as const).map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setPlatform(value)}
+                  aria-pressed={platform === value}
+                  className={cn(
+                    "min-h-9 px-3 font-mono text-[0.78rem] transition-colors",
+                    platform === value
+                      ? "bg-biro/[0.09] text-biro font-semibold [box-shadow:inset_0_-2px_0_hsl(var(--biro))]"
+                      : "text-graphite hover:bg-ink/[0.04] hover:text-ink",
+                  )}
+                >
+                  {value === "lichess" ? "Lichess" : "Chess.com"}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -390,12 +407,19 @@ export function HomepageBlunderAnalyzer() {
               type="text"
               value={usernameInput}
               onChange={(e) => setUsernameInput(e.target.value)}
-              placeholder={`Enter your ${platform === "lichess" ? "Lichess" : "Chess.com"} username`}
-              className="w-full flex-1 rounded-md border border-line bg-paper px-3.5 py-2.5 font-mono text-sm text-ink placeholder:text-graphite/50 focus:border-evergreen focus:outline-none focus:ring-1 focus:ring-evergreen"
+              placeholder={
+                platform === "lichess"
+                  ? "Your Lichess username"
+                  : "Your Chess.com username"
+              }
+              aria-label="Username to analyse"
+              className="border-input bg-sheet text-ink placeholder:text-graphite/70 focus-visible:border-biro w-full flex-1 rounded-[2px] border px-2.5 py-2.5 font-mono text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-biro/35"
             />
             <Button
               type="submit"
-              disabled={query.isFetching || isWasmScanning || !usernameInput.trim()}
+              disabled={
+                query.isFetching || isWasmScanning || !usernameInput.trim()
+              }
               className="w-full shrink-0 sm:w-auto"
               size="lg"
             >
@@ -407,14 +431,14 @@ export function HomepageBlunderAnalyzer() {
             </Button>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 font-mono text-xs text-graphite">
-            <span>Or try an example:</span>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[0.75rem] text-graphite">
+            <span>Or try a strong player:</span>
             {QUICK_EXAMPLES.map((item) => (
               <button
                 key={item.label}
                 type="button"
                 onClick={() => handleQuickPick(item)}
-                className="rounded border border-line/80 bg-paper/60 px-2 py-0.5 transition-colors hover:border-evergreen hover:text-ink"
+                className="text-ink rounded-[2px] underline decoration-rule underline-offset-4 transition-colors hover:decoration-biro"
               >
                 {item.label}
               </button>
@@ -423,241 +447,128 @@ export function HomepageBlunderAnalyzer() {
         </form>
 
         {query.error && (
-          <div className="mt-6">
+          <div className="mt-5">
             <ErrorNotice
               error={query.error}
               heading="Analysis unavailable"
               message={
                 query.error.message ||
-                "Could not analyze that account. Please check the username and try again."
+                "That username could not be read. Check the spelling and the platform, then run it again."
               }
             />
           </div>
         )}
       </div>
 
-      {/* Pretty Stockfish WASM Scanning Loading Screen */}
+      {/* Working state: the scan ledger. Real steps, real progress, no theatre. */}
       {(query.isFetching || isWasmScanning) && (
-        <div className="settle mt-8 flex flex-col items-center justify-center rounded-xl border border-line bg-paper-raised/90 p-8 sm:p-12 text-center shadow-sheet">
-          {/* Animated Tactical Radar / Chess Grid Scanner */}
-          <div className="relative mb-6 flex h-24 w-24 sm:h-28 sm:w-28 items-center justify-center rounded-2xl border border-evergreen/30 bg-evergreen/[0.06] p-2 shadow-inner">
-            <div className="absolute inset-0 rounded-2xl bg-gradient-to-tr from-evergreen/10 via-transparent to-evergreen/5 animate-pulse" />
-            
-            {/* 4x4 Mini Tactical Board Grid */}
-            <div className="grid grid-cols-4 grid-rows-4 gap-1 h-full w-full p-1.5 opacity-80" aria-hidden="true">
-              {Array.from({ length: 16 }).map((_, i) => (
-                <div
-                  key={i}
+        <div className="sheet settle mt-4 overflow-hidden">
+          <div className="loading-slide h-[2px] bg-biro/70" aria-hidden />
+          <ul className="rule-list" aria-live="polite">
+            {[
+              {
+                name: "Read the public game list",
+                done: !query.isFetching,
+                active: query.isFetching,
+              },
+              {
+                name: "Score every move with Stockfish",
+                done: !isWasmScanning && Boolean(result),
+                active: isWasmScanning,
+              },
+              {
+                name: "Set the worst turning point up as a drill",
+                done: Boolean(result && drill),
+                active: !query.isFetching && isWasmScanning,
+              },
+            ].map((step) => (
+              <li
+                key={step.name}
+                className="flex items-center gap-3 px-5 py-2.5 font-mono text-[0.8rem]"
+              >
+                <span
+                  aria-hidden
                   className={cn(
-                    "rounded-[2px] transition-all duration-700",
-                    (i + Math.floor(i / 4)) % 2 === 0
-                      ? "bg-evergreen/20"
-                      : "bg-paper/80",
-                    (i === 5 || i === 10 || i === 6 || i === 9) &&
-                      "animate-pulse bg-evergreen-bright/40",
+                    "flex h-4 w-4 shrink-0 items-center justify-center rounded-[1px] border text-[0.62rem] leading-none",
+                    step.done
+                      ? "border-tile bg-tile text-sheet"
+                      : step.active
+                        ? "border-biro text-biro"
+                        : "border-rule text-graphite/50",
                   )}
-                />
-              ))}
-            </div>
-
-            {/* Central scanning icon */}
-            <div className="absolute flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl bg-ink text-paper shadow-md">
-              <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-evergreen-bright animate-spin [animation-duration:4s]" />
-            </div>
-          </div>
-
-          <div className="max-w-md space-y-2">
-            <span className="font-mono text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-evergreen">
-              {query.isFetching
-                ? "Connecting to platform"
-                : "Stockfish WASM engine"}
-            </span>
-            <h3 className="font-serif text-xl sm:text-2xl font-semibold text-ink">
-              {query.isFetching
-                ? `Fetching games for ${usernameInput.trim()}…`
-                : "Scanning your games for turning points…"}
-            </h3>
-            <p className="font-mono text-xs sm:text-sm text-graphite leading-relaxed">
-              {scanStatusMessage ||
-                (query.isFetching
-                  ? `Downloading public game history from ${platform === "lichess" ? "Lichess" : "Chess.com"}…`
-                  : "Running depth-10 tactical analysis in your browser…")}
-            </p>
-          </div>
-
-          {/* Progress Steps Checklist */}
-          <div className="mt-8 grid w-full max-w-md grid-cols-1 sm:grid-cols-3 gap-2.5 text-left font-mono text-[0.68rem]">
-            <div
-              className={cn(
-                "flex items-center gap-2 rounded-md border p-2.5 transition-colors",
-                !query.isFetching
-                  ? "border-evergreen/40 bg-evergreen/[0.08] text-evergreen font-semibold"
-                  : "border-line bg-paper text-ink animate-pulse",
-              )}
-            >
-              <div
-                className={cn(
-                  "flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px]",
-                  !query.isFetching
-                    ? "bg-evergreen text-paper"
-                    : "border border-line bg-paper-raised",
-                )}
-              >
-                {!query.isFetching ? "✓" : "1"}
-              </div>
-              <span className="truncate">Fetch games</span>
-            </div>
-
-            <div
-              className={cn(
-                "flex items-center gap-2 rounded-md border p-2.5 transition-colors",
-                isWasmScanning
-                  ? "border-evergreen/40 bg-evergreen/[0.08] text-evergreen font-semibold animate-pulse"
-                  : !query.isFetching && !isWasmScanning && result
-                    ? "border-evergreen/40 bg-evergreen/[0.08] text-evergreen font-semibold"
-                    : "border-line bg-paper text-graphite/60",
-              )}
-            >
-              <div
-                className={cn(
-                  "flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px]",
-                  !query.isFetching && !isWasmScanning && result
-                    ? "bg-evergreen text-paper"
-                    : isWasmScanning
-                      ? "bg-evergreen-bright text-ink font-bold"
-                      : "border border-line bg-paper-raised",
-                )}
-              >
-                {!query.isFetching && !isWasmScanning && result ? "✓" : "2"}
-              </div>
-              <span className="truncate">Stockfish WASM</span>
-            </div>
-
-            <div
-              className={cn(
-                "flex items-center gap-2 rounded-md border p-2.5 transition-colors",
-                !query.isFetching && !isWasmScanning && result
-                  ? "border-evergreen/40 bg-evergreen/[0.08] text-evergreen font-semibold"
-                  : "border-line bg-paper text-graphite/60",
-              )}
-            >
-              <div
-                className={cn(
-                  "flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px]",
-                  !query.isFetching && !isWasmScanning && result
-                    ? "bg-evergreen text-paper"
-                    : "border border-line bg-paper-raised",
-                )}
-              >
-                {!query.isFetching && !isWasmScanning && result ? "✓" : "3"}
-              </div>
-              <span className="truncate">Build drill</span>
-            </div>
-          </div>
-
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-2 font-mono text-[0.65rem] text-graphite">
-            <span className="inline-flex items-center gap-1 rounded bg-paper px-2 py-0.5 border border-line">
-              <span className="h-1.5 w-1.5 rounded-full bg-evergreen" />
-              100% In-Browser WASM
-            </span>
-            <span className="inline-flex items-center gap-1 rounded bg-paper px-2 py-0.5 border border-line">
-              Zero Server Compute
-            </span>
-            <span className="inline-flex items-center gap-1 rounded bg-paper px-2 py-0.5 border border-line">
-              Read-Only
-            </span>
-          </div>
+                >
+                  {step.done ? "✓" : step.active ? "·" : ""}
+                </span>
+                <span className={step.active ? "text-ink" : "text-graphite"}>
+                  {step.name}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="border-t border-rule px-5 py-2.5 font-serif text-[0.85rem] leading-relaxed text-graphite">
+            {scanStatusMessage ||
+              (query.isFetching
+                ? `Downloading public game history from ${platform === "lichess" ? "Lichess" : "Chess.com"}…`
+                : "Running depth-10 tactical analysis locally…")}
+          </p>
         </div>
       )}
 
-      {/* Analysis result and interactive drill: shown only when scanning has completed */}
       {!query.isFetching && !isWasmScanning && result && blindspot && drill && (
-        <div className="settle mt-8 flex flex-col gap-8 rounded-xl border border-line bg-paper p-6 shadow-sheet sm:p-8">
-          <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-start">
-            {/* Left: Tactical Blindspot Summary */}
-            <div className="flex flex-col gap-6">
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
-                <div>
-                  <span className="font-mono text-xs uppercase tracking-wider text-evergreen">
-                    Analysis for {result.username}
-                  </span>
-                  <h3 className="mt-1 font-serif text-2xl font-semibold text-ink">
-                    Top tactical blindspot
-                  </h3>
-                </div>
-                <div className="flex items-center gap-2 rounded-md border border-line bg-paper-raised px-3 py-1 font-mono text-xs">
-                  <span className="text-graphite">
-                    {result.ratingFormat} rating:
-                  </span>
-                  <span className="font-bold text-ink">{result.rating}</span>
-                </div>
-              </div>
-
-              <div className="rounded-lg border border-line bg-paper-raised/60 p-5">
-                <div className="flex items-start gap-3">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-evergreen/10 text-evergreen">
-                    <Target className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h4 className="font-serif text-lg font-semibold text-ink">
-                        {blindspot.title}
-                      </h4>
-                      {drill.source === "game" && (
-                        <span className="rounded bg-evergreen/15 px-2 py-0.5 font-mono text-[0.65rem] font-bold text-evergreen uppercase">
-                          From your game
-                        </span>
-                      )}
-                    </div>
-                    <p className="mt-1.5 font-serif text-sm leading-relaxed text-graphite">
-                      {blindspot.description}
-                    </p>
-                    <div className="mt-3 flex flex-wrap items-center gap-3">
-                      <span className="rounded bg-paper px-2 py-0.5 font-mono text-[0.68rem] text-graphite border border-line">
-                        Frequency: {blindspot.mistakeFrequency}
-                      </span>
-                      <GradeMark
-                        grade={blindspot.evidenceGrade}
-                        tier={blindspot.evidenceTier}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="border-l-2 border-evergreen/60 pl-4">
-                <p className="font-serif text-sm leading-relaxed text-graphite">
-                  {drill.source === "game"
-                    ? "We extracted an actual blunder from your games. Find the winning tactical move on the board to repair this blindspot."
-                    : "We turned this pattern into an interactive practice puzzle. Find the winning tactical move on the board to clear this blindspot."}
+        <div className="sheet settle mt-4 overflow-hidden">
+          <div className="grid gap-6 p-5 lg:grid-cols-[1.05fr_0.95fr] lg:p-6">
+            <div className="flex min-w-0 flex-col gap-5">
+              <div>
+                <p className="font-mono text-[0.75rem] text-graphite">
+                  {result.username}
+                  {" · "}
+                  {result.ratingFormat} rating {result.rating}
                 </p>
+                <h3 className="mt-1.5 text-[1.45rem] leading-tight">
+                  Your biggest recurring leak
+                </h3>
               </div>
 
-              {/* Call to Action Card */}
-              <div className="rounded-lg border border-evergreen/30 bg-evergreen/[0.04] p-5">
-                <h4 className="font-serif text-lg font-semibold text-ink">
-                  Ready to fix this pattern every day?
+              <div className="border-l-[3px] border-tile/70 pl-3.5">
+                <h4 className="flex flex-wrap items-baseline gap-2 text-[1.05rem]">
+                  {blindspot.title}
+                  <GradeMark
+                    grade={blindspot.evidenceGrade}
+                    tier={blindspot.evidenceTier}
+                  />
                 </h4>
-                <p className="mt-1 font-serif text-sm leading-relaxed text-graphite">
-                  Mainline generates a complete daily training program adapted
-                  to your time budget and tactical weaknesses.
+                <p className="font-serif mt-1.5 text-[0.95rem] leading-relaxed text-graphite">
+                  {blindspot.description}
                 </p>
-                <div className="mt-4">
-                  <Button
-                    onClick={handleGenerateProgram}
-                    size="lg"
-                    className="w-full sm:w-auto font-serif"
-                  >
-                    Build your daily program →
-                  </Button>
-                </div>
+                <p className="font-mono mt-2 text-[0.75rem] text-graphite">
+                  Found in {blindspot.mistakeFrequency} of the games scanned
+                </p>
+              </div>
+
+              <p className="font-serif text-[0.95rem] leading-relaxed text-ink">
+                {drill.source === "game"
+                  ? "This is a real position from your own game. Find the move you missed."
+                  : "This pattern became an interactive drill. Find the winning move."}
+              </p>
+
+              <div className="mt-auto flex flex-col gap-3 border-t border-rule pt-4 sm:flex-row sm:items-center sm:justify-between">
+                <p className="font-serif max-w-[36ch] text-[0.92rem] leading-relaxed text-graphite">
+                  Mainline turns every leak it finds into scheduled reviews, so
+                  the fix comes back until it sticks.
+                </p>
+                <Button
+                  onClick={handleGenerateProgram}
+                  size="lg"
+                  className="shrink-0"
+                >
+                  Build your daily program
+                </Button>
               </div>
             </div>
 
-            {/* Right: Interactive Board */}
-            <div className="flex w-full flex-col items-center gap-4 rounded-xl border border-line bg-paper-raised/50 p-4 sm:p-6">
-              <div className="flex w-full items-center justify-between">
-                <span className="font-mono text-xs uppercase tracking-wider text-graphite">
+            <div className="flex min-w-0 flex-col gap-3">
+              <div className="flex items-center justify-between gap-3">
+                <span className="font-mono text-[0.75rem] text-graphite">
                   {playerSide === "white" ? "White to move" : "Black to move"}
                 </span>
                 {solveStatus !== "pending" && (
@@ -665,58 +576,49 @@ export function HomepageBlunderAnalyzer() {
                     variant="ghost"
                     size="sm"
                     onClick={handleResetPuzzle}
-                    className="h-7 gap-1 font-mono text-xs text-graphite hover:text-ink"
+                    className="h-7 text-[0.78rem] text-graphite hover:text-ink"
                   >
-                    <RotateCcw className="h-3.5 w-3.5" />
-                    <span>Reset</span>
+                    Try the position again
                   </Button>
                 )}
               </div>
 
               {boardFen && (
-                <div className="relative aspect-square w-full max-w-[320px] sm:max-w-[400px]">
+                <div className="relative mx-auto aspect-square w-full max-w-[360px]">
                   <InteractiveBoard
                     fen={solveState?.position ?? boardFen}
                     orientation={playerSide}
                     disabled={solveStatus === "solved"}
                     onMove={handleMove}
+                    className="max-w-none"
                   />
                 </div>
               )}
 
-              {/* Solve Feedback Messages */}
-              <div className="w-full">
+              <div
+                aria-live="polite"
+                className="min-h-[2.75rem] rounded-[3px] bg-ink/[0.025] px-3 py-2"
+              >
                 {solveStatus === "pending" && (
-                  <p className="text-center font-mono text-xs text-graphite">
-                    Drag or click pieces on the board to make your move.
+                  <p className="font-serif text-[0.88rem] leading-relaxed text-graphite">
+                    Drag or click a piece to move.
                   </p>
                 )}
                 {solveStatus === "correct" && (
-                  <div className="flex items-center justify-center gap-2 rounded-md bg-evergreen/10 py-2 text-evergreen">
-                    <Check className="h-4 w-4" />
-                    <span className="font-mono text-xs font-semibold">
-                      Good move. Keep going.
-                    </span>
-                  </div>
+                  <p className="border-l-[3px] border-tile pl-2 font-mono text-[0.8rem] text-ink">
+                    Good move. Continue the line.
+                  </p>
                 )}
                 {solveStatus === "wrong" && (
-                  <div className="flex items-center justify-center gap-2 rounded-md bg-red-500/10 py-2 text-red-600">
-                    <span className="font-mono text-xs font-semibold">
-                      Incorrect move. Try another line.
-                    </span>
-                  </div>
+                  <p className="border-l-[3px] border-brick pl-2 font-mono text-[0.8rem] text-ink">
+                    That is not it. The position still fails for you.
+                  </p>
                 )}
                 {solveStatus === "solved" && (
-                  <div className="flex flex-col items-center gap-2 rounded-md border border-evergreen/40 bg-evergreen/10 p-3 text-center">
-                    <div className="flex items-center gap-1.5 font-mono text-xs font-bold text-evergreen">
-                      <Check className="h-4 w-4 stroke-[2.5]" />
-                      <span>Blindspot solved</span>
-                    </div>
-                    <p className="font-serif text-xs text-graphite">
-                      Mainline converts real game blunders into spaced
-                      repetition drills.
-                    </p>
-                  </div>
+                  <p className="border-l-[3px] border-tile pl-2 font-mono text-[0.8rem] text-ink">
+                    Solved. This is exactly what a Mainline block drills until
+                    it is automatic.
+                  </p>
                 )}
               </div>
             </div>

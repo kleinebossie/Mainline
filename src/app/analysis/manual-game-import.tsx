@@ -142,12 +142,12 @@ export function ManualGameImport({ onImported }: { onImported: () => void }) {
                 opening: entry.metadata.opening ?? null,
                 opponent:
                   draft?.color === "w"
-                    ? entry.metadata.black ?? "Opponent"
-                    : entry.metadata.white ?? "Opponent",
+                    ? (entry.metadata.black ?? "Opponent")
+                    : (entry.metadata.white ?? "Opponent"),
                 you:
                   draft?.color === "w"
-                    ? entry.metadata.white ?? "You"
-                    : entry.metadata.black ?? "You",
+                    ? (entry.metadata.white ?? "You")
+                    : (entry.metadata.black ?? "You"),
                 analyzed: false,
               };
             });
@@ -217,8 +217,8 @@ export function ManualGameImport({ onImported }: { onImported: () => void }) {
       className="flex flex-col gap-4"
       aria-labelledby="manual-pgn-heading"
     >
-      <div className="flex flex-col gap-1 border-b border-line/80 pb-3">
-        <h2 id="manual-pgn-heading" className="eyebrow">
+      <div className="section-head">
+        <h2 id="manual-pgn-heading" className="label">
           Add a game from PGN
         </h2>
         <p className="font-serif text-sm leading-relaxed text-graphite">
@@ -241,6 +241,7 @@ export function ManualGameImport({ onImported }: { onImported: () => void }) {
               <Input
                 id="manual-pgn-file"
                 type="file"
+                className="pr-0 text-xs file:mr-3 file:h-full file:border-0 file:border-r file:border-rule file:bg-ink/[0.05] file:px-3 file:py-2.5 file:text-xs file:font-medium file:text-ink hover:file:bg-ink/[0.09]"
                 accept=".pgn,application/x-chess-pgn,text/plain"
                 onChange={(event) => void chooseFile(event)}
               />
@@ -317,7 +318,7 @@ export function ManualGameImport({ onImported }: { onImported: () => void }) {
               return (
                 <div
                   key={entry.index}
-                  className="rounded-lg border border-clay/30 bg-clay/5 px-4 py-3"
+                  className="rounded-lg border border-brick/30 bg-brick/5 px-4 py-3"
                 >
                   <p className="font-mono text-xs font-semibold text-ink">
                     Game {entry.index + 1}
@@ -331,16 +332,13 @@ export function ManualGameImport({ onImported }: { onImported: () => void }) {
 
             const draft = drafts[entry.index] ?? initialDraft(entry);
             return (
-              <div
-                key={entry.index}
-                className="rounded-lg border border-line bg-card px-4 py-4 shadow-sheet"
-              >
+              <div key={entry.index} className="sheet px-4 py-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <p className="font-mono text-[0.68rem] font-semibold uppercase tracking-wide text-evergreen">
+                    <p className="font-mono text-[0.68rem] font-semibold tracking-wide text-tile">
                       Game {entry.index + 1} · {entry.plyCount} plies
                     </p>
-                    <p className="mt-1 font-serif text-base font-semibold text-ink">
+                    <p className="mt-1 text-base font-semibold text-ink">
                       {entry.metadata.white ?? "White"} vs{" "}
                       {entry.metadata.black ?? "Black"}
                     </p>
@@ -379,7 +377,7 @@ export function ManualGameImport({ onImported }: { onImported: () => void }) {
                   </div>
                 </div>
 
-                <details className="mt-4 border-t border-line/70 pt-3">
+                <details className="mt-4 border-t border-rule/70 pt-3">
                   <summary className="cursor-pointer font-mono text-xs font-semibold text-graphite focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                     Check optional game details
                   </summary>
@@ -508,7 +506,7 @@ export function ManualGameImport({ onImported }: { onImported: () => void }) {
                   : `Import ${validEntries.length} valid game${validEntries.length === 1 ? "" : "s"}`}
               </Button>
               {missingColor && (
-                <span className="font-serif text-xs text-clay">
+                <span className="font-serif text-xs text-brick">
                   Choose your color for every valid game.
                 </span>
               )}

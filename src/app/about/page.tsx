@@ -115,7 +115,7 @@ export default function AboutPage() {
 
   return (
     <PageShell
-      eyebrow="About Mainline"
+      kicker="About Mainline"
       title="Product transparency"
       lede="Mainline is a personalized chess training program that adapts as you play. Every recommendation carries an explicit evidence grade."
       width="wide"
@@ -125,8 +125,8 @@ export default function AboutPage() {
             1. The thesis : the central honest claim, stated first
             ──────────────────────────────────────────────────────────── */}
         <section className="settle flex flex-col gap-5">
-          <p className="eyebrow">The thesis</p>
-          <blockquote className="border-l-2 border-evergreen/50 pl-5 font-serif text-2xl leading-snug sm:text-3xl">
+          <p className="label">The thesis</p>
+          <blockquote className="border-l-[3px] border-biro/45 pl-5 text-2xl leading-snug sm:text-3xl">
             No training activity has been proven to cause a measured chess
             rating gain.{" "}
             <span className="text-graphite italic">
@@ -146,9 +146,9 @@ export default function AboutPage() {
             2. Vision : what Mainline is
             ──────────────────────────────────────────────────────────── */}
         <section className="flex flex-col gap-5">
-          <div className="flex flex-col gap-2 border-b border-line/80 pb-3">
-            <p className="eyebrow">The vision</p>
-            <h2 className="font-serif text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">
+          <div className="section-head">
+            <p className="label">The vision</p>
+            <h2 className="text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">
               The training-program layer, not another tool.
             </h2>
           </div>
@@ -166,9 +166,9 @@ export default function AboutPage() {
             3. Engagement and progress : why the loop exists
             ──────────────────────────────────────────────────────────── */}
         <section className="flex flex-col gap-5">
-          <div className="flex flex-col gap-2 border-b border-line/80 pb-3">
-            <p className="eyebrow">Engagement and progress</p>
-            <h2 className="font-serif text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">
+          <div className="section-head">
+            <p className="label">Engagement and progress</p>
+            <h2 className="text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">
               Built to support consistency, not to extract attention.
             </h2>
           </div>
@@ -191,9 +191,9 @@ export default function AboutPage() {
             4. What Mainline isn't : the boundaries
             ──────────────────────────────────────────────────────────── */}
         <section className="flex flex-col gap-5">
-          <div className="flex flex-col gap-2 border-b border-line/80 pb-3">
-            <p className="eyebrow">The boundaries</p>
-            <h2 className="font-serif text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">
+          <div className="section-head">
+            <p className="label">The boundaries</p>
+            <h2 className="text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">
               What this app deliberately is not.
             </h2>
           </div>
@@ -203,7 +203,7 @@ export default function AboutPage() {
           <ul className="flex flex-col gap-4">
             {EXCLUSIONS.map((item) => (
               <li key={item.what} className="flex flex-col gap-1">
-                <span className="font-mono text-xs font-semibold uppercase tracking-tight text-ink">
+                <span className="font-mono text-xs font-semibold tracking-tight text-ink">
                   {item.what}
                 </span>
                 <span className="text-graphite font-serif text-sm leading-relaxed">
@@ -218,15 +218,16 @@ export default function AboutPage() {
             5. How evidence is graded : the framework
             ──────────────────────────────────────────────────────────── */}
         <section className="flex flex-col gap-5">
-          <div className="flex flex-col gap-2 border-b border-line/80 pb-3">
-            <p className="eyebrow">The evidence framework</p>
-            <h2 className="font-serif text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">
+          <div className="section-head">
+            <p className="label">The evidence framework</p>
+            <h2 className="text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">
               Borrowed from the board: every claim is annotated.
             </h2>
           </div>
           <p className="text-graphite max-w-2xl font-serif text-base leading-relaxed">
             Every recommendation, methodology value, and claim on this page
-            carries a grade: an unverified assumption can never pose as established fact.
+            carries a grade: an unverified assumption can never pose as
+            established fact.
           </p>
 
           {/* Four grades */}
@@ -234,7 +235,7 @@ export default function AboutPage() {
             {GRADE_KEY.map((g) => (
               <div
                 key={g.grade}
-                className="bg-card eval-gutter rounded-lg border p-5 pl-6 shadow-sheet"
+                className="sheet eval-gutter p-5 pl-6"
                 data-grade={g.grade}
               >
                 <div className="flex items-center gap-3">
@@ -247,7 +248,7 @@ export default function AboutPage() {
                   >
                     {g.glyph}
                   </span>
-                  <span className="font-mono text-xs font-semibold uppercase tracking-[0.12em]">
+                  <span className="font-mono text-xs font-semibold">
                     Grade {g.grade}
                   </span>
                 </div>
@@ -261,7 +262,7 @@ export default function AboutPage() {
             ))}
           </div>
 
-          <p className="text-graphite max-w-2xl font-serif text-base leading-relaxed border-l-2 border-evergreen/40 pl-4">
+          <p className="text-graphite max-w-2xl font-serif text-base leading-relaxed border-l-[3px] border-biro/45 pl-4">
             <strong className="text-ink">Grade</strong> answers{" "}
             <em>how strong the science is</em>. A second axis,{" "}
             <strong className="text-ink">confidence</strong>, answers a
@@ -277,10 +278,7 @@ export default function AboutPage() {
           {/* Four confidence levels */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {CONFIDENCE_KEY.map((c) => (
-              <div
-                key={c.level}
-                className="bg-card rounded-lg border p-5 shadow-sheet"
-              >
+              <div key={c.level} className="sheet p-5">
                 <div className="flex items-center gap-3">
                   <span aria-hidden className="flex items-center gap-[3px]">
                     {[0, 1, 2, 3].map((i) => (
@@ -288,12 +286,12 @@ export default function AboutPage() {
                         key={i}
                         className={cn(
                           "h-3 w-[6px] rounded-[1px]",
-                          i < c.filled ? "bg-evergreen" : "bg-ink/15",
+                          i < c.filled ? "bg-tile" : "bg-ink/15",
                         )}
                       />
                     ))}
                   </span>
-                  <span className="font-mono text-xs font-semibold uppercase tracking-[0.12em]">
+                  <span className="font-mono text-xs font-semibold">
                     {c.level}
                   </span>
                 </div>
@@ -312,9 +310,9 @@ export default function AboutPage() {
             6. Current state : honest about where the science is
             ──────────────────────────────────────────────────────────── */}
         <section className="flex flex-col gap-5">
-          <div className="flex flex-col gap-2 border-b border-line/80 pb-3">
-            <p className="eyebrow">Where the science is now</p>
-            <h2 className="font-serif text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">
+          <div className="section-head">
+            <p className="label">Where the science is now</p>
+            <h2 className="text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">
               Honest about the current state.
             </h2>
           </div>
@@ -322,13 +320,13 @@ export default function AboutPage() {
             className={cn(
               "rounded-md border p-5",
               isResearchRelease
-                ? "border-evergreen/40 bg-evergreen/5"
-                : "border-dashed border-amber/50 bg-paper/60",
+                ? "border-tile/40 bg-tile/5"
+                : "border-dashed border-ochre/50 bg-sheet",
             )}
             data-methodology-channel={release.channel}
             data-methodology-version={release.version}
           >
-            <p className="eyebrow">Active methodology · {release.version}</p>
+            <p className="label">Active methodology · {release.version}</p>
             <p className="text-ink mt-3 font-serif text-base leading-relaxed">
               {isResearchRelease
                 ? "This active research release encodes the approved methodology values and copy, while retaining every documented best guess and deliberate stub as evidence-labeled data."
@@ -341,8 +339,8 @@ export default function AboutPage() {
               cause a measured rating gain.
             </p>
             {isResearchRelease && release.deliberateStubs.length > 0 && (
-              <div className="mt-4 border-t border-line/80 pt-4">
-                <p className="eyebrow">Still deliberately unresolved</p>
+              <div className="mt-4 border-t border-rule/80 pt-4">
+                <p className="label">Still deliberately unresolved</p>
                 <ul className="text-graphite mt-2 flex flex-col gap-1 font-mono text-xs leading-relaxed">
                   {release.deliberateStubs.slice(0, 3).map((stub) => (
                     <li key={stub}>· {stub}</li>
@@ -350,8 +348,8 @@ export default function AboutPage() {
                 </ul>
               </div>
             )}
-            <div className="mt-4 border-t border-line/80 pt-4">
-              <p className="eyebrow">Aggregate basis</p>
+            <div className="mt-4 border-t border-rule/80 pt-4">
+              <p className="label">Aggregate basis</p>
               <p className="text-graphite mt-2 font-serif text-sm leading-relaxed">
                 {release.aggregateBasis}
               </p>
@@ -360,9 +358,9 @@ export default function AboutPage() {
         </section>
 
         <section className="flex flex-col gap-5">
-          <div className="flex flex-col gap-2 border-b border-line/80 pb-3">
-            <p className="eyebrow">Methodology release history</p>
-            <h2 className="font-serif text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">
+          <div className="section-head">
+            <p className="label">Methodology release history</p>
+            <h2 className="text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">
               Every change keeps its limits and rollback path.
             </h2>
           </div>
@@ -371,11 +369,8 @@ export default function AboutPage() {
               .slice()
               .reverse()
               .map((entry) => (
-                <article
-                  className="bg-card rounded-md border p-4"
-                  key={entry.version}
-                >
-                  <p className="eyebrow">
+                <article className="sheet p-4" key={entry.version}>
+                  <p className="label">
                     {entry.version} · {entry.releasedOn}
                   </p>
                   <p className="text-ink mt-2 font-serif text-sm">

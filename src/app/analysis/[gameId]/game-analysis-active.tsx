@@ -163,7 +163,7 @@ export function ActiveReproductionStep({
 
               {!grading && solved && lastAttempt && (
                 <div className="rounded-md border border-grade-a/30 bg-grade-a/10 p-3">
-                  <p className="text-grade-a font-mono text-xs font-bold uppercase">
+                  <p className="text-grade-a font-mono text-xs font-bold">
                     ✓ Found it: {lastAttempt.san}
                   </p>
                   <p className="mt-1 font-serif text-sm text-ink">
@@ -175,8 +175,8 @@ export function ActiveReproductionStep({
               )}
 
               {!grading && !solved && !revealed && lastAttempt && (
-                <div className="rounded-md border border-line bg-ink/[0.03] p-3">
-                  <p className="text-grade-d font-mono text-xs font-bold uppercase">
+                <div className="rounded-md border border-rule bg-ink/[0.03] p-3">
+                  <p className="text-grade-d font-mono text-xs font-bold">
                     Not the strongest: {lastAttempt.san}
                   </p>
                   <p className="mt-1 font-serif text-sm text-ink">
@@ -195,13 +195,13 @@ export function ActiveReproductionStep({
 
               {revealed && analysis && (
                 <div className="flex max-h-48 flex-col gap-2 overflow-y-auto pr-1">
-                  <h4 className="text-graphite font-mono text-xs font-semibold uppercase">
+                  <h4 className="text-graphite font-mono text-xs font-semibold">
                     Top engine moves
                   </h4>
                   {analysis.topMoves.map((move, index) => (
                     <div
                       key={`${move.uci}-${index}`}
-                      className="flex items-center justify-between gap-2 rounded-lg border border-line bg-card p-3"
+                      className="sheet flex items-center justify-between gap-2 p-3"
                     >
                       <span className="font-mono text-sm font-bold text-ink">
                         {index + 1}. {move.san}
@@ -213,7 +213,7 @@ export function ActiveReproductionStep({
                             : `${move.cp > 0 ? "+" : ""}${(move.cp / 100).toFixed(1)}`}
                         </span>
                         {move.pctBetter != null && (
-                          <p className="text-evergreen font-mono text-[0.7rem]">
+                          <p className="text-tile font-mono text-[0.7rem]">
                             {move.pctBetter}% better than your move
                           </p>
                         )}
@@ -237,7 +237,7 @@ export function ActiveReproductionStep({
             <Button onClick={onContinue}>Continue</Button>
           )}
 
-          <div className="mt-2 border-t border-line/60 pt-4">
+          <div className="mt-2 border-t border-rule/60 pt-4">
             <MethodologyRationaleGroup
               items={[
                 {

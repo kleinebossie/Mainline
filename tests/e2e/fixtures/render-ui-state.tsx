@@ -86,7 +86,7 @@ function todayMarkup(statuses: string[]) {
   return renderToStaticMarkup(
     <main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-6 px-4 py-8 sm:px-6">
       <header>
-        <p className="eyebrow">Your training</p>
+        <p className="label">Your training</p>
         <h1 className="mt-2 font-serif text-4xl font-semibold text-ink">
           Today
         </h1>
@@ -256,7 +256,7 @@ function setupMarkup() {
   return renderToStaticMarkup(
     <main className="mx-auto min-h-screen w-full max-w-3xl px-4 py-8 sm:px-6">
       <header className="mb-6">
-        <p className="eyebrow">Setup</p>
+        <p className="label">Setup</p>
         <h1 className="mt-2 font-serif text-4xl font-semibold text-ink">
           Set up your training
         </h1>
@@ -270,7 +270,7 @@ function firstSessionActionMarkup(state: "ready" | "pending" | "error") {
   return renderToStaticMarkup(
     <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col gap-6 px-4 py-8 sm:px-6 sm:py-12">
       <header>
-        <p className="eyebrow">Step 4 of setup</p>
+        <p className="label">Step 4 of setup</p>
         <h1 className="mt-2 font-serif text-4xl font-semibold text-ink">
           Where you stand
         </h1>
@@ -279,7 +279,7 @@ function firstSessionActionMarkup(state: "ready" | "pending" | "error") {
           when you are ready.
         </p>
       </header>
-      <section className="rounded-lg border border-line bg-paper-raised p-5 sm:p-6">
+      <section className="sheet p-5 sm:p-6">
         <h2 className="font-serif text-2xl font-semibold text-ink">
           Start training
         </h2>
@@ -297,7 +297,7 @@ function errorNoticesMarkup() {
   return renderToStaticMarkup(
     <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col gap-6 px-4 py-8 sm:px-6 sm:py-12">
       <header className="mb-2">
-        <p className="eyebrow">Recovery states</p>
+        <p className="label">Recovery states</p>
         <h1 className="mt-2 font-serif text-4xl font-semibold text-ink">
           Clear next moves when a line stops
         </h1>
