@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterAll, describe, expect, it, vi } from "vitest";
 
 import { analysisRouter } from "@/server/routers/analysis";
 
@@ -170,6 +170,13 @@ describe("analysis session security boundaries", () => {
 
 describe("guided review queue authorization (queueGames)", () => {
   const ITEM_DATE = new Date("2026-08-24T00:00:00Z");
+
+  vi.useFakeTimers();
+  vi.setSystemTime(ITEM_DATE);
+
+  afterAll(() => {
+    vi.useRealTimers();
+  });
 
   function queueContext(
     prisma: Record<string, unknown>,
