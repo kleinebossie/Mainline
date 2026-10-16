@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Wordmark Options - Mainline (Direction A: Sheet, refined)</title>
+  
+  <!-- Google Fonts: Fraunces (titles only), Public Sans (body, controls), IBM Plex Mono (numbers only) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="styles.css">
+
+  <style>
+    .wordmark-container {
+      width: 100%;
+      max-width: var(--reading-max-width);
+      margin: 0 auto;
+      padding: 32px 20px 100px;
+      display: flex;
+      flex-direction: column;
+      gap: 36px;
+    }
+
+    @media (max-width: 640px) {
+      .wordmark-container {
+        padding: 24px 16px 110px;
+        gap: 28px;
+      }
+    }
+
+    .page-header {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .eyebrow {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--color-graphite);
+    }
+
+    .page-title {
+      font-size: 32px;
+      line-height: 1.15;
+    }
+
+    .page-intro {
+      font-size: 15px;
+      color: var(--color-ink-secondary);
+      line-height: 1.5;
+    }
+
+    /* Option presentation block */
+    .option-card {
+      background-color: var(--color-raised);
+      border: 1px solid var(--color-card-border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+
+    .option-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--color-card-border-subtle);
+      padding-bottom: 12px;
+    }
+
+    .option-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--color-ink);
+    }
+
+    .option-tag {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: var(--radius-full);
+      background-color: var(--color-evergreen-subtle);
+      color: var(--color-evergreen-text);
+    }
+
+    /* Preview surfaces */
+    .preview-dual-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 640px) {
+      .preview-dual-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .preview-box {
+      border-radius: var(--radius-md);
+      padding: 24px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      border: 1px solid var(--color-card-border-subtle);
+    }
+
+    .preview-light {
+      background-color: #EEF0EA;
+      color: #15181B;
+    }
+
+    .preview-dark {
+      background-color: #121516;
+      color: #ECEEE9;
+    }
+
+    .preview-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      opacity: 0.6;
+    }
+
+    /* Header scale mock bar */
+    .header-mock-bar {
+      width: 100%;
+      height: 48px;
+      padding: 0 16px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border: 1px solid var(--color-card-border-subtle);
+    }
+
+    .header-mock-light {
+      background-color: #F8F9F5;
+      border-color: rgba(90, 97, 104, 0.18);
+    }
+
+    .header-mock-dark {
+      background-color: #1A1E20;
+      border-color: rgba(155, 162, 168, 0.20);
+    }
+
+    /* Icon scale row */
+    .icon-scale-row {
+      display: flex;
+      align-items: flex-end;
+      gap: 20px;
+      padding: 12px 0 4px;
+      flex-wrap: wrap;
+    }
+
+    .icon-scale-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .icon-size-label {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--color-graphite);
+    }
+
+    /* Option rationale */
+    .option-notes {
+      font-size: 13px;
+      color: var(--color-graphite);
+      line-height: 1.5;
+      border-top: 1px solid var(--color-card-border-subtle);
+      padding-top: 12px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ========================================================================
+       App Navigation Shell
+       ======================================================================== -->
+  <header class="app-header" role="banner">
+    <a href="today.html" class="app-brand" aria-label="Mainline home">
+      <svg class="app-logo" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect width="512" height="512" rx="96" fill="var(--color-raised)"/>
+        <path d="M120 376V136h56l80 132 80-132h56v240h-54V240l-82 120-82-120v136z" fill="var(--color-ink)"/>
+        <circle cx="392" cy="120" r="28" fill="var(--color-evergreen)"/>
+      </svg>
+      <span class="app-brand-title">Mainline</span>
+    </a>
+
+    <!-- Desktop Navigation Tabs (768px+) -->
+    <nav class="desktop-nav" aria-label="Primary navigation">
+      <a href="today.html" class="nav-tab-item">Today</a>
+      <a href="puzzle.html" class="nav-tab-item">Puzzle</a>
+      <a href="wordmark.html" class="nav-tab-item active" aria-current="page">Wordmarks</a>
+    </nav>
+
+    <div class="header-actions">
+      <button type="button" class="btn-icon" id="header-theme-toggle" title="Switch light/dark theme" aria-label="Toggle theme">
+        <svg id="theme-icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+        <svg id="theme-icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+      </button>
+      <a href="today.html" class="btn-secondary" style="min-height:34px; padding:4px 12px; font-size:13px;">
+        Open Today
+      </a>
+    </div>
+  </header>
+
+  <!-- ========================================================================
+       Wordmark Options Content
+       ======================================================================== -->
+  <main class="wordmark-container">
+    
+    <header class="page-header">
+      <span class="eyebrow">Direction A: Sheet, refined</span>
+      <h1 class="page-title title-display">Wordmark options</h1>
+      <p class="page-intro">
+        Three visual identity options tailored for Direction A. Each option is displayed in light and dark mode, at header scale and app-icon scale.
+      </p>
+    </header>
+
+    <!-- ======================================================================
+         OPTION 1: The Monogram Line (Classical Heritage + Evergreen Terminus)
+         ====================================================================== -->
+    <article class="option-card">
+      <div class="option-header">
+        <h2 class="option-title">Option 1: The Monogram Line</h2>
+        <span class="option-tag">Refined original</span>
+      </div>
+
+      <!-- Hero Display in Light & Dark -->
+      <div class="preview-dual-grid">
+        <!-- Light Mode Card -->
+        <div class="preview-box preview-light">
+          <span class="preview-label">Light mode</span>
+          <div style="display:flex; align-items:center; gap:12px;">
+            <svg width="44" height="44" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <rect width="512" height="512" rx="96" fill="#F8F9F5" stroke="rgba(90,97,104,0.18)" stroke-width="8"/>
+              <path d="M120 376V136h56l80 132 80-132h56v240h-54V240l-82 120-82-120v136z" fill="#15181B"/>
+              <circle cx="392" cy="120" r="28" fill="#2E6B50"/>
+            </svg>
+            <div style="display:flex; flex-direction:column;">
+              <span style="font-family:var(--font-title); font-size:26px; font-weight:700; color:#15181B; line-height:1.1;">Mainline</span>
+              <span style="font-family:var(--font-body); font-size:11px; font-weight:500; color:#5A6168; letter-spacing:0.02em;">Personal chess training</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dark Mode Card -->
+        <div class="preview-box preview-dark">
+          <span class="preview-label">Dark mode</span>
+          <div style="display:flex; align-items:center; gap:12px;">
+            <svg width="44" height="44" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <rect width="512" height="512" rx="96" fill="#1A1E20" stroke="rgba(155,162,168,0.20)" stroke-width="8"/>
+              <path d="M120 376V136h56l80 132 80-132h56v240h-54V240l-82 120-82-120v136z" fill="#ECEEE9"/>
+              <circle cx="392" cy="120" r="28" fill="#4A9B76"/>
+            </svg>
+            <div style="display:flex; flex-direction:column;">
+              <span style="font-family:var(--font-title); font-size:26px; font-weight:700; color:#ECEEE9; line-height:1.1;">Mainline</span>
+              <span style="font-family:var(--font-body); font-size:11px; font-weight:500; color:#9BA2A8; letter-spacing:0.02em;">Personal chess training</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Header Scale Context (28px height) -->
+      <div>
+        <span style="font-size:12px; font-weight:600; color:var(--color-graphite); text-transform:uppercase; letter-spacing:0.04em;">Top bar header scale (28px)</span>
+        <div style="display:flex; flex-direction:column; gap:8px; margin-top:8px;">
+          <!-- Light topbar sample -->
+          <div class="header-mock-bar header-mock-light">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <svg width="24" height="24" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <rect width="512" height="512" rx="96" fill="#F8F9F5"/>
+                <path d="M120 376V136h56l80 132 80-132h56v240h-54V240l-82 120-82-120v136z" fill="#15181B"/>
+                <circle cx="392" cy="120" r="28" fill="#2E6B50"/>
+              </svg>
+              <span style="font-family:var(--font-title); font-size:18px; font-weight:700; color:#15181B;">Mainline</span>
+            </div>
+            <span style="font-size:12px; color:#5A6168;">Today · Analysis · Library · Progress</span>
+          </div>
+
+          <!-- Dark topbar sample -->
+          <div class="header-mock-bar header-mock-dark">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <svg width="24" height="24" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <rect width="512" height="512" rx="96" fill="#1A1E20"/>
+                <path d="M120 376V136h56l80 132 80-132h56v240h-54V240l-82 120-82-120v136z" fill="#ECEEE9"/>
+                <circle cx="392" cy="120" r="28" fill="#4A9B76"/>
+              </svg>
+              <span style="font-family:var(--font-title); font-size:18px; font-weight:700; color:#ECEEE9;">Mainline</span>
+            </div>
+            <span style="font-size:12px; color:#9BA2A8;">Today · Analysis · Library · Progress</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- App Icon & Favicon Scale -->
+      <div>
+        <span style="font-size:12px; font-weight:600; color:var(--color-graphite); text-transform:uppercase; letter-spacing:0.04em;">App icon and favicon scale</span>
+        <div class="icon-scale-row">
+          <div class="icon-scale-item">
+            <svg width="64" height="64" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <rect width="512" height="512" rx="100" fill="var(--color-raised)" stroke="var(--color-card-border)" stroke-width="12"/>
+              <path d="M120 376V136h56l80 132 80-132h56v240h-54V240l-82 120-82-120v136z" fill="var(--color-ink)"/>
+              <circle cx="392" cy="120" r="28" fill="var(--color-evergreen)"/>
+            </svg>
+            <span class="icon-size-label">64 &times; 64</span>
+          </div>
+          <div class="icon-scale-item">
+            <svg width="40" height="40" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <rect width="512" height="512" rx="100" fill="var(--color-raised)" stroke="var(--color-card-border)" stroke-width="16"/>
+              <path d="M120 376V136h56l80 132 80-132h56v240h-54V240l-82 120-82-120v136z" fill="var(--color-ink)"/>
+              <circle cx="392" cy="120" r="28" fill="var(--color-evergreen)"/>
+            </svg>
+            <span class="icon-size-label">40 &times; 40</span>
+          </div>
+          <div class="icon-scale-item">
+            <svg width="24" height="24" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <rect width="512" height="512" rx="110" fill="var(--color-raised)"/>
+              <path d="M120 376V136h56l80 132 80-132h56v240h-54V240l-82 120-82-120v136z" fill="var(--color-ink)"/>
+              <circle cx="392" cy="120" r="32" fill="var(--color-evergreen)"/>
+            </svg>
+            <span class="icon-size-label">24 &times; 24</span>
+          </div>
+        </div>
+      </div>
+
+      <p class="option-notes">
+        <strong>Concept:</strong> Refined evolution of the initial mark. Retains brand familiarity while sharpening stem proportions and corner fillets. The evergreen dot signals forward progression.
+      </p>
+    </article>
+
+    <!-- ======================================================================
+         OPTION 2: The Main Line (Dual Tracks + Adaptive Branch)
+         ====================================================================== -->
+    <article class="option-card">
+      <div class="option-header">
+        <h2 class="option-title">Option 2: The Main Line (Track &amp; Branch)</h2>
+        <span class="option-tag">Systemic</span>
+      </div>
+
+      <!-- Hero Display in Light & Dark -->
+      <div class="preview-dual-grid">
+        <div class="preview-box preview-light">
+          <span class="preview-label">Light mode</span>
+          <div style="display:flex; align-items:center; gap:12px;">
+            <svg width="44" height="44" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <rect width="512" height="512" rx="96" fill="#F8F9F5" stroke="rgba(90,97,104,0.18)" stroke-width="8"/>
+              <!-- Twin parallel tracks representing main line -->
+              <rect x="100" y="220" width="312" height="32" rx="16" fill="#15181B"/>
+              <rect x="100" y="280" width="220" height="32" rx="16" fill="#15181B"/>
+              <!-- Green adaptive branch -->
+              <path d="M310 296 C 360 296, 380 340, 410 340" stroke="#2E6B50" stroke-width="32" stroke-linecap="round"/>
+              <circle cx="412" cy="340" r="16" fill="#2E6B50"/>
+            </svg>
+            <div style="display:flex; flex-direction:column;">
+              <span style="font-family:var(--font-title); font-size:26px; font-weight:700; color:#15181B; line-height:1.1;">mainline</span>
+              <span style="font-family:var(--font-body); font-size:11px; font-weight:500; color:#5A6168; letter-spacing:0.02em;">Adaptive chess study</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="preview-box preview-dark">
+          <span class="preview-label">Dark mode</span>
+          <div style="display:flex; align-items:center; gap:12px;">
+            <svg width="44" height="44" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <rect width="512" height="512" rx="96" fill="#1A1E20" stroke="rgba(155,162,168,0.20)" stroke-width="8"/>
+              <rect x="100" y="220" width="312" height="32" rx="16" fill="#ECEEE9"/>
+              <rect x="100" y="280" width="220" height="32" rx="16" fill="#ECEEE9"/>
+              <path d="M310 296 C 360 296, 380 340, 410 340" stroke="#4A9B76" stroke-width="32" stroke-linecap="round"/>
+              <circle cx="412" cy="340" r="16" fill="#4A9B76"/>
+            </svg>
+            <div style="display:flex; flex-direction:column;">
+              <span style="font-family:var(--font-title); font-size:26px; font-weight:700; color:#ECEEE9; line-height:1.1;">mainline</span>
+              <span style="font-family:var(--font-body); font-size:11px; font-weight:500; color:#9BA2A8; letter-spacing:0.02em;">Adaptive chess study</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Header Scale Context (28px height) -->
+      <div>
+        <span style="font-size:12px; font-weight:600; color:var(--color-graphite); text-transform:uppercase; letter-spacing:0.04em;">Top bar header scale (28px)</span>
+        <div style="display:flex; flex-direction:column; gap:8px; margin-top:8px;">
+          <div class="header-mock-bar header-mock-light">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <svg width="24" height="24" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <rect width="512" height="512" rx="96" fill="#F8F9F5"/>
+                <rect x="100" y="220" width="312" height="36" rx="18" fill="#15181B"/>
+                <rect x="100" y="280" width="220" height="36" rx="18" fill="#15181B"/>
+                <circle cx="410" cy="340" r="20" fill="#2E6B50"/>
+              </svg>
+              <span style="font-family:var(--font-body); font-size:17px; font-weight:700; color:#15181B; letter-spacing:-0.02em;">mainline</span>
+            </div>
+            <span style="font-size:12px; color:#5A6168;">Today · Analysis · Library · Progress</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- App Icon & Favicon Scale -->
+      <div>
+        <span style="font-size:12px; font-weight:600; color:var(--color-graphite); text-transform:uppercase; letter-spacing:0.04em;">App icon scale</span>
+        <div class="icon-scale-row">
+          <div class="icon-scale-item">
+            <svg width="64" height="64" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <rect width="512" height="512" rx="100" fill="var(--color-raised)" stroke="var(--color-card-border)" stroke-width="12"/>
+              <rect x="100" y="210" width="312" height="40" rx="20" fill="var(--color-ink)"/>
+              <rect x="100" y="280" width="210" height="40" rx="20" fill="var(--color-ink)"/>
+              <circle cx="400" cy="340" r="28" fill="var(--color-evergreen)"/>
+            </svg>
+            <span class="icon-size-label">64 &times; 64</span>
+          </div>
+          <div class="icon-scale-item">
+            <svg width="40" height="40" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <rect width="512" height="512" rx="100" fill="var(--color-raised)" stroke="var(--color-card-border)" stroke-width="16"/>
+              <rect x="100" y="210" width="312" height="44" rx="22" fill="var(--color-ink)"/>
+              <rect x="100" y="280" width="210" height="44" rx="22" fill="var(--color-ink)"/>
+              <circle cx="400" cy="340" r="30" fill="var(--color-evergreen)"/>
+            </svg>
+            <span class="icon-size-label">40 &times; 40</span>
+          </div>
+        </div>
+      </div>
+
+      <p class="option-notes">
+        <strong>Concept:</strong> Literal representation of the "main line" in chess theory. The linear tracks depict disciplined consistency, while the green branch illustrates how Mainline adapts dynamically to personal weaknesses.
+      </p>
+    </article>
+
+    <!-- ======================================================================
+         OPTION 3: The Notation Sheet (Scoresheet & Evidence Gutter)
+         ====================================================================== -->
+    <article class="option-card">
+      <div class="option-header">
+        <h2 class="option-title">Option 3: The Notation Sheet</h2>
+        <span class="option-tag">Physical chess</span>
+      </div>
+
+      <!-- Hero Display in Light & Dark -->
+      <div class="preview-dual-grid">
+        <div class="preview-box preview-light">
+          <span class="preview-label">Light mode</span>
+          <div style="display:flex; align-items:center; gap:12px;">
+            <svg width="44" height="44" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <!-- Physical paper sheet outline -->
+              <rect x="96" y="80" width="320" height="352" rx="24" fill="#F8F9F5" stroke="#15181B" stroke-width="24"/>
+              <!-- Evidence gutter line on leading edge -->
+              <rect x="128" y="120" width="24" height="272" rx="12" fill="#2E6B50"/>
+              <!-- Notation lines -->
+              <rect x="176" y="140" width="180" height="18" rx="9" fill="#5A6168"/>
+              <rect x="176" y="180" width="140" height="18" rx="9" fill="#5A6168"/>
+              <rect x="176" y="220" width="160" height="18" rx="9" fill="#5A6168"/>
+            </svg>
+            <div style="display:flex; flex-direction:column;">
+              <span style="font-family:var(--font-title); font-size:26px; font-weight:700; color:#15181B; line-height:1.1;">Mainline</span>
+              <span style="font-family:var(--font-body); font-size:11px; font-weight:500; color:#5A6168; letter-spacing:0.02em;">Evidence-based chess</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="preview-box preview-dark">
+          <span class="preview-label">Dark mode</span>
+          <div style="display:flex; align-items:center; gap:12px;">
+            <svg width="44" height="44" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <rect x="96" y="80" width="320" height="352" rx="24" fill="#1A1E20" stroke="#ECEEE9" stroke-width="24"/>
+              <rect x="128" y="120" width="24" height="272" rx="12" fill="#4A9B76"/>
+              <rect x="176" y="140" width="180" height="18" rx="9" fill="#9BA2A8"/>
+              <rect x="176" y="180" width="140" height="18" rx="9" fill="#9BA2A8"/>
+              <rect x="176" y="220" width="160" height="18" rx="9" fill="#9BA2A8"/>
+            </svg>
+            <div style="display:flex; flex-direction:column;">
+              <span style="font-family:var(--font-title); font-size:26px; font-weight:700; color:#ECEEE9; line-height:1.1;">Mainline</span>
+              <span style="font-family:var(--font-body); font-size:11px; font-weight:500; color:#9BA2A8; letter-spacing:0.02em;">Evidence-based chess</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Header Scale Context (28px height) -->
+      <div>
+        <span style="font-size:12px; font-weight:600; color:var(--color-graphite); text-transform:uppercase; letter-spacing:0.04em;">Top bar header scale (28px)</span>
+        <div style="display:flex; flex-direction:column; gap:8px; margin-top:8px;">
+          <div class="header-mock-bar header-mock-light">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <svg width="24" height="24" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <rect x="96" y="80" width="320" height="352" rx="24" fill="#F8F9F5" stroke="#15181B" stroke-width="28"/>
+                <rect x="128" y="120" width="28" height="272" rx="14" fill="#2E6B50"/>
+                <rect x="180" y="150" width="160" height="20" rx="10" fill="#5A6168"/>
+              </svg>
+              <span style="font-family:var(--font-title); font-size:18px; font-weight:700; color:#15181B;">Mainline</span>
+            </div>
+            <span style="font-size:12px; color:#5A6168;">Today · Analysis · Library · Progress</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- App Icon & Favicon Scale -->
+      <div>
+        <span style="font-size:12px; font-weight:600; color:var(--color-graphite); text-transform:uppercase; letter-spacing:0.04em;">App icon scale</span>
+        <div class="icon-scale-row">
+          <div class="icon-scale-item">
+            <svg width="64" height="64" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <rect width="512" height="512" rx="100" fill="var(--color-raised)" stroke="var(--color-card-border)" stroke-width="12"/>
+              <rect x="120" y="100" width="272" height="312" rx="20" fill="var(--color-paper)" stroke="var(--color-ink)" stroke-width="24"/>
+              <rect x="148" y="130" width="24" height="252" rx="12" fill="var(--color-evergreen)"/>
+              <rect x="194" y="160" width="140" height="18" rx="9" fill="var(--color-graphite)"/>
+              <rect x="194" y="200" width="110" height="18" rx="9" fill="var(--color-graphite)"/>
+            </svg>
+            <span class="icon-size-label">64 &times; 64</span>
+          </div>
+          <div class="icon-scale-item">
+            <svg width="40" height="40" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <rect width="512" height="512" rx="100" fill="var(--color-raised)" stroke="var(--color-card-border)" stroke-width="16"/>
+              <rect x="120" y="100" width="272" height="312" rx="20" fill="var(--color-paper)" stroke="var(--color-ink)" stroke-width="28"/>
+              <rect x="148" y="130" width="28" height="252" rx="14" fill="var(--color-evergreen)"/>
+            </svg>
+            <span class="icon-size-label">40 &times; 40</span>
+          </div>
+        </div>
+      </div>
+
+      <p class="option-notes">
+        <strong>Concept:</strong> Embodies the "Sheet, refined" aesthetic directly. Represents over-the-board game scoresheets and chess literature. Directly integrates Direction A's signature evidence gutter into the logo mark itself.
+      </p>
+    </article>
+
+  </main>
+
+  <!-- ========================================================================
+       Floating Prototype Toolbar
+       ======================================================================== -->
+  <aside class="proto-toolbar" aria-label="Prototype testing controls">
+    <span class="proto-label">Proto</span>
+    <button type="button" class="proto-btn" id="proto-theme-btn">Dark</button>
+    <a href="today.html" class="proto-btn">Today &rarr;</a>
+    <a href="puzzle.html" class="proto-btn">Puzzle &rarr;</a>
+  </aside>
+
+  <script>
+    const htmlEl = document.documentElement;
+    const protoThemeBtn = document.getElementById('proto-theme-btn');
+    const headerThemeBtn = document.getElementById('header-theme-toggle');
+    const themeIconSun = document.getElementById('theme-icon-sun');
+    const themeIconMoon = document.getElementById('theme-icon-moon');
+
+    function setTheme(theme) {
+      htmlEl.setAttribute('data-theme', theme);
+      protoThemeBtn.textContent = theme === 'dark' ? 'Light' : 'Dark';
+      if (theme === 'dark') {
+        themeIconSun.style.display = 'block';
+        themeIconMoon.style.display = 'none';
+      } else {
+        themeIconSun.style.display = 'none';
+        themeIconMoon.style.display = 'block';
+      }
+      localStorage.setItem('mainline_theme', theme);
+    }
+
+    function toggleTheme() {
+      const current = htmlEl.getAttribute('data-theme') || 'light';
+      setTheme(current === 'dark' ? 'light' : 'dark');
+    }
+
+    protoThemeBtn.addEventListener('click', toggleTheme);
+    headerThemeBtn.addEventListener('click', toggleTheme);
+
+    const savedTheme = localStorage.getItem('mainline_theme') || 'light';
+    setTheme(savedTheme);
+  </script>
+</body>
+</html>

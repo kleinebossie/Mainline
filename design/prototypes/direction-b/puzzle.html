@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-board-theme="solid">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mainline: Puzzle Focus Mode (Direction B &bull; Diagram)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@0,500;0,700;0,800;0,900;1,700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Noto+Sans+Symbols+2&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --paper: #FBFBF9;
+      --raised: #F3F3EE;
+      --raised-subtle: #EBEBE4;
+      --print: #111111;
+      --rule: #D9D9D4;
+      --spot-blue: #2340B8;
+      --spot-blue-tint: rgba(35, 64, 184, 0.08);
+      --spot-blue-hover: #1A318F;
+      --mistake-red: #B8382B;
+      --mistake-red-tint: rgba(184, 56, 43, 0.14);
+      --correct-green: #1E6B45;
+      --correct-green-tint: rgba(30, 107, 69, 0.14);
+      --quiet-grey: #6B6B66;
+
+      --board-light: #FBFBF9;
+      --board-dark-solid: #2F4168;
+      --board-dark-hatch-base: #EDECE6;
+      --board-hatch-line: #888880;
+      --board-coord-light: #6B6B66;
+      --board-coord-dark: #C2C8D6;
+
+      --font-serif: 'Alegreya', Georgia, 'Times New Roman', serif;
+      --font-sans: 'Alegreya Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-symbols: 'Noto Sans Symbols 2', 'Alegreya Sans', sans-serif;
+
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+    }
+
+    html[data-theme="dark"] {
+      --paper: #111214;
+      --raised: #181A1E;
+      --raised-subtle: #24272E;
+      --print: #F2F2EE;
+      --rule: #2C2F36;
+      --spot-blue: #6888FF;
+      --spot-blue-tint: rgba(104, 136, 255, 0.15);
+      --spot-blue-hover: #8AA4FF;
+      --mistake-red: #F06A5D;
+      --mistake-red-tint: rgba(240, 106, 93, 0.22);
+      --correct-green: #48B882;
+      --correct-green-tint: rgba(72, 184, 130, 0.22);
+      --quiet-grey: #9E9E98;
+
+      --board-light: #262930;
+      --board-dark-solid: #3B4B70;
+      --board-dark-hatch-base: #1A1C22;
+      --board-hatch-line: #4E5466;
+      --board-coord-light: #9E9E98;
+      --board-coord-dark: #AAB3C8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--paper);
+      color: var(--print);
+      font-family: var(--font-sans);
+      font-size: 15px;
+      line-height: 1.4;
+      height: 100vh;
+      overflow: hidden; /* Fits phone 390x844 without scrolling */
+      display: flex;
+      flex-direction: column;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    .tabular-nums {
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Prototype Toolbar */
+    .proto-bar {
+      background: var(--raised);
+      border-bottom: 1px solid var(--rule);
+      padding: 6px 12px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 12px;
+      z-index: 100;
+      flex-shrink: 0;
+    }
+
+    .proto-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .proto-label {
+      font-weight: 700;
+      color: var(--spot-blue);
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.04em;
+    }
+
+    .proto-btn {
+      font-family: var(--font-sans);
+      font-size: 12px;
+      font-weight: 500;
+      padding: 3px 8px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--rule);
+      background: var(--paper);
+      color: var(--print);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.12s;
+    }
+
+    .proto-btn:hover {
+      background: var(--raised-subtle);
+    }
+
+    .proto-btn.active {
+      background: var(--spot-blue-tint);
+      border-color: var(--spot-blue);
+      color: var(--spot-blue);
+      font-weight: 700;
+    }
+
+    /* Focus Mode Shell */
+    .focus-header {
+      height: 48px;
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--rule);
+      background: var(--paper);
+      flex-shrink: 0;
+    }
+
+    .exit-btn {
+      font-family: var(--font-sans);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--quiet-grey);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: var(--radius-sm);
+      border: 1px solid transparent;
+      min-height: 44px;
+    }
+
+    .exit-btn:hover {
+      color: var(--print);
+      background: var(--raised);
+      border-color: var(--rule);
+    }
+
+    .block-progress-indicator {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      line-height: 1.2;
+    }
+
+    .progress-count {
+      font-size: 15px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      color: var(--print);
+    }
+
+    .progress-sub {
+      font-size: 11px;
+      color: var(--quiet-grey);
+      letter-spacing: 0.02em;
+    }
+
+    .focus-menu-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--rule);
+      background: var(--paper);
+      color: var(--print);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    .focus-menu-btn:hover {
+      background: var(--raised);
+    }
+
+    /* Training Focus Layout */
+    .focus-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    @media (min-width: 900px) {
+      .focus-body {
+        flex-direction: row;
+        max-width: 1200px;
+        margin: 0 auto;
+        width: 100%;
+        padding: 24px;
+        gap: 36px;
+        align-items: center;
+        justify-content: center;
+      }
+    }
+
+    /* Board Container */
+    .board-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 8px 10px;
+      flex-shrink: 0;
+    }
+
+    @media (min-width: 900px) {
+      .board-container {
+        padding: 0;
+      }
+    }
+
+    /* Responsive Chess Board Sizing */
+    .chess-board-wrap {
+      width: min(86vw, 350px);
+      height: min(86vw, 350px);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+      border-radius: 4px;
+      border: 2px solid var(--print);
+      position: relative;
+      user-select: none;
+      touch-action: manipulation;
+    }
+
+    @media (min-width: 900px) {
+      .chess-board-wrap {
+        width: 520px;
+        height: 520px;
+      }
+    }
+
+    .board-svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Squares */
+    .sq-light {
+      fill: var(--board-light);
+    }
+
+    .sq-dark-solid {
+      fill: var(--board-dark-solid);
+    }
+
+    .sq-dark-hatch-base {
+      fill: var(--board-dark-hatch-base);
+    }
+
+    .sq-dark-hatch-pattern {
+      fill: url(#diagram-hatch);
+    }
+
+    /* Board styling states */
+    html[data-board-theme="solid"] .hatch-layer {
+      display: none;
+    }
+    html[data-board-theme="hatch"] .solid-layer {
+      display: none;
+    }
+
+    /* Square Feedback Tints */
+    .sq-tint-correct {
+      fill: rgba(30, 107, 69, 0.38) !important;
+    }
+
+    .sq-tint-wrong {
+      fill: rgba(184, 56, 43, 0.38) !important;
+    }
+
+    .sq-tint-selected {
+      fill: rgba(35, 64, 184, 0.28) !important;
+    }
+
+    /* Coordinates */
+    .coord-text {
+      font-family: var(--font-sans);
+      font-size: 3px;
+      font-weight: 700;
+      pointer-events: none;
+    }
+
+    .coord-light {
+      fill: var(--board-coord-light);
+    }
+
+    .coord-dark {
+      fill: var(--board-coord-dark);
+    }
+
+    /* Clickable Square hit areas */
+    .square-hit {
+      cursor: pointer;
+      fill: transparent;
+    }
+
+    .square-hit:hover {
+      fill: rgba(35, 64, 184, 0.12);
+    }
+
+    /* Move Feedback Badge glyphs (! or ?) */
+    .feedback-badge {
+      display: none;
+      position: absolute;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      color: #FFFFFF;
+      font-family: var(--font-serif);
+      font-weight: 900;
+      font-size: 16px;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      z-index: 20;
+      pointer-events: none;
+    }
+
+    .badge-correct {
+      background: var(--correct-green);
+    }
+
+    .badge-wrong {
+      background: var(--mistake-red);
+    }
+
+    /* Control & Feedback Panel */
+    .panel-wrap {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 8px 16px 14px;
+      min-height: 0;
+    }
+
+    @media (min-width: 900px) {
+      .panel-wrap {
+        width: 360px;
+        flex: none;
+        padding: 0;
+        height: 520px;
+        justify-content: center;
+        gap: 20px;
+      }
+    }
+
+    .prompt-box {
+      background: var(--raised);
+      border: 1px solid var(--rule);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .prompt-title {
+      font-family: var(--font-serif);
+      font-size: 18px;
+      font-weight: 700;
+      line-height: 1.25;
+      color: var(--print);
+    }
+
+    .prompt-desc {
+      font-size: 13px;
+      color: var(--quiet-grey);
+    }
+
+    /* Status messages */
+    .feedback-msg {
+      display: none;
+      font-size: 13px;
+      line-height: 1.4;
+      font-weight: 500;
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+    }
+
+    .msg-correct {
+      background: var(--correct-green-tint);
+      color: var(--correct-green);
+      border: 1px solid var(--correct-green);
+    }
+
+    .msg-wrong {
+      background: var(--mistake-red-tint);
+      color: var(--mistake-red);
+      border: 1px solid var(--mistake-red);
+    }
+
+    /* Actions */
+    .action-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-top: 8px;
+    }
+
+    .btn {
+      font-family: var(--font-sans);
+      font-size: 15px;
+      font-weight: 700;
+      padding: 10px 18px;
+      border-radius: var(--radius-sm);
+      border: 1px solid transparent;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      text-decoration: none;
+      min-height: 44px; /* Phone touch target requirement */
+      transition: all 0.15s ease;
+    }
+
+    .btn-primary {
+      background: var(--spot-blue);
+      color: #FFFFFF;
+      border-color: var(--spot-blue);
+      flex: 1;
+    }
+
+    html[data-theme="dark"] .btn-primary {
+      color: #111214;
+    }
+
+    .btn-primary:hover {
+      background: var(--spot-blue-hover);
+    }
+
+    .btn-quiet {
+      background: transparent;
+      border-color: var(--rule);
+      color: var(--print);
+      font-weight: 500;
+    }
+
+    .btn-quiet:hover {
+      background: var(--raised-subtle);
+      border-color: var(--quiet-grey);
+    }
+
+    /* Quiet secondary options row */
+    .options-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: var(--quiet-grey);
+      padding-top: 4px;
+    }
+
+    .timer-display {
+      display: none;
+      font-variant-numeric: tabular-nums;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--quiet-grey);
+    }
+
+    .timer-display.visible {
+      display: inline-block;
+    }
+
+    /* In-Between Screen (Decision 11) */
+    .inbetween-screen {
+      display: none;
+      position: absolute;
+      inset: 0;
+      background: var(--paper);
+      z-index: 50;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+    }
+
+    .inbetween-screen.active {
+      display: flex;
+    }
+
+    .inbetween-card {
+      max-width: 440px;
+      width: 100%;
+      background: var(--raised);
+      border: 1px solid var(--rule);
+      border-radius: var(--radius-lg);
+      padding: 32px 24px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+    }
+
+    .inbetween-check {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--correct-green-tint);
+      color: var(--correct-green);
+      font-size: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+      font-weight: 700;
+    }
+
+    .inbetween-title {
+      font-family: var(--font-serif);
+      font-size: 26px;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+
+    .inbetween-desc {
+      font-size: 15px;
+      color: var(--quiet-grey);
+      margin-bottom: 24px;
+    }
+
+    .inbetween-next-box {
+      background: var(--paper);
+      border: 1px solid var(--rule);
+      border-radius: var(--radius-sm);
+      padding: 14px;
+      margin-bottom: 24px;
+      text-align: left;
+    }
+
+    .next-box-tag {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--spot-blue);
+      margin-bottom: 4px;
+    }
+
+    .next-box-title {
+      font-weight: 700;
+      font-size: 16px;
+      margin-bottom: 2px;
+    }
+
+    .next-box-sub {
+      font-size: 13px;
+      color: var(--quiet-grey);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Hidden SVG Symbol Definitions -->
+  <svg style="display: none;" width="0" height="0">
+    <defs>
+      <!-- Diagonal Hatch Pattern for Diagram Dark Squares -->
+      <pattern id="diagram-hatch" width="4" height="4" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
+        <line x1="0" y1="0" x2="0" y2="4" stroke="var(--board-hatch-line)" stroke-width="1" opacity="0.55" />
+      </pattern>
+      <symbol id="piece-wP" viewBox="0 0 45 45"><path d="m 22.5,9 c -2.21,0 -4,1.79 -4,4 0,0.89 0.29,1.71 0.78,2.38 C 17.33,16.5 16,18.59 16,21 c 0,2.03 0.94,3.84 2.41,5.03 C 15.41,27.09 11,31.58 11,39.5 H 34 C 34,31.58 29.59,27.09 26.59,26.03 28.06,24.84 29,23.03 29,21 29,18.59 27.67,16.5 25.72,15.38 26.21,14.71 26.5,13.89 26.5,13 c 0,-2.21 -1.79,-4 -4,-4 z" style="opacity:1;fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"/></symbol>
+<symbol id="piece-wR" viewBox="0 0 45 45"><g style="opacity:1;fill:#ffffff;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"><path d="M 9,39 L 36,39 L 36,36 L 9,36 L 9,39 z " style="stroke-linecap:butt"/><path d="M 12,36 L 12,32 L 33,32 L 33,36 L 12,36 z " style="stroke-linecap:butt"/><path d="M 11,14 L 11,9 L 15,9 L 15,11 L 20,11 L 20,9 L 25,9 L 25,11 L 30,11 L 30,9 L 34,9 L 34,14" style="stroke-linecap:butt"/><path d="M 34,14 L 31,17 L 14,17 L 11,14"/><path d="M 31,17 L 31,29.5 L 14,29.5 L 14,17" style="stroke-linecap:butt;stroke-linejoin:miter"/><path d="M 31,29.5 L 32.5,32 L 12.5,32 L 14,29.5"/><path d="M 11,14 L 34,14" style="fill:none;stroke:#000000;stroke-linejoin:miter"/></symbol></symbol>
+<symbol id="piece-wN" viewBox="0 0 45 45"><g style="opacity:1;fill:none;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"><path d="M 22,10 C 32.5,11 38.5,18 38,39 L 15,39 C 15,30 25,32.5 23,18" style="fill:#ffffff;stroke:#000000"/><path d="M 24,18 C 24.38,20.91 18.45,25.37 16,27 C 13,29 13.18,31.34 11,31 C 9.958,30.06 12.41,27.96 11,28 C 10,28 11.19,29.23 10,30 C 9,30 5.997,31 6,26 C 6,24 12,14 12,14 C 12,14 13.89,12.1 14,10.5 C 13.27,9.506 13.5,8.5 13.5,7.5 C 14.5,6.5 16.5,10 16.5,10 L 18.5,10 C 18.5,10 19.28,8.008 21,7 C 22,7 22,10 22,10" style="fill:#ffffff;stroke:#000000"/><path d="M 9.5 25.5 A 0.5 0.5 0 1 1 8.5,25.5 A 0.5 0.5 0 1 1 9.5 25.5 z" style="fill:#000000;stroke:#000000"/><path d="M 15 15.5 A 0.5 1.5 0 1 1  14,15.5 A 0.5 1.5 0 1 1  15 15.5 z" transform="matrix(0.866,0.5,-0.5,0.866,9.693,-5.173)" style="fill:#000000;stroke:#000000"/></symbol></symbol>
+<symbol id="piece-wB" viewBox="0 0 45 45"><g style="opacity:1;fill:none;fill-rule:evenodd;fill-opacity:1;stroke:#000000;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"><g style="fill:#ffffff;stroke:#000000;stroke-linecap:butt"><path d="M 9,36 C 12.39,35.03 19.11,36.43 22.5,34 C 25.89,36.43 32.61,35.03 36,36 C 36,36 37.65,36.54 39,38 C 38.32,38.97 37.35,38.99 36,38.5 C 32.61,37.53 25.89,38.96 22.5,37.5 C 19.11,38.96 12.39,37.53 9,38.5 C 7.65,38.99 6.68,38.97 6,38 C 7.35,36.54 9,36 9,36 z"/><path d="M 15,32 C 17.5,34.5 27.5,34.5 30,32 C 30.5,30.5 30,30 30,30 C 30,27.5 27.5,26 27.5,26 C 33,24.5 33.5,14.5 22.5,10.5 C 11.5,14.5 12,24.5 17.5,26 C 17.5,26 15,27.5 15,30 C 15,30 14.5,30.5 15,32 z"/><path d="M 25 8 A 2.5 2.5 0 1 1  20,8 A 2.5 2.5 0 1 1  25 8 z"/></symbol><path d="M 17.5,26 L 27.5,26 M 15,30 L 30,30 M 22.5,15.5 L 22.5,20.5 M 20,18 L 25,18" style="fill:none;stroke:#000000;stroke-linejoin:miter"/></symbol></symbol>
+<symbol id="piece-wQ" viewBox="0 0 45 45"><g style="fill:#ffffff;stroke:#000000;stroke-width:1.5;stroke-linejoin:round"><path d="M 9,26 C 17.5,24.5 30,24.5 36,26 L 38.5,13.5 L 31,25 L 30.7,10.9 L 25.5,24.5 L 22.5,10 L 19.5,24.5 L 14.3,10.9 L 14,25 L 6.5,13.5 L 9,26 z"/><path d="M 9,26 C 9,28 10.5,28 11.5,30 C 12.5,31.5 12.5,31 12,33.5 C 10.5,34.5 11,36 11,36 C 9.5,37.5 11,38.5 11,38.5 C 17.5,39.5 27.5,39.5 34,38.5 C 34,38.5 35.5,37.5 34,36 C 34,36 34.5,34.5 33,33.5 C 32.5,31 32.5,31.5 33.5,30 C 34.5,28 36,28 36,26 C 27.5,24.5 17.5,24.5 9,26 z"/><path d="M 11.5,30 C 15,29 30,29 33.5,30" style="fill:none"/><path d="M 12,33.5 C 18,32.5 27,32.5 33,33.5" style="fill:none"/><circle cx="6" cy="12" r="2"/><circle cx="14" cy="9" r="2"/><circle cx="22.5" cy="8" r="2"/><circle cx="31" cy="9" r="2"/><circle cx="39" cy="12" r="2"/></symbol></symbol>
+<symbol id="piece-wK" viewBox="0 0 45 45"><g style="fill:none;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"><path d="M 22.5,11.63 L 22.5,6" style="fill:none;stroke:#000000;stroke-linejoin:miter"/><path d="M 20,8 L 25,8" style="fill:none;stroke:#000000;stroke-linejoin:miter"/><path d="M 22.5,25 C 22.5,25 27,17.5 25.5,14.5 C 25.5,14.5 24.5,12 22.5,12 C 20.5,12 19.5,14.5 19.5,14.5 C 18,17.5 22.5,25 22.5,25" style="fill:#ffffff;stroke:#000000;stroke-linecap:butt;stroke-linejoin:miter"/><path d="M 12.5,37 C 18,40.5 27,40.5 32.5,37 L 32.5,30 C 32.5,30 41.5,25.5 38.5,19.5 C 34.5,13 25,16 22.5,23.5 L 22.5,27 L 22.5,23.5 C 20,16 10.5,13 6.5,19.5 C 3.5,25.5 12.5,30 12.5,30 L 12.5,37" style="fill:#ffffff;stroke:#000000"/><path d="M 12.5,30 C 18,27 27,27 32.5,30" style="fill:none;stroke:#000000"/><path d="M 12.5,33.5 C 18,30.5 27,30.5 32.5,33.5" style="fill:none;stroke:#000000"/><path d="M 12.5,37 C 18,34 27,34 32.5,37" style="fill:none;stroke:#000000"/></symbol></symbol>
+<symbol id="piece-bP" viewBox="0 0 45 45"><path d="m 22.5,9 c -2.21,0 -4,1.79 -4,4 0,0.89 0.29,1.71 0.78,2.38 C 17.33,16.5 16,18.59 16,21 c 0,2.03 0.94,3.84 2.41,5.03 C 15.41,27.09 11,31.58 11,39.5 H 34 C 34,31.58 29.59,27.09 26.59,26.03 28.06,24.84 29,23.03 29,21 29,18.59 27.67,16.5 25.72,15.38 26.21,14.71 26.5,13.89 26.5,13 c 0,-2.21 -1.79,-4 -4,-4 z" style="opacity:1;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"/></symbol>
+<symbol id="piece-bR" viewBox="0 0 45 45"><g style="opacity:1;fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"><path d="M 9,39 L 36,39 L 36,36 L 9,36 L 9,39 z " style="stroke-linecap:butt"/><path d="M 12.5,32 L 14,29.5 L 31,29.5 L 32.5,32 L 12.5,32 z " style="stroke-linecap:butt"/><path d="M 12,36 L 12,32 L 33,32 L 33,36 L 12,36 z " style="stroke-linecap:butt"/><path d="M 14,29.5 L 14,16.5 L 31,16.5 L 31,29.5 L 14,29.5 z " style="stroke-linecap:butt;stroke-linejoin:miter"/><path d="M 14,16.5 L 11,14 L 34,14 L 31,16.5 L 14,16.5 z " style="stroke-linecap:butt"/><path d="M 11,14 L 11,9 L 15,9 L 15,11 L 20,11 L 20,9 L 25,9 L 25,11 L 30,11 L 30,9 L 34,9 L 34,14 L 11,14 z " style="stroke-linecap:butt"/><path d="M 12,35.5 L 33,35.5 L 33,35.5" style="fill:none;stroke:#ffffff;stroke-width:1;stroke-linejoin:miter"/><path d="M 13,31.5 L 32,31.5" style="fill:none;stroke:#ffffff;stroke-width:1;stroke-linejoin:miter"/><path d="M 14,29.5 L 31,29.5" style="fill:none;stroke:#ffffff;stroke-width:1;stroke-linejoin:miter"/><path d="M 14,16.5 L 31,16.5" style="fill:none;stroke:#ffffff;stroke-width:1;stroke-linejoin:miter"/><path d="M 11,14 L 34,14" style="fill:none;stroke:#ffffff;stroke-width:1;stroke-linejoin:miter"/></symbol></symbol>
+<symbol id="piece-bN" viewBox="0 0 45 45"><g style="opacity:1;fill:none;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"><path d="M 22,10 C 32.5,11 38.5,18 38,39 L 15,39 C 15,30 25,32.5 23,18" style="fill:#000000;stroke:#000000"/><path d="M 24,18 C 24.38,20.91 18.45,25.37 16,27 C 13,29 13.18,31.34 11,31 C 9.958,30.06 12.41,27.96 11,28 C 10,28 11.19,29.23 10,30 C 9,30 5.997,31 6,26 C 6,24 12,14 12,14 C 12,14 13.89,12.1 14,10.5 C 13.27,9.506 13.5,8.5 13.5,7.5 C 14.5,6.5 16.5,10 16.5,10 L 18.5,10 C 18.5,10 19.28,8.008 21,7 C 22,7 22,10 22,10" style="fill:#000000;stroke:#000000"/><path d="M 9.5 25.5 A 0.5 0.5 0 1 1 8.5,25.5 A 0.5 0.5 0 1 1 9.5 25.5 z" style="fill:#ffffff;stroke:#ffffff"/><path d="M 15 15.5 A 0.5 1.5 0 1 1  14,15.5 A 0.5 1.5 0 1 1  15 15.5 z" transform="matrix(0.866,0.5,-0.5,0.866,9.693,-5.173)" style="fill:#ffffff;stroke:#ffffff"/><path d="M 24.55,10.4 L 24.1,11.85 L 24.6,12 C 27.75,13 30.25,14.49 32.5,18.75 C 34.75,23.01 35.75,29.06 35.25,39 L 35.2,39.5 L 37.45,39.5 L 37.5,39 C 38,28.94 36.62,22.15 34.25,17.66 C 31.88,13.17 28.46,11.02 25.06,10.5 L 24.55,10.4 z " style="fill:#ffffff;stroke:none"/></symbol></symbol>
+<symbol id="piece-bB" viewBox="0 0 45 45"><g style="opacity:1;fill:none;fill-rule:evenodd;fill-opacity:1;stroke:#000000;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"><g style="fill:#000000;stroke:#000000;stroke-linecap:butt"><path d="M 9,36 C 12.39,35.03 19.11,36.43 22.5,34 C 25.89,36.43 32.61,35.03 36,36 C 36,36 37.65,36.54 39,38 C 38.32,38.97 37.35,38.99 36,38.5 C 32.61,37.53 25.89,38.96 22.5,37.5 C 19.11,38.96 12.39,37.53 9,38.5 C 7.65,38.99 6.68,38.97 6,38 C 7.35,36.54 9,36 9,36 z"/><path d="M 15,32 C 17.5,34.5 27.5,34.5 30,32 C 30.5,30.5 30,30 30,30 C 30,27.5 27.5,26 27.5,26 C 33,24.5 33.5,14.5 22.5,10.5 C 11.5,14.5 12,24.5 17.5,26 C 17.5,26 15,27.5 15,30 C 15,30 14.5,30.5 15,32 z"/><path d="M 25 8 A 2.5 2.5 0 1 1  20,8 A 2.5 2.5 0 1 1  25 8 z"/></symbol><path d="M 17.5,26 L 27.5,26 M 15,30 L 30,30 M 22.5,15.5 L 22.5,20.5 M 20,18 L 25,18" style="fill:none;stroke:#ffffff;stroke-linejoin:miter"/></symbol></symbol>
+<symbol id="piece-bQ" viewBox="0 0 45 45"><g style="fill:#000000;stroke:#000000;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round"><path d="M 9,26 C 17.5,24.5 30,24.5 36,26 L 38.5,13.5 L 31,25 L 30.7,10.9 L 25.5,24.5 L 22.5,10 L 19.5,24.5 L 14.3,10.9 L 14,25 L 6.5,13.5 L 9,26 z" style="stroke-linecap:butt;fill:#000000"/><path d="m 9,26 c 0,2 1.5,2 2.5,4 1,1.5 1,1 0.5,3.5 -1.5,1 -1,2.5 -1,2.5 -1.5,1.5 0,2.5 0,2.5 6.5,1 16.5,1 23,0 0,0 1.5,-1 0,-2.5 0,0 0.5,-1.5 -1,-2.5 -0.5,-2.5 -0.5,-2 0.5,-3.5 1,-2 2.5,-2 2.5,-4 -8.5,-1.5 -18.5,-1.5 -27,0 z"/><path d="M 11.5,30 C 15,29 30,29 33.5,30"/><path d="m 12,33.5 c 6,-1 15,-1 21,0"/><circle cx="6" cy="12" r="2"/><circle cx="14" cy="9" r="2"/><circle cx="22.5" cy="8" r="2"/><circle cx="31" cy="9" r="2"/><circle cx="39" cy="12" r="2"/><path d="M 11,38.5 A 35,35 1 0 0 34,38.5" style="fill:none;stroke:#000000;stroke-linecap:butt"/><g style="fill:none;stroke:#ffffff"><path d="M 11,29 A 35,35 1 0 1 34,29"/><path d="M 12.5,31.5 L 32.5,31.5"/><path d="M 11.5,34.5 A 35,35 1 0 0 33.5,34.5"/><path d="M 10.5,37.5 A 35,35 1 0 0 34.5,37.5"/></symbol></symbol></symbol>
+<symbol id="piece-bK" viewBox="0 0 45 45"><g style="fill:none;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"><path d="M 22.5,11.63 L 22.5,6" id="path6570" style="fill:none;stroke:#000000;stroke-linejoin:miter"/><path d="M 22.5,25 C 22.5,25 27,17.5 25.5,14.5 C 25.5,14.5 24.5,12 22.5,12 C 20.5,12 19.5,14.5 19.5,14.5 C 18,17.5 22.5,25 22.5,25" style="fill:#000000;fill-opacity:1;stroke-linecap:butt;stroke-linejoin:miter"/><path d="M 12.5,37 C 18,40.5 27,40.5 32.5,37 L 32.5,30 C 32.5,30 41.5,25.5 38.5,19.5 C 34.5,13 25,16 22.5,23.5 L 22.5,27 L 22.5,23.5 C 20,16 10.5,13 6.5,19.5 C 3.5,25.5 12.5,30 12.5,30 L 12.5,37" style="fill:#000000;stroke:#000000"/><path d="M 20,8 L 25,8" style="fill:none;stroke:#000000;stroke-linejoin:miter"/><path d="M 32,29.5 C 32,29.5 40.5,25.5 38.03,19.85 C 34.15,14 25,18 22.5,24.5 L 22.5,26.6 L 22.5,24.5 C 20,18 10.85,14 6.97,19.85 C 4.5,25.5 13,29.5 13,29.5" style="fill:none;stroke:#ffffff"/><path d="M 12.5,30 C 18,27 27,27 32.5,30 M 12.5,33.5 C 18,30.5 27,30.5 32.5,33.5 M 12.5,37 C 18,34 27,34 32.5,37" style="fill:none;stroke:#ffffff"/></symbol></symbol>
+    </defs>
+  </svg>
+
+  <!-- Prototype State and Layout Controls -->
+  <aside class="proto-bar" aria-label="Prototype state switcher">
+    <div class="proto-group">
+      <span class="proto-label">State:</span>
+      <button type="button" class="proto-btn active" id="btn-state-prompt">Prompt</button>
+      <button type="button" class="proto-btn" id="btn-state-correct">Correct (!)</button>
+      <button type="button" class="proto-btn" id="btn-state-wrong">Wrong (?)</button>
+      <button type="button" class="proto-btn" id="btn-state-inbetween">In-between</button>
+    </div>
+    <div class="proto-group">
+      <button type="button" class="proto-btn" id="btn-toggle-board-style">Board: Solid</button>
+      <button type="button" class="proto-btn" id="btn-toggle-theme">Dark mode</button>
+      <a href="today.html" class="proto-btn">&larr; Today</a>
+    </div>
+  </aside>
+
+  <!-- Focus Header -->
+  <header class="focus-header">
+    <a href="today.html" class="exit-btn" aria-label="Exit training session to Today page">
+      &larr; Exit
+    </a>
+    <div class="block-progress-indicator">
+      <span class="progress-count tabular-nums">3 of 8</span>
+      <span class="progress-sub">Themed tactics</span>
+    </div>
+    <button type="button" class="focus-menu-btn" id="focus-menu-toggle" aria-label="Focus options" title="Focus options">
+      &#9881;
+    </button>
+  </header>
+
+  <!-- Focus Body -->
+  <main class="focus-body">
+
+    <!-- Board Area -->
+    <div class="board-container">
+      <div class="chess-board-wrap" id="board-wrap">
+        
+        <!-- SVG Chess Board -->
+        <svg class="board-svg" viewBox="0 0 80 80" id="chessboard-svg" aria-label="Chessboard: Black to move, find the winning tactical fork">
+          <!-- 64 Squares (8x8) -->
+          <g id="squares-layer"></g>
+
+          <!-- Coordinates (inside board edge) -->
+          <g id="coords-layer"></g>
+
+          <!-- Interactive Highlight Tints -->
+          <g id="tints-layer"></g>
+
+          <!-- Chess Pieces -->
+          <g id="pieces-layer"></g>
+
+          <!-- Clickable Hit Areas -->
+          <g id="hits-layer"></g>
+        </svg>
+
+        <!-- Dynamic Feedback Badges (! or ?) directly on board piece -->
+        <div class="feedback-badge badge-correct" id="badge-correct">!</div>
+        <div class="feedback-badge badge-wrong" id="badge-wrong">?</div>
+
+      </div>
+    </div>
+
+    <!-- Feedback and Control Panel -->
+    <div class="panel-wrap">
+      
+      <!-- Prompt & Feedback Box -->
+      <div class="prompt-box">
+        <h1 class="prompt-title" id="prompt-header">Black to move. Find the best move.</h1>
+        <p class="prompt-desc" id="prompt-sub">Calculate your variation before moving.</p>
+
+        <!-- Correct feedback message -->
+        <div class="feedback-msg msg-correct" id="msg-correct">
+          Correct. 9... Qa5+ checks the king and attacks the unprotected bishop on b5.
+        </div>
+
+        <!-- Wrong feedback message -->
+        <div class="feedback-msg msg-wrong" id="msg-wrong">
+          Incorrect move. White can defend with 10. Bd2 or 10. c3.
+        </div>
+      </div>
+
+      <!-- Action Row -->
+      <div>
+        <div class="action-row" id="actions-prompt">
+          <button type="button" class="btn btn-quiet" id="btn-show-hint" style="flex: 1;">
+            Show hint
+          </button>
+          <button type="button" class="btn btn-primary" id="btn-demo-correct">
+            Play 9... Qa5+
+          </button>
+        </div>
+
+        <div class="action-row" id="actions-correct" style="display: none;">
+          <button type="button" class="btn btn-primary" id="btn-next-correct">
+            Next puzzle &rarr;
+          </button>
+        </div>
+
+        <div class="action-row" id="actions-wrong" style="display: none;">
+          <button type="button" class="btn btn-primary" id="btn-try-again">
+            Try again
+          </button>
+          <button type="button" class="btn btn-quiet" id="btn-next-wrong">
+            Next puzzle
+          </button>
+        </div>
+
+        <!-- Quiet Utility Row -->
+        <div class="options-row">
+          <div>
+            <span class="timer-display" id="timer-text">Time: 0:24</span>
+            <button type="button" class="proto-btn" id="btn-toggle-time" style="padding: 2px 6px;">
+              Show time
+            </button>
+          </div>
+          <div>
+            <button type="button" class="proto-btn" id="btn-toggle-sound" style="padding: 2px 6px;">
+              Sound: On
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- In-Between Screen (Decision 11: calm transition between blocks) -->
+    <div class="inbetween-screen" id="inbetween-modal" role="dialog" aria-modal="true" aria-labelledby="inbetween-title">
+      <div class="inbetween-card">
+        <div class="inbetween-check">&#10003;</div>
+        <h2 class="inbetween-title" id="inbetween-title">Block 3 complete</h2>
+        <p class="inbetween-desc tabular-nums">
+          Themed tactics (reflective): 8 of 8 positions solved in 9 minutes.
+        </p>
+
+        <div class="inbetween-next-box">
+          <div class="next-box-tag">Next block</div>
+          <div class="next-box-title">Play rated games (longer time control)</div>
+          <div class="next-box-sub">15 minutes planned &bull; Rapid 15+10</div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <button type="button" class="btn btn-primary" id="btn-inbetween-continue">
+            Continue to next block
+          </button>
+          <a href="today.html" class="btn btn-quiet">
+            Back to Today
+          </a>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    // State management: 'prompt', 'correct', 'wrong', 'inbetween'
+    let currentState = 'prompt';
+    let isTimeShown = false;
+    let isSoundOn = true;
+    let selectedSquare = null;
+
+    // Tactical Position: Black to move, best move 9... Qa5+
+    // FEN: r1bqkb1r/pp3ppp/2n5/1B1p4/3p4/4PN2/PP3PPP/R1BQK2R b KQkq - 1 9
+    const initialBoard = [
+      ['bR', null, 'bB', 'bQ', 'bK', 'bB', null, 'bR'], // Rank 8 (row 0)
+      ['bP', 'bP', null, null, null, 'bP', 'bP', 'bP'], // Rank 7 (row 1)
+      [null, null, 'bN', null, null, null, null, null], // Rank 6 (row 2)
+      [null, 'wB', null, 'bP', null, null, null, null], // Rank 5 (row 3)
+      [null, null, null, 'wP', null, null, null, null], // Rank 4 (row 4)
+      [null, null, null, null, 'wP', 'wN', null, null], // Rank 3 (row 5)
+      ['wP', 'wP', null, null, null, 'wP', 'wP', 'wP'], // Rank 2 (row 6)
+      ['wR', null, 'wB', 'wQ', 'wK', null, null, 'wR'], // Rank 1 (row 7)
+    ];
+
+    let currentPieces = JSON.parse(JSON.stringify(initialBoard));
+
+    // Render Board Grid
+    const squaresLayer = document.getElementById('squares-layer');
+    const coordsLayer = document.getElementById('coords-layer');
+    const piecesLayer = document.getElementById('pieces-layer');
+    const hitsLayer = document.getElementById('hits-layer');
+    const tintsLayer = document.getElementById('tints-layer');
+
+    const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+
+    function buildBoardGrid() {
+      squaresLayer.innerHTML = '';
+      coordsLayer.innerHTML = '';
+      hitsLayer.innerHTML = '';
+
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          const isDark = (r + c) % 2 === 1;
+          const x = c * 10;
+          const y = r * 10;
+          const sqName = files[c] + (8 - r);
+
+          if (isDark) {
+            // Solid dark
+            const rectSolid = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            rectSolid.setAttribute('x', x);
+            rectSolid.setAttribute('y', y);
+            rectSolid.setAttribute('width', 10);
+            rectSolid.setAttribute('height', 10);
+            rectSolid.setAttribute('class', 'sq-dark-solid solid-layer');
+            rectSolid.setAttribute('id', `sq-${sqName}`);
+            squaresLayer.appendChild(rectSolid);
+
+            // Hatch base + hatch pattern
+            const rectHatchBase = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            rectHatchBase.setAttribute('x', x);
+            rectHatchBase.setAttribute('y', y);
+            rectHatchBase.setAttribute('width', 10);
+            rectHatchBase.setAttribute('height', 10);
+            rectHatchBase.setAttribute('class', 'sq-dark-hatch-base hatch-layer');
+            squaresLayer.appendChild(rectHatchBase);
+
+            const rectHatch = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            rectHatch.setAttribute('x', x);
+            rectHatch.setAttribute('y', y);
+            rectHatch.setAttribute('width', 10);
+            rectHatch.setAttribute('height', 10);
+            rectHatch.setAttribute('class', 'sq-dark-hatch-pattern hatch-layer');
+            squaresLayer.appendChild(rectHatch);
+          } else {
+            const rectLight = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            rectLight.setAttribute('x', x);
+            rectLight.setAttribute('y', y);
+            rectLight.setAttribute('width', 10);
+            rectLight.setAttribute('height', 10);
+            rectLight.setAttribute('class', 'sq-light');
+            rectLight.setAttribute('id', `sq-${sqName}`);
+            squaresLayer.appendChild(rectLight);
+          }
+
+          // Coordinates on file 'a' (rank number) and rank 1 (file letter)
+          if (c === 0) {
+            const rankText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            rankText.setAttribute('x', x + 1.2);
+            rankText.setAttribute('y', y + 3.4);
+            rankText.setAttribute('class', isDark ? 'coord-text coord-dark' : 'coord-text coord-light');
+            rankText.textContent = 8 - r;
+            coordsLayer.appendChild(rankText);
+          }
+          if (r === 7) {
+            const fileText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            fileText.setAttribute('x', x + 7.5);
+            fileText.setAttribute('y', y + 9.2);
+            fileText.setAttribute('class', isDark ? 'coord-text coord-dark' : 'coord-text coord-light');
+            fileText.textContent = files[c];
+            coordsLayer.appendChild(fileText);
+          }
+
+          // Interactive click hit box
+          const hit = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+          hit.setAttribute('x', x);
+          hit.setAttribute('y', y);
+          hit.setAttribute('width', 10);
+          hit.setAttribute('height', 10);
+          hit.setAttribute('class', 'square-hit');
+          hit.setAttribute('data-sq', sqName);
+          hit.setAttribute('data-row', r);
+          hit.setAttribute('data-col', c);
+          hit.addEventListener('click', () => handleSquareClick(sqName, r, c));
+          hitsLayer.appendChild(hit);
+        }
+      }
+    }
+
+    // Render Pieces on Board
+    function renderPieces() {
+      piecesLayer.innerHTML = '';
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          const piece = currentPieces[r][c];
+          if (piece) {
+            const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+            use.setAttribute('href', `#piece-${piece}`);
+            use.setAttribute('x', c * 10);
+            use.setAttribute('y', r * 10);
+            use.setAttribute('width', 10);
+            use.setAttribute('height', 10);
+            use.setAttribute('pointer-events', 'none');
+            piecesLayer.appendChild(use);
+          }
+        }
+      }
+    }
+
+    // Position the floating badge on destination square
+    function positionBadge(badgeEl, col, row) {
+      const wrap = document.getElementById('board-wrap');
+      const rect = wrap.getBoundingClientRect();
+      const sqWidth = rect.width / 8;
+      const left = col * sqWidth + (sqWidth * 0.65);
+      const top = row * sqWidth + 2;
+      badgeEl.style.left = `${left}px`;
+      badgeEl.style.top = `${top}px`;
+      badgeEl.style.display = 'flex';
+    }
+
+    function hideBadges() {
+      document.getElementById('badge-correct').style.display = 'none';
+      document.getElementById('badge-wrong').style.display = 'none';
+    }
+
+    // Sound effect generator using Web Audio API
+    function playPieceSound(kind) {
+      if (!isSoundOn) return;
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const ctx = new AudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        if (kind === 'move') {
+          osc.frequency.setValueAtTime(180, ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(40, ctx.currentTime + 0.08);
+          gain.gain.setValueAtTime(0.4, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.08);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.09);
+        } else if (kind === 'correct') {
+          osc.frequency.setValueAtTime(420, ctx.currentTime);
+          gain.gain.setValueAtTime(0.2, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.14);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.15);
+        } else if (kind === 'wrong') {
+          osc.frequency.setValueAtTime(140, ctx.currentTime);
+          gain.gain.setValueAtTime(0.3, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.18);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.19);
+        }
+      } catch(e) {}
+    }
+
+    // Set UI State
+    function setState(state) {
+      currentState = state;
+      tintsLayer.innerHTML = '';
+      hideBadges();
+
+      document.querySelectorAll('.proto-group .proto-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById(`btn-state-${state}`)?.classList.add('active');
+
+      const actionsPrompt = document.getElementById('actions-prompt');
+      const actionsCorrect = document.getElementById('actions-correct');
+      const actionsWrong = document.getElementById('actions-wrong');
+      const msgCorrect = document.getElementById('msg-correct');
+      const msgWrong = document.getElementById('msg-wrong');
+      const promptHeader = document.getElementById('prompt-header');
+      const promptSub = document.getElementById('prompt-sub');
+      const inbetweenModal = document.getElementById('inbetween-modal');
+
+      actionsPrompt.style.display = 'none';
+      actionsCorrect.style.display = 'none';
+      actionsWrong.style.display = 'none';
+      msgCorrect.style.display = 'none';
+      msgWrong.style.display = 'none';
+      inbetweenModal.classList.remove('active');
+
+      if (state === 'prompt') {
+        currentPieces = JSON.parse(JSON.stringify(initialBoard));
+        renderPieces();
+        actionsPrompt.style.display = 'flex';
+        promptHeader.textContent = 'Black to move. Find the best move.';
+        promptSub.textContent = 'Calculate your variation before moving.';
+      } else if (state === 'correct') {
+        // Black plays 9... Qa5+
+        currentPieces = JSON.parse(JSON.stringify(initialBoard));
+        currentPieces[0][3] = null; // d8 empty
+        currentPieces[3][0] = 'bQ'; // a5 has queen
+        renderPieces();
+
+        // Tint destination square a5 (col 0, row 3)
+        const tint = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        tint.setAttribute('x', 0);
+        tint.setAttribute('y', 30);
+        tint.setAttribute('width', 10);
+        tint.setAttribute('height', 10);
+        tint.setAttribute('class', 'sq-tint-correct');
+        tintsLayer.appendChild(tint);
+
+        // Position '!' badge on a5
+        positionBadge(document.getElementById('badge-correct'), 0, 3);
+
+        actionsCorrect.style.display = 'flex';
+        msgCorrect.style.display = 'block';
+        promptHeader.textContent = '9... Qa5+ • Tactical fork';
+        promptSub.textContent = 'Queen checks king and attacks unprotected bishop.';
+        playPieceSound('correct');
+      } else if (state === 'wrong') {
+        // Black plays wrong move: 9... Qb6? (col 1, row 2)
+        currentPieces = JSON.parse(JSON.stringify(initialBoard));
+        currentPieces[0][3] = null;
+        currentPieces[2][1] = 'bQ';
+        renderPieces();
+
+        const tint = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        tint.setAttribute('x', 10);
+        tint.setAttribute('y', 20);
+        tint.setAttribute('width', 10);
+        tint.setAttribute('height', 10);
+        tint.setAttribute('class', 'sq-tint-wrong');
+        tintsLayer.appendChild(tint);
+
+        positionBadge(document.getElementById('badge-wrong'), 1, 2);
+
+        actionsWrong.style.display = 'flex';
+        msgWrong.style.display = 'block';
+        promptHeader.textContent = '9... Qb6 • Mistake';
+        promptSub.textContent = 'White can defend with 10. Bd2 or 10. c3.';
+        playPieceSound('wrong');
+      } else if (state === 'inbetween') {
+        inbetweenModal.classList.add('active');
+      }
+    }
+
+    // Board Square Click Handling
+    function handleSquareClick(sqName, row, col) {
+      if (currentState !== 'prompt') return;
+
+      if (!selectedSquare) {
+        if (currentPieces[row][col] === 'bQ') {
+          selectedSquare = { sqName, row, col };
+          // Highlight d8
+          tintsLayer.innerHTML = '';
+          const tint = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+          tint.setAttribute('x', col * 10);
+          tint.setAttribute('y', row * 10);
+          tint.setAttribute('width', 10);
+          tint.setAttribute('height', 10);
+          tint.setAttribute('class', 'sq-tint-selected');
+          tintsLayer.appendChild(tint);
+          playPieceSound('move');
+        }
+      } else {
+        if (sqName === 'a5') {
+          // Correct move 9... Qa5+!
+          selectedSquare = null;
+          setState('correct');
+        } else if (sqName !== selectedSquare.sqName) {
+          // Wrong move
+          selectedSquare = null;
+          setState('wrong');
+        } else {
+          // Deselect
+          selectedSquare = null;
+          tintsLayer.innerHTML = '';
+        }
+      }
+    }
+
+    // Event Listeners for State Buttons
+    document.getElementById('btn-state-prompt').addEventListener('click', () => setState('prompt'));
+    document.getElementById('btn-state-correct').addEventListener('click', () => setState('correct'));
+    document.getElementById('btn-state-wrong').addEventListener('click', () => setState('wrong'));
+    document.getElementById('btn-state-inbetween').addEventListener('click', () => setState('inbetween'));
+
+    document.getElementById('btn-demo-correct').addEventListener('click', () => setState('correct'));
+    document.getElementById('btn-try-again').addEventListener('click', () => setState('prompt'));
+    document.getElementById('btn-next-correct').addEventListener('click', () => setState('inbetween'));
+    document.getElementById('btn-next-wrong').addEventListener('click', () => setState('prompt'));
+    document.getElementById('btn-inbetween-continue').addEventListener('click', () => {
+      window.location.href = 'today.html';
+    });
+
+    document.getElementById('btn-show-hint').addEventListener('click', () => {
+      alert('Hint: Look for an uncoordinated minor piece on the b-file.');
+    });
+
+    // Board Style Toggle: Solid Spot vs Diagram Hatched
+    const boardStyleBtn = document.getElementById('btn-toggle-board-style');
+    boardStyleBtn.addEventListener('click', () => {
+      const cur = document.documentElement.getAttribute('data-board-theme') || 'solid';
+      const next = cur === 'solid' ? 'hatch' : 'solid';
+      document.documentElement.setAttribute('data-board-theme', next);
+      boardStyleBtn.textContent = next === 'solid' ? 'Board: Solid' : 'Board: Hatched';
+    });
+
+    // Theme Switcher
+    const themeBtn = document.getElementById('btn-toggle-theme');
+    function applyTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      localStorage.setItem('mainline_proto_theme', theme);
+      themeBtn.textContent = theme === 'dark' ? 'Light mode' : 'Dark mode';
+    }
+    const savedTheme = localStorage.getItem('mainline_proto_theme') || 'light';
+    applyTheme(savedTheme);
+    themeBtn.addEventListener('click', () => {
+      const current = document.documentElement.getAttribute('data-theme') || 'light';
+      applyTheme(current === 'light' ? 'dark' : 'light');
+    });
+
+    // Timer Toggle (Decision 31)
+    const toggleTimeBtn = document.getElementById('btn-toggle-time');
+    const timerText = document.getElementById('timer-text');
+    toggleTimeBtn.addEventListener('click', () => {
+      isTimeShown = !isTimeShown;
+      timerText.classList.toggle('visible', isTimeShown);
+      toggleTimeBtn.textContent = isTimeShown ? 'Hide time' : 'Show time';
+    });
+
+    // Sound Toggle
+    const soundBtn = document.getElementById('btn-toggle-sound');
+    soundBtn.addEventListener('click', () => {
+      isSoundOn = !isSoundOn;
+      soundBtn.textContent = isSoundOn ? 'Sound: On' : 'Sound: Off';
+    });
+
+    // Focus Menu Modal trigger
+    document.getElementById('focus-menu-toggle').addEventListener('click', () => {
+      const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+      const currentBoard = document.documentElement.getAttribute('data-board-theme') || 'solid';
+      alert(`Focus Options:\n- Theme: ${currentTheme}\n- Board style: ${currentBoard}\n- Sound: ${isSoundOn ? 'On' : 'Off'}\n- Time display: ${isTimeShown ? 'Visible' : 'Hidden'}`);
+    });
+
+    // Initialize
+    buildBoardGrid();
+    renderPieces();
+    window.addEventListener('resize', () => {
+      if (currentState === 'correct') positionBadge(document.getElementById('badge-correct'), 0, 3);
+      if (currentState === 'wrong') positionBadge(document.getElementById('badge-wrong'), 1, 2);
+    });
+  </script>
+</body>
+</html>

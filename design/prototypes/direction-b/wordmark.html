@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mainline: Direction B (Diagram) Wordmarks</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@0,500;0,700;0,800;0,900;1,700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Noto+Sans+Symbols+2&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --paper: #FBFBF9;
+      --raised: #F3F3EE;
+      --raised-subtle: #EBEBE4;
+      --print: #111111;
+      --rule: #D9D9D4;
+      --spot-blue: #2340B8;
+      --spot-blue-tint: rgba(35, 64, 184, 0.08);
+      --spot-blue-hover: #1A318F;
+      --mistake-red: #B8382B;
+      --correct-green: #1E6B45;
+      --quiet-grey: #6B6B66;
+
+      --font-serif: 'Alegreya', Georgia, 'Times New Roman', serif;
+      --font-sans: 'Alegreya Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-symbols: 'Noto Sans Symbols 2', 'Alegreya Sans', sans-serif;
+
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+    }
+
+    html[data-theme="dark"] {
+      --paper: #111214;
+      --raised: #181A1E;
+      --raised-subtle: #24272E;
+      --print: #F2F2EE;
+      --rule: #2C2F36;
+      --spot-blue: #6888FF;
+      --spot-blue-tint: rgba(104, 136, 255, 0.15);
+      --spot-blue-hover: #8AA4FF;
+      --mistake-red: #F06A5D;
+      --correct-green: #48B882;
+      --quiet-grey: #9E9E98;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--paper);
+      color: var(--print);
+      font-family: var(--font-sans);
+      font-size: 16px;
+      line-height: 1.5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Prototype Header Bar */
+    .proto-bar {
+      background: var(--raised);
+      border-bottom: 1px solid var(--rule);
+      padding: 10px 20px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .proto-nav {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .proto-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--spot-blue);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .proto-links {
+      display: flex;
+      gap: 6px;
+    }
+
+    .proto-btn {
+      font-family: var(--font-sans);
+      font-size: 14px;
+      font-weight: 500;
+      text-decoration: none;
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--rule);
+      background: var(--paper);
+      color: var(--print);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+      min-height: 36px;
+    }
+
+    .proto-btn:hover {
+      background: var(--raised-subtle);
+      border-color: var(--quiet-grey);
+    }
+
+    .proto-btn.active {
+      background: var(--spot-blue-tint);
+      border-color: var(--spot-blue);
+      color: var(--spot-blue);
+      font-weight: 700;
+    }
+
+    .proto-btn:focus-visible {
+      outline: 2px solid var(--spot-blue);
+      outline-offset: 2px;
+    }
+
+    /* Page Content Container */
+    .content-wrap {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 32px 20px 60px;
+      width: 100%;
+    }
+
+    .intro-header {
+      margin-bottom: 36px;
+      border-bottom: 1px solid var(--rule);
+      padding-bottom: 24px;
+    }
+
+    .intro-title {
+      font-family: var(--font-serif);
+      font-size: 36px;
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 8px;
+    }
+
+    .intro-subtitle {
+      font-size: 18px;
+      color: var(--quiet-grey);
+      max-width: 680px;
+    }
+
+    /* Grid of Options */
+    .options-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 48px;
+    }
+
+    .option-card {
+      background: var(--raised);
+      border: 1px solid var(--rule);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+    }
+
+    .option-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 20px;
+      border-bottom: 1px solid var(--rule);
+      padding-bottom: 12px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .option-title {
+      font-family: var(--font-serif);
+      font-size: 24px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .option-tag {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--spot-blue);
+      background: var(--spot-blue-tint);
+      padding: 2px 8px;
+      border-radius: 4px;
+      letter-spacing: 0.04em;
+    }
+
+    .option-desc {
+      font-size: 15px;
+      color: var(--quiet-grey);
+      margin-bottom: 24px;
+      max-width: 780px;
+    }
+
+    /* Showcase Display Areas */
+    .showcase-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+
+    @media (max-width: 768px) {
+      .showcase-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .preview-box {
+      border: 1px solid var(--rule);
+      border-radius: var(--radius-md);
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      min-height: 180px;
+      position: relative;
+    }
+
+    .preview-box.box-light {
+      background: #FBFBF9;
+      color: #111111;
+    }
+
+    .preview-box.box-dark {
+      background: #111214;
+      color: #F2F2EE;
+      border-color: #2C2F36;
+    }
+
+    .preview-caption {
+      position: absolute;
+      top: 10px;
+      left: 14px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      opacity: 0.6;
+    }
+
+    /* Option 1: Main Line Notation Logotype */
+    .logo-opt1-main {
+      font-family: var(--font-serif);
+      font-size: 38px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      display: inline-flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+
+    .logo-opt1-num {
+      color: var(--spot-blue);
+      font-family: var(--font-serif);
+      font-weight: 700;
+      font-size: 34px;
+    }
+
+    .box-dark .logo-opt1-num {
+      color: #6888FF;
+    }
+
+    .logo-opt1-sub {
+      font-family: var(--font-sans);
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      opacity: 0.7;
+      margin-top: 4px;
+    }
+
+    /* Option 2: Diagram Registration Mark */
+    .logo-opt2-wrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .diagram-mark {
+      width: 36px;
+      height: 36px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .diagram-mark-svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .logo-opt2-text {
+      font-family: var(--font-serif);
+      font-size: 34px;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+    }
+
+    /* Option 3: Book Title with Spot Accent */
+    .logo-opt3-wrap {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .logo-opt3-text {
+      font-family: var(--font-serif);
+      font-size: 32px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .logo-opt3-bar {
+      height: 3px;
+      width: 100%;
+      background: var(--spot-blue);
+      margin-top: 3px;
+      border-radius: 2px;
+    }
+
+    .box-dark .logo-opt3-bar {
+      background: #6888FF;
+    }
+
+    .logo-opt3-sub {
+      font-family: var(--font-sans);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      opacity: 0.75;
+      margin-top: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* App Icons Section */
+    .scale-row {
+      display: flex;
+      gap: 20px;
+      align-items: flex-end;
+      flex-wrap: wrap;
+      margin-top: 14px;
+      padding-top: 16px;
+      border-top: 1px dashed var(--rule);
+    }
+
+    .scale-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .scale-label {
+      font-size: 12px;
+      color: var(--quiet-grey);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .app-icon {
+      border-radius: 22%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      border: 1px solid rgba(0,0,0,0.1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .app-icon-128 {
+      width: 96px;
+      height: 96px;
+    }
+
+    .app-icon-64 {
+      width: 64px;
+      height: 64px;
+      border-radius: 14px;
+    }
+
+    .app-icon-32 {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+    }
+
+    .app-icon.icon-light {
+      background: #FBFBF9;
+      color: #111111;
+      border-color: #D9D9D4;
+    }
+
+    .app-icon.icon-dark {
+      background: #111214;
+      color: #F2F2EE;
+      border-color: #2C2F36;
+    }
+
+    .spec-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 16px;
+      font-size: 14px;
+    }
+
+    .spec-table td {
+      padding: 6px 0;
+      border-bottom: 1px solid var(--rule);
+    }
+
+    .spec-table td:first-child {
+      color: var(--quiet-grey);
+      width: 160px;
+      font-weight: 500;
+    }
+
+    .spec-table td:last-child {
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Prototype Control Bar -->
+  <header class="proto-bar" aria-label="Prototype navigation">
+    <div class="proto-nav">
+      <span class="proto-badge">Direction B &bull; Diagram</span>
+      <div class="proto-links" role="navigation" aria-label="Prototype pages">
+        <a href="today.html" class="proto-btn">Today prototype</a>
+        <a href="puzzle.html" class="proto-btn">Puzzle prototype</a>
+        <a href="wordmark.html" class="proto-btn active" aria-current="page">Wordmarks</a>
+        <a href="../index.html" class="proto-btn">&larr; Comparison studio</a>
+      </div>
+    </div>
+    <div>
+      <button type="button" class="proto-btn" id="theme-toggle" aria-label="Switch between light and dark themes">
+        <span id="theme-icon">&#9788;</span> <span id="theme-text">Dark mode</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="content-wrap">
+    <header class="intro-header">
+      <h1 class="intro-title">Direction B Wordmark Explorations</h1>
+      <p class="intro-subtitle">
+        Printed chess book identity. Two-color printing motif: Black print on white paper with spot blue accent.
+      </p>
+    </header>
+
+    <div class="options-grid">
+
+      <!-- Option 1: The Main Line Notation -->
+      <article class="option-card" aria-labelledby="opt1-heading">
+        <div class="option-header">
+          <h2 class="option-title" id="opt1-heading">
+            Option 1: The Main Line Notation (1. Mainline)
+            <span class="option-tag">Recommended</span>
+          </h2>
+          <span style="font-size: 13px; color: var(--quiet-grey);">Alegreya 800 + Spot Blue</span>
+        </div>
+
+        <p class="option-desc">
+          Takes inspiration directly from chess notation in books. The move number 1. marks the primary line of play. Bold serif letters give the authority of a classic volume, while the spot blue number anchors the name.
+        </p>
+
+        <div class="showcase-row">
+          <!-- Light Preview -->
+          <div class="preview-box box-light">
+            <span class="preview-caption">Light paper edition</span>
+            <div style="text-align: center;">
+              <div class="logo-opt1-main">
+                <span class="logo-opt1-num">1.</span>Mainline
+              </div>
+              <div class="logo-opt1-sub">Science-based chess training</div>
+            </div>
+          </div>
+
+          <!-- Dark Preview -->
+          <div class="preview-box box-dark">
+            <span class="preview-caption">Night study edition</span>
+            <div style="text-align: center;">
+              <div class="logo-opt1-main">
+                <span class="logo-opt1-num" style="color: #6888FF;">1.</span>Mainline
+              </div>
+              <div class="logo-opt1-sub">Science-based chess training</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Scale demonstration -->
+        <div>
+          <span style="font-size: 13px; font-weight: 700; color: var(--quiet-grey); text-transform: uppercase;">Scale and app icon</span>
+          <div class="scale-row">
+            <div class="scale-item">
+              <div class="app-icon app-icon-128 icon-light">
+                <div style="font-family: var(--font-serif); font-size: 42px; font-weight: 900; line-height: 1;">
+                  <span style="color: #2340B8;">1.</span>M
+                </div>
+              </div>
+              <span class="scale-label">96 &times; 96</span>
+            </div>
+
+            <div class="scale-item">
+              <div class="app-icon app-icon-64 icon-dark">
+                <div style="font-family: var(--font-serif); font-size: 28px; font-weight: 900; line-height: 1;">
+                  <span style="color: #6888FF;">1.</span>M
+                </div>
+              </div>
+              <span class="scale-label">64 &times; 64</span>
+            </div>
+
+            <div class="scale-item">
+              <div class="app-icon app-icon-32 icon-light">
+                <div style="font-family: var(--font-serif); font-size: 18px; font-weight: 900; line-height: 1;">
+                  <span style="color: #2340B8;">1.</span>
+                </div>
+              </div>
+              <span class="scale-label">36 &times; 36 (Favicon)</span>
+            </div>
+
+            <div class="scale-item" style="margin-left: 20px;">
+              <span style="font-size: 12px; color: var(--quiet-grey);">Top bar lockup (24px):</span>
+              <div style="display: flex; align-items: baseline; gap: 4px; font-family: var(--font-serif); font-size: 22px; font-weight: 800;">
+                <span style="color: var(--spot-blue);">1.</span>Mainline
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <table class="spec-table">
+          <tbody>
+            <tr>
+              <td>Typeface</td>
+              <td>Alegreya Bold (800) + Alegreya Sans (500)</td>
+            </tr>
+            <tr>
+              <td>Spot Accent</td>
+              <td>Spot Blue (#2340B8 light, #6888FF dark)</td>
+            </tr>
+            <tr>
+              <td>Contrast Ratio</td>
+              <td>18.5:1 on light paper; 16.8:1 on night charcoal</td>
+            </tr>
+          </tbody>
+        </table>
+      </article>
+
+      <!-- Option 2: The Diagram Registration Mark -->
+      <article class="option-card" aria-labelledby="opt2-heading">
+        <div class="option-header">
+          <h2 class="option-title" id="opt2-heading">
+            Option 2: The Diagram Registration Mark
+          </h2>
+          <span style="font-size: 13px; color: var(--quiet-grey);">Geometric mark + Alegreya 800</span>
+        </div>
+
+        <p class="option-desc">
+          Reflects the precision of printed diagram frames. The mark features the four registration corner brackets used in traditional chess publishing, with a spot blue core representing the board.
+        </p>
+
+        <div class="showcase-row">
+          <!-- Light Preview -->
+          <div class="preview-box box-light">
+            <span class="preview-caption">Light paper edition</span>
+            <div class="logo-opt2-wrap">
+              <div class="diagram-mark">
+                <svg class="diagram-mark-svg" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <!-- Corner brackets -->
+                  <path d="M4 12V4H12" stroke="#111111" stroke-width="2.5" stroke-linecap="square"/>
+                  <path d="M36 12V4H28" stroke="#111111" stroke-width="2.5" stroke-linecap="square"/>
+                  <path d="M4 28V36H12" stroke="#111111" stroke-width="2.5" stroke-linecap="square"/>
+                  <path d="M36 28V36H28" stroke="#111111" stroke-width="2.5" stroke-linecap="square"/>
+                  <!-- Spot Center Box -->
+                  <rect x="14" y="14" width="12" height="12" fill="#2340B8" rx="2"/>
+                </svg>
+              </div>
+              <div class="logo-opt2-text">Mainline</div>
+            </div>
+          </div>
+
+          <!-- Dark Preview -->
+          <div class="preview-box box-dark">
+            <span class="preview-caption">Night study edition</span>
+            <div class="logo-opt2-wrap">
+              <div class="diagram-mark">
+                <svg class="diagram-mark-svg" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M4 12V4H12" stroke="#F2F2EE" stroke-width="2.5" stroke-linecap="square"/>
+                  <path d="M36 12V4H28" stroke="#F2F2EE" stroke-width="2.5" stroke-linecap="square"/>
+                  <path d="M4 28V36H12" stroke="#F2F2EE" stroke-width="2.5" stroke-linecap="square"/>
+                  <path d="M36 28V36H28" stroke="#F2F2EE" stroke-width="2.5" stroke-linecap="square"/>
+                  <rect x="14" y="14" width="12" height="12" fill="#6888FF" rx="2"/>
+                </svg>
+              </div>
+              <div class="logo-opt2-text">Mainline</div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <span style="font-size: 13px; font-weight: 700; color: var(--quiet-grey); text-transform: uppercase;">Scale and app icon</span>
+          <div class="scale-row">
+            <div class="scale-item">
+              <div class="app-icon app-icon-128 icon-light">
+                <svg width="60" height="60" viewBox="0 0 40 40" fill="none">
+                  <path d="M4 12V4H12" stroke="#111111" stroke-width="2.5" stroke-linecap="square"/>
+                  <path d="M36 12V4H28" stroke="#111111" stroke-width="2.5" stroke-linecap="square"/>
+                  <path d="M4 28V36H12" stroke="#111111" stroke-width="2.5" stroke-linecap="square"/>
+                  <path d="M36 28V36H28" stroke="#111111" stroke-width="2.5" stroke-linecap="square"/>
+                  <rect x="14" y="14" width="12" height="12" fill="#2340B8" rx="2"/>
+                </svg>
+              </div>
+              <span class="scale-label">96 &times; 96</span>
+            </div>
+
+            <div class="scale-item">
+              <div class="app-icon app-icon-64 icon-dark">
+                <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+                  <path d="M4 12V4H12" stroke="#F2F2EE" stroke-width="2.5" stroke-linecap="square"/>
+                  <path d="M36 12V4H28" stroke="#F2F2EE" stroke-width="2.5" stroke-linecap="square"/>
+                  <path d="M4 28V36H12" stroke="#F2F2EE" stroke-width="2.5" stroke-linecap="square"/>
+                  <path d="M36 28V36H28" stroke="#F2F2EE" stroke-width="2.5" stroke-linecap="square"/>
+                  <rect x="14" y="14" width="12" height="12" fill="#6888FF" rx="2"/>
+                </svg>
+              </div>
+              <span class="scale-label">64 &times; 64</span>
+            </div>
+
+            <div class="scale-item">
+              <div class="app-icon app-icon-32 icon-light">
+                <svg width="22" height="22" viewBox="0 0 40 40" fill="none">
+                  <rect x="8" y="8" width="24" height="24" rx="4" fill="#2340B8"/>
+                </svg>
+              </div>
+              <span class="scale-label">36 &times; 36 (Favicon)</span>
+            </div>
+          </div>
+        </div>
+
+        <table class="spec-table">
+          <tbody>
+            <tr>
+              <td>Typeface</td>
+              <td>Alegreya Extra Bold (800)</td>
+            </tr>
+            <tr>
+              <td>Motif</td>
+              <td>Diagram registration corners (Dover and Informant book diagrams)</td>
+            </tr>
+            <tr>
+              <td>Contrast Ratio</td>
+              <td>Geometric mark stroke 18.5:1, Spot box 8.6:1</td>
+            </tr>
+          </tbody>
+        </table>
+      </article>
+
+      <!-- Option 3: Book Title with Spot Rule -->
+      <article class="option-card" aria-labelledby="opt3-heading">
+        <div class="option-header">
+          <h2 class="option-title" id="opt3-heading">
+            Option 3: The Book Print Monogram and Rule
+          </h2>
+          <span style="font-size: 13px; color: var(--quiet-grey);">Tracked Serif + Figurine Subtitle</span>
+        </div>
+
+        <p class="option-desc">
+          Inspired by printed chess book title pages. Uses letterspaced small capitals with a clean spot-blue baseline rule and chess figurine notation.
+        </p>
+
+        <div class="showcase-row">
+          <!-- Light Preview -->
+          <div class="preview-box box-light">
+            <span class="preview-caption">Light paper edition</span>
+            <div class="logo-opt3-wrap">
+              <div class="logo-opt3-text">MAINLINE</div>
+              <div class="logo-opt3-bar"></div>
+              <div class="logo-opt3-sub">
+                <span style="font-family: var(--font-symbols); font-size: 15px;">&#9822;</span> Adaptive Training
+              </div>
+            </div>
+          </div>
+
+          <!-- Dark Preview -->
+          <div class="preview-box box-dark">
+            <span class="preview-caption">Night study edition</span>
+            <div class="logo-opt3-wrap">
+              <div class="logo-opt3-text">MAINLINE</div>
+              <div class="logo-opt3-bar"></div>
+              <div class="logo-opt3-sub">
+                <span style="font-family: var(--font-symbols); font-size: 15px;">&#9822;</span> Adaptive Training
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <span style="font-size: 13px; font-weight: 700; color: var(--quiet-grey); text-transform: uppercase;">Scale and app icon</span>
+          <div class="scale-row">
+            <div class="scale-item">
+              <div class="app-icon app-icon-128 icon-light">
+                <div style="display: flex; flex-direction: column; align-items: center;">
+                  <span style="font-family: var(--font-serif); font-size: 46px; font-weight: 900; line-height: 1;">M</span>
+                  <div style="width: 28px; height: 4px; background: #2340B8; border-radius: 2px; margin-top: 4px;"></div>
+                </div>
+              </div>
+              <span class="scale-label">96 &times; 96</span>
+            </div>
+
+            <div class="scale-item">
+              <div class="app-icon app-icon-64 icon-dark">
+                <div style="display: flex; flex-direction: column; align-items: center;">
+                  <span style="font-family: var(--font-serif); font-size: 30px; font-weight: 900; line-height: 1;">M</span>
+                  <div style="width: 18px; height: 3px; background: #6888FF; border-radius: 2px; margin-top: 2px;"></div>
+                </div>
+              </div>
+              <span class="scale-label">64 &times; 64</span>
+            </div>
+
+            <div class="scale-item">
+              <div class="app-icon app-icon-32 icon-light">
+                <div style="font-family: var(--font-serif); font-size: 20px; font-weight: 900; line-height: 1;">M</div>
+              </div>
+              <span class="scale-label">36 &times; 36 (Favicon)</span>
+            </div>
+          </div>
+        </div>
+
+        <table class="spec-table">
+          <tbody>
+            <tr>
+              <td>Typeface</td>
+              <td>Alegreya Black (900) with 0.08em letter-spacing</td>
+            </tr>
+            <tr>
+              <td>Figurines</td>
+              <td>Noto Sans Symbols 2 chess glyphs</td>
+            </tr>
+            <tr>
+              <td>Contrast Ratio</td>
+              <td>18.5:1 light; 16.8:1 dark</td>
+            </tr>
+          </tbody>
+        </table>
+      </article>
+
+    </div>
+  </main>
+
+  <script>
+    // Theme Switcher Logic
+    const themeBtn = document.getElementById('theme-toggle');
+    const themeIcon = document.getElementById('theme-icon');
+    const themeText = document.getElementById('theme-text');
+
+    function applyTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      localStorage.setItem('mainline_proto_theme', theme);
+      if (theme === 'dark') {
+        themeIcon.innerHTML = '&#9790;';
+        themeText.textContent = 'Light mode';
+      } else {
+        themeIcon.innerHTML = '&#9788;';
+        themeText.textContent = 'Dark mode';
+      }
+    }
+
+    const savedTheme = localStorage.getItem('mainline_proto_theme') || 'light';
+    applyTheme(savedTheme);
+
+    themeBtn.addEventListener('click', () => {
+      const current = document.documentElement.getAttribute('data-theme') || 'light';
+      applyTheme(current === 'light' ? 'dark' : 'light');
+    });
+  </script>
+</body>
+</html>
