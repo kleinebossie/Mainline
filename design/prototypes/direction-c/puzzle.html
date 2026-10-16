@@ -90,18 +90,32 @@
       transition: background-color 0.2s ease, color 0.2s ease;
     }
 
-    /* Prototype Toolbar */
+    /* Floating Prototype Toolbar */
     .proto-bar {
-      background-color: var(--bg-sunken);
-      border-bottom: 1px solid var(--border-soft);
-      padding: 6px 12px;
-      font-size: 12px;
+      background-color: var(--bg-raised);
+      border: 1px solid var(--border-soft);
+      border-radius: 999px;
+      padding: 5px 10px;
+      font-size: 11px;
       display: flex;
       flex-wrap: wrap;
       align-items: center;
-      justify-content: space-between;
-      gap: 8px;
+      gap: 6px;
+      position: fixed;
+      bottom: 12px;
+      right: 12px;
       z-index: 100;
+      box-shadow: var(--shadow-raised);
+    }
+
+    @media (max-width: 767px) {
+      .proto-bar {
+        left: 10px;
+        right: 10px;
+        bottom: 6px;
+        border-radius: 10px;
+        justify-content: space-between;
+      }
     }
 
     .proto-left, .proto-right {
@@ -115,9 +129,8 @@
       font-family: var(--font-display);
       font-size: 13px;
       font-weight: 700;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      background: var(--bg-raised);
+      letter-spacing: 0.02em;
+      background: var(--bg-sunken);
       border: 1px solid var(--border-soft);
       padding: 2px 8px;
       border-radius: 6px;
@@ -133,14 +146,14 @@
     }
 
     .proto-links a.active {
-      background: var(--bg-raised);
+      background: var(--bg-sunken);
       color: var(--text-case);
       border: 1px solid var(--border-soft);
     }
 
     .proto-btn-group {
       display: inline-flex;
-      background: var(--bg-raised);
+      background: var(--bg-sunken);
       border: 1px solid var(--border-soft);
       border-radius: 6px;
       overflow: hidden;
@@ -168,11 +181,11 @@
       flex: 1;
       display: flex;
       flex-direction: column;
-      height: calc(100vh - 38px); /* Full height without scrolling */
+      height: 100vh;
       max-width: 1120px;
       margin: 0 auto;
       width: 100%;
-      padding: 8px 16px 12px;
+      padding: 8px 16px 48px;
     }
 
     @media (min-width: 768px) {
@@ -218,8 +231,7 @@
       font-family: var(--font-display);
       font-size: 16px;
       font-weight: 700;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
+      letter-spacing: 0.01em;
       color: var(--text-dial);
     }
 

@@ -87,20 +87,32 @@
       outline-offset: 2px;
     }
 
-    /* Prototype Toolbar */
+    /* Floating Prototype Toolbar */
     .proto-bar {
-      background-color: var(--bg-sunken);
-      border-bottom: 1px solid var(--border-soft);
-      padding: 8px 16px;
+      background-color: var(--bg-raised);
+      border: 1px solid var(--border-soft);
+      border-radius: 999px;
+      padding: 6px 12px;
       font-size: 12px;
       display: flex;
       flex-wrap: wrap;
       align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      position: sticky;
-      top: 0;
-      z-index: 100;
+      gap: 10px;
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 150;
+      box-shadow: var(--shadow-raised);
+    }
+
+    @media (max-width: 767px) {
+      .proto-bar {
+        bottom: 68px;
+        right: 12px;
+        left: 12px;
+        border-radius: 12px;
+        justify-content: space-between;
+      }
     }
 
     .proto-left, .proto-right {
@@ -114,9 +126,8 @@
       font-family: var(--font-display);
       font-size: 13px;
       font-weight: 700;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      background: var(--bg-raised);
+      letter-spacing: 0.02em;
+      background: var(--bg-sunken);
       border: 1px solid var(--border-soft);
       padding: 3px 8px;
       border-radius: 6px;
@@ -132,7 +143,7 @@
     }
 
     .proto-links a.active {
-      background: var(--bg-raised);
+      background: var(--bg-sunken);
       color: var(--text-case);
       border: 1px solid var(--border-soft);
     }
@@ -143,7 +154,7 @@
 
     .proto-btn-group {
       display: inline-flex;
-      background: var(--bg-raised);
+      background: var(--bg-sunken);
       border: 1px solid var(--border-soft);
       border-radius: 6px;
       overflow: hidden;
@@ -171,7 +182,7 @@
       background: var(--bg-raised);
       border-bottom: 1px solid var(--border-soft);
       position: sticky;
-      top: 41px; /* below proto-bar */
+      top: 0;
       z-index: 90;
       box-shadow: 0 1px 3px rgba(0,0,0,0.03);
     }
@@ -204,10 +215,9 @@
 
     .brand-title {
       font-family: var(--font-display);
-      font-size: 22px;
+      font-size: 23px;
       font-weight: 700;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
+      letter-spacing: 0.01em;
       line-height: 1;
     }
 
@@ -359,17 +369,15 @@
     .date-label {
       font-size: 13px;
       color: var(--text-dial);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
       font-weight: 700;
     }
 
     .page-title {
       font-family: var(--font-display);
-      font-size: 32px;
+      font-size: 34px;
       font-weight: 700;
       letter-spacing: 0.01em;
-      line-height: 1.15;
+      line-height: 1.1;
       margin-top: 2px;
     }
 
@@ -395,9 +403,9 @@
 
     .dial-wrap {
       position: relative;
-      width: 260px;
-      height: 260px;
-      margin: 8px auto 16px;
+      width: 264px;
+      height: 264px;
+      margin: 4px auto 8px;
     }
 
     .dial-svg {
@@ -416,34 +424,34 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 28px;
+      padding: 24px;
     }
 
     .dial-status-text {
       font-size: 13px;
       color: var(--text-dial);
       font-weight: 700;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
     }
 
+    /* Tactile round primary button inside the plan ring */
     .dial-btn-primary {
       background: var(--btn-brass-bg);
       color: var(--btn-brass-text);
       border: none;
-      border-radius: var(--radius-btn);
-      padding: 10px 20px;
-      font-family: var(--font-display);
-      font-size: 18px;
+      border-radius: 999px;
+      padding: 12px 26px;
+      font-family: var(--font-body);
+      font-size: 15px;
       font-weight: 700;
-      letter-spacing: 0.02em;
-      text-transform: uppercase;
       cursor: pointer;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+      box-shadow: 0 3px 10px rgba(42, 38, 35, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.35);
       transition: background 0.15s ease, transform 0.1s ease;
       text-decoration: none;
       display: inline-flex;
       align-items: center;
       gap: 6px;
+      min-height: 44px;
     }
 
     .dial-btn-primary:hover {
@@ -536,11 +544,9 @@
       gap: 6px;
       background: var(--felt-green-subtle);
       color: var(--felt-green);
-      font-family: var(--font-display);
-      font-size: 15px;
+      font-family: var(--font-body);
+      font-size: 13px;
       font-weight: 700;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
       padding: 4px 12px;
       border-radius: 20px;
       margin-bottom: 8px;
@@ -580,12 +586,10 @@
     }
 
     .summary-box-title {
-      font-family: var(--font-display);
-      font-size: 14px;
+      font-family: var(--font-body);
+      font-size: 13px;
       font-weight: 700;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      color: var(--text-dial);
+      color: var(--text-case);
       margin-bottom: 8px;
     }
 
@@ -618,9 +622,7 @@
     }
 
     .optional-extras-title {
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
+      font-size: 13px;
       color: var(--text-dial);
       font-weight: 700;
       margin-bottom: 8px;
@@ -700,11 +702,9 @@
 
     .section-title {
       font-family: var(--font-display);
-      font-size: 18px;
+      font-size: 20px;
       font-weight: 700;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      color: var(--text-dial);
+      color: var(--text-case);
     }
 
     .section-count {
@@ -1018,10 +1018,9 @@
 
     .sheet-title {
       font-family: var(--font-display);
-      font-size: 20px;
+      font-size: 22px;
       font-weight: 700;
-      letter-spacing: 0.02em;
-      text-transform: uppercase;
+      letter-spacing: 0.01em;
     }
 
     .sheet-close-btn {
@@ -1068,11 +1067,9 @@
     }
 
     .sheet-section-title {
-      font-family: var(--font-display);
+      font-family: var(--font-body);
       font-size: 13px;
       font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
       color: var(--text-dial);
       margin-bottom: 4px;
     }
@@ -1127,12 +1124,11 @@
       background: var(--btn-brass-bg);
       color: var(--btn-brass-text);
       border: none;
-      padding: 8px 16px;
-      border-radius: var(--radius-btn);
-      font-family: var(--font-display);
-      font-size: 15px;
+      padding: 8px 18px;
+      border-radius: 999px;
+      font-family: var(--font-body);
+      font-size: 14px;
       font-weight: 700;
-      text-transform: uppercase;
       cursor: pointer;
     }
 
@@ -1222,7 +1218,7 @@
             <path d="M20 5 L24 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
           </svg>
         </span>
-        <span class="brand-title">MAINLINE</span>
+        <span class="brand-title">Mainline</span>
       </a>
 
       <!-- Desktop Nav -->
@@ -1270,55 +1266,31 @@
       <div id="dialViewSection" style="width: 100%; display: flex; flex-direction: column; align-items: center;">
         <div class="dial-wrap" id="timeDialWrap" aria-hidden="true">
           <svg class="dial-svg" viewBox="0 0 280 280">
-            <defs>
-              <!-- Brass metallic gradient for active block -->
-              <linearGradient id="brassGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stop-color="var(--accent-brass-light)" />
-                <stop offset="100%" stop-color="var(--accent-brass-dark)" />
-              </linearGradient>
-            </defs>
-
-            <!-- Outer clock casing rim -->
-            <circle cx="140" cy="140" r="132" fill="none" stroke="var(--border-soft)" stroke-width="1.5" stroke-dasharray="3 3" opacity="0.7" />
-            <circle cx="140" cy="140" r="122" fill="none" stroke="var(--border-raised)" stroke-width="1" />
-
-            <!-- Minute calibrations around dial edge -->
-            <g opacity="0.55">
-              <line x1="140" y1="16" x2="140" y2="22" stroke="var(--text-dial)" stroke-width="2" />
-              <line x1="202" y1="32" x2="199" y2="38" stroke="var(--text-dim)" stroke-width="1" />
-              <line x1="248" y1="78" x2="242" y2="81" stroke="var(--text-dim)" stroke-width="1" />
-              <line x1="264" y1="140" x2="258" y2="140" stroke="var(--text-dial)" stroke-width="2" />
-              <line x1="248" y1="202" x2="242" y2="199" stroke="var(--text-dim)" stroke-width="1" />
-              <line x1="202" y1="248" x2="199" y2="242" stroke="var(--text-dim)" stroke-width="1" />
-              <line x1="140" y1="264" x2="140" y2="258" stroke="var(--text-dial)" stroke-width="2" />
-              <line x1="78" y1="248" x2="81" y2="242" stroke="var(--text-dim)" stroke-width="1" />
-              <line x1="32" y1="202" x2="38" y2="199" stroke="var(--text-dim)" stroke-width="1" />
-              <line x1="16" y1="140" x2="22" y2="140" stroke="var(--text-dial)" stroke-width="2" />
-              <line x1="32" y1="78" x2="38" y2="81" stroke="var(--text-dim)" stroke-width="1" />
-              <line x1="78" y1="32" x2="81" y2="38" stroke="var(--text-dim)" stroke-width="1" />
-            </g>
+            <!-- Subtle recessed enamel bezel (no stopwatch ticks, zero countdown pressure) -->
+            <circle cx="140" cy="140" r="122" fill="none" stroke="var(--border-soft)" stroke-width="1" />
+            <circle cx="140" cy="140" r="94" fill="none" stroke="var(--border-raised)" stroke-width="1" />
 
             <!-- Background Track -->
-            <circle cx="140" cy="140" r="108" fill="none" stroke="var(--dial-track)" stroke-width="14" stroke-linecap="butt" />
+            <circle cx="140" cy="140" r="108" fill="none" stroke="var(--dial-track)" stroke-width="16" stroke-linecap="butt" />
 
             <!-- Arc Segment 1: Personal blunder drill (10 min) - Done -->
-            <path id="dialArc1" d="M 143.30 32.05 A 108 108 0 0 1 246.15 159.88" fill="none" stroke="var(--felt-green)" stroke-width="14" stroke-linecap="butt" />
+            <path id="dialArc1" d="M 145.30 32.15 A 108 108 0 0 1 246.15 159.88" fill="none" stroke="var(--felt-green)" stroke-width="16" stroke-linecap="round" />
 
             <!-- Arc Segment 2: Spaced tactical review (10 min) - Done -->
-            <path id="dialArc2" d="M 244.74 166.32 A 108 108 0 0 1 97.86 239.44" fill="none" stroke="var(--felt-green)" stroke-width="14" stroke-linecap="butt" />
+            <path id="dialArc2" d="M 243.50 170.32 A 108 108 0 0 1 97.86 239.44" fill="none" stroke="var(--felt-green)" stroke-width="16" stroke-linecap="round" />
 
             <!-- Arc Segment 3: Themed tactics (10 min) - Next (Active) -->
-            <path id="dialArc3" d="M 91.87 236.68 A 108 108 0 0 1 51.88 77.56" fill="none" stroke="var(--accent-brass)" stroke-width="15" stroke-linecap="butt" />
+            <path id="dialArc3" d="M 88.87 235.18 A 108 108 0 0 1 51.88 77.56" fill="none" stroke="var(--accent-brass)" stroke-width="17" stroke-linecap="round" />
 
             <!-- Arc Segment 4: Endgame technique (5 min) - Queued -->
-            <path id="dialArc4" d="M 55.86 72.30 A 108 108 0 0 1 136.70 32.05" fill="none" stroke="var(--dial-track)" stroke-width="14" stroke-linecap="butt" />
+            <path id="dialArc4" d="M 58.86 69.30 A 108 108 0 0 1 134.70 32.15" fill="none" stroke="var(--dial-track)" stroke-width="16" stroke-linecap="round" />
           </svg>
 
           <!-- Inside the Dial Ring -->
           <div class="dial-inner-content">
             <div class="dial-status-text" id="dialSummaryText">15 min left today · 2 of 4 done</div>
             <a href="puzzle.html" class="dial-btn-primary" id="dialPrimaryBtn" aria-label="Continue session: Block 3 Themed tactics">
-              Continue
+              Continue session
             </a>
             <button type="button" class="dial-change-link" onclick="openBudgetSheet()">Change time</button>
           </div>
@@ -1339,7 +1311,7 @@
             </div>
             <div style="display: flex; align-items: center; gap: 10px;">
               <button type="button" class="dial-change-link" style="margin-top: 0;" onclick="openBudgetSheet()">Change time</button>
-              <a href="puzzle.html" class="dial-btn-primary" style="padding: 8px 16px; font-size: 15px;">Continue</a>
+              <a href="puzzle.html" class="dial-btn-primary" style="padding: 8px 18px; font-size: 14px;">Continue session</a>
             </div>
           </div>
         </div>
@@ -1483,7 +1455,6 @@
             </div>
           </div>
           <div class="block-right">
-            <a href="puzzle.html" class="block-start-btn" aria-label="Start Themed tactics">Start</a>
             <button type="button" class="block-more-btn" onclick="openWhySheet('themed_tactics')" aria-label="Why this block and options">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>
             </button>

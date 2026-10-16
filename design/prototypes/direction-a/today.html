@@ -49,30 +49,15 @@
       line-height: 1.15;
     }
 
-    /* Process goal callout */
-    .process-goal-box {
-      background-color: var(--color-raised);
-      border-radius: var(--radius-md);
-      padding: 14px 18px;
-      border: 1px solid var(--color-card-border-subtle);
+    /* Process focus inline note inside hero */
+    .process-focus-note {
+      padding-top: 14px;
+      border-top: 1px solid var(--color-card-border-subtle);
       display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .goal-top {
-      display: flex;
-      align-items: center;
+      align-items: baseline;
       justify-content: space-between;
       gap: 12px;
-    }
-
-    .goal-label {
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--color-graphite);
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
+      flex-wrap: wrap;
     }
 
     .goal-text {
@@ -81,16 +66,14 @@
       line-height: 1.45;
     }
 
-    /* Primary Action Hero Card */
+    /* Primary Action Hero Surface (flat tonal section, no heavy card border) */
     .session-hero-card {
       background-color: var(--color-raised);
-      border: 1px solid var(--color-card-border);
       border-radius: var(--radius-lg);
-      padding: 20px 22px;
+      padding: 22px 24px;
       display: flex;
       flex-direction: column;
       gap: 16px;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
     }
 
     .hero-top-row {
@@ -149,22 +132,20 @@
     .blocks-section {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 10px;
     }
 
     .section-header-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 4px;
+      padding: 0 2px;
     }
 
     .section-heading {
       font-size: 14px;
       font-weight: 600;
       color: var(--color-graphite);
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
     }
 
     .section-progress-text {
@@ -175,40 +156,37 @@
     .block-list {
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 6px;
     }
 
-    /* Block item row */
+    /* Block item row: flat section with 3px leading evidence gutter, zero box borders */
     .block-item {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 16px;
       padding: 16px 18px;
-      background-color: var(--color-raised);
+      background-color: transparent;
       border-radius: 0 var(--radius-md) var(--radius-md) 0;
-      border-top: 1px solid var(--color-card-border-subtle);
-      border-right: 1px solid var(--color-card-border-subtle);
-      border-bottom: 1px solid var(--color-card-border-subtle);
+      border-top: none;
+      border-right: none;
+      border-bottom: none;
       position: relative;
-      transition: background-color 0.12s ease, transform 0.12s ease;
+      transition: background-color 0.12s ease;
     }
 
     .block-item:hover {
-      background-color: var(--color-raised-hover);
+      background-color: var(--color-raised);
     }
 
-    /* Active / Next block row emphasis */
+    /* Active / Next block row emphasis: raised flat surface */
     .block-item.is-active {
-      border-top-color: var(--color-card-border);
-      border-right-color: var(--color-card-border);
-      border-bottom-color: var(--color-card-border);
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+      background-color: var(--color-raised);
     }
 
     /* Done block row muted appearance */
     .block-item.is-done {
-      opacity: 0.82;
+      opacity: 0.76;
     }
 
     .block-item.is-done .block-name {
@@ -377,8 +355,6 @@
     .metric-label {
       font-size: 12px;
       color: var(--color-graphite);
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
     }
 
     .metric-value {
@@ -586,46 +562,38 @@
         <h1 class="today-title title-display">Today</h1>
       </header>
 
-      <!-- Process Goal Card -->
-      <section class="process-goal-box" aria-label="Today process goal">
-        <div class="goal-top">
-          <span class="goal-label">Process goal</span>
-          <span class="evidence-chip evidence-chip-strong" title="Strong evidence, general skill acquisition">
-            Strong evidence <span class="chip-glyph" aria-hidden="true">!!</span>
-          </span>
-        </div>
-        <p class="goal-text">
-          Focus on candidate move validation before you play. Calculate forcing lines to quiet positions.
-        </p>
-      </section>
-
-      <!-- Primary Action Hero Card -->
+      <!-- Primary Action Hero Surface -->
       <section class="session-hero-card" aria-label="Session status">
         <div class="hero-top-row">
           <div class="hero-title-group">
-            <h2 class="hero-title">Session in progress</h2>
-            <span class="hero-subtitle">Block 3 of 4 is next</span>
+            <h2 class="hero-title">Endgame technique is next</h2>
+            <span class="hero-subtitle">Block 3 of 4 · <span class="time-badge num">30 min</span> remaining of <span class="num">55 min</span> plan</span>
           </div>
-          <div class="hero-time-info">
-            <span class="time-badge num">30 min</span> remaining of <span class="num">55 min</span> plan
+          <div class="hero-actions">
+            <a href="puzzle.html" class="btn-primary hero-primary-btn" id="continue-session-btn">
+              Continue session
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+            </a>
+            <button type="button" class="btn-secondary" id="change-time-btn">
+              Change time
+            </button>
           </div>
         </div>
 
-        <div class="hero-actions">
-          <a href="puzzle.html" class="btn-primary hero-primary-btn" id="continue-session-btn">
-            Continue session
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-          </a>
-          <button type="button" class="btn-secondary" id="change-time-btn">
-            Change time
-          </button>
+        <div class="process-focus-note">
+          <p class="goal-text">
+            <strong>Today's focus:</strong> Validate candidate moves before you play. Calculate forcing lines to quiet positions.
+          </p>
+          <span class="evidence-chip evidence-chip-strong" title="Strong evidence, general skill acquisition">
+            Strong evidence <span class="chip-glyph" aria-hidden="true">!!</span>
+          </span>
         </div>
       </section>
 
       <!-- Training Block List -->
       <section class="blocks-section" aria-label="Today training blocks">
         <div class="section-header-row">
-          <span class="section-heading">Training blocks</span>
+          <span class="section-heading">Training sequence</span>
           <span class="section-progress-text"><span class="num">2</span> of <span class="num">4</span> done</span>
         </div>
 
@@ -688,7 +656,7 @@
               <div class="block-details">
                 <div class="block-header-line">
                   <h3 class="block-name">Endgame technique</h3>
-                  <span class="block-duration num">15 min</span>
+                  <span class="block-duration num">15 min · Next up</span>
                   <span class="evidence-chip evidence-chip-some">
                     Some evidence <span class="chip-glyph" aria-hidden="true">!</span>
                   </span>
@@ -697,9 +665,6 @@
               </div>
             </div>
             <div class="block-right">
-              <a href="puzzle.html" class="btn-primary block-start-btn">
-                Start
-              </a>
               <button type="button" class="block-menu-btn" data-why="block-3" title="Block options and rationale" aria-label="Options for Endgame technique">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
               </button>
