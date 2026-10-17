@@ -19,6 +19,7 @@ import {
   BOARD_SIZE_CLASS,
   InteractiveBoard,
   type BoardMove,
+  type BoardFeedback,
 } from "@/components/interactive-board";
 import { stepSolve, type SolveState } from "@/engine/interactive/session";
 import { deriveBlunderDrills } from "@/engine/interactive/blunder-drill";
@@ -122,6 +123,7 @@ export function InstantBlunderDrill({
   const [solveStatus, setSolveStatus] = useState<
     "pending" | "correct" | "wrong" | "solved"
   >("pending");
+  const [boardFeedback, setBoardFeedback] = useState<BoardFeedback | null>(null);
   const [boardFen, setBoardFen] = useState<string>(
     initialDrill?.fen ?? defaultStarter.fen,
   );
@@ -370,17 +372,25 @@ export function InstantBlunderDrill({
 
       if (result.step === "solved") {
         setBoardFen(result.state.position);
+        setBoardFeedback({ square: move.to, kind: "correct" });
         setSolveStatus("solved");
       } else if (result.step === "wrong") {
         setSolveStatus("wrong");
+        setBoardFeedback({ square: move.to, kind: "mistake" });
         if (result.transientPosition) {
           setBoardFen(result.transientPosition);
           setTimeout(() => {
             setBoardFen(result.checkpointPosition);
+            setBoardFeedback(null);
+          }, 750);
+        } else {
+          setTimeout(() => {
+            setBoardFeedback(null);
           }, 750);
         }
       } else {
         setBoardFen(result.state.position);
+        setBoardFeedback({ square: move.to, kind: "correct" });
         setSolveStatus("correct");
       }
     },
@@ -396,6 +406,7 @@ export function InstantBlunderDrill({
       attempts: solveState.attempts + 1,
     });
     setBoardFen(drill.fen);
+    setBoardFeedback(null);
     setSolveStatus("pending");
   }, [drill, solveState.attempts]);
 
@@ -428,6 +439,7 @@ export function InstantBlunderDrill({
                 orientation={orientation}
                 onMove={handleMove}
                 disabled={solveStatus === "solved"}
+                feedback={boardFeedback}
               />
             </div>
 

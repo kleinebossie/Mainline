@@ -539,10 +539,10 @@ test("a lost outcome response retries the same request with one effect set", asy
 
   await page.goto(`/train/${itemId}`);
   await expect(
-    page.getByRole("heading", { name: "Current puzzle" }),
+    page.getByRole("heading", { name: /to move/i }),
   ).toBeVisible();
-  await page.locator('[data-square="c7"]').click();
-  await page.locator('[data-square="c5"]').click();
+  await page.locator("#interactive-board-square-c7").click();
+  await page.locator("#interactive-board-square-c5").click();
   await expect(page.getByText("Solved", { exact: true })).toBeVisible();
   const retryResult = page.getByRole("button", { name: "Try saving result" });
   await expect(retryResult).toBeVisible();
@@ -566,7 +566,7 @@ test("a lost outcome response retries the same request with one effect set", asy
 
   await page.getByRole("button", { name: "Continue" }).click();
   await expect(
-    page.getByText("Session complete", { exact: true }),
+    page.getByRole("heading", { name: "Session complete" }),
   ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Back to Today" }),

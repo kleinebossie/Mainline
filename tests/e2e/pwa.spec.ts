@@ -42,7 +42,7 @@ test("PWA manifest and service worker are installable without caching private ro
 test("Stockfish cross-origin isolation headers remain enabled", async ({
   request,
 }) => {
-  const response = await request.get("/train");
+  const response = await request.get("/today");
   expect(response.headers()["cross-origin-opener-policy"]).toBe("same-origin");
   expect(response.headers()["cross-origin-embedder-policy"]).toBe(
     "require-corp",
