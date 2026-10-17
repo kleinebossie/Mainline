@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useId, useRef, useState } from "react";
-import type { LucideIcon } from "lucide-react";
+import { useEffect, useState } from "react";
 import {
   Settings,
   SlidersHorizontal,
@@ -11,165 +10,172 @@ import {
   Link2,
   Download,
   LogOut,
+  LogIn,
+  Info,
+  Sun,
+  Moon,
+  Laptop,
   FlaskConical,
 } from "lucide-react";
+import { useTheme } from "next-themes";
 
 import { signOutAction } from "@/server/auth-actions";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
 import { safeRouteContext } from "@/lib/feedback";
+import { isGuestSession } from "@/lib/guest-session";
 import { trpc } from "@/lib/trpc/react";
-import { cn } from "@/lib/utils";
-
-// The account menu at the right of the top bar: the home for everything that is
-// account/data rather than training: Settings, Connections, data export, and Sign out.
-// A small popover (Esc + click-outside + roving focus) so the shell stays
-// lean (the repo only ships button/card/input primitives) and on-brand (mono, paper, ink).
-
-interface AccountMenuItem {
-  href: string;
-  label: string;
-  icon: LucideIcon;
-}
-
-const ITEMS: ReadonlyArray<AccountMenuItem> = [
-  { href: "/onboarding", label: "Setup", icon: SlidersHorizontal },
-  { href: "/settings", label: "Settings", icon: Settings },
-  { href: "/settings#feedback", label: "Feedback", icon: MessageSquare },
-  { href: "/connections", label: "Connections", icon: Link2 },
-  { href: "/settings#data", label: "Export data", icon: Download },
-];
+import {
+  Menu,
+  MenuTrigger,
+  MenuContent,
+  MenuItem,
+  MenuSeparator,
+  MenuLabel,
+} from "@/components/ui/menu";
 
 export function AccountMenu() {
   const pathname = usePathname();
   const feedbackFrom = safeRouteContext(pathname) ?? "/settings";
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const firstItemRef = useRef<HTMLAnchorElement>(null);
-  const menuId = useId();
+  const { setTheme } = useTheme();
+
+  const [isGuest, setIsGuest] = useState(false);
+
+  useEffect(() => {
+    setIsGuest(isGuestSession());
+  }, []);
 
   const consent = trpc.account.researchConsent.useQuery(undefined, {
     staleTime: 60_000,
   });
   const hasResearchConsent = consent.data?.hasActiveGrant === true;
 
-  useEffect(() => {
-    if (!open) return;
-    function onPointer(e: MouseEvent) {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    }
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") {
-        setOpen(false);
-        triggerRef.current?.focus();
-      }
-    }
-    document.addEventListener("mousedown", onPointer);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onPointer);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
-
   return (
-    <div ref={rootRef} className="relative flex items-center gap-1">
+    <div className="relative flex items-center gap-1.5">
       {hasResearchConsent && (
         <Link
           href="/settings"
           title="Observational research active"
           aria-label="Observational research active"
-          className="flex h-9 w-9 items-center justify-center rounded-sm font-mono text-evergreen hover:text-evergreen-bright hover:bg-evergreen/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
+          className="flex h-9 w-9 items-center justify-center rounded-sm font-sans text-evergreen hover:text-evergreen-bright hover:bg-evergreen/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
         >
           <FlaskConical className="h-4 w-4" aria-hidden="true" />
         </Link>
       )}
 
-      <button
-        type="button"
-        aria-expanded={open}
-        aria-controls={open ? menuId : undefined}
-        aria-label="Account menu"
-        onClick={() => setOpen((v) => !v)}
-        onKeyDown={(event) => {
-          if (event.key === "ArrowDown") {
-            event.preventDefault();
-            setOpen(true);
-            requestAnimationFrame(() => firstItemRef.current?.focus());
-          }
-        }}
-        ref={triggerRef}
-        className={cn(
-          "flex h-9 w-9 items-center justify-center rounded-sm font-mono text-base transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-paper",
-          open
-            ? "text-ink bg-ink/[0.06]"
-            : "text-graphite hover:text-ink hover:bg-ink/[0.04]",
-        )}
-      >
-        <Settings className="h-4 w-4" aria-hidden="true" />
-      </button>
-
-      {open && (
-        <div
-          id={menuId}
-          role="group"
-          aria-label="Account actions"
-          className="absolute right-0 top-full z-40 mt-2 w-52 overflow-hidden rounded-md border border-line bg-paper-raised/95 p-1 shadow-lg backdrop-blur-md animate-in fade-in-0 zoom-in-95 motion-reduce:animate-none"
+      {isGuest && (
+        <span
+          className="hidden sm:inline-flex items-center gap-1 rounded-full border border-line bg-paper-raised px-2.5 py-1 text-xs font-sans text-graphite"
+          title="Outcomes save to browser storage"
         >
-          {ITEMS.map((item) => {
-            const Icon = item.icon;
-            const isSettingsItem = item.label === "Settings";
-            return (
-              <Link
-                key={item.href}
-                href={
-                  item.label === "Feedback"
-                    ? `/settings?feedbackFrom=${encodeURIComponent(feedbackFrom)}#feedback`
-                    : item.href
-                }
-                ref={item === ITEMS[0] ? firstItemRef : undefined}
-                onClick={() => setOpen(false)}
-                className="group flex min-h-8 items-center justify-between rounded-sm px-2.5 py-1.5 font-mono text-xs tracking-tight text-graphite transition-colors hover:bg-ink/[0.06] hover:text-ink focus-visible:bg-ink/[0.06] focus-visible:outline-none"
-              >
-                <div className="flex items-center gap-2.5">
-                  <span className="flex h-4 w-4 shrink-0 items-center justify-center text-graphite/70 transition-colors group-hover:text-ink">
-                    <Icon
-                      className="h-3.5 w-3.5 stroke-[1.75]"
-                      aria-hidden="true"
-                    />
-                  </span>
-                  <span className="leading-none">{item.label}</span>
-                </div>
-                {isSettingsItem && hasResearchConsent && (
-                  <span
-                    title="Observational research active"
-                    className="flex items-center text-evergreen"
-                  >
-                    <FlaskConical className="h-3.5 w-3.5" aria-hidden="true" />
-                  </span>
-                )}
-              </Link>
-            );
-          })}
-          <div className="my-1 h-px bg-line/70" />
-          <form action={signOutAction}>
-            <PendingSubmitButton
-              pendingLabel="Signing out…"
-              className="group flex min-h-8 w-full items-center gap-2.5 rounded-sm px-2.5 py-1.5 text-left font-mono text-xs tracking-tight text-graphite transition-colors hover:bg-clay/10 hover:text-clay focus-visible:bg-clay/10 focus-visible:outline-none"
-            >
-              <span className="flex h-4 w-4 shrink-0 items-center justify-center text-graphite/70 transition-colors group-hover:text-clay">
-                <LogOut
-                  className="h-3.5 w-3.5 stroke-[1.75]"
-                  aria-hidden="true"
-                />
-              </span>
-              <span className="leading-none">Sign out</span>
-            </PendingSubmitButton>
-          </form>
-        </div>
+          <span className="h-1.5 w-1.5 rounded-full bg-evergreen" aria-hidden="true" />
+          Guest mode
+        </span>
       )}
+
+      <Menu>
+        <MenuTrigger asChild>
+          <button
+            type="button"
+            aria-label="Account menu"
+            className="flex h-9 w-9 items-center justify-center rounded-sm text-graphite transition-colors hover:bg-ink/[0.04] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-paper data-[state=open]:bg-ink/[0.06] data-[state=open]:text-ink"
+          >
+            <Settings className="h-4 w-4" aria-hidden="true" />
+          </button>
+        </MenuTrigger>
+
+        <MenuContent align="end" className="w-56 font-sans">
+          {isGuest && (
+            <>
+              <div className="px-3 py-2 text-xs text-graphite bg-ink/[0.03] rounded-xs mb-1">
+                <p className="font-semibold text-ink">Guest session</p>
+                <p className="mt-0.5 leading-normal">
+                  Outcomes save to browser storage. Sign in to sync across devices.
+                </p>
+              </div>
+              <MenuSeparator />
+            </>
+          )}
+
+          <MenuLabel>Navigation</MenuLabel>
+          <MenuItem asChild>
+            <Link href="/onboarding" className="flex items-center gap-2.5">
+              <SlidersHorizontal className="h-4 w-4 text-graphite" aria-hidden="true" />
+              <span>Setup</span>
+            </Link>
+          </MenuItem>
+          <MenuItem asChild>
+            <Link href="/settings" className="flex items-center gap-2.5">
+              <Settings className="h-4 w-4 text-graphite" aria-hidden="true" />
+              <span>Settings</span>
+            </Link>
+          </MenuItem>
+          <MenuItem asChild>
+            <Link href="/about" className="flex items-center gap-2.5">
+              <Info className="h-4 w-4 text-graphite" aria-hidden="true" />
+              <span>About</span>
+            </Link>
+          </MenuItem>
+          <MenuItem asChild>
+            <Link
+              href={`/settings?feedbackFrom=${encodeURIComponent(feedbackFrom)}#feedback`}
+              className="flex items-center gap-2.5"
+            >
+              <MessageSquare className="h-4 w-4 text-graphite" aria-hidden="true" />
+              <span>Feedback</span>
+            </Link>
+          </MenuItem>
+          <MenuItem asChild>
+            <Link href="/connections" className="flex items-center gap-2.5">
+              <Link2 className="h-4 w-4 text-graphite" aria-hidden="true" />
+              <span>Connections</span>
+            </Link>
+          </MenuItem>
+          <MenuItem asChild>
+            <Link href="/settings#data" className="flex items-center gap-2.5">
+              <Download className="h-4 w-4 text-graphite" aria-hidden="true" />
+              <span>Export data</span>
+            </Link>
+          </MenuItem>
+
+          <MenuSeparator />
+          <MenuLabel>Theme</MenuLabel>
+          <MenuItem onSelect={() => setTheme("system")} className="flex items-center gap-2.5">
+            <Laptop className="h-4 w-4 text-graphite" aria-hidden="true" />
+            <span>System theme</span>
+          </MenuItem>
+          <MenuItem onSelect={() => setTheme("light")} className="flex items-center gap-2.5">
+            <Sun className="h-4 w-4 text-graphite" aria-hidden="true" />
+            <span>Light theme</span>
+          </MenuItem>
+          <MenuItem onSelect={() => setTheme("dark")} className="flex items-center gap-2.5">
+            <Moon className="h-4 w-4 text-graphite" aria-hidden="true" />
+            <span>Dark theme</span>
+          </MenuItem>
+
+          <MenuSeparator />
+          {isGuest ? (
+            <MenuItem asChild>
+              <Link
+                href="/signin"
+                className="flex items-center gap-2.5 text-evergreen hover:text-evergreen-bright"
+              >
+                <LogIn className="h-4 w-4" aria-hidden="true" />
+                <span>Sign in</span>
+              </Link>
+            </MenuItem>
+          ) : (
+            <form action={signOutAction} className="w-full">
+              <PendingSubmitButton
+                pendingLabel="Signing out…"
+                className="group flex min-h-10 w-full items-center gap-2.5 rounded-xs px-3 py-2 text-left font-sans text-sm text-graphite transition-colors hover:bg-clay/10 hover:text-clay focus-visible:bg-clay/10 focus-visible:outline-none"
+              >
+                <LogOut className="h-4 w-4 shrink-0 text-graphite group-hover:text-clay" aria-hidden="true" />
+                <span>Sign out</span>
+              </PendingSubmitButton>
+            </form>
+          )}
+        </MenuContent>
+      </Menu>
     </div>
   );
 }

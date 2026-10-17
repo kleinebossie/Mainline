@@ -1,18 +1,16 @@
 "use client";
 
-// TransparencyCard: The honesty-brand component (BUILD.md §7.6). It renders the
-// "why this / why now" rationale snapshotted on a ProgramItem (L3) as a chess-style
-// annotation: the evidence grade as an interactive badge, confidence as an eval meter,
-// and a dashed/struck treatment for thin or provisional evidence so it can never read as
-// established fact (VISION §2).
+// TransparencyCard: The honesty-brand component (BUILD.md section 7.6). It renders the
+// "why this / why now" rationale snapshotted on a ProgramItem (L3) as a chess annotation:
+// the evidence grade as an interactive badge, confidence as an eval meter,
+// and a dashed or struck treatment for thin or provisional evidence so it can never read as
+// established fact (VISION section 2).
 
-import { useId, useState } from "react";
-import { CircleHelp, ChevronDown } from "lucide-react";
 import {
   GradeMark,
   ConfidenceBar,
-  ProvisionalTag,
 } from "@/components/evidence";
+import { WhyButton } from "@/components/ui/why-button";
 import { cn } from "@/lib/utils";
 
 export interface TransparencyCardItem {
@@ -40,7 +38,7 @@ export interface TransparencyCardGroupProps {
   defaultCollapsed?: boolean;
 }
 
-function TransparencyDetails({
+export function TransparencyDetails({
   item,
   grouped,
 }: {
@@ -50,7 +48,7 @@ function TransparencyDetails({
   return (
     <section
       className={cn(
-        grouped && "border-l-2 border-line/40 pl-3 py-3 first:pt-2 last:pb-0",
+        grouped && "border-l-2 border-line/60 pl-3 py-3 first:pt-2 last:pb-0",
       )}
     >
       {item.title && (
@@ -58,7 +56,7 @@ function TransparencyDetails({
           {item.title}
         </h3>
       )}
-      <p className="text-ink mt-2 font-serif text-[0.95rem] leading-relaxed">
+      <p className="text-ink mt-2 font-sans text-sm leading-relaxed">
         {item.rationaleText}
       </p>
 
@@ -68,14 +66,14 @@ function TransparencyDetails({
       </div>
 
       {item.soften && (
-        <p className="text-graphite mt-3 border-l-2 border-amber/50 pl-3 font-serif text-sm italic leading-relaxed">
+        <p className="text-graphite mt-3 border-l-2 border-amber/50 pl-3 font-sans text-xs italic leading-relaxed">
           Honest caveat: the evidence here is thin. Treat this as a best-guess
           starting point, not a proven prescription. No training activity is
           proven to cause a rating gain.
         </p>
       )}
 
-      <p className="text-graphite mt-3 font-mono text-[0.7rem]">
+      <p className="text-graphite mt-3 font-mono text-xs">
         <span className="uppercase tracking-[0.12em]">Evidence source</span> ·{" "}
         {item.citationSource ?? item.citationKey}
       </p>
@@ -83,97 +81,71 @@ function TransparencyDetails({
   );
 }
 
-function TransparencyDisclosure({
-  items,
+export function TransparencyCard({
   className,
   defaultCollapsed = true,
   hideToggle = false,
-}: TransparencyCardGroupProps & { hideToggle?: boolean }) {
-  const [collapsed, setCollapsed] = useState(defaultCollapsed);
-  const contentId = useId();
-  const hasProvisional = items.some(
-    (item) => item.flag === "stub" || item.flag === "best-guess",
-  );
-  const expanded = hideToggle || !collapsed;
-
-  return (
-    <div
-      className={cn(
-        "bg-paper/60 rounded-md border border-dashed p-4",
-        className,
-      )}
-      role="note"
-    >
-      {!hideToggle && (
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <button
-            type="button"
-            onClick={() => setCollapsed((prev) => !prev)}
-            aria-expanded={expanded}
-            aria-controls={contentId}
-            className="eyebrow group flex cursor-pointer items-center gap-2 rounded-sm text-graphite transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
-          >
-            <CircleHelp
-              className="h-3.5 w-3.5 shrink-0 text-evergreen"
-              aria-hidden="true"
-            />
-            <span>Why this?</span>
-            <span className="font-mono text-[0.62rem] text-graphite/70 group-hover:text-ink">
-              ({collapsed ? "click to expand" : "click to collapse"})
-            </span>
-            <ChevronDown
-              className={cn(
-                "h-3.5 w-3.5 shrink-0 text-graphite transition-transform duration-200 group-hover:text-ink",
-                collapsed && "-rotate-90",
-              )}
-              aria-hidden="true"
-            />
-          </button>
-          {hasProvisional && <ProvisionalTag />}
-        </div>
-      )}
-
-      {expanded && (
-        <div id={contentId}>
-          {items.map((item, index) => (
-            <TransparencyDetails
-              key={`${item.citationKey}-${index}`}
-              item={item}
-              grouped={items.length > 1}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-export function TransparencyCard({
-  className,
-  defaultCollapsed,
-  hideToggle,
   ...item
 }: TransparencyCardProps) {
+  if (hideToggle || !defaultCollapsed) {
+    return (
+      <div
+        className={cn(
+          "bg-paper-raised/60 rounded-md border border-line p-3 sm:p-4",
+          className,
+        )}
+        role="note"
+      >
+        <div className="flex items-center justify-between mb-2">
+          <WhyButton items={[item]} label="Why this?" />
+        </div>
+        <TransparencyDetails item={item} grouped={false} />
+      </div>
+    );
+  }
+
   return (
-    <TransparencyDisclosure
-      items={[item]}
-      className={className}
-      defaultCollapsed={defaultCollapsed}
-      hideToggle={hideToggle}
-    />
+    <div className={cn("inline-block", className)}>
+      <WhyButton
+        items={[item]}
+        title={item.title ?? "Why this recommendation?"}
+        label="Why this?"
+      />
+    </div>
   );
 }
 
 export function TransparencyCardGroup({
   items,
   className,
-  defaultCollapsed,
+  defaultCollapsed = true,
 }: TransparencyCardGroupProps) {
+  if (!defaultCollapsed) {
+    return (
+      <div
+        className={cn(
+          "bg-paper-raised/60 rounded-md border border-line p-3 sm:p-4",
+          className,
+        )}
+        role="note"
+      >
+        <div className="flex items-center justify-between mb-2">
+          <WhyButton items={items} label="Why this?" />
+        </div>
+        {items.map((item, index) => (
+          <TransparencyDetails
+            key={`${item.citationKey}-${index}`}
+            item={item}
+            grouped={items.length > 1}
+          />
+        ))}
+      </div>
+    );
+  }
+
   return (
-    <TransparencyDisclosure
-      items={items}
-      className={className}
-      defaultCollapsed={defaultCollapsed}
-    />
+    <div className={cn("inline-block", className)}>
+      <WhyButton items={items} label="Why this?" />
+    </div>
   );
 }

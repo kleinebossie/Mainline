@@ -7,8 +7,8 @@ import { cn } from "@/lib/utils";
 
 // Controlled board: the parent owns the FEN; this component derives legal moves and notation.
 
-const LIGHT_SQUARE = "var(--board-light, #e9e7d8)";
-const DARK_SQUARE = "var(--board-dark, #6f8a7d)";
+const LIGHT_SQUARE = "var(--board-light, #E7ECE4)";
+const DARK_SQUARE = "var(--board-dark, #7B9B8A)";
 const SELECT_FILL = "rgba(111, 138, 125, 0.45)";
 const SELECT_RING = "inset 0 0 0 3px rgba(47, 64, 57, 0.85)";
 const HINT_FILL = "rgba(214, 158, 46, 0.5)";

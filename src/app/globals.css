@@ -3,34 +3,49 @@
 @tailwind utilities;
 
 /*
-  Mainline — "The Analysis Sheet"
-  A calm scientific instrument built from chess's own materials: notation, evaluation,
-  annotation glyphs. Cool drafting-paper + ink, one evergreen "eval" accent. Color encodes
-  evidence and nothing else (VISION §2). The shadcn token names are kept and remapped to
-  this palette so the whole app re-skins from one place.
+  Mainline: "The Analysis Sheet" (Direction A: Sheet, refined)
+  A calm scientific instrument built from chess materials: notation, evaluation,
+  annotation glyphs. Cool drafting paper and ink, one evergreen accent. Color encodes
+  evidence and nothing else (VISION section 2). The token names are kept and remapped to
+  this palette so the whole application re-skins from one place.
 */
 @layer base {
   :root {
-    /* — raw palette (HSL triplets) — */
-    --paper: 80 14% 93%; /* cool graph-paper ground (board light-square echo) */
-    --paper-raised: 75 24% 97%; /* cards / raised surfaces */
-    --ink: 210 13% 9%; /* near-black notation ink */
-    --graphite: 210 7% 38%; /* muted / secondary text */
-    --line: 84 12% 84%; /* hairline rules + the faint grid */
-    --evergreen: 152 39% 30%; /* primary · Grade A "best line" */
-    --evergreen-bright: 150 39% 41%; /* hover / Grade B */
-    --amber: 38 70% 38%; /* Grade C "dubious" */
-    --clay: 12 56% 42%; /* Grade D "blunder" · destructive */
-    --board-light: #e9e7d8;
-    --board-dark: #6f8a7d;
+    /* Raw palette (HSL triplets) */
+    --paper: 80 14% 93%; /* #EEF0EA */
+    --paper-raised: 75 29% 97%; /* #F8F9F5 */
+    --ink: 210 13% 9%; /* #15181B */
+    --graphite: 210 7% 38%; /* #5A6168 */
+    --line: 84 12% 84%; /* #D6DBD2 */
+    --evergreen: 153 40% 30%; /* #2E6B50 */
+    --evergreen-bright: 154 43% 22%; /* #20503B (accessible green text and hover) */
+    --amber: 36 74% 32%; /* #8C5C15 */
+    --clay: 11 56% 42%; /* #A8452F */
 
-    /* — evidence grade ramp (the signature; chess annotation grammar) — */
+    /* Semantic tokens */
+    --surface: var(--paper);
+    --surface-raised: var(--paper-raised);
+    --text: var(--ink);
+    --text-muted: var(--graphite);
+    --accent-color: var(--evergreen);
+    --correct: var(--evergreen);
+    --mistake: var(--clay);
+    --focus: var(--evergreen);
+
+    /* Board tokens */
+    --board-light: #E7ECE4;
+    --board-dark: #7B9B8A;
+    --board-highlight: rgba(46, 107, 80, 0.26);
+    --board-correct: rgba(46, 107, 80, 0.35);
+    --board-mistake: rgba(168, 69, 47, 0.35);
+
+    /* Evidence grade ramp (chess annotation grammar) */
     --grade-a: var(--evergreen);
-    --grade-b: var(--evergreen-bright);
+    --grade-b: 153 35% 42%;
     --grade-c: var(--amber);
     --grade-d: var(--clay);
 
-    /* — shadcn surface remap (existing utility classes adopt the palette) — */
+    /* shadcn surface remap (existing utility classes adopt the palette) */
     --background: var(--paper);
     --foreground: var(--ink);
     --card: var(--paper-raised);
@@ -38,33 +53,57 @@
     --popover: var(--paper-raised);
     --popover-foreground: var(--ink);
     --primary: var(--evergreen);
-    --primary-foreground: 75 24% 97%;
-    --secondary: 150 12% 89%;
+    --primary-foreground: 75 29% 97%;
+    --secondary: 80 10% 88%;
     --secondary-foreground: var(--ink);
-    --muted: 84 10% 90%;
+    --muted: 80 10% 88%;
     --muted-foreground: var(--graphite);
-    --accent: 150 14% 88%;
-    --accent-foreground: 152 39% 22%;
+    --accent: 153 25% 90%;
+    --accent-foreground: var(--evergreen-bright);
     --destructive: var(--clay);
-    --destructive-foreground: 75 24% 97%;
+    --destructive-foreground: 75 29% 97%;
     --border: var(--line);
     --input: 84 12% 80%;
     --ring: var(--evergreen);
-    --radius: 0.4rem;
+    --radius: 0.625rem;
+    --radius-sm: 0.375rem;
+    --radius-md: 0.625rem;
+    --radius-lg: 0.875rem;
   }
 
   .dark {
-    --paper: 210 13% 9%;
-    --paper-raised: 210 12% 12%;
-    --ink: 80 14% 93%;
-    --graphite: 210 8% 62%;
-    --line: 210 10% 22%;
-    --evergreen: 150 39% 45%;
-    --evergreen-bright: 150 45% 55%;
-    --amber: 38 64% 52%;
-    --clay: 12 58% 56%;
-    --board-light: #3a443f;
-    --board-dark: #23302b;
+    --paper: 195 10% 8%; /* #121516 */
+    --paper-raised: 200 10% 11%; /* #1A1E20 */
+    --ink: 84 13% 92%; /* #ECEEE9 */
+    --graphite: 208 8% 63%; /* #9BA2A8 */
+    --line: 204 10% 19%; /* #2C3236 */
+    --evergreen: 153 35% 45%; /* #4A9B76 */
+    --evergreen-bright: 152 44% 56%; /* #5DC092 */
+    --amber: 36 73% 63%; /* #E5AD5A */
+    --clay: 11 69% 60%; /* #E06D53 */
+
+    /* Semantic tokens */
+    --surface: var(--paper);
+    --surface-raised: var(--paper-raised);
+    --text: var(--ink);
+    --text-muted: var(--graphite);
+    --accent-color: var(--evergreen);
+    --correct: var(--evergreen);
+    --mistake: var(--clay);
+    --focus: var(--evergreen);
+
+    /* Board tokens (Dark) */
+    --board-light: #4A565C;
+    --board-dark: #273731;
+    --board-highlight: rgba(74, 155, 118, 0.35);
+    --board-correct: rgba(74, 155, 118, 0.40);
+    --board-mistake: rgba(224, 109, 83, 0.40);
+
+    /* Evidence grade ramp (Dark) */
+    --grade-a: var(--evergreen);
+    --grade-b: 152 44% 56%;
+    --grade-c: var(--amber);
+    --grade-d: var(--clay);
 
     --background: var(--paper);
     --foreground: var(--ink);
@@ -73,17 +112,17 @@
     --popover: var(--paper-raised);
     --popover-foreground: var(--ink);
     --primary: var(--evergreen);
-    --primary-foreground: 210 13% 9%;
-    --secondary: 210 10% 18%;
+    --primary-foreground: 195 10% 8%;
+    --secondary: 200 10% 16%;
     --secondary-foreground: var(--ink);
-    --muted: 210 10% 16%;
+    --muted: 200 10% 16%;
     --muted-foreground: var(--graphite);
-    --accent: 210 10% 18%;
-    --accent-foreground: 80 14% 93%;
+    --accent: 200 10% 16%;
+    --accent-foreground: 84 13% 92%;
     --destructive: var(--clay);
-    --destructive-foreground: 210 13% 9%;
+    --destructive-foreground: 195 10% 8%;
     --border: var(--line);
-    --input: 210 10% 26%;
+    --input: 204 10% 24%;
     --ring: var(--evergreen-bright);
   }
 }
@@ -94,28 +133,20 @@
   }
 
   body {
-    /* the human voice reads by default; the machine readout opts in via font-mono */
-    font-family: var(--font-fraunces), Georgia, serif;
-    /* faint graph-paper grid — the analysis sheet beneath everything */
+    font-family: var(--font-public-sans), system-ui, sans-serif;
     background-color: hsl(var(--paper));
-    background-image:
-      linear-gradient(hsl(var(--line) / 0.4) 1px, transparent 1px),
-      linear-gradient(90deg, hsl(var(--line) / 0.4) 1px, transparent 1px);
-    background-size: 28px 28px;
-    background-position: -1px -1px;
-    background-attachment: fixed;
+    color: hsl(var(--ink));
   }
 
-  /* tighter, more deliberate display setting for the human voice */
+  /* Display setting for section headings */
   h1,
   h2,
   h3 {
-    font-feature-settings: "ss01";
     letter-spacing: -0.015em;
     text-wrap: balance;
   }
 
-  /* honest data should always align; the machine readout is tabular */
+  /* Tabular numbers for notation and machine readouts */
   .font-mono {
     font-feature-settings: "zero" 1;
   }
@@ -131,24 +162,24 @@
 }
 
 @layer components {
-  /* The eyebrow — a small mono label that names a section like a notation header. */
+  /* The eyebrow: a small mono label that names a section like a notation header. */
   .eyebrow {
     @apply text-graphite font-mono text-[0.7rem] font-medium uppercase leading-tight;
     letter-spacing: 0.18em;
   }
 
-  /* Choice controls share one generous hit area and a visible group focus state. */
+  /* Choice controls share one hit area and a visible group focus state. */
   .choice-control {
-    @apply text-ink flex min-h-10 cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 font-serif text-sm transition-colors hover:bg-ink/[0.035] focus-within:bg-paper-raised focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-paper;
+    @apply text-ink flex min-h-10 cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 font-sans text-sm transition-colors hover:bg-ink/[0.035] focus-within:bg-paper-raised focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-paper;
   }
   .choice-control input {
     @apply border-input accent-evergreen h-4 w-4 shrink-0 bg-paper-raised;
   }
 
   /*
-    The eval-gutter — the recurring structural device. A thin vertical bar on the leading
+    The eval-gutter: the recurring structural device. A thin vertical bar on the leading
     edge of a card, tinted by the item's evidence grade, like the engine eval bar beside an
-    analysis line. Structure encodes evidence (VISION §2).
+    analysis line. Structure encodes evidence (VISION section 2).
   */
   .eval-gutter {
     position: relative;
@@ -195,34 +226,23 @@
     --gutter: hsl(var(--grade-d));
   }
   .eval-gutter[data-provisional="true"]::before {
-    /* placeholder / thin evidence reads as a dashed, unresolved bar — never solid fact */
+    /* Placeholder or thin evidence reads as a dashed, unresolved bar, never solid fact */
     background: repeating-linear-gradient(
       hsl(var(--grade-c)) 0 5px,
       transparent 5px 9px
     );
   }
 
-  /* A special header block representing today's entry */
+  /* Header block representing today's entry */
   .focus-card {
     position: relative;
-    background-image: radial-gradient(
-      hsl(var(--evergreen) / 0.04) 1px,
-      transparent 1px
-    );
-    background-size: 14px 14px;
     border-left-width: 3px !important;
     border-left-color: hsl(var(--evergreen)) !important;
-  }
-  .dark .focus-card {
-    background-image: radial-gradient(
-      hsl(var(--evergreen-bright) / 0.06) 1px,
-      transparent 1px
-    );
   }
 }
 
 @layer utilities {
-  /* page-load "reach depth" — the instrument settling, used once and quietly */
+  /* Page load settle animation, used quietly */
   @keyframes settle-in {
     from {
       opacity: 0;
@@ -237,7 +257,7 @@
     animation: settle-in 0.5s cubic-bezier(0.2, 0.6, 0.2, 1) both;
   }
 
-  /* Indeterminate top progress bar: one segment sliding across the track. */
+  /* Indeterminate top progress bar: one segment sliding across the track */
   @keyframes loading-slide {
     from {
       transform: translateX(-100%);
