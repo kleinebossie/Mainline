@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Mainline - Puzzle Focus (Direction C: Clock)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&family=Barlow+Condensed:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-enamel: #F3F3EF;
+      --bg-raised: #FAF9F5;
+      --bg-sunken: #EBE8E1;
+      --border-soft: #DDD9D0;
+      --border-raised: #ECE8E0;
+      --text-case: #2A2623;
+      --text-dial: #65635E;
+      --text-dim: #8E8B84;
+      --accent-brass: #A9823A;
+      --accent-brass-dark: #8C6822;
+      --accent-brass-light: #D4A853;
+      --btn-brass-bg: #A9823A;
+      --btn-brass-hover: #96732E;
+      --btn-brass-text: #181614;
+      --felt-green: #2F5D50;
+      --felt-green-subtle: rgba(47, 93, 80, 0.14);
+      --felt-green-tint: rgba(47, 93, 80, 0.38);
+      --flag-red: #C2412D;
+      --flag-red-subtle: rgba(194, 65, 45, 0.14);
+      --flag-red-tint: rgba(194, 65, 45, 0.38);
+      --board-light: #EFECE2;
+      --board-dark: #9E8A73;
+      --board-rim: #2A2623;
+      --board-coord: #7A6956;
+      --shadow-raised: 0 2px 8px rgba(42, 38, 35, 0.08);
+      --shadow-board: 0 8px 24px rgba(42, 38, 35, 0.14), inset 0 1px 2px rgba(255, 255, 255, 0.4);
+      --radius-card: 14px;
+      --radius-btn: 10px;
+      --font-display: 'Barlow Condensed', sans-serif;
+      --font-body: 'Atkinson Hyperlegible', sans-serif;
+    }
+
+    [data-theme="dark"] {
+      --bg-enamel: #181614;
+      --bg-raised: #221F1C;
+      --bg-sunken: #12100E;
+      --border-soft: #36312B;
+      --border-raised: #2E2924;
+      --text-case: #EFECE6;
+      --text-dial: #A6A29A;
+      --text-dim: #706B63;
+      --accent-brass: #D4A853;
+      --accent-brass-dark: #A9823A;
+      --accent-brass-light: #E7C275;
+      --btn-brass-bg: #D4A853;
+      --btn-brass-hover: #C59842;
+      --btn-brass-text: #181614;
+      --felt-green: #4B8F7C;
+      --felt-green-subtle: rgba(75, 143, 124, 0.2);
+      --felt-green-tint: rgba(75, 143, 124, 0.45);
+      --flag-red: #E56B55;
+      --flag-red-subtle: rgba(229, 107, 85, 0.2);
+      --flag-red-tint: rgba(229, 107, 85, 0.45);
+      --board-light: #D4CEBF;
+      --board-dark: #615547;
+      --board-rim: #141210;
+      --board-coord: #9E9382;
+      --shadow-raised: 0 2px 8px rgba(0, 0, 0, 0.4);
+      --shadow-board: 0 8px 28px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.05);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-enamel);
+      color: var(--text-case);
+      font-family: var(--font-body);
+      font-size: 15px;
+      line-height: 1.5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+
+    /* Floating Prototype Toolbar */
+    .proto-bar {
+      background-color: var(--bg-raised);
+      border: 1px solid var(--border-soft);
+      border-radius: 999px;
+      padding: 5px 10px;
+      font-size: 11px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+      position: fixed;
+      bottom: 12px;
+      right: 12px;
+      z-index: 100;
+      box-shadow: var(--shadow-raised);
+    }
+
+    @media (max-width: 767px) {
+      .proto-bar {
+        left: 10px;
+        right: 10px;
+        bottom: 6px;
+        border-radius: 10px;
+        justify-content: space-between;
+      }
+    }
+
+    .proto-left, .proto-right {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .proto-badge {
+      font-family: var(--font-display);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      background: var(--bg-sunken);
+      border: 1px solid var(--border-soft);
+      padding: 2px 8px;
+      border-radius: 6px;
+      color: var(--accent-brass);
+    }
+
+    .proto-links a {
+      color: var(--text-dial);
+      text-decoration: none;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-weight: 700;
+    }
+
+    .proto-links a.active {
+      background: var(--bg-sunken);
+      color: var(--text-case);
+      border: 1px solid var(--border-soft);
+    }
+
+    .proto-btn-group {
+      display: inline-flex;
+      background: var(--bg-sunken);
+      border: 1px solid var(--border-soft);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .proto-toggle-btn {
+      background: transparent;
+      border: none;
+      padding: 3px 8px;
+      font-family: var(--font-body);
+      font-size: 11px;
+      cursor: pointer;
+      color: var(--text-dial);
+      transition: all 0.15s ease;
+    }
+
+    .proto-toggle-btn.active {
+      background: var(--accent-brass);
+      color: var(--btn-brass-text);
+      font-weight: 700;
+    }
+
+    /* Focus Mode Shell (Decision 9) - NO app nav! */
+    .focus-shell {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      max-width: 1120px;
+      margin: 0 auto;
+      width: 100%;
+      padding: 8px 16px 48px;
+    }
+
+    @media (min-width: 768px) {
+      .focus-shell {
+        padding: 16px 24px 20px;
+      }
+    }
+
+    /* Focus Mode Top Header */
+    .focus-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 40px;
+      flex-shrink: 0;
+      margin-bottom: 6px;
+    }
+
+    .exit-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-dial);
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 14px;
+      padding: 6px 10px;
+      border-radius: 8px;
+      background: var(--bg-raised);
+      border: 1px solid var(--border-soft);
+      transition: all 0.15s ease;
+    }
+
+    .exit-btn:hover {
+      color: var(--text-case);
+      background: var(--bg-sunken);
+    }
+
+    .focus-progress-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--font-display);
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      color: var(--text-dial);
+    }
+
+    .focus-progress-count {
+      color: var(--text-case);
+      background: var(--bg-raised);
+      border: 1px solid var(--border-soft);
+      padding: 2px 8px;
+      border-radius: 6px;
+    }
+
+    .focus-menu-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      background: var(--bg-raised);
+      border: 1px solid var(--border-soft);
+      color: var(--text-dial);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .focus-dropdown {
+      position: absolute;
+      top: 40px;
+      right: 0;
+      width: 180px;
+      background: var(--bg-raised);
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius-card);
+      box-shadow: var(--shadow-raised);
+      padding: 6px;
+      display: none;
+      flex-direction: column;
+      z-index: 120;
+    }
+
+    .focus-dropdown.show {
+      display: flex;
+    }
+
+    .focus-menu-item {
+      padding: 8px 10px;
+      font-size: 13px;
+      color: var(--text-case);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: transparent;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: var(--font-body);
+      text-align: left;
+    }
+
+    .focus-menu-item:hover {
+      background: var(--bg-sunken);
+    }
+
+    /* Training Stage: Phone (stacked, 1 screen) vs Desktop (side-by-side) */
+    .train-stage {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 0; /* allows flex children to fit */
+    }
+
+    @media (min-width: 900px) {
+      .train-stage {
+        flex-direction: row;
+        align-items: center;
+        justify-content: center;
+        gap: 48px;
+      }
+    }
+
+    /* Chessboard Container */
+    .board-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      width: 100%;
+      max-width: 350px;
+      aspect-ratio: 1 / 1;
+    }
+
+    @media (min-width: 900px) {
+      .board-container {
+        max-width: 540px;
+      }
+    }
+
+    /* Chessboard Grid */
+    .chess-board {
+      width: 100%;
+      height: 100%;
+      background: var(--board-rim);
+      border: 6px solid var(--board-rim);
+      border-radius: 8px;
+      box-shadow: var(--shadow-board);
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      grid-template-rows: repeat(8, 1fr);
+      position: relative;
+      user-select: none;
+    }
+
+    /* Square */
+    .sq {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background-color 0.12s ease;
+    }
+
+    .sq.light {
+      background-color: var(--board-light);
+    }
+
+    .sq.dark {
+      background-color: var(--board-dark);
+    }
+
+    /* Selected Square */
+    .sq.selected {
+      box-shadow: inset 0 0 0 3px var(--accent-brass);
+    }
+
+    /* Move Feedback Tints (Decision 32) */
+    .sq.tint-correct {
+      background-color: var(--felt-green-tint) !important;
+    }
+
+    .sq.tint-wrong {
+      background-color: var(--flag-red-tint) !important;
+    }
+
+    /* Coordinates */
+    .coord {
+      position: absolute;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--board-coord);
+      pointer-events: none;
+      line-height: 1;
+      opacity: 0.85;
+    }
+
+    .coord.rank {
+      top: 2px;
+      left: 3px;
+    }
+
+    .coord.file {
+      bottom: 2px;
+      right: 3px;
+    }
+
+    /* Chess Piece */
+    .piece-svg {
+      width: 90%;
+      height: 90%;
+      pointer-events: none;
+      transition: transform 0.15s ease;
+    }
+
+    /* Badge on piece: '!' or '?' (Decision 32) */
+    .piece-badge {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-display);
+      font-size: 13px;
+      font-weight: 700;
+      color: #FFFFFF;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+      z-index: 10;
+      animation: popIn 0.18s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .piece-badge.correct {
+      background: var(--felt-green);
+    }
+
+    .piece-badge.wrong {
+      background: var(--flag-red);
+    }
+
+    @keyframes popIn {
+      0% { transform: scale(0.4); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* Bottom Prompt and Action Panel (Phone: bottom / Desktop: right column) */
+    .action-panel {
+      width: 100%;
+      max-width: 350px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding-top: 8px;
+    }
+
+    @media (min-width: 900px) {
+      .action-panel {
+        max-width: 360px;
+        padding-top: 0;
+        gap: 16px;
+      }
+    }
+
+    .prompt-box {
+      background: var(--bg-raised);
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius-card);
+      padding: 12px 16px;
+      box-shadow: var(--shadow-raised);
+      min-height: 58px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .prompt-line {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-case);
+    }
+
+    .prompt-subline {
+      font-size: 12px;
+      color: var(--text-dial);
+      margin-top: 2px;
+    }
+
+    /* State-specific text styling */
+    .prompt-line.correct {
+      color: var(--felt-green);
+    }
+
+    .prompt-line.wrong {
+      color: var(--flag-red);
+    }
+
+    /* Action Buttons */
+    .action-btn-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      height: 44px; /* Minimum phone touch target */
+    }
+
+    .btn-action-primary {
+      flex: 1;
+      height: 44px;
+      background: var(--btn-brass-bg);
+      color: var(--btn-brass-text);
+      border: none;
+      border-radius: var(--radius-btn);
+      font-family: var(--font-display);
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      transition: background 0.15s ease;
+    }
+
+    .btn-action-primary:hover {
+      background: var(--btn-brass-hover);
+    }
+
+    .btn-action-secondary {
+      height: 44px;
+      padding: 0 16px;
+      background: var(--bg-raised);
+      color: var(--text-case);
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius-btn);
+      font-family: var(--font-body);
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+
+    .btn-action-secondary:hover {
+      background: var(--bg-sunken);
+    }
+
+    .quiet-info-line {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--text-dial);
+      padding: 0 4px;
+    }
+
+    .quiet-timer {
+      display: none;
+      align-items: center;
+      gap: 4px;
+      font-feature-settings: 'tnum';
+      font-variant-numeric: tabular-nums;
+    }
+
+    .why-puzzle-link {
+      color: var(--text-dial);
+      text-decoration: underline;
+      cursor: pointer;
+      background: transparent;
+      border: none;
+      font-size: 12px;
+      font-family: var(--font-body);
+    }
+
+    .why-puzzle-link:hover {
+      color: var(--text-case);
+    }
+
+    /* In-Between Transition Screen (Decision 11) */
+    .inbetween-card {
+      display: none;
+      width: 100%;
+      max-width: 480px;
+      background: var(--bg-raised);
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius-card);
+      box-shadow: var(--shadow-raised);
+      padding: 32px 24px;
+      text-align: center;
+      animation: fadeIn 0.25s ease;
+    }
+
+    @keyframes fadeIn {
+      0% { opacity: 0; transform: translateY(8px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    .inbetween-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--felt-green-subtle);
+      color: var(--felt-green);
+      font-family: var(--font-display);
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 12px;
+    }
+
+    .inbetween-title {
+      font-family: var(--font-display);
+      font-size: 28px;
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 8px;
+    }
+
+    .inbetween-summary {
+      font-size: 14px;
+      color: var(--text-dial);
+      margin-bottom: 24px;
+    }
+
+    .inbetween-next-box {
+      background: var(--bg-sunken);
+      border: 1px solid var(--border-soft);
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 24px;
+      text-align: left;
+    }
+
+    .inbetween-next-label {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-dial);
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .inbetween-next-name {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-case);
+    }
+
+    .inbetween-next-meta {
+      font-size: 13px;
+      color: var(--text-dial);
+      margin-top: 2px;
+    }
+
+    .inbetween-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .inbetween-continue-btn {
+      width: 100%;
+      height: 48px;
+      background: var(--btn-brass-bg);
+      color: var(--btn-brass-text);
+      border: none;
+      border-radius: var(--radius-btn);
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+    }
+
+    .inbetween-continue-btn:hover {
+      background: var(--btn-brass-hover);
+    }
+
+    .inbetween-today-link {
+      font-size: 13px;
+      color: var(--text-dial);
+      text-decoration: underline;
+      cursor: pointer;
+      background: transparent;
+      border: none;
+      font-family: var(--font-body);
+    }
+
+    .inbetween-today-link:hover {
+      color: var(--text-case);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Hidden SVG Piece Symbols Definition -->
+  <svg style="display: none;" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <symbol id="piece-wK" viewBox="0 0 45 45"><g style="fill:none;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"><path d="M 22.5,11.63 L 22.5,6" style="fill:none;stroke:#000000;stroke-linejoin:miter"></path><path d="M 20,8 L 25,8" style="fill:none;stroke:#000000;stroke-linejoin:miter"></path><path d="M 22.5,25 C 22.5,25 27,17.5 25.5,14.5 C 25.5,14.5 24.5,12 22.5,12 C 20.5,12 19.5,14.5 19.5,14.5 C 18,17.5 22.5,25 22.5,25" style="fill:#ffffff;stroke:#000000;stroke-linecap:butt;stroke-linejoin:miter"></path><path d="M 12.5,37 C 18,40.5 27,40.5 32.5,37 L 32.5,30 C 32.5,30 41.5,25.5 38.5,19.5 C 34.5,13 25,16 22.5,23.5 L 22.5,27 L 22.5,23.5 C 20,16 10.5,13 6.5,19.5 C 3.5,25.5 12.5,30 12.5,30 L 12.5,37" style="fill:#ffffff;stroke:#000000"></path><path d="M 12.5,30 C 18,27 27,27 32.5,30" style="fill:none;stroke:#000000"></path><path d="M 12.5,33.5 C 18,30.5 27,30.5 32.5,33.5" style="fill:none;stroke:#000000"></path><path d="M 12.5,37 C 18,34 27,34 32.5,37" style="fill:none;stroke:#000000"></path></g></symbol>
+<symbol id="piece-wQ" viewBox="0 0 45 45"><g style="fill:#ffffff;stroke:#000000;stroke-width:1.5;stroke-linejoin:round"><path d="M 9,26 C 17.5,24.5 30,24.5 36,26 L 38.5,13.5 L 31,25 L 30.7,10.9 L 25.5,24.5 L 22.5,10 L 19.5,24.5 L 14.3,10.9 L 14,25 L 6.5,13.5 L 9,26 z"></path><path d="M 9,26 C 9,28 10.5,28 11.5,30 C 12.5,31.5 12.5,31 12,33.5 C 10.5,34.5 11,36 11,36 C 9.5,37.5 11,38.5 11,38.5 C 17.5,39.5 27.5,39.5 34,38.5 C 34,38.5 35.5,37.5 34,36 C 34,36 34.5,34.5 33,33.5 C 32.5,31 32.5,31.5 33.5,30 C 34.5,28 36,28 36,26 C 27.5,24.5 17.5,24.5 9,26 z"></path><path d="M 11.5,30 C 15,29 30,29 33.5,30" style="fill:none"></path><path d="M 12,33.5 C 18,32.5 27,32.5 33,33.5" style="fill:none"></path><circle cx="6" cy="12" r="2"></circle><circle cx="14" cy="9" r="2"></circle><circle cx="22.5" cy="8" r="2"></circle><circle cx="31" cy="9" r="2"></circle><circle cx="39" cy="12" r="2"></circle></g></symbol>
+<symbol id="piece-wR" viewBox="0 0 45 45"><g style="opacity:1;fill:#ffffff;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"><path d="M 9,39 L 36,39 L 36,36 L 9,36 L 9,39 z " style="stroke-linecap:butt"></path><path d="M 12,36 L 12,32 L 33,32 L 33,36 L 12,36 z " style="stroke-linecap:butt"></path><path d="M 11,14 L 11,9 L 15,9 L 15,11 L 20,11 L 20,9 L 25,9 L 25,11 L 30,11 L 30,9 L 34,9 L 34,14" style="stroke-linecap:butt"></path><path d="M 34,14 L 31,17 L 14,17 L 11,14"></path><path d="M 31,17 L 31,29.5 L 14,29.5 L 14,17" style="stroke-linecap:butt;stroke-linejoin:miter"></path><path d="M 31,29.5 L 32.5,32 L 12.5,32 L 14,29.5"></path><path d="M 11,14 L 34,14" style="fill:none;stroke:#000000;stroke-linejoin:miter"></path></g></symbol>
+<symbol id="piece-wB" viewBox="0 0 45 45"><g style="opacity:1;fill:none;fill-rule:evenodd;fill-opacity:1;stroke:#000000;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"><g style="fill:#ffffff;stroke:#000000;stroke-linecap:butt"><path d="M 9,36 C 12.39,35.03 19.11,36.43 22.5,34 C 25.89,36.43 32.61,35.03 36,36 C 36,36 37.65,36.54 39,38 C 38.32,38.97 37.35,38.99 36,38.5 C 32.61,37.53 25.89,38.96 22.5,37.5 C 19.11,38.96 12.39,37.53 9,38.5 C 7.65,38.99 6.68,38.97 6,38 C 7.35,36.54 9,36 9,36 z"></path><path d="M 15,32 C 17.5,34.5 27.5,34.5 30,32 C 30.5,30.5 30,30 30,30 C 30,27.5 27.5,26 27.5,26 C 33,24.5 33.5,14.5 22.5,10.5 C 11.5,14.5 12,24.5 17.5,26 C 17.5,26 15,27.5 15,30 C 15,30 14.5,30.5 15,32 z"></path><path d="M 25 8 A 2.5 2.5 0 1 1  20,8 A 2.5 2.5 0 1 1  25 8 z"></path></g><path d="M 17.5,26 L 27.5,26 M 15,30 L 30,30 M 22.5,15.5 L 22.5,20.5 M 20,18 L 25,18" style="fill:none;stroke:#000000;stroke-linejoin:miter"></path></g></symbol>
+<symbol id="piece-wN" viewBox="0 0 45 45"><g style="opacity:1;fill:none;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"><path d="M 22,10 C 32.5,11 38.5,18 38,39 L 15,39 C 15,30 25,32.5 23,18" style="fill:#ffffff;stroke:#000000"></path><path d="M 24,18 C 24.38,20.91 18.45,25.37 16,27 C 13,29 13.18,31.34 11,31 C 9.958,30.06 12.41,27.96 11,28 C 10,28 11.19,29.23 10,30 C 9,30 5.997,31 6,26 C 6,24 12,14 12,14 C 12,14 13.89,12.1 14,10.5 C 13.27,9.506 13.5,8.5 13.5,7.5 C 14.5,6.5 16.5,10 16.5,10 L 18.5,10 C 18.5,10 19.28,8.008 21,7 C 22,7 22,10 22,10" style="fill:#ffffff;stroke:#000000"></path><path d="M 9.5 25.5 A 0.5 0.5 0 1 1 8.5,25.5 A 0.5 0.5 0 1 1 9.5 25.5 z" style="fill:#000000;stroke:#000000"></path><path d="M 15 15.5 A 0.5 1.5 0 1 1  14,15.5 A 0.5 1.5 0 1 1  15 15.5 z" transform="matrix(0.866,0.5,-0.5,0.866,9.693,-5.173)" style="fill:#000000;stroke:#000000"></path></g></symbol>
+<symbol id="piece-wP" viewBox="0 0 45 45"><path d="m 22.5,9 c -2.21,0 -4,1.79 -4,4 0,0.89 0.29,1.71 0.78,2.38 C 17.33,16.5 16,18.59 16,21 c 0,2.03 0.94,3.84 2.41,5.03 C 15.41,27.09 11,31.58 11,39.5 H 34 C 34,31.58 29.59,27.09 26.59,26.03 28.06,24.84 29,23.03 29,21 29,18.59 27.67,16.5 25.72,15.38 26.21,14.71 26.5,13.89 26.5,13 c 0,-2.21 -1.79,-4 -4,-4 z" style="opacity:1;fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"></path></symbol>
+<symbol id="piece-bK" viewBox="0 0 45 45"><g style="fill:none;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"><path d="M 22.5,11.63 L 22.5,6" style="fill:none;stroke:#000000;stroke-linejoin:miter" id="path6570"></path><path d="M 22.5,25 C 22.5,25 27,17.5 25.5,14.5 C 25.5,14.5 24.5,12 22.5,12 C 20.5,12 19.5,14.5 19.5,14.5 C 18,17.5 22.5,25 22.5,25" style="fill:#000000;fill-opacity:1;stroke-linecap:butt;stroke-linejoin:miter"></path><path d="M 12.5,37 C 18,40.5 27,40.5 32.5,37 L 32.5,30 C 32.5,30 41.5,25.5 38.5,19.5 C 34.5,13 25,16 22.5,23.5 L 22.5,27 L 22.5,23.5 C 20,16 10.5,13 6.5,19.5 C 3.5,25.5 12.5,30 12.5,30 L 12.5,37" style="fill:#000000;stroke:#000000"></path><path d="M 20,8 L 25,8" style="fill:none;stroke:#000000;stroke-linejoin:miter"></path><path d="M 32,29.5 C 32,29.5 40.5,25.5 38.03,19.85 C 34.15,14 25,18 22.5,24.5 L 22.5,26.6 L 22.5,24.5 C 20,18 10.85,14 6.97,19.85 C 4.5,25.5 13,29.5 13,29.5" style="fill:none;stroke:#ffffff"></path><path d="M 12.5,30 C 18,27 27,27 32.5,30 M 12.5,33.5 C 18,30.5 27,30.5 32.5,33.5 M 12.5,37 C 18,34 27,34 32.5,37" style="fill:none;stroke:#ffffff"></path></g></symbol>
+<symbol id="piece-bQ" viewBox="0 0 45 45"><g style="fill:#000000;stroke:#000000;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round"><path d="M 9,26 C 17.5,24.5 30,24.5 36,26 L 38.5,13.5 L 31,25 L 30.7,10.9 L 25.5,24.5 L 22.5,10 L 19.5,24.5 L 14.3,10.9 L 14,25 L 6.5,13.5 L 9,26 z" style="stroke-linecap:butt;fill:#000000"></path><path d="m 9,26 c 0,2 1.5,2 2.5,4 1,1.5 1,1 0.5,3.5 -1.5,1 -1,2.5 -1,2.5 -1.5,1.5 0,2.5 0,2.5 6.5,1 16.5,1 23,0 0,0 1.5,-1 0,-2.5 0,0 0.5,-1.5 -1,-2.5 -0.5,-2.5 -0.5,-2 0.5,-3.5 1,-2 2.5,-2 2.5,-4 -8.5,-1.5 -18.5,-1.5 -27,0 z"></path><path d="M 11.5,30 C 15,29 30,29 33.5,30"></path><path d="m 12,33.5 c 6,-1 15,-1 21,0"></path><circle cx="6" cy="12" r="2"></circle><circle cx="14" cy="9" r="2"></circle><circle cx="22.5" cy="8" r="2"></circle><circle cx="31" cy="9" r="2"></circle><circle cx="39" cy="12" r="2"></circle><path d="M 11,38.5 A 35,35 1 0 0 34,38.5" style="fill:none;stroke:#000000;stroke-linecap:butt"></path><g style="fill:none;stroke:#ffffff"><path d="M 11,29 A 35,35 1 0 1 34,29"></path><path d="M 12.5,31.5 L 32.5,31.5"></path><path d="M 11.5,34.5 A 35,35 1 0 0 33.5,34.5"></path><path d="M 10.5,37.5 A 35,35 1 0 0 34.5,37.5"></path></g></g></symbol>
+<symbol id="piece-bR" viewBox="0 0 45 45"><g style="opacity:1;fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"><path d="M 9,39 L 36,39 L 36,36 L 9,36 L 9,39 z " style="stroke-linecap:butt"></path><path d="M 12.5,32 L 14,29.5 L 31,29.5 L 32.5,32 L 12.5,32 z " style="stroke-linecap:butt"></path><path d="M 12,36 L 12,32 L 33,32 L 33,36 L 12,36 z " style="stroke-linecap:butt"></path><path d="M 14,29.5 L 14,16.5 L 31,16.5 L 31,29.5 L 14,29.5 z " style="stroke-linecap:butt;stroke-linejoin:miter"></path><path d="M 14,16.5 L 11,14 L 34,14 L 31,16.5 L 14,16.5 z " style="stroke-linecap:butt"></path><path d="M 11,14 L 11,9 L 15,9 L 15,11 L 20,11 L 20,9 L 25,9 L 25,11 L 30,11 L 30,9 L 34,9 L 34,14 L 11,14 z " style="stroke-linecap:butt"></path><path d="M 12,35.5 L 33,35.5 L 33,35.5" style="fill:none;stroke:#ffffff;stroke-width:1;stroke-linejoin:miter"></path><path d="M 13,31.5 L 32,31.5" style="fill:none;stroke:#ffffff;stroke-width:1;stroke-linejoin:miter"></path><path d="M 14,29.5 L 31,29.5" style="fill:none;stroke:#ffffff;stroke-width:1;stroke-linejoin:miter"></path><path d="M 14,16.5 L 31,16.5" style="fill:none;stroke:#ffffff;stroke-width:1;stroke-linejoin:miter"></path><path d="M 11,14 L 34,14" style="fill:none;stroke:#ffffff;stroke-width:1;stroke-linejoin:miter"></path></g></symbol>
+<symbol id="piece-bB" viewBox="0 0 45 45"><g style="opacity:1;fill:none;fill-rule:evenodd;fill-opacity:1;stroke:#000000;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"><g style="fill:#000000;stroke:#000000;stroke-linecap:butt"><path d="M 9,36 C 12.39,35.03 19.11,36.43 22.5,34 C 25.89,36.43 32.61,35.03 36,36 C 36,36 37.65,36.54 39,38 C 38.32,38.97 37.35,38.99 36,38.5 C 32.61,37.53 25.89,38.96 22.5,37.5 C 19.11,38.96 12.39,37.53 9,38.5 C 7.65,38.99 6.68,38.97 6,38 C 7.35,36.54 9,36 9,36 z"></path><path d="M 15,32 C 17.5,34.5 27.5,34.5 30,32 C 30.5,30.5 30,30 30,30 C 30,27.5 27.5,26 27.5,26 C 33,24.5 33.5,14.5 22.5,10.5 C 11.5,14.5 12,24.5 17.5,26 C 17.5,26 15,27.5 15,30 C 15,30 14.5,30.5 15,32 z"></path><path d="M 25 8 A 2.5 2.5 0 1 1  20,8 A 2.5 2.5 0 1 1  25 8 z"></path></g><path d="M 17.5,26 L 27.5,26 M 15,30 L 30,30 M 22.5,15.5 L 22.5,20.5 M 20,18 L 25,18" style="fill:none;stroke:#ffffff;stroke-linejoin:miter"></path></g></symbol>
+<symbol id="piece-bN" viewBox="0 0 45 45"><g style="opacity:1;fill:none;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"><path d="M 22,10 C 32.5,11 38.5,18 38,39 L 15,39 C 15,30 25,32.5 23,18" style="fill:#000000;stroke:#000000"></path><path d="M 24,18 C 24.38,20.91 18.45,25.37 16,27 C 13,29 13.18,31.34 11,31 C 9.958,30.06 12.41,27.96 11,28 C 10,28 11.19,29.23 10,30 C 9,30 5.997,31 6,26 C 6,24 12,14 12,14 C 12,14 13.89,12.1 14,10.5 C 13.27,9.506 13.5,8.5 13.5,7.5 C 14.5,6.5 16.5,10 16.5,10 L 18.5,10 C 18.5,10 19.28,8.008 21,7 C 22,7 22,10 22,10" style="fill:#000000;stroke:#000000"></path><path d="M 9.5 25.5 A 0.5 0.5 0 1 1 8.5,25.5 A 0.5 0.5 0 1 1 9.5 25.5 z" style="fill:#ffffff;stroke:#ffffff"></path><path d="M 15 15.5 A 0.5 1.5 0 1 1  14,15.5 A 0.5 1.5 0 1 1  15 15.5 z" transform="matrix(0.866,0.5,-0.5,0.866,9.693,-5.173)" style="fill:#ffffff;stroke:#ffffff"></path><path d="M 24.55,10.4 L 24.1,11.85 L 24.6,12 C 27.75,13 30.25,14.49 32.5,18.75 C 34.75,23.01 35.75,29.06 35.25,39 L 35.2,39.5 L 37.45,39.5 L 37.5,39 C 38,28.94 36.62,22.15 34.25,17.66 C 31.88,13.17 28.46,11.02 25.06,10.5 L 24.55,10.4 z " style="fill:#ffffff;stroke:none"></path></g></symbol>
+<symbol id="piece-bP" viewBox="0 0 45 45"><path d="m 22.5,9 c -2.21,0 -4,1.79 -4,4 0,0.89 0.29,1.71 0.78,2.38 C 17.33,16.5 16,18.59 16,21 c 0,2.03 0.94,3.84 2.41,5.03 C 15.41,27.09 11,31.58 11,39.5 H 34 C 34,31.58 29.59,27.09 26.59,26.03 28.06,24.84 29,23.03 29,21 29,18.59 27.67,16.5 25.72,15.38 26.21,14.71 26.5,13.89 26.5,13 c 0,-2.21 -1.79,-4 -4,-4 z" style="opacity:1;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"></path></symbol>
+
+    </defs>
+  </svg>
+
+  <!-- Prototype Toolbar -->
+  <aside class="proto-bar" aria-label="Prototype controls">
+    <div class="proto-left">
+      <span class="proto-badge">Direction C: Clock</span>
+      <nav class="proto-links" aria-label="Prototypes navigation">
+        <a href="today.html">Today</a>
+        <a href="puzzle.html" class="active">Puzzle Focus</a>
+        <a href="wordmark.html">Wordmarks</a>
+      </nav>
+    </div>
+    <div class="proto-right">
+      <div class="proto-btn-group" role="group" aria-label="Puzzle state preview">
+        <button type="button" id="btnStatePrompt" class="proto-toggle-btn active" onclick="setPuzzleState('prompt')">Prompt</button>
+        <button type="button" id="btnStateCorrect" class="proto-toggle-btn" onclick="setPuzzleState('correct')">Correct</button>
+        <button type="button" id="btnStateWrong" class="proto-toggle-btn" onclick="setPuzzleState('wrong')">Wrong</button>
+        <button type="button" id="btnStateInbetween" class="proto-toggle-btn" onclick="setPuzzleState('inbetween')">In-between</button>
+      </div>
+
+      <div class="proto-btn-group" role="group" aria-label="Timer toggle">
+        <button type="button" id="btnTimerToggle" class="proto-toggle-btn" onclick="toggleTimer()">Timer: Off</button>
+      </div>
+
+      <div class="proto-btn-group" role="group" aria-label="Theme switcher">
+        <button type="button" id="btnThemeLight" class="proto-toggle-btn active" onclick="setTheme('light')">Light</button>
+        <button type="button" id="btnThemeDark" class="proto-toggle-btn" onclick="setTheme('dark')">Dark</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Focus Mode Main Shell (Decision 9) -->
+  <main class="focus-shell" id="focusShell">
+
+    <!-- Top Focus Bar: Exit + "Themed tactics · 3 of 8" + Menu -->
+    <header class="focus-header">
+      <a href="today.html" class="exit-btn" aria-label="Exit training and return to Today">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        <span>Today</span>
+      </a>
+
+      <div class="focus-progress-wrap">
+        <span>Themed tactics</span>
+        <span class="focus-progress-count" id="puzzleProgressLabel">3 of 8</span>
+      </div>
+
+      <button type="button" class="focus-menu-btn" id="focusMenuBtn" onclick="toggleFocusMenu()" aria-label="Focus mode options" aria-expanded="false">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>
+
+        <!-- Dropdown Menu -->
+        <div class="focus-dropdown" id="focusDropdown">
+          <button type="button" class="focus-menu-item" onclick="toggleSound()">
+            <span>Sound effects</span>
+            <span id="soundStatusText" style="color: var(--accent-brass); font-weight: 700;">On</span>
+          </button>
+          <button type="button" class="focus-menu-item" onclick="toggleTimer()">
+            <span>Show timer</span>
+            <span id="timerMenuStatus" style="color: var(--text-dial);">Off</span>
+          </button>
+          <div style="height: 1px; background: var(--border-soft); margin: 4px 0;"></div>
+          <button type="button" class="focus-menu-item" onclick="alert('Why this puzzle: Pin motif calibration at 1400 Elo');">
+            <span>Why this puzzle?</span>
+          </button>
+        </div>
+      </button>
+    </header>
+
+    <!-- Training Stage (Board + Prompt) -->
+    <div class="train-stage" id="trainStage">
+
+      <!-- 8x8 Chessboard Container -->
+      <section class="board-container" aria-label="Tactical puzzle board">
+        <div class="chess-board" id="chessBoard" role="grid" aria-label="Chess board with White to move">
+          <!-- 64 Squares dynamically rendered -->
+        </div>
+      </section>
+
+      <!-- Bottom / Side Action Panel -->
+      <aside class="action-panel" aria-label="Puzzle actions">
+        <div class="prompt-box" id="promptBox">
+          <div class="prompt-line" id="promptMainText">White to move. Find the best move.</div>
+          <div class="prompt-subline" id="promptSubText">Tactical theme: Unprotected piece on b4</div>
+        </div>
+
+        <div class="action-btn-row" id="actionBtnRow">
+          <!-- Dynamic Action Buttons -->
+          <button type="button" class="btn-action-primary" id="primaryActionBtn" onclick="handlePrimaryAction()">
+            Next puzzle
+          </button>
+          <button type="button" class="btn-action-secondary" id="secondaryActionBtn" style="display: none;" onclick="resetPuzzle()">
+            Try again
+          </button>
+        </div>
+
+        <div class="quiet-info-line">
+          <div class="quiet-timer" id="quietTimerDisplay">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            <span id="timerSecondsText">0:24 elapsed</span>
+          </div>
+          <button type="button" class="why-puzzle-link" onclick="alert('Rationale: Tactical pins and forks build pattern chunking (Smith & Tikkanen 2018).');">
+            Why this puzzle?
+          </button>
+        </div>
+      </aside>
+
+    </div>
+
+    <!-- In-Between Transition Screen (Decision 11) -->
+    <div class="inbetween-card" id="inbetweenCard" role="dialog" aria-modal="true">
+      <span class="inbetween-badge">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        Block complete
+      </span>
+      <h2 class="inbetween-title">Themed tactics finished</h2>
+      <p class="inbetween-summary">You completed 8 of 8 puzzles with 88% accuracy (7 solved on first attempt).</p>
+
+      <div class="inbetween-next-box">
+        <div class="inbetween-next-label">Next block in session</div>
+        <div class="inbetween-next-name">Endgame technique (rook and pawn)</div>
+        <div class="inbetween-next-meta">5 minutes · In-app sparring against Stockfish</div>
+      </div>
+
+      <div class="inbetween-actions">
+        <button type="button" class="inbetween-continue-btn" onclick="alert('Advancing to Block 4: Endgame technique');">
+          Continue to next block
+        </button>
+        <a href="today.html" class="inbetween-today-link">Back to Today</a>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    // Theme Switcher
+    function setTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      document.getElementById('btnThemeLight').classList.toggle('active', theme === 'light');
+      document.getElementById('btnThemeDark').classList.toggle('active', theme === 'dark');
+      localStorage.setItem('mainline_proto_theme', theme);
+    }
+
+    const savedTheme = localStorage.getItem('mainline_proto_theme');
+    if (savedTheme) setTheme(savedTheme);
+
+    // Audio Synthesizer (Rule 16: Move/capture only, NO reward sounds!)
+    let soundEnabled = true;
+    function playMoveAudio(isCapture) {
+      if (!soundEnabled) return;
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = isCapture ? 'sine' : 'triangle';
+        const startFreq = isCapture ? 420 : 300;
+        const endFreq = isCapture ? 120 : 90;
+        osc.frequency.setValueAtTime(startFreq, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(endFreq, ctx.currentTime + 0.05);
+        gain.gain.setValueAtTime(0.25, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.055);
+      } catch (e) {}
+    }
+
+    function toggleSound() {
+      soundEnabled = !soundEnabled;
+      document.getElementById('soundStatusText').textContent = soundEnabled ? 'On' : 'Off';
+    }
+
+    // Timer Toggle (Decision 31: Hidden by default)
+    let timerVisible = false;
+    function toggleTimer() {
+      timerVisible = !timerVisible;
+      document.getElementById('quietTimerDisplay').style.display = timerVisible ? 'flex' : 'none';
+      document.getElementById('btnTimerToggle').textContent = 'Timer: ' + (timerVisible ? 'On' : 'Off');
+      document.getElementById('btnTimerToggle').classList.toggle('active', timerVisible);
+      document.getElementById('timerMenuStatus').textContent = timerVisible ? 'On' : 'Off';
+    }
+
+    // Focus Menu
+    function toggleFocusMenu() {
+      document.getElementById('focusDropdown').classList.toggle('show');
+    }
+
+    document.addEventListener('click', function(e) {
+      const btn = document.getElementById('focusMenuBtn');
+      const menu = document.getElementById('focusDropdown');
+      if (btn && !btn.contains(e.target)) {
+        menu.classList.remove('show');
+      }
+    });
+
+    // Board Representation
+    // Position: r1b2rk1/pp3ppp/2n5/8/1q6/2B2N2/PP3PPP/R2Q1RK1 w - - 0 1
+    const INITIAL_PIECES = {
+      // Black pieces
+      'c8': 'bB', 'f8': 'bR', 'g8': 'bK',
+      'a7': 'bP', 'b7': 'bP', 'f7': 'bP', 'g7': 'bP', 'h7': 'bP',
+      'c6': 'bN',
+      'b4': 'bQ',
+      // White pieces
+      'c3': 'wB', 'f3': 'wN',
+      'a2': 'wP', 'b2': 'wP', 'f2': 'wP', 'g2': 'wP', 'h2': 'wP',
+      'a1': 'wR', 'd1': 'wQ', 'f1': 'wR', 'g1': 'wK'
+    };
+
+    let boardState = { ...INITIAL_PIECES };
+    let selectedSquare = null;
+    let currentPuzzleState = 'prompt'; // 'prompt', 'correct', 'wrong', 'inbetween'
+
+    const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+    const ranks = ['8', '7', '6', '5', '4', '3', '2', '1'];
+
+    function renderBoard(tintSquare = null, tintType = null, badgeSquare = null, badgeGlyph = null) {
+      const boardEl = document.getElementById('chessBoard');
+      boardEl.innerHTML = '';
+
+      for (let r = 0; r < 8; r++) {
+        for (let f = 0; f < 8; f++) {
+          const sqId = files[f] + ranks[r];
+          const isLight = (f + parseInt(ranks[r])) % 2 === 0;
+
+          const sqEl = document.createElement('div');
+          sqEl.className = 'sq ' + (isLight ? 'light' : 'dark');
+          sqEl.id = 'sq-' + sqId;
+          sqEl.setAttribute('role', 'gridcell');
+          sqEl.setAttribute('aria-label', sqId + (boardState[sqId] ? ' with ' + boardState[sqId] : ''));
+
+          if (selectedSquare === sqId) {
+            sqEl.classList.add('selected');
+          }
+
+          if (tintSquare === sqId) {
+            sqEl.classList.add(tintType === 'correct' ? 'tint-correct' : 'tint-wrong');
+          }
+
+          // Coordinates on edge squares
+          if (f === 0) {
+            const rankLabel = document.createElement('span');
+            rankLabel.className = 'coord rank';
+            rankLabel.textContent = ranks[r];
+            sqEl.appendChild(rankLabel);
+          }
+          if (r === 7) {
+            const fileLabel = document.createElement('span');
+            fileLabel.className = 'coord file';
+            fileLabel.textContent = files[f];
+            sqEl.appendChild(fileLabel);
+          }
+
+          // Piece
+          const piece = boardState[sqId];
+          if (piece) {
+            const svgEl = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svgEl.setAttribute('class', 'piece-svg');
+            svgEl.setAttribute('viewBox', '0 0 45 45');
+            const useEl = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+            useEl.setAttributeNS('http://www.w3.org/1999/xlink', 'href', '#piece-' + piece);
+            svgEl.appendChild(useEl);
+            sqEl.appendChild(svgEl);
+          }
+
+          // Badge on moved piece (Decision 32)
+          if (badgeSquare === sqId && badgeGlyph) {
+            const badgeEl = document.createElement('span');
+            badgeEl.className = 'piece-badge ' + (tintType === 'correct' ? 'correct' : 'wrong');
+            badgeEl.textContent = badgeGlyph;
+            badgeEl.setAttribute('aria-hidden', 'true');
+            sqEl.appendChild(badgeEl);
+          }
+
+          sqEl.onclick = () => handleSquareClick(sqId);
+          boardEl.appendChild(sqEl);
+        }
+      }
+    }
+
+    function handleSquareClick(sqId) {
+      if (currentPuzzleState !== 'prompt') return;
+
+      if (!selectedSquare) {
+        // Can only select White's pieces
+        if (boardState[sqId] && boardState[sqId].startsWith('w')) {
+          selectedSquare = sqId;
+          renderBoard();
+        }
+      } else {
+        // Destination clicked
+        if (selectedSquare === sqId) {
+          selectedSquare = null;
+          renderBoard();
+          return;
+        }
+
+        // Move bishop c3 to b4 -> Correct winning move!
+        if (selectedSquare === 'c3' && sqId === 'b4') {
+          playMoveAudio(true); // Capture sound!
+          boardState['b4'] = 'wB';
+          delete boardState['c3'];
+          selectedSquare = null;
+          setPuzzleState('correct');
+        } else {
+          // Any other move -> Incorrect move
+          playMoveAudio(false); // Move sound
+          boardState[sqId] = boardState[selectedSquare];
+          delete boardState[selectedSquare];
+          selectedSquare = null;
+          setPuzzleState('wrong', sqId);
+        }
+      }
+    }
+
+    function resetPuzzle() {
+      boardState = { ...INITIAL_PIECES };
+      selectedSquare = null;
+      setPuzzleState('prompt');
+    }
+
+    function setPuzzleState(state, wrongSq = 'd2') {
+      currentPuzzleState = state;
+
+      // Update Toolbar buttons
+      document.getElementById('btnStatePrompt').classList.toggle('active', state === 'prompt');
+      document.getElementById('btnStateCorrect').classList.toggle('active', state === 'correct');
+      document.getElementById('btnStateWrong').classList.toggle('active', state === 'wrong');
+      document.getElementById('btnStateInbetween').classList.toggle('active', state === 'inbetween');
+
+      const stage = document.getElementById('trainStage');
+      const inbetweenCard = document.getElementById('inbetweenCard');
+      const promptLine = document.getElementById('promptMainText');
+      const promptSub = document.getElementById('promptSubText');
+      const primaryBtn = document.getElementById('primaryActionBtn');
+      const secondaryBtn = document.getElementById('secondaryActionBtn');
+
+      if (state === 'inbetween') {
+        stage.style.display = 'none';
+        inbetweenCard.style.display = 'block';
+        return;
+      } else {
+        stage.style.display = 'flex';
+        inbetweenCard.style.display = 'none';
+      }
+
+      if (state === 'prompt') {
+        boardState = { ...INITIAL_PIECES };
+        renderBoard();
+        promptLine.textContent = 'White to move. Find the best move.';
+        promptLine.className = 'prompt-line';
+        promptSub.textContent = 'Tactical theme: Unprotected piece on b4';
+        primaryBtn.textContent = 'Next puzzle';
+        primaryBtn.onclick = () => setPuzzleState('correct');
+        secondaryBtn.style.display = 'none';
+      } else if (state === 'correct') {
+        boardState = { ...INITIAL_PIECES };
+        boardState['b4'] = 'wB';
+        delete boardState['c3'];
+        renderBoard('b4', 'correct', 'b4', '!');
+        promptLine.textContent = 'Correct. White wins the queen.';
+        promptLine.className = 'prompt-line correct';
+        promptSub.textContent = '1. Bxb4 wins decisive material';
+        primaryBtn.textContent = 'Next puzzle';
+        primaryBtn.onclick = () => setPuzzleState('inbetween');
+        secondaryBtn.style.display = 'none';
+      } else if (state === 'wrong') {
+        boardState = { ...INITIAL_PIECES };
+        boardState[wrongSq] = 'wB';
+        delete boardState['c3'];
+        renderBoard(wrongSq, 'wrong', wrongSq, '?');
+        promptLine.textContent = 'Not quite. Black defends with 1... Qb6.';
+        promptLine.className = 'prompt-line wrong';
+        promptSub.textContent = 'Queen on b4 was left hanging';
+        primaryBtn.textContent = 'Next puzzle';
+        primaryBtn.onclick = () => setPuzzleState('inbetween');
+        secondaryBtn.style.display = 'inline-block';
+        secondaryBtn.textContent = 'Try again';
+        secondaryBtn.onclick = () => resetPuzzle();
+      }
+    }
+
+    function handlePrimaryAction() {
+      if (currentPuzzleState === 'prompt') {
+        setPuzzleState('correct');
+      } else if (currentPuzzleState === 'correct' || currentPuzzleState === 'wrong') {
+        setPuzzleState('inbetween');
+      }
+    }
+
+    // Initial render
+    renderBoard();
+  </script>
+</body>
+</html>

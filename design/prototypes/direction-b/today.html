@@ -1,0 +1,1466 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mainline: Today (Direction B &bull; Diagram)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@0,500;0,700;0,800;0,900;1,700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Noto+Sans+Symbols+2&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --paper: #FBFBF9;
+      --raised: #F3F3EE;
+      --raised-subtle: #EBEBE4;
+      --print: #111111;
+      --rule: #D9D9D4;
+      --spot-blue: #2340B8;
+      --spot-blue-tint: rgba(35, 64, 184, 0.08);
+      --spot-blue-hover: #1A318F;
+      --mistake-red: #B8382B;
+      --mistake-red-tint: rgba(184, 56, 43, 0.12);
+      --correct-green: #1E6B45;
+      --correct-green-tint: rgba(30, 107, 69, 0.12);
+      --quiet-grey: #6B6B66;
+
+      --font-serif: 'Alegreya', Georgia, 'Times New Roman', serif;
+      --font-sans: 'Alegreya Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-symbols: 'Noto Sans Symbols 2', 'Alegreya Sans', sans-serif;
+
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+      --shadow-sheet: 0 -8px 24px rgba(0, 0, 0, 0.12);
+      --shadow-drawer: -8px 0 24px rgba(0, 0, 0, 0.12);
+    }
+
+    html[data-theme="dark"] {
+      --paper: #111214;
+      --raised: #181A1E;
+      --raised-subtle: #24272E;
+      --print: #F2F2EE;
+      --rule: #2C2F36;
+      --spot-blue: #6888FF;
+      --spot-blue-tint: rgba(104, 136, 255, 0.15);
+      --spot-blue-hover: #8AA4FF;
+      --mistake-red: #F06A5D;
+      --mistake-red-tint: rgba(240, 106, 93, 0.2);
+      --correct-green: #48B882;
+      --correct-green-tint: rgba(72, 184, 130, 0.2);
+      --quiet-grey: #9E9E98;
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+      --shadow-sheet: 0 -8px 30px rgba(0, 0, 0, 0.5);
+      --shadow-drawer: -8px 0 30px rgba(0, 0, 0, 0.5);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--paper);
+      color: var(--print);
+      font-family: var(--font-sans);
+      font-size: 16px;
+      line-height: 1.5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Tabular numbers for all numeric counters */
+    .tabular-nums {
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Floating Prototype Control Pill */
+    .proto-bar {
+      background: var(--raised);
+      border: 1px solid var(--rule);
+      border-radius: 999px;
+      padding: 6px 12px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 150;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    }
+
+    @media (max-width: 767px) {
+      .proto-bar {
+        bottom: 72px;
+        right: 12px;
+        left: 12px;
+        border-radius: var(--radius-md);
+        justify-content: space-between;
+      }
+    }
+
+    .proto-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .proto-label {
+      font-weight: 700;
+      color: var(--spot-blue);
+      font-size: 12px;
+    }
+
+    .proto-seg {
+      display: inline-flex;
+      background: var(--paper);
+      border: 1px solid var(--rule);
+      border-radius: var(--radius-sm);
+      padding: 2px;
+      gap: 2px;
+    }
+
+    .proto-seg-btn {
+      font-family: var(--font-sans);
+      font-size: 12px;
+      font-weight: 500;
+      padding: 4px 10px;
+      border: none;
+      background: transparent;
+      color: var(--quiet-grey);
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+
+    .proto-seg-btn:hover {
+      color: var(--print);
+    }
+
+    .proto-seg-btn.active {
+      background: var(--spot-blue-tint);
+      color: var(--spot-blue);
+      font-weight: 700;
+    }
+
+    .proto-links {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .proto-link {
+      font-size: 12px;
+      color: var(--quiet-grey);
+      text-decoration: none;
+      padding: 4px 8px;
+      border-radius: 4px;
+      border: 1px solid var(--rule);
+      background: var(--paper);
+    }
+
+    .proto-link:hover {
+      color: var(--print);
+      border-color: var(--quiet-grey);
+    }
+
+    /* App Top Bar */
+    .app-header {
+      background: var(--paper);
+      border-bottom: 1px solid var(--rule);
+      padding: 0 20px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 40;
+    }
+
+    .wordmark {
+      font-family: var(--font-serif);
+      font-size: 22px;
+      font-weight: 800;
+      text-decoration: none;
+      color: var(--print);
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+      letter-spacing: -0.01em;
+    }
+
+    .wordmark-num {
+      color: var(--spot-blue);
+      font-size: 20px;
+    }
+
+    /* Desktop Navigation Tabs */
+    .desktop-nav {
+      display: none;
+      gap: 4px;
+      align-items: center;
+    }
+
+    @media (min-width: 768px) {
+      .desktop-nav {
+        display: flex;
+      }
+    }
+
+    .nav-tab {
+      font-family: var(--font-sans);
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--quiet-grey);
+      text-decoration: none;
+      padding: 8px 16px;
+      border-radius: var(--radius-sm);
+      transition: all 0.12s;
+    }
+
+    .nav-tab:hover {
+      color: var(--print);
+      background: var(--raised);
+    }
+
+    .nav-tab.active {
+      color: var(--spot-blue);
+      font-weight: 700;
+      background: var(--spot-blue-tint);
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    /* Slim Guest Notice */
+    .guest-pill {
+      font-size: 12px;
+      color: var(--quiet-grey);
+      background: var(--raised);
+      border: 1px solid var(--rule);
+      padding: 4px 10px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .guest-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--quiet-grey);
+    }
+
+    .account-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--raised);
+      border: 1px solid var(--rule);
+      color: var(--print);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-family: var(--font-sans);
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .account-btn:hover {
+      border-color: var(--quiet-grey);
+    }
+
+    /* Main Container */
+    .main-content {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 32px 20px 100px;
+      width: 100%;
+      flex: 1;
+    }
+
+    /* Today Hero Action Box */
+    .hero-card {
+      background: var(--raised);
+      border: 1px solid var(--rule);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      margin-bottom: 32px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .hero-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .hero-title {
+      font-family: var(--font-serif);
+      font-size: 32px;
+      font-weight: 800;
+      line-height: 1.1;
+    }
+
+    .hero-budget {
+      font-size: 14px;
+      color: var(--quiet-grey);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .hero-subtitle {
+      font-size: 15px;
+      color: var(--quiet-grey);
+      margin-bottom: 20px;
+    }
+
+    .hero-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    /* Buttons */
+    .btn {
+      font-family: var(--font-sans);
+      font-size: 15px;
+      font-weight: 700;
+      padding: 10px 20px;
+      border-radius: var(--radius-sm);
+      border: 1px solid transparent;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      text-decoration: none;
+      min-height: 44px;
+      transition: all 0.15s ease;
+    }
+
+    .btn:focus-visible {
+      outline: 2px solid var(--spot-blue);
+      outline-offset: 2px;
+    }
+
+    .btn-primary {
+      background: var(--spot-blue);
+      color: #FFFFFF;
+      border-color: var(--spot-blue);
+    }
+
+    html[data-theme="dark"] .btn-primary {
+      color: #111214;
+      background: var(--spot-blue);
+    }
+
+    .btn-primary:hover {
+      background: var(--spot-blue-hover);
+      border-color: var(--spot-blue-hover);
+    }
+
+    .btn-quiet {
+      background: transparent;
+      border-color: var(--rule);
+      color: var(--print);
+      font-weight: 500;
+    }
+
+    .btn-quiet:hover {
+      background: var(--raised-subtle);
+      border-color: var(--quiet-grey);
+    }
+
+    .btn-sm {
+      min-height: 36px;
+      padding: 6px 14px;
+      font-size: 14px;
+    }
+
+    /* The Main-Line Sequence: Book Annotation Style */
+    .section-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--rule);
+      padding-bottom: 8px;
+    }
+
+    .section-title {
+      font-family: var(--font-serif);
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .section-meta {
+      font-size: 13px;
+      color: var(--quiet-grey);
+    }
+
+    .block-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    /* Numbered Main Line Entry (true chess book score layout, not boxed SaaS cards) */
+    .block-card {
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid var(--rule);
+      border-radius: 0;
+      padding: 20px 8px;
+      transition: background 0.15s ease;
+      position: relative;
+    }
+
+    /* Block status variations */
+    .block-card.done {
+      opacity: 0.78;
+    }
+
+    .block-card.current {
+      background: var(--raised);
+      border-left: 3px solid var(--spot-blue);
+      border-bottom: 1px solid var(--rule);
+      border-radius: 0 var(--radius-md) var(--radius-md) 0;
+      padding: 22px 20px;
+      margin: 4px 0;
+    }
+
+    .block-card.upcoming {
+      background: transparent;
+    }
+
+    .block-main-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .block-left {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      flex: 1;
+    }
+
+    /* Bold Move Numbering: "1.", "2.", "3." */
+    .block-number {
+      font-family: var(--font-serif);
+      font-size: 21px;
+      font-weight: 800;
+      color: var(--spot-blue);
+      min-width: 26px;
+    }
+
+    .block-card.done .block-number {
+      color: var(--quiet-grey);
+    }
+
+    .block-info {
+      flex: 1;
+      display: flex;
+      align-items: baseline;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .block-heading {
+      font-family: var(--font-serif);
+      font-size: 19px;
+      line-height: 1.3;
+    }
+
+    .block-card.current .block-heading {
+      font-weight: 800;
+      color: var(--print);
+    }
+
+    .block-card.done .block-heading {
+      font-weight: 500;
+      color: var(--quiet-grey);
+    }
+
+    .block-card.upcoming .block-heading {
+      font-weight: 700;
+      color: var(--print);
+    }
+
+    .block-time {
+      font-size: 14px;
+      color: var(--quiet-grey);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .block-state-pill {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 4px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .pill-done {
+      color: var(--correct-green);
+      background: var(--correct-green-tint);
+    }
+
+    .pill-next {
+      color: var(--spot-blue);
+      background: var(--spot-blue-tint);
+      font-weight: 700;
+    }
+
+    .pill-upcoming {
+      color: var(--quiet-grey);
+      background: var(--raised-subtle);
+    }
+
+    /* Indented Book Sideline Variation (regular weight, left rule, no dashed card divider) */
+    .block-variation {
+      margin-top: 8px;
+      margin-left: 36px;
+      padding-left: 14px;
+      border-left: 2px solid var(--rule);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .block-card.current .block-variation {
+      border-left-color: var(--spot-blue);
+    }
+
+    .variation-text {
+      font-size: 14px;
+      color: var(--quiet-grey);
+      line-height: 1.45;
+    }
+
+    .variation-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    /* Evidence Chip (Decision 13, Section 5.6) */
+    .evidence-chip {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--print);
+      background: var(--raised-subtle);
+      border: 1px solid var(--rule);
+      padding: 2px 8px;
+      border-radius: 4px;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .chip-glyph {
+      color: var(--spot-blue);
+      font-weight: 800;
+      font-family: var(--font-serif);
+      font-size: 13px;
+    }
+
+    /* Session Complete Summary (Decision 33) */
+    .complete-card {
+      display: none;
+      background: var(--raised);
+      border: 1px solid var(--rule);
+      border-radius: var(--radius-md);
+      padding: 28px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .complete-card.visible {
+      display: block;
+    }
+
+    .complete-badge {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--correct-green);
+      background: var(--correct-green-tint);
+      padding: 4px 10px;
+      border-radius: 4px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .complete-title {
+      font-family: var(--font-serif);
+      font-size: 30px;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+
+    .complete-summary-line {
+      font-size: 16px;
+      color: var(--print);
+      margin-bottom: 24px;
+    }
+
+    .complete-section {
+      background: var(--paper);
+      border: 1px solid var(--rule);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .complete-sec-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--print);
+      margin-bottom: 8px;
+    }
+
+    .complete-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 14px;
+    }
+
+    .complete-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .complete-bullet {
+      color: var(--spot-blue);
+      font-weight: 700;
+    }
+
+    .complete-extras {
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid var(--rule);
+    }
+
+    .complete-extras-title {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .extras-buttons {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    /* Guest Sign In Callout on Complete */
+    .guest-sync-box {
+      margin-top: 24px;
+      background: var(--spot-blue-tint);
+      border: 1px solid var(--spot-blue);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .guest-sync-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--spot-blue);
+    }
+
+    .guest-sync-desc {
+      font-size: 13px;
+      color: var(--print);
+    }
+
+    /* Phone Fixed Bottom Tab Bar */
+    .mobile-tab-bar {
+      display: flex;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 60px;
+      background: var(--raised);
+      border-top: 1px solid var(--rule);
+      justify-content: space-around;
+      align-items: center;
+      padding-bottom: env(safe-area-inset-bottom);
+      z-index: 50;
+    }
+
+    @media (min-width: 768px) {
+      .mobile-tab-bar {
+        display: none;
+      }
+    }
+
+    .tab-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      color: var(--quiet-grey);
+      text-decoration: none;
+      font-size: 11px;
+      font-weight: 500;
+      padding: 6px 12px;
+      min-width: 64px;
+    }
+
+    .tab-item.active {
+      color: var(--spot-blue);
+      font-weight: 700;
+    }
+
+    .tab-icon {
+      width: 20px;
+      height: 20px;
+    }
+
+    /* Responsive Sheet Component (Bottom sheet on phone, Side panel on desktop) */
+    .sheet-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      z-index: 200;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+
+    .sheet-backdrop.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .sheet-container {
+      position: fixed;
+      background: var(--paper);
+      z-index: 210;
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Phone: Bottom Sheet */
+    @media (max-width: 767px) {
+      .sheet-container {
+        bottom: 0;
+        left: 0;
+        right: 0;
+        max-height: 85vh;
+        border-top-left-radius: 16px;
+        border-top-right-radius: 16px;
+        box-shadow: var(--shadow-sheet);
+        transform: translateY(100%);
+      }
+      .sheet-container.open {
+        transform: translateY(0);
+      }
+    }
+
+    /* Desktop: Side Panel Drawer */
+    @media (min-width: 768px) {
+      .sheet-container {
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 440px;
+        border-left: 1px solid var(--rule);
+        box-shadow: var(--shadow-drawer);
+        transform: translateX(100%);
+      }
+      .sheet-container.open {
+        transform: translateX(0);
+      }
+    }
+
+    .sheet-drag-pill {
+      display: block;
+      width: 36px;
+      height: 4px;
+      background: var(--rule);
+      border-radius: 2px;
+      margin: 10px auto 4px;
+    }
+
+    @media (min-width: 768px) {
+      .sheet-drag-pill {
+        display: none;
+      }
+    }
+
+    .sheet-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--rule);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .sheet-title {
+      font-family: var(--font-serif);
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .sheet-close-btn {
+      background: var(--raised);
+      border: 1px solid var(--rule);
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--print);
+      font-size: 18px;
+    }
+
+    .sheet-body {
+      padding: 20px;
+      overflow-y: auto;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .sheet-callout {
+      background: var(--raised);
+      border: 1px solid var(--rule);
+      border-radius: var(--radius-sm);
+      padding: 14px;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .sheet-meta-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--quiet-grey);
+      margin-bottom: 4px;
+    }
+
+    .sheet-citation {
+      font-size: 13px;
+      color: var(--quiet-grey);
+      line-height: 1.4;
+      font-style: italic;
+    }
+
+    /* Account Menu Popup */
+    .menu-popup {
+      position: absolute;
+      top: 52px;
+      right: 20px;
+      background: var(--raised);
+      border: 1px solid var(--rule);
+      border-radius: var(--radius-md);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+      width: 220px;
+      display: none;
+      flex-direction: column;
+      z-index: 90;
+      padding: 6px;
+    }
+
+    .menu-popup.open {
+      display: flex;
+    }
+
+    .menu-item {
+      padding: 8px 12px;
+      font-size: 14px;
+      text-decoration: none;
+      color: var(--print);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .menu-item:hover {
+      background: var(--raised-subtle);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Prototype State and Toolbar -->
+  <aside class="proto-bar" aria-label="Prototype controls">
+    <div class="proto-left">
+      <span class="proto-label">Direction B: Diagram</span>
+      <div class="proto-seg" role="group" aria-label="Toggle session state">
+        <button type="button" class="proto-seg-btn active" id="state-in-progress-btn">In progress (2 of 4)</button>
+        <button type="button" class="proto-seg-btn" id="state-complete-btn">Session complete</button>
+      </div>
+    </div>
+    <div class="proto-links">
+      <button type="button" class="proto-seg-btn" id="theme-btn" style="border: 1px solid var(--rule); background: var(--paper);">
+        <span id="theme-icon">&#9788;</span> <span id="theme-label">Dark mode</span>
+      </button>
+      <a href="puzzle.html" class="proto-link">Puzzle focus &rarr;</a>
+      <a href="wordmark.html" class="proto-link">Wordmarks &rarr;</a>
+      <a href="../index.html" class="proto-link">&larr; Studio</a>
+    </div>
+  </aside>
+
+  <!-- App Header -->
+  <header class="app-header">
+    <a href="today.html" class="wordmark" aria-label="Mainline home">
+      <span class="wordmark-num">1.</span>Mainline
+    </a>
+
+    <nav class="desktop-nav" aria-label="Primary navigation">
+      <a href="today.html" class="nav-tab active" aria-current="page">Today</a>
+      <a href="#" class="nav-tab">Analysis</a>
+      <a href="#" class="nav-tab">Library</a>
+      <a href="#" class="nav-tab">Progress</a>
+    </nav>
+
+    <div class="header-right">
+      <div class="guest-pill" title="Guest mode active">
+        <span class="guest-dot"></span>
+        <span>Guest</span>
+      </div>
+      <button type="button" class="account-btn" id="account-menu-btn" aria-label="Open account menu" aria-expanded="false">
+        J
+      </button>
+    </div>
+
+    <!-- Account Menu Popup -->
+    <div class="menu-popup" id="account-popup" role="menu">
+      <div style="padding: 6px 12px; font-size: 12px; color: var(--quiet-grey); border-bottom: 1px solid var(--rule); margin-bottom: 4px;">
+        Signed in as Guest
+      </div>
+      <a href="#" class="menu-item" role="menuitem">Settings</a>
+      <a href="#" class="menu-item" role="menuitem">About Mainline</a>
+      <a href="#" class="menu-item" role="menuitem">Send feedback</a>
+      <div style="border-top: 1px solid var(--rule); margin-top: 4px; padding-top: 4px;">
+        <a href="#" class="menu-item" role="menuitem" style="color: var(--spot-blue); font-weight: 600;">Sign in to sync</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Page Main Container -->
+  <main class="main-content">
+
+    <!-- Active Session View -->
+    <div id="session-in-progress-view">
+      <!-- Hero Primary Action Box -->
+      <section class="hero-card" aria-labelledby="hero-title">
+        <div class="hero-top">
+          <h1 class="hero-title" id="hero-title">Today</h1>
+          <span class="hero-budget tabular-nums">43 minutes planned &bull; 25 minutes remaining</span>
+        </div>
+        <p class="hero-subtitle">
+          Next block: Themed tactics (reflective). 8 puzzles remaining.
+        </p>
+        <div class="hero-actions">
+          <a href="puzzle.html" class="btn btn-primary" id="continue-session-btn">
+            Continue session
+          </a>
+          <button type="button" class="btn btn-quiet btn-sm" id="change-time-btn">
+            Change time
+          </button>
+        </div>
+      </section>
+
+      <!-- Main Line Sequence -->
+      <section aria-labelledby="blocks-title">
+        <header class="section-header">
+          <h2 class="section-title" id="blocks-title">Training sequence</h2>
+          <span class="section-meta tabular-nums">2 of 4 blocks completed</span>
+        </header>
+
+        <div class="block-list">
+
+          <!-- Block 1 (Done) -->
+          <article class="block-card done" aria-label="Block 1: Spaced review of failed tactics">
+            <div class="block-main-row">
+              <div class="block-left">
+                <span class="block-number">1.</span>
+                <div class="block-info">
+                  <div class="block-heading">Spaced review of failed tactics</div>
+                  <div class="block-time tabular-nums">10 minutes &bull; Pattern track</div>
+                </div>
+              </div>
+              <span class="block-state-pill pill-done">Done &#10003;</span>
+            </div>
+            <div class="block-variation">
+              <p class="variation-text">
+                Solved 8 previously failed tactical positions. Zero misses repeated today.
+              </p>
+              <div class="variation-controls">
+                <span class="evidence-chip">
+                  Some evidence <span class="chip-glyph" aria-hidden="true">!</span>
+                </span>
+                <button type="button" class="btn btn-quiet btn-sm why-trigger" data-rationale="spaced-review">
+                  Why this?
+                </button>
+              </div>
+            </div>
+          </article>
+
+          <!-- Block 2 (Done) -->
+          <article class="block-card done" aria-label="Block 2: Drill your own blunders">
+            <div class="block-main-row">
+              <div class="block-left">
+                <span class="block-number">2.</span>
+                <div class="block-info">
+                  <div class="block-heading">Drill your own blunders</div>
+                  <div class="block-time tabular-nums">8 minutes &bull; Calculation track</div>
+                </div>
+              </div>
+              <span class="block-state-pill pill-done">Done &#10003;</span>
+            </div>
+            <div class="block-variation">
+              <p class="variation-text">
+                Re-solved 6 personal blunder positions imported from your recent online games.
+              </p>
+              <div class="variation-controls">
+                <span class="evidence-chip">
+                  Some evidence <span class="chip-glyph" aria-hidden="true">!</span>
+                </span>
+                <button type="button" class="btn btn-quiet btn-sm why-trigger" data-rationale="blunder-drill">
+                  Why this?
+                </button>
+              </div>
+            </div>
+          </article>
+
+          <!-- Block 3 (Current / Next: BOLD Emphasis) -->
+          <article class="block-card current" aria-label="Block 3: Themed tactics (reflective)">
+            <div class="block-main-row">
+              <div class="block-left">
+                <span class="block-number">3.</span>
+                <div class="block-info">
+                  <div class="block-heading">Themed tactics (reflective)</div>
+                  <div class="block-time tabular-nums">10 minutes &bull; Forks and pins</div>
+                </div>
+              </div>
+              <span class="block-state-pill pill-next">Next block</span>
+            </div>
+            <div class="block-variation">
+              <p class="variation-text" style="color: var(--print); font-weight: 500;">
+                Solve 8 positions with fork and pin themes. Calculate variations before making your first move.
+              </p>
+              <div class="variation-controls">
+                <span class="evidence-chip">
+                  Strong evidence <span class="chip-glyph" aria-hidden="true">!!</span>
+                </span>
+                <button type="button" class="btn btn-quiet btn-sm why-trigger" data-rationale="themed-tactics">
+                  Why this?
+                </button>
+                <button type="button" class="btn btn-quiet btn-sm" id="skip-block-btn">
+                  Skip
+                </button>
+              </div>
+            </div>
+          </article>
+
+          <!-- Block 4 (Upcoming) -->
+          <article class="block-card upcoming" aria-label="Block 4: Play rated games">
+            <div class="block-main-row">
+              <div class="block-left">
+                <span class="block-number">4.</span>
+                <div class="block-info">
+                  <div class="block-heading">Play rated games (longer time control)</div>
+                  <div class="block-time tabular-nums">15 minutes &bull; Rapid 15+10</div>
+                </div>
+              </div>
+              <span class="block-state-pill pill-upcoming">Upcoming</span>
+            </div>
+            <div class="block-variation">
+              <p class="variation-text">
+                Play one 15+10 game on Lichess or Chess.com. Apply calculation discipline in real play.
+              </p>
+              <div class="variation-controls">
+                <span class="evidence-chip">
+                  Some evidence <span class="chip-glyph" aria-hidden="true">!</span>
+                </span>
+                <button type="button" class="btn btn-quiet btn-sm why-trigger" data-rationale="play-games">
+                  Why this?
+                </button>
+                <button type="button" class="btn btn-quiet btn-sm">
+                  Skip
+                </button>
+              </div>
+            </div>
+          </article>
+
+        </div>
+      </section>
+    </div>
+
+    <!-- Completed Session View (Decision 33) -->
+    <div class="complete-card" id="session-complete-view">
+      <div class="complete-badge">&#10003; Session complete</div>
+      <h1 class="complete-title">Training summary for today</h1>
+      <p class="complete-summary-line tabular-nums">
+        You completed 4 blocks in 43 minutes.
+      </p>
+
+      <section class="complete-section">
+        <h2 class="complete-sec-title">What changed in your plan</h2>
+        <ul class="complete-list">
+          <li>
+            <span class="complete-bullet">&bull;</span>
+            <span>3 missed tactic patterns scheduled for spaced review in 3 days.</span>
+          </li>
+          <li>
+            <span class="complete-bullet">&bull;</span>
+            <span>Tactical fork blunder frequency decreased by 18 percent.</span>
+          </li>
+          <li>
+            <span class="complete-bullet">&bull;</span>
+            <span class="tabular-nums">Tactical rating estimate updated to 1485 &plusmn; 42.</span>
+          </li>
+        </ul>
+      </section>
+
+      <section class="complete-section">
+        <h2 class="complete-sec-title">What comes tomorrow</h2>
+        <ul class="complete-list">
+          <li>
+            <span class="complete-bullet">&bull;</span>
+            <span>Endgame sparring: Rook and pawn fundamental positions (15 min).</span>
+          </li>
+          <li>
+            <span class="complete-bullet">&bull;</span>
+            <span>Game analysis: Review of today's 15+10 game without engine crutches (15 min).</span>
+          </li>
+        </ul>
+      </section>
+
+      <div class="complete-extras">
+        <div class="complete-extras-title">Optional extra activities</div>
+        <div class="extras-buttons">
+          <button type="button" class="btn btn-quiet btn-sm">Log external game</button>
+          <button type="button" class="btn btn-quiet btn-sm">Log chess book reading</button>
+        </div>
+      </div>
+
+      <div class="guest-sync-box">
+        <div class="guest-sync-title">Save your training history</div>
+        <p class="guest-sync-desc">
+          You are using guest mode on this browser. Sign in with Lichess or Google to sync your training across devices and preserve your history.
+        </p>
+        <div>
+          <button type="button" class="btn btn-primary btn-sm">Sign in to sync</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Mobile Bottom Tab Bar -->
+  <nav class="mobile-tab-bar" aria-label="Mobile navigation">
+    <a href="today.html" class="tab-item active" aria-current="page">
+      <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+        <line x1="16" y1="2" x2="16" y2="6"/>
+        <line x1="8" y1="2" x2="8" y2="6"/>
+        <line x1="3" y1="10" x2="21" y2="10"/>
+      </svg>
+      <span>Today</span>
+    </a>
+    <a href="#" class="tab-item">
+      <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <span>Analysis</span>
+    </a>
+    <a href="#" class="tab-item">
+      <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+      </svg>
+      <span>Library</span>
+    </a>
+    <a href="#" class="tab-item">
+      <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="18" y1="20" x2="18" y2="10"/>
+        <line x1="12" y1="20" x2="12" y2="4"/>
+        <line x1="6" y1="20" x2="6" y2="14"/>
+      </svg>
+      <span>Progress</span>
+    </a>
+  </nav>
+
+  <!-- Responsive Sheet Component Backdrop -->
+  <div class="sheet-backdrop" id="sheet-backdrop" aria-hidden="true"></div>
+
+  <!-- Sheet: "Why this?" (Decision 14, Section 5.7) -->
+  <aside class="sheet-container" id="why-sheet" role="dialog" aria-modal="true" aria-labelledby="why-sheet-title">
+    <div class="sheet-drag-pill" aria-hidden="true"></div>
+    <header class="sheet-header">
+      <h2 class="sheet-title" id="why-sheet-title">Why this block?</h2>
+      <button type="button" class="sheet-close-btn" id="why-close-btn" aria-label="Close details">&times;</button>
+    </header>
+    <div class="sheet-body">
+      <div id="why-chip-container">
+        <span class="evidence-chip">
+          Strong evidence <span class="chip-glyph" aria-hidden="true">!!</span>
+        </span>
+      </div>
+
+      <div class="sheet-callout">
+        <div class="sheet-meta-label">Methodology Rationale</div>
+        <p id="why-rationale-text">
+          We target roughly 80 to 85 percent success as a starting point from non-chess learning research. This provides enough challenge to require retrieval without causing frequent failure. The best chess-specific target is not established.
+        </p>
+      </div>
+
+      <div class="sheet-callout">
+        <div class="sheet-meta-label">Citation & Evidence Tier</div>
+        <p class="sheet-citation" id="why-citation-text">
+          Wilson et al. 2019, Nature Communications 10:4646. Optimal difficulty success target (ML model; extrapolated to chess).
+        </p>
+        <div style="font-size: 12px; color: var(--quiet-grey); margin-top: 6px;">
+          Tier 2: Peer-reviewed general learning science. Extrapolated to chess skill acquisition.
+        </div>
+      </div>
+
+      <div>
+        <button type="button" class="btn btn-quiet" id="why-done-btn" style="width: 100%;">
+          Close details
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Sheet: "Change time" -->
+  <aside class="sheet-container" id="time-sheet" role="dialog" aria-modal="true" aria-labelledby="time-sheet-title">
+    <div class="sheet-drag-pill" aria-hidden="true"></div>
+    <header class="sheet-header">
+      <h2 class="sheet-title" id="time-sheet-title">Change time budget</h2>
+      <button type="button" class="sheet-close-btn" id="time-close-btn" aria-label="Close time selector">&times;</button>
+    </header>
+    <div class="sheet-body">
+      <p style="font-size: 15px; color: var(--quiet-grey);">
+        Select how much training time you have today. We will adjust your remaining session to fit this budget.
+      </p>
+
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <label style="display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--rule); border-radius: var(--radius-sm); cursor: pointer;">
+          <input type="radio" name="time-opt" value="15">
+          <div>
+            <div style="font-weight: 700;">15 minutes</div>
+            <div style="font-size: 13px; color: var(--quiet-grey);">1 block remaining</div>
+          </div>
+        </label>
+        <label style="display: flex; align-items: center; gap: 12px; padding: 12px; border: 2px solid var(--spot-blue); background: var(--spot-blue-tint); border-radius: var(--radius-sm); cursor: pointer;">
+          <input type="radio" name="time-opt" value="25" checked>
+          <div>
+            <div style="font-weight: 700; color: var(--spot-blue);">25 minutes (current plan)</div>
+            <div style="font-size: 13px; color: var(--print);">Finish themed tactics and 15+10 game</div>
+          </div>
+        </label>
+        <label style="display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--rule); border-radius: var(--radius-sm); cursor: pointer;">
+          <input type="radio" name="time-opt" value="45">
+          <div>
+            <div style="font-weight: 700;">45 minutes</div>
+            <div style="font-size: 13px; color: var(--quiet-grey);">Adds endgame study block</div>
+          </div>
+        </label>
+      </div>
+
+      <div style="margin-top: 10px;">
+        <button type="button" class="btn btn-primary" id="time-save-btn" style="width: 100%;">
+          Update budget
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <script>
+    // State switcher: In progress vs Session complete
+    const inProgressBtn = document.getElementById('state-in-progress-btn');
+    const completeBtn = document.getElementById('state-complete-btn');
+    const inProgressView = document.getElementById('session-in-progress-view');
+    const completeView = document.getElementById('session-complete-view');
+
+    function setViewState(isComplete) {
+      if (isComplete) {
+        completeBtn.classList.add('active');
+        inProgressBtn.classList.remove('active');
+        inProgressView.style.display = 'none';
+        completeView.classList.add('visible');
+      } else {
+        inProgressBtn.classList.add('active');
+        completeBtn.classList.remove('active');
+        inProgressView.style.display = 'block';
+        completeView.classList.remove('visible');
+      }
+    }
+
+    inProgressBtn.addEventListener('click', () => setViewState(false));
+    completeBtn.addEventListener('click', () => setViewState(true));
+
+    // Theme Switcher
+    const themeBtn = document.getElementById('theme-btn');
+    const themeIcon = document.getElementById('theme-icon');
+    const themeLabel = document.getElementById('theme-label');
+
+    function applyTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      localStorage.setItem('mainline_proto_theme', theme);
+      if (theme === 'dark') {
+        themeIcon.innerHTML = '&#9790;';
+        themeLabel.textContent = 'Light mode';
+      } else {
+        themeIcon.innerHTML = '&#9788;';
+        themeLabel.textContent = 'Dark mode';
+      }
+    }
+
+    const savedTheme = localStorage.getItem('mainline_proto_theme') || 'light';
+    applyTheme(savedTheme);
+
+    themeBtn.addEventListener('click', () => {
+      const current = document.documentElement.getAttribute('data-theme') || 'light';
+      applyTheme(current === 'light' ? 'dark' : 'light');
+    });
+
+    // Account menu dropdown toggle
+    const accountBtn = document.getElementById('account-menu-btn');
+    const accountPopup = document.getElementById('account-popup');
+
+    accountBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = accountPopup.classList.contains('open');
+      accountPopup.classList.toggle('open', !isOpen);
+      accountBtn.setAttribute('aria-expanded', !isOpen);
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!accountPopup.contains(e.target) && e.target !== accountBtn) {
+        accountPopup.classList.remove('open');
+        accountBtn.setAttribute('aria-expanded', 'false');
+      }
+    });
+
+    // Sheet management
+    const backdrop = document.getElementById('sheet-backdrop');
+    const whySheet = document.getElementById('why-sheet');
+    const timeSheet = document.getElementById('time-sheet');
+
+    function closeAllSheets() {
+      whySheet.classList.remove('open');
+      timeSheet.classList.remove('open');
+      backdrop.classList.remove('open');
+    }
+
+    backdrop.addEventListener('click', closeAllSheets);
+    document.getElementById('why-close-btn').addEventListener('click', closeAllSheets);
+    document.getElementById('why-done-btn').addEventListener('click', closeAllSheets);
+    document.getElementById('time-close-btn').addEventListener('click', closeAllSheets);
+    document.getElementById('time-save-btn').addEventListener('click', closeAllSheets);
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeAllSheets();
+    });
+
+    // Change time trigger
+    document.getElementById('change-time-btn').addEventListener('click', () => {
+      timeSheet.classList.add('open');
+      backdrop.classList.add('open');
+    });
+
+    // Real Rationale Dictionary from methodology config
+    const rationales = {
+      'themed-tactics': {
+        title: 'Why themed tactics?',
+        grade: 'Strong evidence',
+        glyph: '!!',
+        rationale: 'We target roughly 80 to 85 percent success as a starting point from non-chess learning research. This provides enough challenge to require retrieval without causing frequent failure. The best chess-specific target is not established.',
+        citation: 'Wilson et al. 2019, Nature Communications 10:4646. Optimal difficulty success target (ML model; extrapolated to chess).',
+        tier: 'Tier 2: General skill acquisition literature.'
+      },
+      'spaced-review': {
+        title: 'Why spaced review?',
+        grade: 'Some evidence',
+        glyph: '!',
+        rationale: 'Re-solving mistakes over several days applies retrieval and spacing mechanisms that are well supported in general learning. Their transfer to durable chess pattern recognition is not established.',
+        citation: 'Roediger & Karpicke 2006; Adesope et al. 2017. Retrieval practice and testing effect (g = 0.51).',
+        tier: 'Tier 2: Cognitive psychology research.'
+      },
+      'blunder-drill': {
+        title: 'Why blunder drills?',
+        grade: 'Some evidence',
+        glyph: '!',
+        rationale: 'These are positions where you made tactical blunders in your own games. Re-solving them over spaced intervals applies retrieval mechanisms that are well supported in general learning.',
+        citation: 'Cepeda et al. 2006, Psychological Bulletin 132:354. Spacing outperforms massed practice across 839 assessments.',
+        tier: 'Tier 2: Meta-analytic spacing research.'
+      },
+      'play-games': {
+        title: 'Why play longer games?',
+        grade: 'Some evidence',
+        glyph: '!',
+        rationale: 'Playing full-length games is the strongest single correlate of rating in empirical chess data. That is correlation, not proof, but it is where real calculation skill is tested.',
+        citation: 'Howard 2012, Applied Cognitive Psychology 26:359. Logarithm of games played is the strongest rating predictor.',
+        tier: 'Tier 1: Observational chess data.'
+      }
+    };
+
+    document.querySelectorAll('.why-trigger').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const key = btn.getAttribute('data-rationale');
+        const data = rationales[key] || rationales['themed-tactics'];
+
+        document.getElementById('why-sheet-title').textContent = data.title;
+        document.getElementById('why-chip-container').innerHTML = `
+          <span class="evidence-chip">
+            ${data.grade} <span class="chip-glyph" aria-hidden="true">${data.glyph}</span>
+          </span>
+        `;
+        document.getElementById('why-rationale-text').textContent = data.rationale;
+        document.getElementById('why-citation-text').textContent = data.citation;
+
+        whySheet.classList.add('open');
+        backdrop.classList.add('open');
+      });
+    });
+
+    // Skip block mock action
+    document.getElementById('skip-block-btn')?.addEventListener('click', () => {
+      alert('Skip action: This block would be removed from today and rescheduled based on constraints.');
+    });
+  </script>
+</body>
+</html>

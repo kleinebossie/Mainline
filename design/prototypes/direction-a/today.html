@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Today - Mainline (Direction A: Sheet, refined)</title>
+  
+  <!-- Google Fonts: Fraunces (titles only), Public Sans (body, controls), IBM Plex Mono (numbers only) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="styles.css">
+
+  <style>
+    /* Specific styles for Today page */
+    .today-container {
+      width: 100%;
+      max-width: var(--reading-max-width);
+      margin: 0 auto;
+      padding: 28px 20px 100px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    @media (max-width: 640px) {
+      .today-container {
+        padding: 20px 16px 110px;
+        gap: 20px;
+      }
+    }
+
+    /* Page Header */
+    .today-header-block {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .today-date-eyebrow {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--color-graphite);
+    }
+
+    .today-title {
+      font-size: 32px;
+      line-height: 1.15;
+    }
+
+    /* Process focus inline note inside hero */
+    .process-focus-note {
+      padding-top: 14px;
+      border-top: 1px solid var(--color-card-border-subtle);
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .goal-text {
+      font-size: 14px;
+      color: var(--color-ink-secondary);
+      line-height: 1.45;
+    }
+
+    /* Primary Action Hero Surface (flat tonal section, no heavy card border) */
+    .session-hero-card {
+      background-color: var(--color-raised);
+      border-radius: var(--radius-lg);
+      padding: 22px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .hero-top-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .hero-title-group {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .hero-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--color-ink);
+    }
+
+    .hero-subtitle {
+      font-size: 13px;
+      color: var(--color-graphite);
+    }
+
+    .hero-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .hero-primary-btn {
+      padding: 10px 22px;
+      font-size: 15px;
+      font-weight: 600;
+      min-height: 44px;
+    }
+
+    .hero-time-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--color-graphite);
+    }
+
+    .time-badge {
+      font-weight: 600;
+      color: var(--color-ink);
+    }
+
+    /* Training Blocks Section */
+    .blocks-section {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .section-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2px;
+    }
+
+    .section-heading {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--color-graphite);
+    }
+
+    .section-progress-text {
+      font-size: 13px;
+      color: var(--color-graphite);
+    }
+
+    .block-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    /* Block item row: flat section with 3px leading evidence gutter, zero box borders */
+    .block-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 16px 18px;
+      background-color: transparent;
+      border-radius: 0 var(--radius-md) var(--radius-md) 0;
+      border-top: none;
+      border-right: none;
+      border-bottom: none;
+      position: relative;
+      transition: background-color 0.12s ease;
+    }
+
+    .block-item:hover {
+      background-color: var(--color-raised);
+    }
+
+    /* Active / Next block row emphasis: raised flat surface */
+    .block-item.is-active {
+      background-color: var(--color-raised);
+    }
+
+    /* Done block row muted appearance */
+    .block-item.is-done {
+      opacity: 0.76;
+    }
+
+    .block-item.is-done .block-name {
+      color: var(--color-graphite);
+    }
+
+    .block-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .block-status-indicator {
+      width: 24px;
+      height: 24px;
+      border-radius: var(--radius-full);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .indicator-done {
+      background-color: var(--color-evergreen-subtle);
+      color: var(--color-evergreen-text);
+    }
+
+    .indicator-next {
+      background-color: var(--color-evergreen);
+      color: #FFFFFF;
+    }
+
+    [data-theme="dark"] .indicator-next {
+      color: #121516;
+    }
+
+    .indicator-queued {
+      background-color: var(--color-card-border-subtle);
+      color: var(--color-graphite);
+    }
+
+    .block-details {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      min-width: 0;
+    }
+
+    .block-header-line {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .block-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--color-ink);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .block-duration {
+      font-size: 13px;
+      color: var(--color-graphite);
+    }
+
+    .block-description {
+      font-size: 13px;
+      color: var(--color-graphite);
+      line-height: 1.4;
+    }
+
+    .block-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .block-start-btn {
+      padding: 6px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      min-height: 34px;
+    }
+
+    .block-menu-btn {
+      min-width: 34px;
+      min-height: 34px;
+      padding: 6px;
+      border-radius: var(--radius-sm);
+      color: var(--color-graphite);
+    }
+
+    .block-menu-btn:hover {
+      background-color: var(--color-card-border-subtle);
+      color: var(--color-ink);
+    }
+
+    /* Session Complete View */
+    .session-complete-view {
+      display: none;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .session-complete-view.is-visible {
+      display: flex;
+    }
+
+    .summary-hero-card {
+      background-color: var(--color-raised);
+      border: 1px solid var(--color-card-border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .summary-title-line {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .summary-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background-color: var(--color-evergreen-subtle);
+      color: var(--color-evergreen-text);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: var(--radius-full);
+    }
+
+    .summary-headline {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--color-ink);
+    }
+
+    .summary-metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 12px;
+      padding: 16px 0;
+      border-top: 1px solid var(--color-card-border-subtle);
+      border-bottom: 1px solid var(--color-card-border-subtle);
+    }
+
+    .metric-cell {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .metric-label {
+      font-size: 12px;
+      color: var(--color-graphite);
+    }
+
+    .metric-value {
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--color-ink);
+    }
+
+    .summary-section-box {
+      background-color: var(--color-raised);
+      border: 1px solid var(--color-card-border-subtle);
+      border-radius: var(--radius-md);
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .summary-box-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--color-ink);
+    }
+
+    .summary-updates-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      list-style: none;
+    }
+
+    .summary-update-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 14px;
+      color: var(--color-ink-secondary);
+      line-height: 1.45;
+    }
+
+    .update-bullet {
+      width: 6px;
+      height: 6px;
+      border-radius: var(--radius-full);
+      background-color: var(--color-evergreen);
+      margin-top: 7px;
+      flex-shrink: 0;
+    }
+
+    .extras-actions-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .guest-cta-box {
+      background-color: var(--color-raised);
+      border: 1px solid var(--color-card-border);
+      border-radius: var(--radius-md);
+      padding: 18px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .guest-cta-text {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .guest-cta-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--color-ink);
+    }
+
+    .guest-cta-sub {
+      font-size: 13px;
+      color: var(--color-graphite);
+    }
+
+    /* Modal / Sheet options */
+    .time-options-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    .time-option-card {
+      border: 1px solid var(--color-card-border);
+      border-radius: var(--radius-md);
+      padding: 14px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      transition: border-color 0.12s ease, background-color 0.12s ease;
+      background-color: var(--color-raised);
+    }
+
+    .time-option-card:hover {
+      background-color: var(--color-raised-hover);
+      border-color: var(--color-graphite);
+    }
+
+    .time-option-card.selected {
+      border-color: var(--color-evergreen);
+      background-color: var(--color-evergreen-subtle);
+    }
+
+    .time-opt-minutes {
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--color-ink);
+    }
+
+    .time-opt-blocks {
+      font-size: 12px;
+      color: var(--color-graphite);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ========================================================================
+       App Navigation Shell (Desktop Top Bar + Phone Top Bar)
+       ======================================================================== -->
+  <header class="app-header" role="banner">
+    <a href="today.html" class="app-brand" aria-label="Mainline home">
+      <svg class="app-logo" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect width="512" height="512" rx="96" fill="var(--color-raised)"/>
+        <path d="M120 376V136h56l80 132 80-132h56v240h-54V240l-82 120-82-120v136z" fill="var(--color-ink)"/>
+        <circle cx="392" cy="120" r="28" fill="var(--color-evergreen)"/>
+      </svg>
+      <span class="app-brand-title">Mainline</span>
+    </a>
+
+    <!-- Desktop Navigation Tabs (768px+) -->
+    <nav class="desktop-nav" aria-label="Primary navigation">
+      <a href="today.html" class="nav-tab-item active" aria-current="page">Today</a>
+      <a href="#analysis" class="nav-tab-item" onclick="alert('Analysis prototype is linked from the prototype studio.'); return false;">Analysis</a>
+      <a href="#library" class="nav-tab-item" onclick="alert('Library prototype is linked from the prototype studio.'); return false;">Library</a>
+      <a href="#progress" class="nav-tab-item" onclick="alert('Progress prototype is linked from the prototype studio.'); return false;">Progress</a>
+    </nav>
+
+    <!-- Header Actions (Right) -->
+    <div class="header-actions">
+      <span class="guest-notice-pill" title="Training outcomes save to browser storage">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+        Guest mode
+      </span>
+
+      <!-- Theme Switcher Button -->
+      <button type="button" class="btn-icon" id="header-theme-toggle" title="Switch light/dark theme" aria-label="Toggle theme">
+        <svg id="theme-icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+        <svg id="theme-icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+      </button>
+
+      <!-- Account Button -->
+      <button type="button" class="user-avatar-btn" title="Account settings" aria-label="User account menu">
+        J
+      </button>
+    </div>
+  </header>
+
+  <!-- ========================================================================
+       Phone Bottom Navigation Bar (<768px)
+       ======================================================================== -->
+  <nav class="phone-bottom-nav" aria-label="Mobile navigation">
+    <a href="today.html" class="bottom-tab-item active" aria-current="page">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+      <span>Today</span>
+    </a>
+    <a href="#analysis" class="bottom-tab-item" onclick="alert('Analysis prototype is linked from the prototype studio.'); return false;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4"/><path d="M12 16V8"/></svg>
+      <span>Analysis</span>
+    </a>
+    <a href="#library" class="bottom-tab-item" onclick="alert('Library prototype is linked from the prototype studio.'); return false;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h10"/><path d="M6 10h10"/></svg>
+      <span>Library</span>
+    </a>
+    <a href="#progress" class="bottom-tab-item" onclick="alert('Progress prototype is linked from the prototype studio.'); return false;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg>
+      <span>Progress</span>
+    </a>
+  </nav>
+
+  <!-- ========================================================================
+       Main Content (Single reading column, 680px max)
+       ======================================================================== -->
+  <main class="today-container" id="main-content">
+
+    <!-- ----------------------------------------------------------------------
+         STATE 1: In Progress View (2 of 4 blocks completed)
+         ---------------------------------------------------------------------- -->
+    <div id="view-in-progress" style="display:flex; flex-direction:column; gap:24px;">
+      
+      <!-- Date and Heading -->
+      <header class="today-header-block">
+        <span class="today-date-eyebrow">Tuesday, Oct 16</span>
+        <h1 class="today-title title-display">Today</h1>
+      </header>
+
+      <!-- Primary Action Hero Surface -->
+      <section class="session-hero-card" aria-label="Session status">
+        <div class="hero-top-row">
+          <div class="hero-title-group">
+            <h2 class="hero-title">Endgame technique is next</h2>
+            <span class="hero-subtitle">Block 3 of 4 · <span class="time-badge num">30 min</span> remaining of <span class="num">55 min</span> plan</span>
+          </div>
+          <div class="hero-actions">
+            <a href="puzzle.html" class="btn-primary hero-primary-btn" id="continue-session-btn">
+              Continue session
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+            </a>
+            <button type="button" class="btn-secondary" id="change-time-btn">
+              Change time
+            </button>
+          </div>
+        </div>
+
+        <div class="process-focus-note">
+          <p class="goal-text">
+            <strong>Today's focus:</strong> Validate candidate moves before you play. Calculate forcing lines to quiet positions.
+          </p>
+          <span class="evidence-chip evidence-chip-strong" title="Strong evidence, general skill acquisition">
+            Strong evidence <span class="chip-glyph" aria-hidden="true">!!</span>
+          </span>
+        </div>
+      </section>
+
+      <!-- Training Block List -->
+      <section class="blocks-section" aria-label="Today training blocks">
+        <div class="section-header-row">
+          <span class="section-heading">Training sequence</span>
+          <span class="section-progress-text"><span class="num">2</span> of <span class="num">4</span> done</span>
+        </div>
+
+        <div class="block-list">
+          
+          <!-- Block 1 (Done): Tactical calculation -->
+          <article class="block-item evidence-row evidence-gutter-strong is-done" data-block-id="block-1">
+            <div class="block-left">
+              <div class="block-status-indicator indicator-done" title="Completed" aria-label="Completed">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <div class="block-details">
+                <div class="block-header-line">
+                  <h3 class="block-name">Tactical calculation</h3>
+                  <span class="block-duration num">15 min</span>
+                  <span class="evidence-chip evidence-chip-strong">
+                    Strong evidence <span class="chip-glyph" aria-hidden="true">!!</span>
+                  </span>
+                </div>
+                <p class="block-description">Trains deep calculation and candidate move validation.</p>
+              </div>
+            </div>
+            <div class="block-right">
+              <button type="button" class="block-menu-btn" data-why="block-1" title="Block options and rationale" aria-label="Options for Tactical calculation">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+              </button>
+            </div>
+          </article>
+
+          <!-- Block 2 (Done): Personal blunder review -->
+          <article class="block-item evidence-row evidence-gutter-guess is-done" data-block-id="block-2">
+            <div class="block-left">
+              <div class="block-status-indicator indicator-done" title="Completed" aria-label="Completed">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <div class="block-details">
+                <div class="block-header-line">
+                  <h3 class="block-name">Personal blunder review</h3>
+                  <span class="block-duration num">10 min</span>
+                  <span class="evidence-chip evidence-chip-guess">
+                    Best guess <span class="chip-glyph" aria-hidden="true">?!</span>
+                  </span>
+                </div>
+                <p class="block-description">Drills critical turning points from your own games.</p>
+              </div>
+            </div>
+            <div class="block-right">
+              <button type="button" class="block-menu-btn" data-why="block-2" title="Block options and rationale" aria-label="Options for Personal blunder review">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+              </button>
+            </div>
+          </article>
+
+          <!-- Block 3 (Next / Active): Endgame technique -->
+          <article class="block-item evidence-row evidence-gutter-some is-active" data-block-id="block-3">
+            <div class="block-left">
+              <div class="block-status-indicator indicator-next" title="Next up" aria-label="Next block">
+                <span class="num">3</span>
+              </div>
+              <div class="block-details">
+                <div class="block-header-line">
+                  <h3 class="block-name">Endgame technique</h3>
+                  <span class="block-duration num">15 min · Next up</span>
+                  <span class="evidence-chip evidence-chip-some">
+                    Some evidence <span class="chip-glyph" aria-hidden="true">!</span>
+                  </span>
+                </div>
+                <p class="block-description">Trains conversion technique in key endgame structures.</p>
+              </div>
+            </div>
+            <div class="block-right">
+              <button type="button" class="block-menu-btn" data-why="block-3" title="Block options and rationale" aria-label="Options for Endgame technique">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+              </button>
+            </div>
+          </article>
+
+          <!-- Block 4 (Queued): Game review -->
+          <article class="block-item evidence-row evidence-gutter-some" data-block-id="block-4">
+            <div class="block-left">
+              <div class="block-status-indicator indicator-queued" title="Queued" aria-label="Queued block">
+                <span class="num">4</span>
+              </div>
+              <div class="block-details">
+                <div class="block-header-line">
+                  <h3 class="block-name">Game review</h3>
+                  <span class="block-duration num">15 min</span>
+                  <span class="evidence-chip evidence-chip-some">
+                    Some evidence <span class="chip-glyph" aria-hidden="true">!</span>
+                  </span>
+                </div>
+                <p class="block-description">A guided queue: about 2 games within 15 min.</p>
+              </div>
+            </div>
+            <div class="block-right">
+              <button type="button" class="block-menu-btn" data-why="block-4" title="Block options and rationale" aria-label="Options for Game review">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+              </button>
+            </div>
+          </article>
+
+        </div>
+      </section>
+
+    </div>
+
+    <!-- ----------------------------------------------------------------------
+         STATE 2: Session Complete View (Decision 33: Honest summary)
+         ---------------------------------------------------------------------- -->
+    <div id="view-session-complete" class="session-complete-view">
+      
+      <header class="today-header-block">
+        <span class="today-date-eyebrow">Tuesday, Oct 16</span>
+        <h1 class="today-title title-display">Session complete</h1>
+      </header>
+
+      <!-- Completion Hero Card -->
+      <section class="summary-hero-card" aria-label="Completed summary">
+        <div class="summary-title-line">
+          <span class="summary-badge">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            Done for today
+          </span>
+        </div>
+
+        <h2 class="summary-headline">Solid training work today.</h2>
+        <p style="font-size: 14px; color: var(--color-ink-secondary);">
+          You completed all planned blocks. Outcomes are recorded to calibrate upcoming sessions.
+        </p>
+
+        <div class="summary-metrics-grid">
+          <div class="metric-cell">
+            <span class="metric-label">Blocks completed</span>
+            <span class="metric-value num">4 / 4</span>
+          </div>
+          <div class="metric-cell">
+            <span class="metric-label">Measured time</span>
+            <span class="metric-value num">52 min</span>
+          </div>
+          <div class="metric-cell">
+            <span class="metric-label">Tactical accuracy</span>
+            <span class="metric-value num">83%</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- What changed in your plan -->
+      <section class="summary-section-box" aria-label="Plan updates">
+        <h3 class="summary-box-title">What changed in your plan</h3>
+        <ul class="summary-updates-list">
+          <li class="summary-update-item">
+            <span class="update-bullet" aria-hidden="true"></span>
+            <span>Tactical calculation skill estimate updated to <strong class="num">1620 (&plusmn;40)</strong>.</span>
+          </li>
+          <li class="summary-update-item">
+            <span class="update-bullet" aria-hidden="true"></span>
+            <span>Endgame conversion technique estimate updated to <strong class="num">1540 (&plusmn;45)</strong>.</span>
+          </li>
+          <li class="summary-update-item">
+            <span class="update-bullet" aria-hidden="true"></span>
+            <span>Spaced review scheduled 2 missed tactical motifs for Thursday.</span>
+          </li>
+        </ul>
+      </section>
+
+      <!-- What comes tomorrow -->
+      <section class="summary-section-box" aria-label="Tomorrow outlook">
+        <h3 class="summary-box-title">Tomorrow</h3>
+        <p style="font-size: 14px; color: var(--color-ink-secondary); line-height: 1.45;">
+          Planned <span class="num">45 min</span> session focusing on rook endgame technique and rapid game analysis.
+        </p>
+      </section>
+
+      <!-- Optional extras -->
+      <section class="summary-section-box" aria-label="Optional extras">
+        <h3 class="summary-box-title">Optional extras</h3>
+        <p style="font-size: 13px; color: var(--color-graphite); margin-bottom: 4px;">
+          Training is complete. Log outside activities only if you studied or played today.
+        </p>
+        <div class="extras-actions-row">
+          <button type="button" class="btn-secondary" onclick="alert('Log external game sheet will open here.');">
+            Log external game
+          </button>
+          <button type="button" class="btn-secondary" onclick="alert('Log book reading sheet will open here.');">
+            Log book reading
+          </button>
+        </div>
+      </section>
+
+      <!-- Guest sign-in prompt (Decision 34: full sign-in on summary) -->
+      <section class="guest-cta-box" aria-label="Sync training data">
+        <div class="guest-cta-text">
+          <span class="guest-cta-title">Save training across devices</span>
+          <span class="guest-cta-sub">Sign in with Lichess or Google to sync your progress.</span>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button type="button" class="btn-primary" onclick="alert('Redirecting to Lichess OAuth sign-in...');">
+            Connect Lichess
+          </button>
+        </div>
+      </section>
+
+    </div>
+
+  </main>
+
+  <!-- ========================================================================
+       "Why This?" Interactive Sheet (Bottom sheet on phone, side panel on desktop)
+       ======================================================================== -->
+  <div class="sheet-backdrop" id="why-backdrop" aria-hidden="true"></div>
+  <aside class="sheet-panel" id="why-sheet" role="dialog" aria-modal="true" aria-labelledby="why-title">
+    <div class="sheet-header">
+      <h2 id="why-title" class="title-display" style="font-size: 18px;">Why this block?</h2>
+      <button type="button" class="btn-icon" id="why-close-btn" aria-label="Close why this panel">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg>
+      </button>
+    </div>
+    
+    <div class="sheet-body">
+      <div id="why-content-target">
+        <!-- Content inserted dynamically via JavaScript -->
+      </div>
+    </div>
+
+    <div class="sheet-footer">
+      <button type="button" class="btn-quiet" id="why-skip-btn">Skip this block</button>
+      <button type="button" class="btn-primary" id="why-action-btn">Start training</button>
+    </div>
+  </aside>
+
+  <!-- ========================================================================
+       "Change Session Time" Sheet Modal
+       ======================================================================== -->
+  <aside class="sheet-panel modal-mode" id="time-sheet" role="dialog" aria-modal="true" aria-labelledby="time-modal-title">
+    <div class="sheet-header">
+      <h2 id="time-modal-title" class="title-display" style="font-size: 18px;">Change session time</h2>
+      <button type="button" class="btn-icon" id="time-close-btn" aria-label="Close time modal">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg>
+      </button>
+    </div>
+
+    <div class="sheet-body">
+      <p style="font-size: 13px; color: var(--color-graphite);">
+        Select available minutes for today. The session reprioritizes upcoming blocks automatically.
+      </p>
+
+      <div class="time-options-grid" role="radiogroup" aria-label="Available training minutes">
+        <div class="time-option-card" data-minutes="15" role="radio" aria-checked="false" tabindex="0">
+          <span class="time-opt-minutes num">15 min</span>
+          <span class="time-opt-blocks">1 focused block</span>
+        </div>
+        <div class="time-option-card" data-minutes="30" role="radio" aria-checked="false" tabindex="0">
+          <span class="time-opt-minutes num">30 min</span>
+          <span class="time-opt-blocks">2 training blocks</span>
+        </div>
+        <div class="time-option-card selected" data-minutes="55" role="radio" aria-checked="true" tabindex="0">
+          <span class="time-opt-minutes num">55 min</span>
+          <span class="time-opt-blocks">4 standard blocks</span>
+        </div>
+        <div class="time-option-card" data-minutes="75" role="radio" aria-checked="false" tabindex="0">
+          <span class="time-opt-minutes num">75 min</span>
+          <span class="time-opt-blocks">5 extended blocks</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sheet-footer">
+      <button type="button" class="btn-secondary" id="time-cancel-btn">Cancel</button>
+      <button type="button" class="btn-primary" id="time-save-btn">Update session</button>
+    </div>
+  </aside>
+
+  <!-- ========================================================================
+       Floating Prototype Toolbar (testing controls)
+       ======================================================================== -->
+  <aside class="proto-toolbar" aria-label="Prototype testing controls">
+    <span class="proto-label">Proto</span>
+
+    <!-- Theme toggle -->
+    <button type="button" class="proto-btn" id="proto-theme-btn" title="Toggle light and dark mode">
+      Dark
+    </button>
+
+    <!-- State toggle -->
+    <button type="button" class="proto-btn active" id="proto-state-inprogress">
+      In progress
+    </button>
+    <button type="button" class="proto-btn" id="proto-state-complete">
+      Complete
+    </button>
+
+    <!-- Links -->
+    <a href="puzzle.html" class="proto-btn" title="Inspect Puzzle focus mode">Puzzle &rarr;</a>
+    <a href="wordmark.html" class="proto-btn" title="Inspect Wordmark options">Wordmark</a>
+  </aside>
+
+  <!-- ========================================================================
+       Interactive Script (Theme, Why Sheets, Time Modal, States)
+       ======================================================================== -->
+  <script>
+    // Methodology Rationale Data (Extracted directly from research-1.0.0.json)
+    const blockData = {
+      'block-1': {
+        title: 'Tactical calculation',
+        duration: '15 min',
+        grade: 'Strong evidence',
+        gradeClass: 'evidence-chip-strong',
+        glyph: '!!',
+        tier: 'Tier 1: Research directly investigates human calculation and problem retrieval.',
+        rationale: 'Slow, calculate-to-the-end puzzles are intended to practise depth. The goal is accurate visualization before moving.',
+        citation: 'Bjork & Bjork 2011 · Desirable difficulties in retrieval and calculation depth.'
+      },
+      'block-2': {
+        title: 'Personal blunder review',
+        duration: '10 min',
+        grade: 'Best guess',
+        gradeClass: 'evidence-chip-guess',
+        glyph: '?!',
+        tier: 'Tier 2: General cognitive science evidence applied as a working hypothesis to chess.',
+        rationale: 'These are positions where you blundered in your own games. Re-solving them over several days applies retrieval and spacing mechanisms that are well supported in general learning; whether this reduces repeated chess mistakes is not established.',
+        citation: 'Cepeda et al. 2006, Psych. Bull. 132:354 (839 assessments) · Spacing outperforms massing.'
+      },
+      'block-3': {
+        title: 'Endgame technique',
+        duration: '15 min',
+        grade: 'Some evidence',
+        gradeClass: 'evidence-chip-some',
+        glyph: '!',
+        tier: 'Tier 1: Empirical performance data from structured pattern repetition.',
+        rationale: 'A few key endgame positions can help you practise common conversion and drawing patterns without opening clutter.',
+        citation: 'Smith & Tikkanen 2018 (Woodpecker) + DiscoChess (N=1,017) · Decisive endgame conversion.'
+      },
+      'block-4': {
+        title: 'Game review',
+        duration: '15 min',
+        grade: 'Some evidence',
+        gradeClass: 'evidence-chip-some',
+        glyph: '!',
+        tier: 'Tier 1: Observational game review data indicates review of decisive positions correlates with retention.',
+        rationale: 'Analysing your own games connects review to positions you actually played. We use a think-first, engine-second process based on general retrieval principles; its effect on chess improvement is not established.',
+        citation: 'Yiannakoulias 2026, ~2M online speed-chess games · Analysing personal games.'
+      }
+    };
+
+    // DOM Elements
+    const htmlEl = document.documentElement;
+    const viewInProgress = document.getElementById('view-in-progress');
+    const viewComplete = document.getElementById('view-session-complete');
+    const protoStateInProgress = document.getElementById('proto-state-inprogress');
+    const protoStateComplete = document.getElementById('proto-state-complete');
+    const protoThemeBtn = document.getElementById('proto-theme-btn');
+    const headerThemeBtn = document.getElementById('header-theme-toggle');
+    const themeIconSun = document.getElementById('theme-icon-sun');
+    const themeIconMoon = document.getElementById('theme-icon-moon');
+
+    const whyBackdrop = document.getElementById('why-backdrop');
+    const whySheet = document.getElementById('why-sheet');
+    const whyCloseBtn = document.getElementById('why-close-btn');
+    const whyContentTarget = document.getElementById('why-content-target');
+    const whyActionBtn = document.getElementById('why-action-btn');
+    const whySkipBtn = document.getElementById('why-skip-btn');
+
+    const timeSheet = document.getElementById('time-sheet');
+    const changeTimeBtn = document.getElementById('change-time-btn');
+    const timeCloseBtn = document.getElementById('time-close-btn');
+    const timeCancelBtn = document.getElementById('time-cancel-btn');
+    const timeSaveBtn = document.getElementById('time-save-btn');
+
+    // Theme toggling logic
+    function setTheme(theme) {
+      htmlEl.setAttribute('data-theme', theme);
+      if (theme === 'dark') {
+        protoThemeBtn.textContent = 'Light';
+        themeIconSun.style.display = 'block';
+        themeIconMoon.style.display = 'none';
+      } else {
+        protoThemeBtn.textContent = 'Dark';
+        themeIconSun.style.display = 'none';
+        themeIconMoon.style.display = 'block';
+      }
+      localStorage.setItem('mainline_theme', theme);
+    }
+
+    function toggleTheme() {
+      const current = htmlEl.getAttribute('data-theme') || 'light';
+      setTheme(current === 'dark' ? 'light' : 'dark');
+    }
+
+    protoThemeBtn.addEventListener('click', toggleTheme);
+    headerThemeBtn.addEventListener('click', toggleTheme);
+
+    // Initial theme check
+    const savedTheme = localStorage.getItem('mainline_theme') || 
+      (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    setTheme(savedTheme);
+
+    // Prototype State Switcher
+    protoStateInProgress.addEventListener('click', () => {
+      protoStateInProgress.classList.add('active');
+      protoStateComplete.classList.remove('active');
+      viewInProgress.style.display = 'flex';
+      viewComplete.classList.remove('is-visible');
+    });
+
+    protoStateComplete.addEventListener('click', () => {
+      protoStateComplete.classList.add('active');
+      protoStateInProgress.classList.remove('active');
+      viewInProgress.style.display = 'none';
+      viewComplete.classList.add('is-visible');
+    });
+
+    // "Why this?" Sheet open / close
+    let currentActiveBlockId = null;
+
+    function openWhySheet(blockId) {
+      currentActiveBlockId = blockId;
+      const data = blockData[blockId];
+      if (!data) return;
+
+      whyContentTarget.innerHTML = `
+        <div style="display:flex; flex-direction:column; gap:14px;">
+          <div>
+            <h3 style="font-size:17px; font-weight:600; color:var(--color-ink);">${data.title}</h3>
+            <span style="font-size:13px; color:var(--color-graphite); font-family:var(--font-mono);">${data.duration}</span>
+          </div>
+
+          <div>
+            <span class="evidence-chip ${data.gradeClass}">
+              ${data.grade} <span class="chip-glyph" aria-hidden="true">${data.glyph}</span>
+            </span>
+          </div>
+
+          <div style="background-color:var(--color-paper); padding:14px; border-radius:var(--radius-md); border:1px solid var(--color-card-border-subtle);">
+            <p style="font-size:14px; color:var(--color-ink); line-height:1.5;">${data.rationale}</p>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:4px;">
+            <span style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; color:var(--color-graphite);">Evidence tier</span>
+            <p style="font-size:13px; color:var(--color-ink-secondary);">${data.tier}</p>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:4px;">
+            <span style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; color:var(--color-graphite);">Citation</span>
+            <p style="font-size:12px; color:var(--color-graphite); font-family:var(--font-mono);">${data.citation}</p>
+          </div>
+        </div>
+      `;
+
+      whyBackdrop.classList.add('open');
+      whySheet.classList.add('open');
+    }
+
+    function closeWhySheet() {
+      whyBackdrop.classList.remove('open');
+      whySheet.classList.remove('open');
+      currentActiveBlockId = null;
+    }
+
+    document.querySelectorAll('[data-why]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const blockId = btn.getAttribute('data-why');
+        openWhySheet(blockId);
+      });
+    });
+
+    whyCloseBtn.addEventListener('click', closeWhySheet);
+    whyBackdrop.addEventListener('click', () => {
+      closeWhySheet();
+      closeTimeModal();
+    });
+
+    whyActionBtn.addEventListener('click', () => {
+      window.location.href = 'puzzle.html';
+    });
+
+    whySkipBtn.addEventListener('click', () => {
+      if (!currentActiveBlockId) return;
+      const row = document.querySelector(`[data-block-id="${currentActiveBlockId}"]`);
+      if (row) {
+        row.style.opacity = '0.5';
+        const ind = row.querySelector('.block-status-indicator');
+        if (ind) ind.textContent = '–';
+      }
+      closeWhySheet();
+    });
+
+    // "Change time" Modal logic
+    function openTimeModal() {
+      whyBackdrop.classList.add('open');
+      timeSheet.classList.add('open');
+    }
+
+    function closeTimeModal() {
+      timeSheet.classList.remove('open');
+      if (!whySheet.classList.contains('open')) {
+        whyBackdrop.classList.remove('open');
+      }
+    }
+
+    changeTimeBtn.addEventListener('click', openTimeModal);
+    timeCloseBtn.addEventListener('click', closeTimeModal);
+    timeCancelBtn.addEventListener('click', closeTimeModal);
+
+    const timeCards = document.querySelectorAll('.time-option-card');
+    timeCards.forEach(card => {
+      card.addEventListener('click', () => {
+        timeCards.forEach(c => {
+          c.classList.remove('selected');
+          c.setAttribute('aria-checked', 'false');
+        });
+        card.classList.add('selected');
+        card.setAttribute('aria-checked', 'true');
+      });
+    });
+
+    timeSaveBtn.addEventListener('click', () => {
+      const selected = document.querySelector('.time-option-card.selected');
+      if (selected) {
+        const mins = selected.getAttribute('data-minutes');
+        alert(`Session budget updated to ${mins} minutes. Upcoming blocks reprioritized.`);
+      }
+      closeTimeModal();
+    });
+
+    // Close on Escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeWhySheet();
+        closeTimeModal();
+      }
+    });
+  </script>
+</body>
+</html>

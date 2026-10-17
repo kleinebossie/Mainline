@@ -1,0 +1,1796 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Mainline - Today (Direction C: Clock)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&family=Barlow+Condensed:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-enamel: #F3F3EF;
+      --bg-raised: #FAF9F5;
+      --bg-sunken: #EBE8E1;
+      --border-soft: #DDD9D0;
+      --border-raised: #ECE8E0;
+      --text-case: #2A2623;
+      --text-dial: #65635E;
+      --text-dim: #8E8B84;
+      --accent-brass: #A9823A;
+      --accent-brass-dark: #8C6822;
+      --accent-brass-light: #D4A853;
+      --btn-brass-bg: #A9823A;
+      --btn-brass-hover: #96732E;
+      --btn-brass-text: #181614;
+      --felt-green: #2F5D50;
+      --felt-green-subtle: rgba(47, 93, 80, 0.12);
+      --felt-green-hover: #264C41;
+      --flag-red: #C2412D;
+      --flag-red-subtle: rgba(194, 65, 45, 0.12);
+      --dial-track: #D8D5CD;
+      --shadow-raised: 0 2px 8px rgba(42, 38, 35, 0.06), 0 1px 2px rgba(42, 38, 35, 0.04);
+      --shadow-dial: 0 4px 16px rgba(42, 38, 35, 0.08), inset 0 1px 2px rgba(255, 255, 255, 0.6);
+      --radius-card: 14px;
+      --radius-btn: 10px;
+      --font-display: 'Barlow Condensed', sans-serif;
+      --font-body: 'Atkinson Hyperlegible', sans-serif;
+    }
+
+    [data-theme="dark"] {
+      --bg-enamel: #181614;
+      --bg-raised: #221F1C;
+      --bg-sunken: #12100E;
+      --border-soft: #36312B;
+      --border-raised: #2E2924;
+      --text-case: #EFECE6;
+      --text-dial: #A6A29A;
+      --text-dim: #706B63;
+      --accent-brass: #D4A853;
+      --accent-brass-dark: #A9823A;
+      --accent-brass-light: #E7C275;
+      --btn-brass-bg: #D4A853;
+      --btn-brass-hover: #C59842;
+      --btn-brass-text: #181614;
+      --felt-green: #4B8F7C;
+      --felt-green-subtle: rgba(75, 143, 124, 0.18);
+      --felt-green-hover: #5AA591;
+      --flag-red: #E56B55;
+      --flag-red-subtle: rgba(229, 107, 85, 0.18);
+      --dial-track: #35302A;
+      --shadow-raised: 0 2px 8px rgba(0, 0, 0, 0.35);
+      --shadow-dial: 0 4px 20px rgba(0, 0, 0, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.05);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-enamel);
+      color: var(--text-case);
+      font-family: var(--font-body);
+      font-size: 15px;
+      line-height: 1.5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      -webkit-font-smoothing: antialiased;
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+
+    /* Focus styling */
+    :focus-visible {
+      outline: 2px solid var(--accent-brass);
+      outline-offset: 2px;
+    }
+
+    /* Floating Prototype Toolbar */
+    .proto-bar {
+      background-color: var(--bg-raised);
+      border: 1px solid var(--border-soft);
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 12px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 150;
+      box-shadow: var(--shadow-raised);
+    }
+
+    @media (max-width: 767px) {
+      .proto-bar {
+        bottom: 68px;
+        right: 12px;
+        left: 12px;
+        border-radius: 12px;
+        justify-content: space-between;
+      }
+    }
+
+    .proto-left, .proto-right {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .proto-badge {
+      font-family: var(--font-display);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      background: var(--bg-sunken);
+      border: 1px solid var(--border-soft);
+      padding: 3px 8px;
+      border-radius: 6px;
+      color: var(--accent-brass);
+    }
+
+    .proto-links a {
+      color: var(--text-dial);
+      text-decoration: none;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-weight: 700;
+    }
+
+    .proto-links a.active {
+      background: var(--bg-sunken);
+      color: var(--text-case);
+      border: 1px solid var(--border-soft);
+    }
+
+    .proto-links a:hover:not(.active) {
+      color: var(--text-case);
+    }
+
+    .proto-btn-group {
+      display: inline-flex;
+      background: var(--bg-sunken);
+      border: 1px solid var(--border-soft);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .proto-toggle-btn {
+      background: transparent;
+      border: none;
+      padding: 4px 10px;
+      font-family: var(--font-body);
+      font-size: 12px;
+      cursor: pointer;
+      color: var(--text-dial);
+      transition: all 0.15s ease;
+    }
+
+    .proto-toggle-btn.active {
+      background: var(--accent-brass);
+      color: var(--btn-brass-text);
+      font-weight: 700;
+    }
+
+    /* App Shell Desktop Top Bar */
+    .app-header {
+      background: var(--bg-raised);
+      border-bottom: 1px solid var(--border-soft);
+      position: sticky;
+      top: 0;
+      z-index: 90;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    }
+
+    .header-inner {
+      max-width: 1040px;
+      margin: 0 auto;
+      padding: 0 20px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--text-case);
+    }
+
+    .brand-mark {
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .brand-title {
+      font-family: var(--font-display);
+      font-size: 23px;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      line-height: 1;
+    }
+
+    .header-nav {
+      display: none;
+      gap: 6px;
+    }
+
+    @media (min-width: 768px) {
+      .header-nav {
+        display: flex;
+        align-items: center;
+      }
+    }
+
+    .nav-tab {
+      padding: 6px 14px;
+      border-radius: 8px;
+      color: var(--text-dial);
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 14px;
+      transition: all 0.15s ease;
+    }
+
+    .nav-tab:hover {
+      color: var(--text-case);
+      background: var(--bg-sunken);
+    }
+
+    .nav-tab.active {
+      color: var(--text-case);
+      background: var(--bg-sunken);
+      box-shadow: inset 0 0 0 1px var(--border-soft);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .guest-pill {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      background: var(--bg-sunken);
+      border: 1px solid var(--border-soft);
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      color: var(--text-dial);
+    }
+
+    @media (min-width: 768px) {
+      .guest-pill {
+        display: inline-flex;
+      }
+    }
+
+    .guest-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent-brass);
+    }
+
+    .account-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: var(--bg-sunken);
+      border: 1px solid var(--border-soft);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-case);
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      position: relative;
+    }
+
+    /* Account Menu Dropdown */
+    .account-dropdown {
+      position: absolute;
+      top: 42px;
+      right: 0;
+      width: 200px;
+      background: var(--bg-raised);
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius-card);
+      box-shadow: var(--shadow-raised);
+      padding: 6px;
+      display: none;
+      flex-direction: column;
+      z-index: 120;
+    }
+
+    .account-dropdown.show {
+      display: flex;
+    }
+
+    .menu-item {
+      padding: 8px 12px;
+      font-size: 13px;
+      color: var(--text-case);
+      text-decoration: none;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: transparent;
+      border: none;
+      text-align: left;
+      cursor: pointer;
+      font-family: var(--font-body);
+    }
+
+    .menu-item:hover {
+      background: var(--bg-sunken);
+    }
+
+    .menu-divider {
+      height: 1px;
+      background: var(--border-soft);
+      margin: 4px 0;
+    }
+
+    /* Main Content Area */
+    .main-wrap {
+      flex: 1;
+      width: 100%;
+      max-width: 680px; /* Reading width */
+      margin: 0 auto;
+      padding: 24px 16px 88px; /* space for phone bottom tab */
+    }
+
+    @media (min-width: 768px) {
+      .main-wrap {
+        padding: 32px 20px 48px;
+      }
+    }
+
+    .page-lead {
+      margin-bottom: 20px;
+    }
+
+    .date-label {
+      font-size: 13px;
+      color: var(--text-dial);
+      font-weight: 700;
+    }
+
+    .page-title {
+      font-family: var(--font-display);
+      font-size: 34px;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      line-height: 1.1;
+      margin-top: 2px;
+    }
+
+    /* Card Surface */
+    .surface {
+      background: var(--bg-raised);
+      border: 1px solid var(--border-raised);
+      border-radius: var(--radius-card);
+      box-shadow: var(--shadow-raised);
+      padding: 24px 20px;
+      margin-bottom: 24px;
+      position: relative;
+    }
+
+    /* Budget Dial Hero */
+    .dial-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 28px 20px;
+    }
+
+    .dial-wrap {
+      position: relative;
+      width: 264px;
+      height: 264px;
+      margin: 4px auto 8px;
+    }
+
+    .dial-svg {
+      width: 100%;
+      height: 100%;
+      transform: rotate(0deg);
+    }
+
+    .dial-inner-content {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .dial-status-text {
+      font-size: 13px;
+      color: var(--text-dial);
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    /* Tactile round primary button inside the plan ring */
+    .dial-btn-primary {
+      background: var(--btn-brass-bg);
+      color: var(--btn-brass-text);
+      border: none;
+      border-radius: 999px;
+      padding: 12px 26px;
+      font-family: var(--font-body);
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 3px 10px rgba(42, 38, 35, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+      transition: background 0.15s ease, transform 0.1s ease;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 44px;
+    }
+
+    .dial-btn-primary:hover {
+      background: var(--btn-brass-hover);
+      transform: translateY(-1px);
+    }
+
+    .dial-btn-primary:active {
+      transform: translateY(1px);
+    }
+
+    .dial-change-link {
+      background: transparent;
+      border: none;
+      color: var(--text-dial);
+      font-family: var(--font-body);
+      font-size: 12px;
+      font-weight: 700;
+      text-decoration: underline;
+      cursor: pointer;
+      margin-top: 10px;
+      padding: 4px;
+    }
+
+    .dial-change-link:hover {
+      color: var(--text-case);
+    }
+
+    /* Compact Bar Alternative */
+    .compact-bar-wrap {
+      display: none;
+      width: 100%;
+      flex-direction: column;
+      gap: 12px;
+      padding: 8px 0;
+    }
+
+    .compact-progress-bar {
+      display: flex;
+      width: 100%;
+      height: 14px;
+      background: var(--dial-track);
+      border-radius: 7px;
+      overflow: hidden;
+      gap: 2px;
+      padding: 2px;
+    }
+
+    .compact-segment {
+      height: 100%;
+      border-radius: 4px;
+    }
+
+    .compact-segment.done {
+      background: var(--felt-green);
+    }
+
+    .compact-segment.next {
+      background: var(--accent-brass);
+    }
+
+    .compact-segment.queued {
+      background: var(--border-soft);
+    }
+
+    .compact-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 4px;
+    }
+
+    /* Session Complete Card (Decision 33) */
+    .session-complete-wrap {
+      display: none;
+      width: 100%;
+      text-align: left;
+    }
+
+    .complete-header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .complete-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--felt-green-subtle);
+      color: var(--felt-green);
+      font-family: var(--font-body);
+      font-size: 13px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 8px;
+    }
+
+    .complete-title {
+      font-family: var(--font-display);
+      font-size: 30px;
+      font-weight: 700;
+      line-height: 1.15;
+    }
+
+    .complete-subtitle {
+      font-size: 14px;
+      color: var(--text-dial);
+      margin-top: 4px;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    @media (min-width: 600px) {
+      .summary-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .summary-box {
+      background: var(--bg-sunken);
+      border: 1px solid var(--border-soft);
+      border-radius: 10px;
+      padding: 14px;
+    }
+
+    .summary-box-title {
+      font-family: var(--font-body);
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-case);
+      margin-bottom: 8px;
+    }
+
+    .summary-box-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 13px;
+    }
+
+    .summary-box-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+    }
+
+    .summary-box-list li::before {
+      content: ":";
+      color: var(--accent-brass);
+      font-weight: 700;
+    }
+
+    .optional-extras {
+      background: var(--bg-sunken);
+      border: 1px dashed var(--border-soft);
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 16px;
+    }
+
+    .optional-extras-title {
+      font-size: 13px;
+      color: var(--text-dial);
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .extras-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .extra-btn {
+      background: var(--bg-raised);
+      border: 1px solid var(--border-soft);
+      color: var(--text-case);
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      cursor: pointer;
+      font-family: var(--font-body);
+      font-weight: 700;
+      transition: background 0.15s ease;
+    }
+
+    .extra-btn:hover {
+      background: var(--bg-enamel);
+    }
+
+    .guest-sync-card {
+      background: var(--felt-green-subtle);
+      border: 1px solid var(--felt-green);
+      border-radius: 10px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    @media (min-width: 600px) {
+      .guest-sync-card {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+      }
+    }
+
+    .guest-sync-text h4 {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-case);
+    }
+
+    .guest-sync-text p {
+      font-size: 12px;
+      color: var(--text-dial);
+    }
+
+    .guest-sync-btn {
+      background: var(--felt-green);
+      color: #FFFFFF;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    /* Block List Section */
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      font-family: var(--font-display);
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text-case);
+    }
+
+    .section-count {
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+
+    .block-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .block-row {
+      background: var(--bg-raised);
+      border: 1px solid var(--border-raised);
+      border-radius: var(--radius-card);
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .block-row:hover {
+      border-color: var(--border-soft);
+    }
+
+    .block-row.active {
+      border-color: var(--accent-brass);
+      box-shadow: 0 0 0 1px var(--accent-brass), var(--shadow-raised);
+    }
+
+    .block-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .block-icon-wrap {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .block-icon-wrap.done {
+      background: var(--felt-green-subtle);
+      color: var(--felt-green);
+    }
+
+    .block-icon-wrap.next {
+      background: var(--btn-brass-bg);
+      color: var(--btn-brass-text);
+    }
+
+    .block-icon-wrap.queued {
+      background: var(--bg-sunken);
+      color: var(--text-dim);
+      border: 1px solid var(--border-soft);
+    }
+
+    .block-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    .block-title-line {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .block-title {
+      font-weight: 700;
+      font-size: 15px;
+      color: var(--text-case);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .block-row.done .block-title {
+      color: var(--text-dial);
+    }
+
+    .block-meta-line {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--text-dial);
+    }
+
+    /* Plain-word Evidence Chip (Section 5.6) */
+    .evidence-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 7px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .evidence-chip.grade-a {
+      background: var(--felt-green-subtle);
+      color: var(--felt-green);
+      border: 1px solid rgba(47, 93, 80, 0.25);
+    }
+
+    .evidence-chip.grade-b {
+      background: rgba(169, 130, 58, 0.12);
+      color: var(--accent-brass);
+      border: 1px solid rgba(169, 130, 58, 0.25);
+    }
+
+    .evidence-chip-glyph {
+      font-family: var(--font-display);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .block-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .block-start-btn {
+      background: var(--btn-brass-bg);
+      color: var(--btn-brass-text);
+      border: none;
+      padding: 6px 14px;
+      border-radius: var(--radius-btn);
+      font-family: var(--font-display);
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .block-start-btn:hover {
+      background: var(--btn-brass-hover);
+    }
+
+    .block-more-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-dial);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .block-more-btn:hover {
+      background: var(--bg-sunken);
+      border-color: var(--border-soft);
+      color: var(--text-case);
+    }
+
+    /* Phone Bottom Tab Bar (< 768px) */
+    .phone-tab-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 58px;
+      background: var(--bg-raised);
+      border-top: 1px solid var(--border-soft);
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      z-index: 95;
+    }
+
+    @media (min-width: 768px) {
+      .phone-tab-bar {
+        display: none;
+      }
+    }
+
+    .tab-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      color: var(--text-dial);
+      text-decoration: none;
+      font-size: 11px;
+      font-weight: 700;
+      width: 25%;
+      height: 100%;
+      transition: color 0.15s ease;
+    }
+
+    .tab-item.active {
+      color: var(--accent-brass);
+    }
+
+    .tab-item svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    /* Modal Sheet Backdrop */
+    .sheet-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(24, 22, 20, 0.5);
+      backdrop-filter: blur(2px);
+      z-index: 200;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+
+    .sheet-backdrop.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* Bottom Sheet on Mobile, Side Drawer on Desktop */
+    .sheet-panel {
+      position: fixed;
+      background: var(--bg-raised);
+      z-index: 210;
+      box-shadow: 0 -4px 24px rgba(0,0,0,0.18);
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Mobile Sheet: Bottom */
+    @media (max-width: 767px) {
+      .sheet-panel {
+        bottom: 0;
+        left: 0;
+        right: 0;
+        max-height: 85vh;
+        border-top-left-radius: 20px;
+        border-top-right-radius: 20px;
+        transform: translateY(100%);
+      }
+
+      .sheet-panel.open {
+        transform: translateY(0);
+      }
+    }
+
+    /* Desktop Sheet: Side Drawer */
+    @media (min-width: 768px) {
+      .sheet-panel {
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 420px;
+        border-left: 1px solid var(--border-soft);
+        transform: translateX(100%);
+      }
+
+      .sheet-panel.open {
+        transform: translateX(0);
+      }
+    }
+
+    .sheet-handle {
+      width: 36px;
+      height: 4px;
+      border-radius: 2px;
+      background: var(--border-soft);
+      margin: 10px auto 4px;
+    }
+
+    @media (min-width: 768px) {
+      .sheet-handle {
+        display: none;
+      }
+    }
+
+    .sheet-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-soft);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .sheet-title {
+      font-family: var(--font-display);
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+    }
+
+    .sheet-close-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      border: 1px solid var(--border-soft);
+      background: var(--bg-sunken);
+      color: var(--text-dial);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .sheet-body {
+      padding: 20px;
+      overflow-y: auto;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .sheet-block-name {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text-case);
+    }
+
+    .sheet-meta-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .sheet-tier-note {
+      font-size: 12px;
+      color: var(--text-dial);
+      background: var(--bg-sunken);
+      border: 1px solid var(--border-soft);
+      padding: 3px 8px;
+      border-radius: 6px;
+    }
+
+    .sheet-section-title {
+      font-family: var(--font-body);
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-dial);
+      margin-bottom: 4px;
+    }
+
+    .sheet-rationale-text {
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--text-case);
+      background: var(--bg-sunken);
+      padding: 14px;
+      border-radius: 8px;
+      border-left: 3px solid var(--accent-brass);
+    }
+
+    .sheet-citation-box {
+      font-size: 13px;
+      color: var(--text-dial);
+      line-height: 1.4;
+      background: var(--bg-sunken);
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border-soft);
+    }
+
+    .sheet-actions {
+      padding: 16px 20px;
+      border-top: 1px solid var(--border-soft);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      background: var(--bg-raised);
+    }
+
+    .sheet-skip-btn {
+      background: transparent;
+      border: 1px solid var(--border-soft);
+      color: var(--text-dial);
+      padding: 8px 14px;
+      border-radius: var(--radius-btn);
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .sheet-skip-btn:hover {
+      border-color: var(--flag-red);
+      color: var(--flag-red);
+    }
+
+    .sheet-primary-btn {
+      background: var(--btn-brass-bg);
+      color: var(--btn-brass-text);
+      border: none;
+      padding: 8px 18px;
+      border-radius: 999px;
+      font-family: var(--font-body);
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    /* Change Budget Sheet choices */
+    .budget-options {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .budget-option-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border-soft);
+      background: var(--bg-sunken);
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 14px;
+      transition: all 0.15s ease;
+    }
+
+    .budget-option-label:hover {
+      border-color: var(--accent-brass);
+    }
+
+    .budget-option-label.selected {
+      border-color: var(--accent-brass);
+      background: rgba(169, 130, 58, 0.08);
+      color: var(--accent-brass-dark);
+    }
+
+    [data-theme="dark"] .budget-option-label.selected {
+      color: var(--accent-brass-light);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Prototype Toolbar -->
+  <aside class="proto-bar" aria-label="Prototype controls">
+    <div class="proto-left">
+      <span class="proto-badge">Direction C: Clock</span>
+      <nav class="proto-links" aria-label="Prototypes navigation">
+        <a href="today.html" class="active">Today</a>
+        <a href="puzzle.html">Puzzle Focus</a>
+        <a href="wordmark.html">Wordmarks</a>
+      </nav>
+    </div>
+    <div class="proto-right">
+      <div class="proto-btn-group" role="group" aria-label="Theme switcher">
+        <button type="button" id="btnThemeLight" class="proto-toggle-btn active" onclick="setTheme('light')">Light</button>
+        <button type="button" id="btnThemeDark" class="proto-toggle-btn" onclick="setTheme('dark')">Dark</button>
+      </div>
+
+      <div class="proto-btn-group" role="group" aria-label="Layout mode">
+        <button type="button" id="btnDialOn" class="proto-toggle-btn active" onclick="setDialLayout(true)">With budget dial</button>
+        <button type="button" id="btnDialOff" class="proto-toggle-btn" onclick="setDialLayout(false)">Compact bar</button>
+      </div>
+
+      <div class="proto-btn-group" role="group" aria-label="Session progress state">
+        <button type="button" id="btnStateProgress" class="proto-toggle-btn active" onclick="setSessionState('progress')">In progress (2 of 4)</button>
+        <button type="button" id="btnStateComplete" class="proto-toggle-btn" onclick="setSessionState('complete')">Session complete</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- App Header -->
+  <header class="app-header">
+    <div class="header-inner">
+      <a href="today.html" class="brand-wrap" aria-label="Mainline home">
+        <span class="brand-mark" aria-hidden="true">
+          <!-- Dual Dial Clock Symbol -->
+          <svg viewBox="0 0 32 32" width="28" height="28" fill="none">
+            <rect x="2" y="6" width="28" height="20" rx="6" fill="currentColor" fill-opacity="0.08" stroke="currentColor" stroke-width="1.8"/>
+            <!-- Left dial -->
+            <circle cx="10" cy="16" r="5.5" stroke="currentColor" stroke-width="1.5" fill="none"/>
+            <line x1="10" y1="16" x2="10" y2="12.5" stroke="var(--accent-brass)" stroke-width="1.5" stroke-linecap="round"/>
+            <line x1="10" y1="16" x2="13" y2="16" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+            <!-- Right dial -->
+            <circle cx="22" cy="16" r="5.5" stroke="currentColor" stroke-width="1.5" fill="none"/>
+            <line x1="22" y1="16" x2="24" y2="14" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+            <!-- Top rocker buttons -->
+            <path d="M8 4 L12 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M20 5 L24 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <span class="brand-title">Mainline</span>
+      </a>
+
+      <!-- Desktop Nav -->
+      <nav class="header-nav" aria-label="Primary navigation">
+        <a href="today.html" class="nav-tab active" aria-current="page">Today</a>
+        <a href="#" class="nav-tab" onclick="alert('Analysis tab preview'); return false;">Analysis</a>
+        <a href="#" class="nav-tab" onclick="alert('Library tab preview'); return false;">Library</a>
+        <a href="#" class="nav-tab" onclick="alert('Progress tab preview'); return false;">Progress</a>
+      </nav>
+
+      <!-- Account and Guest notice -->
+      <div class="header-actions">
+        <span class="guest-pill" title="Your training is saved on this browser">
+          <span class="guest-dot"></span>
+          <span>Guest mode</span>
+        </span>
+
+        <button type="button" class="account-btn" id="accountBtn" onclick="toggleAccountMenu()" aria-expanded="false" aria-label="Account menu">
+          G
+          <!-- Account menu dropdown -->
+          <div class="account-dropdown" id="accountDropdown">
+            <button type="button" class="menu-item" onclick="alert('Settings preview');">Settings</button>
+            <button type="button" class="menu-item" onclick="alert('About preview');">About</button>
+            <button type="button" class="menu-item" onclick="alert('Feedback form');">Feedback</button>
+            <div class="menu-divider"></div>
+            <button type="button" class="menu-item" style="color: var(--accent-brass); font-weight: 700;" onclick="alert('Sign in dialog');">Sign in to sync</button>
+          </div>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main-wrap">
+
+    <header class="page-lead">
+      <div class="date-label">Thursday, October 16</div>
+      <h1 class="page-title" id="todayHeroTitle">Today's training</h1>
+    </header>
+
+    <!-- Hero Card -->
+    <section class="surface dial-card" id="heroSurface" aria-label="Today's session status">
+
+      <!-- In-Progress Dial View -->
+      <div id="dialViewSection" style="width: 100%; display: flex; flex-direction: column; align-items: center;">
+        <div class="dial-wrap" id="timeDialWrap" aria-hidden="true">
+          <svg class="dial-svg" viewBox="0 0 280 280">
+            <!-- Subtle recessed enamel bezel (no stopwatch ticks, zero countdown pressure) -->
+            <circle cx="140" cy="140" r="122" fill="none" stroke="var(--border-soft)" stroke-width="1" />
+            <circle cx="140" cy="140" r="94" fill="none" stroke="var(--border-raised)" stroke-width="1" />
+
+            <!-- Background Track -->
+            <circle cx="140" cy="140" r="108" fill="none" stroke="var(--dial-track)" stroke-width="16" stroke-linecap="butt" />
+
+            <!-- Arc Segment 1: Personal blunder drill (10 min) - Done -->
+            <path id="dialArc1" d="M 145.30 32.15 A 108 108 0 0 1 246.15 159.88" fill="none" stroke="var(--felt-green)" stroke-width="16" stroke-linecap="round" />
+
+            <!-- Arc Segment 2: Spaced tactical review (10 min) - Done -->
+            <path id="dialArc2" d="M 243.50 170.32 A 108 108 0 0 1 97.86 239.44" fill="none" stroke="var(--felt-green)" stroke-width="16" stroke-linecap="round" />
+
+            <!-- Arc Segment 3: Themed tactics (10 min) - Next (Active) -->
+            <path id="dialArc3" d="M 88.87 235.18 A 108 108 0 0 1 51.88 77.56" fill="none" stroke="var(--accent-brass)" stroke-width="17" stroke-linecap="round" />
+
+            <!-- Arc Segment 4: Endgame technique (5 min) - Queued -->
+            <path id="dialArc4" d="M 58.86 69.30 A 108 108 0 0 1 134.70 32.15" fill="none" stroke="var(--dial-track)" stroke-width="16" stroke-linecap="round" />
+          </svg>
+
+          <!-- Inside the Dial Ring -->
+          <div class="dial-inner-content">
+            <div class="dial-status-text" id="dialSummaryText">15 min left today · 2 of 4 done</div>
+            <a href="puzzle.html" class="dial-btn-primary" id="dialPrimaryBtn" aria-label="Continue session: Block 3 Themed tactics">
+              Continue session
+            </a>
+            <button type="button" class="dial-change-link" onclick="openBudgetSheet()">Change time</button>
+          </div>
+        </div>
+
+        <!-- Compact Bar Alternative (toggled via Toolbar) -->
+        <div class="compact-bar-wrap" id="compactBarSection">
+          <div class="compact-progress-bar" role="progressbar" aria-valuenow="20" aria-valuemin="0" aria-valuemax="35" aria-label="Daily training time progress">
+            <div class="compact-segment done" style="flex: 10;" title="Block 1: Blunder drill (10 min) completed"></div>
+            <div class="compact-segment done" style="flex: 10;" title="Block 2: Spaced review (10 min) completed"></div>
+            <div class="compact-segment next" style="flex: 10;" title="Block 3: Themed tactics (10 min) next"></div>
+            <div class="compact-segment queued" style="flex: 5;" title="Block 4: Endgame (5 min) queued"></div>
+          </div>
+          <div class="compact-actions">
+            <div>
+              <strong id="compactStatusText">15 min left today</strong>
+              <span style="color: var(--text-dial); font-size: 13px;"> · 2 of 4 blocks done</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <button type="button" class="dial-change-link" style="margin-top: 0;" onclick="openBudgetSheet()">Change time</button>
+              <a href="puzzle.html" class="dial-btn-primary" style="padding: 8px 18px; font-size: 14px;">Continue session</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Session Complete View (Decision 33) -->
+      <div class="session-complete-wrap" id="completeSection">
+        <div class="complete-header">
+          <span class="complete-badge">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            Session complete
+          </span>
+          <h2 class="complete-title">Steady work today</h2>
+          <p class="complete-subtitle">You finished all 4 blocks (35 minutes) of your planned training.</p>
+        </div>
+
+        <div class="summary-grid">
+          <!-- Card 1: What changed in your plan -->
+          <div class="summary-box">
+            <h3 class="summary-box-title">What changed in your plan</h3>
+            <ul class="summary-box-list">
+              <li>12 blunder positions scheduled for spaced review in 3 days</li>
+              <li>Pin theme accuracy calibrated to 88% (+3%)</li>
+              <li>Difficulty target adjusted to 1420 Elo (+15)</li>
+            </ul>
+          </div>
+
+          <!-- Card 2: What comes tomorrow -->
+          <div class="summary-box">
+            <h3 class="summary-box-title">What comes tomorrow</h3>
+            <ul class="summary-box-list">
+              <li>Spaced tactical review (10 min)</li>
+              <li>Calculation practice (15 min)</li>
+              <li>Endgame technique (10 min)</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Optional Extras (Decision 33) -->
+        <div class="optional-extras">
+          <div class="optional-extras-title">Optional extras</div>
+          <div class="extras-buttons">
+            <button type="button" class="extra-btn" onclick="alert('Log external game on Lichess or Chess.com');">Log external game</button>
+            <button type="button" class="extra-btn" onclick="alert('Log book study');">Log book reading</button>
+          </div>
+        </div>
+
+        <!-- Guest mode banner (Decision 34) -->
+        <div class="guest-sync-card">
+          <div class="guest-sync-text">
+            <h4>Save your training progress</h4>
+            <p>You trained as a guest. Create a free account to sync across devices.</p>
+          </div>
+          <button type="button" class="guest-sync-btn" onclick="alert('Account sign in');">Sign in</button>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Block List -->
+    <section aria-label="Training blocks">
+      <div class="section-header">
+        <h2 class="section-title">Planned blocks</h2>
+        <span class="section-count" id="blockCountLabel">4 blocks · 35 min total</span>
+      </div>
+
+      <div class="block-list">
+
+        <!-- Block 1: Blunder drill (Done) -->
+        <article class="block-row done" id="blockRow1">
+          <div class="block-left">
+            <div class="block-icon-wrap done" aria-label="Completed block">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            </div>
+            <div class="block-info">
+              <div class="block-title-line">
+                <span class="block-title">Personal blunder drill</span>
+                <span class="evidence-chip grade-a" title="Strong evidence, general learning">
+                  Strong evidence <span class="evidence-chip-glyph" aria-hidden="true">!!</span>
+                </span>
+              </div>
+              <div class="block-meta-line">
+                <span>10 min</span>
+                <span>·</span>
+                <span>Completed</span>
+              </div>
+            </div>
+          </div>
+          <div class="block-right">
+            <button type="button" class="block-more-btn" onclick="openWhySheet('blunder_drill')" aria-label="Why this block and options">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>
+            </button>
+          </div>
+        </article>
+
+        <!-- Block 2: Spaced tactical review (Done) -->
+        <article class="block-row done" id="blockRow2">
+          <div class="block-left">
+            <div class="block-icon-wrap done" aria-label="Completed block">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            </div>
+            <div class="block-info">
+              <div class="block-title-line">
+                <span class="block-title">Spaced tactical review</span>
+                <span class="evidence-chip grade-a" title="Strong evidence, general learning">
+                  Strong evidence <span class="evidence-chip-glyph" aria-hidden="true">!!</span>
+                </span>
+              </div>
+              <div class="block-meta-line">
+                <span>10 min</span>
+                <span>·</span>
+                <span>Completed</span>
+              </div>
+            </div>
+          </div>
+          <div class="block-right">
+            <button type="button" class="block-more-btn" onclick="openWhySheet('spaced_review')" aria-label="Why this block and options">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>
+            </button>
+          </div>
+        </article>
+
+        <!-- Block 3: Themed tactics (Next) -->
+        <article class="block-row active" id="blockRow3">
+          <div class="block-left">
+            <div class="block-icon-wrap next" aria-label="Next block up">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+            </div>
+            <div class="block-info">
+              <div class="block-title-line">
+                <span class="block-title">Themed tactics (pins and forks)</span>
+                <span class="evidence-chip grade-b" title="Some evidence, chess-specific">
+                  Some evidence <span class="evidence-chip-glyph" aria-hidden="true">!</span>
+                </span>
+              </div>
+              <div class="block-meta-line">
+                <span>10 min</span>
+                <span>·</span>
+                <span style="color: var(--accent-brass); font-weight: 700;">Next up</span>
+              </div>
+            </div>
+          </div>
+          <div class="block-right">
+            <button type="button" class="block-more-btn" onclick="openWhySheet('themed_tactics')" aria-label="Why this block and options">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>
+            </button>
+          </div>
+        </article>
+
+        <!-- Block 4: Endgame technique (Queued) -->
+        <article class="block-row" id="blockRow4">
+          <div class="block-left">
+            <div class="block-icon-wrap queued" aria-label="Queued block">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle></svg>
+            </div>
+            <div class="block-info">
+              <div class="block-title-line">
+                <span class="block-title">Endgame technique (rook and pawn)</span>
+                <span class="evidence-chip grade-b" title="Some evidence, chess-specific">
+                  Some evidence <span class="evidence-chip-glyph" aria-hidden="true">!</span>
+                </span>
+              </div>
+              <div class="block-meta-line">
+                <span>5 min</span>
+                <span>·</span>
+                <span>Queued</span>
+              </div>
+            </div>
+          </div>
+          <div class="block-right">
+            <button type="button" class="block-more-btn" onclick="openWhySheet('endgame_drill')" aria-label="Why this block and options">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>
+            </button>
+          </div>
+        </article>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Phone Bottom Navigation (< 768px) -->
+  <nav class="phone-tab-bar" aria-label="Mobile navigation">
+    <a href="today.html" class="tab-item active" aria-current="page">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+      <span>Today</span>
+    </a>
+    <a href="#" class="tab-item" onclick="alert('Analysis tab'); return false;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+      <span>Analysis</span>
+    </a>
+    <a href="#" class="tab-item" onclick="alert('Library tab'); return false;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+      <span>Library</span>
+    </a>
+    <a href="#" class="tab-item" onclick="alert('Progress tab'); return false;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+      <span>Progress</span>
+    </a>
+  </nav>
+
+  <!-- Modal Backdrop for Sheets -->
+  <div class="sheet-backdrop" id="sheetBackdrop" onclick="closeAllSheets()"></div>
+
+  <!-- "Why this?" Sheet (Decision 14) -->
+  <aside class="sheet-panel" id="whySheet" role="dialog" aria-modal="true" aria-labelledby="whySheetTitle">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <h3 class="sheet-title" id="whySheetTitle">Why this block?</h3>
+      <button type="button" class="sheet-close-btn" onclick="closeAllSheets()" aria-label="Close rationale">✕</button>
+    </div>
+    <div class="sheet-body">
+      <div>
+        <div class="sheet-block-name" id="whyBlockName">Themed tactics (pins and forks)</div>
+        <div style="font-size: 13px; color: var(--text-dial); margin-top: 2px;" id="whyBlockTime">10 minutes · In-app training</div>
+      </div>
+
+      <div class="sheet-meta-badges">
+        <span class="evidence-chip grade-b" id="whyEvidenceChip">Some evidence !</span>
+        <span class="sheet-tier-note" id="whyTierNote">Tier 1: Chess-specific empirical research</span>
+      </div>
+
+      <div>
+        <div class="sheet-section-title">Methodology rationale</div>
+        <p class="sheet-rationale-text" id="whyRationaleText">
+          Themed tactics practice trains pattern recognition. We calibrate puzzle difficulty to an eighty-five percent target accuracy. Practicing tactical motifs in themed sets builds chunk recognition for recurring board patterns.
+        </p>
+      </div>
+
+      <div>
+        <div class="sheet-section-title">Evidence source</div>
+        <div class="sheet-citation-box" id="whyCitationText">
+          <strong>Smith & Tikkanen 2018 (The Woodpecker Method) + DiscoChess (N=1,017)</strong><br>
+          Tactics solve speed and pattern recognition correlate strongly with rating progression below master level.
+        </div>
+      </div>
+    </div>
+    <div class="sheet-actions">
+      <button type="button" class="sheet-skip-btn" id="whySkipBtn" onclick="skipCurrentBlock()">Skip this block</button>
+      <button type="button" class="sheet-primary-btn" onclick="closeAllSheets()">Done</button>
+    </div>
+  </aside>
+
+  <!-- "Change daily budget" Sheet -->
+  <aside class="sheet-panel" id="budgetSheet" role="dialog" aria-modal="true" aria-labelledby="budgetSheetTitle">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <h3 class="sheet-title" id="budgetSheetTitle">Change time budget</h3>
+      <button type="button" class="sheet-close-btn" onclick="closeAllSheets()" aria-label="Close time budget">✕</button>
+    </div>
+    <div class="sheet-body">
+      <p style="font-size: 14px; color: var(--text-dial);">
+        How much time do you have to train today? Your plan adapts immediately.
+      </p>
+
+      <div class="budget-options">
+        <label class="budget-option-label" onclick="selectBudget(15)">
+          <span>15 minutes (2 blocks)</span>
+          <input type="radio" name="daily_time" value="15">
+        </label>
+        <label class="budget-option-label" onclick="selectBudget(25)">
+          <span>25 minutes (3 blocks)</span>
+          <input type="radio" name="daily_time" value="25">
+        </label>
+        <label class="budget-option-label selected" onclick="selectBudget(35)">
+          <span>35 minutes (4 blocks) - Current</span>
+          <input type="radio" name="daily_time" value="35" checked>
+        </label>
+        <label class="budget-option-label" onclick="selectBudget(45)">
+          <span>45 minutes (5 blocks)</span>
+          <input type="radio" name="daily_time" value="45">
+        </label>
+        <label class="budget-option-label" onclick="selectBudget(60)">
+          <span>60 minutes (6 blocks)</span>
+          <input type="radio" name="daily_time" value="60">
+        </label>
+      </div>
+
+      <div style="background: var(--bg-sunken); border: 1px solid var(--border-soft); border-radius: 8px; padding: 12px; font-size: 12px; color: var(--text-dial); line-height: 1.4;">
+        When you adjust your budget, the engine packs high-priority spaced reviews first.
+      </div>
+    </div>
+    <div class="sheet-actions">
+      <button type="button" class="sheet-skip-btn" onclick="closeAllSheets()">Cancel</button>
+      <button type="button" class="sheet-primary-btn" onclick="saveBudget()">Save budget</button>
+    </div>
+  </aside>
+
+  <!-- Interactive JavaScript -->
+  <script>
+    // Theme Management
+    function setTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      document.getElementById('btnThemeLight').classList.toggle('active', theme === 'light');
+      document.getElementById('btnThemeDark').classList.toggle('active', theme === 'dark');
+      localStorage.setItem('mainline_proto_theme', theme);
+    }
+
+    const savedTheme = localStorage.getItem('mainline_proto_theme');
+    if (savedTheme) {
+      setTheme(savedTheme);
+    }
+
+    // Dial Layout Toggle (With budget dial vs Compact bar)
+    function setDialLayout(showDial) {
+      const dialWrap = document.getElementById('timeDialWrap');
+      const compactBar = document.getElementById('compactBarSection');
+      const btnDialOn = document.getElementById('btnDialOn');
+      const btnDialOff = document.getElementById('btnDialOff');
+
+      if (showDial) {
+        dialWrap.style.display = 'block';
+        compactBar.style.display = 'none';
+        btnDialOn.classList.add('active');
+        btnDialOff.classList.remove('active');
+      } else {
+        dialWrap.style.display = 'none';
+        compactBar.style.display = 'flex';
+        btnDialOn.classList.remove('active');
+        btnDialOff.classList.add('active');
+      }
+    }
+
+    // Session State (In Progress vs Complete)
+    let currentSessionState = 'progress';
+    function setSessionState(state) {
+      currentSessionState = state;
+      const dialSection = document.getElementById('dialViewSection');
+      const completeSection = document.getElementById('completeSection');
+      const btnProgress = document.getElementById('btnStateProgress');
+      const btnComplete = document.getElementById('btnStateComplete');
+      const heroTitle = document.getElementById('todayHeroTitle');
+
+      if (state === 'complete') {
+        dialSection.style.display = 'none';
+        completeSection.style.display = 'block';
+        btnProgress.classList.remove('active');
+        btnComplete.classList.add('active');
+        heroTitle.textContent = 'Session finished';
+
+        // Mark all block rows done
+        document.querySelectorAll('.block-row').forEach(row => {
+          row.classList.add('done');
+          row.classList.remove('active');
+          const startBtn = row.querySelector('.block-start-btn');
+          if (startBtn) startBtn.style.display = 'none';
+        });
+      } else {
+        dialSection.style.display = 'flex';
+        completeSection.style.display = 'none';
+        btnProgress.classList.add('active');
+        btnComplete.classList.remove('active');
+        heroTitle.textContent = "Today's training";
+
+        // Restore active block
+        document.getElementById('blockRow1').className = 'block-row done';
+        document.getElementById('blockRow2').className = 'block-row done';
+        document.getElementById('blockRow3').className = 'block-row active';
+        document.getElementById('blockRow4').className = 'block-row';
+        const startBtn = document.querySelector('#blockRow3 .block-start-btn');
+        if (startBtn) startBtn.style.display = 'inline-flex';
+      }
+    }
+
+    // Rationale Data dictionary
+    const RATIONALE_DATA = {
+      blunder_drill: {
+        name: 'Personal blunder drill',
+        time: '10 minutes · In-app training',
+        grade: 'Strong evidence !!',
+        gradeClass: 'grade-a',
+        tier: 'Tier 2: General cognitive science applied to chess',
+        rationale: 'These are positions where you blundered in your own games. Re-solving them over several days applies retrieval and spacing mechanisms that are well supported in general learning; whether this reduces repeated chess mistakes is not established.',
+        citationTitle: 'Cepeda et al. 2006, Psych. Bull. 132:354 (839 assessments)',
+        citationDesc: 'Spacing > massing; consistency over cramming; due reviews get priority.'
+      },
+      spaced_review: {
+        name: 'Spaced tactical review',
+        time: '10 minutes · In-app training',
+        grade: 'Strong evidence !!',
+        gradeClass: 'grade-a',
+        tier: 'Tier 2: General cognitive science applied to chess',
+        rationale: 'Spacing reliably improves retention in general learning research. Replaying positions at expanding intervals is intended to support recall; the right timing and lasting effect are not established.',
+        citationTitle: 'Cepeda et al. 2006 (Psych. Bull. 132:354)',
+        citationDesc: 'Distributed practice outperforms cramming in memory retention across hundreds of cognitive studies.'
+      },
+      themed_tactics: {
+        name: 'Themed tactics (pins and forks)',
+        time: '10 minutes · In-app training',
+        grade: 'Some evidence !',
+        gradeClass: 'grade-b',
+        tier: 'Tier 1: Chess-specific empirical research',
+        rationale: 'Themed tactics practice trains pattern recognition. We calibrate puzzle difficulty to an eighty-five percent target accuracy. Practicing tactical motifs in themed sets builds chunk recognition for recurring board patterns.',
+        citationTitle: 'Smith & Tikkanen 2018 (The Woodpecker Method) + DiscoChess (N=1,017)',
+        citationDesc: 'Tactics solve speed and pattern recognition correlate strongly with rating progression below master level.'
+      },
+      endgame_drill: {
+        name: 'Endgame technique (rook and pawn)',
+        time: '5 minutes · In-app training',
+        grade: 'Some evidence !',
+        gradeClass: 'grade-b',
+        tier: 'Tier 1: Chess-specific empirical research',
+        rationale: 'Basic theoretical endgames require exact calculation and memory. Short focused drills build tablebase accuracy under low time constraints.',
+        citationTitle: 'Nunn 2002 (Understanding Chess Endgames) + Lichess Tablebase Analytics',
+        citationDesc: 'Endgame error rates drop precipitously once fundamental fortress and Lucena patterns are memorized.'
+      }
+    };
+
+    let activeBlockKey = null;
+
+    function openWhySheet(blockKey) {
+      activeBlockKey = blockKey;
+      const data = RATIONALE_DATA[blockKey];
+      if (!data) return;
+
+      document.getElementById('whyBlockName').textContent = data.name;
+      document.getElementById('whyBlockTime').textContent = data.time;
+      const chip = document.getElementById('whyEvidenceChip');
+      chip.textContent = data.grade;
+      chip.className = 'evidence-chip ' + data.gradeClass;
+      document.getElementById('whyTierNote').textContent = data.tier;
+      document.getElementById('whyRationaleText').textContent = data.rationale;
+      document.getElementById('whyCitationText').innerHTML = '<strong>' + data.citationTitle + '</strong><br>' + data.citationDesc;
+
+      document.getElementById('sheetBackdrop').classList.add('open');
+      document.getElementById('whySheet').classList.add('open');
+    }
+
+    function openBudgetSheet() {
+      document.getElementById('sheetBackdrop').classList.add('open');
+      document.getElementById('budgetSheet').classList.add('open');
+    }
+
+    function closeAllSheets() {
+      document.getElementById('sheetBackdrop').classList.remove('open');
+      document.getElementById('whySheet').classList.remove('open');
+      document.getElementById('budgetSheet').classList.remove('open');
+      document.getElementById('accountDropdown').classList.remove('show');
+    }
+
+    function selectBudget(minutes) {
+      document.querySelectorAll('.budget-option-label').forEach(label => {
+        label.classList.remove('selected');
+        const input = label.querySelector('input');
+        if (input && parseInt(input.value) === minutes) {
+          label.classList.add('selected');
+          input.checked = true;
+        }
+      });
+    }
+
+    function saveBudget() {
+      closeAllSheets();
+      alert('Time budget saved. Your daily session plan has updated.');
+    }
+
+    function skipCurrentBlock() {
+      closeAllSheets();
+      if (activeBlockKey === 'themed_tactics') {
+        const row = document.getElementById('blockRow3');
+        row.style.opacity = '0.5';
+        row.querySelector('.block-meta-line').innerHTML = '<span style="color: var(--flag-red);">Skipped today</span>';
+        alert('Themed tactics block skipped for today. Your upcoming sessions will adapt.');
+      }
+    }
+
+    function toggleAccountMenu() {
+      const menu = document.getElementById('accountDropdown');
+      menu.classList.toggle('show');
+    }
+
+    // Close menu when clicking outside
+    document.addEventListener('click', function(e) {
+      const accountBtn = document.getElementById('accountBtn');
+      const accountDropdown = document.getElementById('accountDropdown');
+      if (accountBtn && !accountBtn.contains(e.target)) {
+        accountDropdown.classList.remove('show');
+      }
+    });
+  </script>
+</body>
+</html>

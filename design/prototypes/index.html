@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mainline UI overhaul prototypes: Comparison studio</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --bg-subtle: #161b22;
+      --surface: #21262d;
+      --surface-hover: #30363d;
+      --border: #30363d;
+      --border-subtle: #21262d;
+      --text: #f0f6fc;
+      --text-muted: #8b949e;
+      --text-faint: #484f58;
+      --accent: #58a6ff;
+      --accent-bg: rgba(56, 139, 253, 0.15);
+      --success: #3fb950;
+      --warning: #d29922;
+      --danger: #f85149;
+      --card-radius: 10px;
+      --control-radius: 6px;
+      --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    }
+
+    html[data-theme="light"] {
+      --bg: #f6f8fa;
+      --bg-subtle: #eaeef2;
+      --surface: #ffffff;
+      --surface-hover: #f3f4f6;
+      --border: #d0d7de;
+      --border-subtle: #e1e4e8;
+      --text: #1f2328;
+      --text-muted: #656d76;
+      --text-faint: #8c959f;
+      --accent: #0969da;
+      --accent-bg: rgba(9, 105, 218, 0.1);
+      --success: #1a7f37;
+      --warning: #9a6700;
+      --danger: #cf222e;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font-ui);
+      font-size: 14px;
+      line-height: 1.5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    button {
+      font-family: inherit;
+      font-size: 13px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      padding: 6px 12px;
+      border-radius: var(--control-radius);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+
+    button:hover {
+      background: var(--surface-hover);
+      border-color: var(--text-muted);
+    }
+
+    button:focus-visible, a:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    /* Header */
+    .studio-header {
+      background: var(--bg-subtle);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 20px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .studio-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .studio-badge {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 4px;
+      letter-spacing: 0.04em;
+    }
+
+    .studio-title {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .studio-subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Toolbar */
+    .studio-toolbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 20px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .toolbar-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .toolbar-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-right: 2px;
+    }
+
+    .segmented-control {
+      display: inline-flex;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--control-radius);
+      padding: 2px;
+      gap: 2px;
+    }
+
+    .segmented-button {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 500;
+      padding: 4px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.12s, color 0.12s;
+    }
+
+    .segmented-button:hover {
+      color: var(--text);
+      background: var(--surface);
+    }
+
+    .segmented-button[aria-pressed="true"] {
+      background: var(--surface);
+      color: var(--text);
+      font-weight: 600;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    }
+
+    html[data-theme="light"] .segmented-button[aria-pressed="true"] {
+      box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+    }
+
+    /* Direction sub-bar for single view mode */
+    #direction-selector-group {
+      display: none;
+    }
+
+    /* Summary cards section */
+    .summary-section {
+      background: var(--bg-subtle);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 20px;
+      transition: max-height 0.25s ease;
+    }
+
+    .summary-section.collapsed {
+      display: none;
+    }
+
+    .summary-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .summary-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 16px;
+    }
+
+    .direction-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--card-radius);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .card-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .card-title-group h3 {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+
+    .card-tag {
+      display: inline-block;
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+    }
+
+    .card-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      font-size: 12px;
+    }
+
+    .card-links a {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      padding: 3px 8px;
+      border-radius: 4px;
+      color: var(--text);
+    }
+
+    .card-links a:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    /* Palette swatches */
+    .palette-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .palette-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .palette-swatches {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .swatch {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      padding: 3px 6px 3px 4px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .swatch:hover {
+      border-color: var(--text-muted);
+    }
+
+    .swatch-color {
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+      border: 1px solid rgba(0,0,0,0.2);
+      flex-shrink: 0;
+    }
+
+    .swatch-name {
+      color: var(--text-muted);
+    }
+
+    .swatch-hex {
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    /* Card specs */
+    .card-specs {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 12px;
+      border-top: 1px solid var(--border-subtle);
+      padding-top: 8px;
+    }
+
+    .spec-item {
+      display: grid;
+      grid-template-columns: 85px 1fr;
+      gap: 8px;
+    }
+
+    .spec-name {
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .spec-val {
+      color: var(--text);
+    }
+
+    .tradeoff-box {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--warning);
+      padding: 8px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .tradeoff-label {
+      font-weight: 600;
+      color: var(--warning);
+      margin-bottom: 2px;
+    }
+
+    /* Preview stage */
+    .preview-stage {
+      flex: 1;
+      padding: 24px 20px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      overflow: auto;
+      background: var(--bg);
+    }
+
+    /* Frames container */
+    .frames-wrapper {
+      display: flex;
+      gap: 24px;
+      justify-content: center;
+      align-items: flex-start;
+      transform-origin: top center;
+      transition: transform 0.15s ease;
+    }
+
+    /* Individual frame card */
+    .frame-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .frame-topbar {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 12px;
+    }
+
+    .frame-title {
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .frame-size-badge {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-muted);
+      background: var(--bg);
+      padding: 1px 6px;
+      border-radius: 3px;
+      border: 1px solid var(--border);
+    }
+
+    .frame-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .frame-actions a, .frame-actions button {
+      font-size: 11px;
+      padding: 2px 8px;
+    }
+
+    /* Phone frame container */
+    .device-phone {
+      width: 390px;
+      height: 844px;
+      background: #000;
+      border-radius: 44px;
+      padding: 10px;
+      box-shadow: 0 16px 36px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.08);
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    html[data-theme="light"] .device-phone {
+      box-shadow: 0 16px 36px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.1);
+    }
+
+    .device-phone iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      border-radius: 34px;
+      background: #fff;
+      display: block;
+    }
+
+    /* Desktop frame container */
+    .device-desktop {
+      width: 1280px;
+      height: 800px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.3);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+
+    .desktop-browser-header {
+      background: var(--bg-subtle);
+      border-bottom: 1px solid var(--border);
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .browser-dots {
+      display: flex;
+      gap: 6px;
+    }
+
+    .browser-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--border);
+    }
+
+    .browser-url-bar {
+      flex: 1;
+      max-width: 450px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 3px 10px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    .device-desktop iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: #fff;
+      flex: 1;
+    }
+
+    /* Toast notification */
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: var(--surface);
+      border: 1px solid var(--accent);
+      color: var(--text);
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.3);
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 0.2s, transform 0.2s;
+      pointer-events: none;
+      z-index: 100;
+    }
+
+    .toast.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 1024px) {
+      .studio-toolbar {
+        gap: 10px;
+      }
+      .frames-wrapper {
+        flex-wrap: wrap;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Studio header -->
+  <header class="studio-header">
+    <div class="studio-brand">
+      <span class="studio-badge">PHASE 0</span>
+      <div>
+        <h1 class="studio-title">Mainline UI overhaul comparison studio</h1>
+        <p class="studio-subtitle">Review static prototypes for Direction A, Direction B, and Direction C</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button id="toggle-summary-btn" type="button" aria-expanded="true">
+        <span id="toggle-summary-text">Hide direction cards</span>
+      </button>
+      <button id="theme-toggle-btn" type="button" aria-label="Toggle studio theme">
+        <span id="theme-toggle-label">Light mode</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Studio toolbar -->
+  <nav class="studio-toolbar" aria-label="Prototype controls">
+    <!-- Screen selector -->
+    <div class="toolbar-group">
+      <span class="toolbar-label">Screen:</span>
+      <div class="segmented-control" role="tablist" aria-label="Select screen">
+        <button type="button" class="segmented-button" role="tab" aria-selected="true" aria-pressed="true" data-screen="today.html">
+          Today
+        </button>
+        <button type="button" class="segmented-button" role="tab" aria-selected="false" aria-pressed="false" data-screen="puzzle.html">
+          Puzzle focus
+        </button>
+        <button type="button" class="segmented-button" role="tab" aria-selected="false" aria-pressed="false" data-screen="wordmark.html">
+          Wordmarks
+        </button>
+      </div>
+    </div>
+
+    <!-- Viewport selector -->
+    <div class="toolbar-group">
+      <span class="toolbar-label">Viewport:</span>
+      <div class="segmented-control" role="tablist" aria-label="Select viewport">
+        <button type="button" class="segmented-button" role="tab" aria-selected="true" aria-pressed="true" data-viewport="side-by-side">
+          Side by side (3 phones)
+        </button>
+        <button type="button" class="segmented-button" role="tab" aria-selected="false" aria-pressed="false" data-viewport="phone">
+          Phone (390 &times; 844)
+        </button>
+        <button type="button" class="segmented-button" role="tab" aria-selected="false" aria-pressed="false" data-viewport="desktop">
+          Desktop (1280 &times; 800)
+        </button>
+      </div>
+    </div>
+
+    <!-- Direction selector for single phone or desktop view -->
+    <div class="toolbar-group" id="direction-selector-group">
+      <span class="toolbar-label">Direction:</span>
+      <div class="segmented-control" role="tablist" aria-label="Select direction">
+        <button type="button" class="segmented-button" role="tab" aria-selected="true" aria-pressed="true" data-direction="direction-a">
+          A: Sheet, refined
+        </button>
+        <button type="button" class="segmented-button" role="tab" aria-selected="false" aria-pressed="false" data-direction="direction-b">
+          B: Diagram
+        </button>
+        <button type="button" class="segmented-button" role="tab" aria-selected="false" aria-pressed="false" data-direction="direction-c">
+          C: Clock
+        </button>
+      </div>
+    </div>
+
+    <!-- Scale & reload controls -->
+    <div class="toolbar-group">
+      <span class="toolbar-label">Scale:</span>
+      <div class="segmented-control" role="group" aria-label="Preview zoom level">
+        <button type="button" class="segmented-button" data-scale="1" aria-pressed="true">100%</button>
+        <button type="button" class="segmented-button" data-scale="0.85" aria-pressed="false">85%</button>
+        <button type="button" class="segmented-button" data-scale="0.75" aria-pressed="false">75%</button>
+      </div>
+      <button type="button" id="reload-all-btn" title="Reload all preview frames">
+        Reload
+      </button>
+    </div>
+  </nav>
+
+  <!-- Summary cards section -->
+  <section class="summary-section" id="summary-section" aria-label="Direction details">
+    <div class="summary-header">
+      <span class="summary-title">Design directions overview</span>
+      <span style="font-size: 11px; color: var(--text-muted);">Click any color chip to copy hex code</span>
+    </div>
+
+    <div class="summary-grid">
+      <!-- Direction A card -->
+      <article class="direction-card">
+        <div class="card-top">
+          <div class="card-title-group">
+            <h3>Direction A: Sheet, refined</h3>
+            <span class="card-tag">Evolutionary</span>
+          </div>
+          <div class="card-links">
+            <a href="direction-a/today.html" target="_blank" rel="noopener">Today &nearr;</a>
+            <a href="direction-a/puzzle.html" target="_blank" rel="noopener">Puzzle &nearr;</a>
+            <a href="direction-a/wordmark.html" target="_blank" rel="noopener">Wordmarks &nearr;</a>
+          </div>
+        </div>
+
+        <div class="palette-group">
+          <span class="palette-label">Palette</span>
+          <div class="palette-swatches">
+            <div class="swatch" data-hex="#EEF0EA" title="Copy hex #EEF0EA">
+              <span class="swatch-color" style="background:#EEF0EA;"></span>
+              <span class="swatch-name">Paper</span>
+              <span class="swatch-hex">#EEF0EA</span>
+            </div>
+            <div class="swatch" data-hex="#F8F9F5" title="Copy hex #F8F9F5">
+              <span class="swatch-color" style="background:#F8F9F5;"></span>
+              <span class="swatch-name">Raised</span>
+              <span class="swatch-hex">#F8F9F5</span>
+            </div>
+            <div class="swatch" data-hex="#15181B" title="Copy hex #15181B">
+              <span class="swatch-color" style="background:#15181B;"></span>
+              <span class="swatch-name">Ink</span>
+              <span class="swatch-hex">#15181B</span>
+            </div>
+            <div class="swatch" data-hex="#5A6168" title="Copy hex #5A6168">
+              <span class="swatch-color" style="background:#5A6168;"></span>
+              <span class="swatch-name">Graphite</span>
+              <span class="swatch-hex">#5A6168</span>
+            </div>
+            <div class="swatch" data-hex="#2E6B50" title="Copy hex #2E6B50">
+              <span class="swatch-color" style="background:#2E6B50;"></span>
+              <span class="swatch-name">Evergreen</span>
+              <span class="swatch-hex">#2E6B50</span>
+            </div>
+            <div class="swatch" data-hex="#A8452F" title="Copy hex #A8452F">
+              <span class="swatch-color" style="background:#A8452F;"></span>
+              <span class="swatch-name">Clay</span>
+              <span class="swatch-hex">#A8452F</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-specs">
+          <div class="spec-item">
+            <span class="spec-name">Typography:</span>
+            <span class="spec-val">Fraunces (titles), Public Sans (body, controls), IBM Plex Mono (numbers)</span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-name">Layout:</span>
+            <span class="spec-val">Single column, flat sections with spacing, 80% fewer mono uppercase labels</span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-name">Signature:</span>
+            <span class="spec-val">Evidence gutter: thin leading bar tinted by evidence grade</span>
+          </div>
+        </div>
+
+        <div class="tradeoff-box">
+          <div class="tradeoff-label">Honest trade-off note:</div>
+          <div>This look sits close to the common paper, serif, hairlines default that many AI-made designs share. It is the least risky choice and the least distinctive.</div>
+        </div>
+      </article>
+
+      <!-- Direction B card -->
+      <article class="direction-card">
+        <div class="card-top">
+          <div class="card-title-group">
+            <h3>Direction B: Diagram</h3>
+            <span class="card-tag">High contrast</span>
+          </div>
+          <div class="card-links">
+            <a href="direction-b/today.html" target="_blank" rel="noopener">Today &nearr;</a>
+            <a href="direction-b/puzzle.html" target="_blank" rel="noopener">Puzzle &nearr;</a>
+            <a href="direction-b/wordmark.html" target="_blank" rel="noopener">Wordmarks &nearr;</a>
+          </div>
+        </div>
+
+        <div class="palette-group">
+          <span class="palette-label">Palette</span>
+          <div class="palette-swatches">
+            <div class="swatch" data-hex="#FBFBF9" title="Copy hex #FBFBF9">
+              <span class="swatch-color" style="background:#FBFBF9;"></span>
+              <span class="swatch-name">Paper</span>
+              <span class="swatch-hex">#FBFBF9</span>
+            </div>
+            <div class="swatch" data-hex="#111111" title="Copy hex #111111">
+              <span class="swatch-color" style="background:#111111;"></span>
+              <span class="swatch-name">Print</span>
+              <span class="swatch-hex">#111111</span>
+            </div>
+            <div class="swatch" data-hex="#D9D9D4" title="Copy hex #D9D9D4">
+              <span class="swatch-color" style="background:#D9D9D4;"></span>
+              <span class="swatch-name">Rule</span>
+              <span class="swatch-hex">#D9D9D4</span>
+            </div>
+            <div class="swatch" data-hex="#2340B8" title="Copy hex #2340B8">
+              <span class="swatch-color" style="background:#2340B8;"></span>
+              <span class="swatch-name">Spot blue</span>
+              <span class="swatch-hex">#2340B8</span>
+            </div>
+            <div class="swatch" data-hex="#B8382B" title="Copy hex #B8382B">
+              <span class="swatch-color" style="background:#B8382B;"></span>
+              <span class="swatch-name">Mistake red</span>
+              <span class="swatch-hex">#B8382B</span>
+            </div>
+            <div class="swatch" data-hex="#6B6B66" title="Copy hex #6B6B66">
+              <span class="swatch-color" style="background:#6B6B66;"></span>
+              <span class="swatch-name">Quiet grey</span>
+              <span class="swatch-hex">#6B6B66</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-specs">
+          <div class="spec-item">
+            <span class="spec-name">Typography:</span>
+            <span class="spec-val">Alegreya (titles), Alegreya Sans (body, tabular numbers), Noto Sans Symbols 2 (figurines)</span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-name">Layout:</span>
+            <span class="spec-val">Annotated main line sequence with bold current path and indented options</span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-name">Signature:</span>
+            <span class="spec-val">Main-line hierarchy: bold path for primary sequence, regular weight for options</span>
+          </div>
+        </div>
+
+        <div class="tradeoff-box">
+          <div class="tradeoff-label">Honest trade-off note:</div>
+          <div>Hatched squares can hurt piece readability at small sizes. Keep the hatched board as an option, not the default.</div>
+        </div>
+      </article>
+
+      <!-- Direction C card -->
+      <article class="direction-card">
+        <div class="card-top">
+          <div class="card-title-group">
+            <h3>Direction C: Clock</h3>
+            <span class="card-tag">Tactile warmth</span>
+          </div>
+          <div class="card-links">
+            <a href="direction-c/today.html" target="_blank" rel="noopener">Today &nearr;</a>
+            <a href="direction-c/puzzle.html" target="_blank" rel="noopener">Puzzle &nearr;</a>
+            <a href="direction-c/wordmark.html" target="_blank" rel="noopener">Wordmarks &nearr;</a>
+          </div>
+        </div>
+
+        <div class="palette-group">
+          <span class="palette-label">Palette</span>
+          <div class="palette-swatches">
+            <div class="swatch" data-hex="#F3F3EF" title="Copy hex #F3F3EF">
+              <span class="swatch-color" style="background:#F3F3EF;"></span>
+              <span class="swatch-name">Enamel</span>
+              <span class="swatch-hex">#F3F3EF</span>
+            </div>
+            <div class="swatch" data-hex="#2A2623" title="Copy hex #2A2623">
+              <span class="swatch-color" style="background:#2A2623;"></span>
+              <span class="swatch-name">Case</span>
+              <span class="swatch-hex">#2A2623</span>
+            </div>
+            <div class="swatch" data-hex="#A9823A" title="Copy hex #A9823A">
+              <span class="swatch-color" style="background:#A9823A;"></span>
+              <span class="swatch-name">Brass</span>
+              <span class="swatch-hex">#A9823A</span>
+            </div>
+            <div class="swatch" data-hex="#2F5D50" title="Copy hex #2F5D50">
+              <span class="swatch-color" style="background:#2F5D50;"></span>
+              <span class="swatch-name">Felt</span>
+              <span class="swatch-hex">#2F5D50</span>
+            </div>
+            <div class="swatch" data-hex="#C2412D" title="Copy hex #C2412D">
+              <span class="swatch-color" style="background:#C2412D;"></span>
+              <span class="swatch-name">Flag</span>
+              <span class="swatch-hex">#C2412D</span>
+            </div>
+            <div class="swatch" data-hex="#8C8A85" title="Copy hex #8C8A85">
+              <span class="swatch-color" style="background:#8C8A85;"></span>
+              <span class="swatch-name">Dial</span>
+              <span class="swatch-hex">#8C8A85</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-specs">
+          <div class="spec-item">
+            <span class="spec-name">Typography:</span>
+            <span class="spec-val">Barlow Condensed (titles, large figures), Atkinson Hyperlegible Next (body, controls)</span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-name">Layout:</span>
+            <span class="spec-val">Soft surfaces with 14 px corner radius, centered on one dial and round start control</span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-name">Signature:</span>
+            <span class="spec-val">Time-budget dial on Today: ring shows daily budget, arcs for planned minutes, never ticks</span>
+          </div>
+        </div>
+
+        <div class="tradeoff-box">
+          <div class="tradeoff-label">Honest trade-off note:</div>
+          <div>A dial can read as a clock under pressure. That conflicts with decision 31. The prototype must test this. If it reads as pressure, drop the dial and keep the palette.</div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- Interactive preview stage -->
+  <main class="preview-stage">
+    <div class="frames-wrapper" id="frames-wrapper">
+      <!-- Frames injected dynamically by script -->
+    </div>
+  </main>
+
+  <!-- Toast notification -->
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    // Configuration and state
+    const directions = [
+      { id: 'direction-a', label: 'Direction A: Sheet, refined', short: 'Direction A' },
+      { id: 'direction-b', label: 'Direction B: Diagram', short: 'Direction B' },
+      { id: 'direction-c', label: 'Direction C: Clock', short: 'Direction C' }
+    ];
+
+    let currentScreen = 'today.html';
+    let currentViewport = 'side-by-side'; // 'side-by-side' | 'phone' | 'desktop'
+    let currentDirection = 'direction-a';
+    let currentScale = 1;
+
+    // Elements
+    const framesWrapper = document.getElementById('frames-wrapper');
+    const directionGroup = document.getElementById('direction-selector-group');
+    const toast = document.getElementById('toast');
+    const summarySection = document.getElementById('summary-section');
+    const toggleSummaryBtn = document.getElementById('toggle-summary-btn');
+    const toggleSummaryText = document.getElementById('toggle-summary-text');
+    const themeToggleBtn = document.getElementById('theme-toggle-btn');
+    const themeToggleLabel = document.getElementById('theme-toggle-label');
+
+    // Show toast helper
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add('visible');
+      setTimeout(() => toast.classList.remove('visible'), 2200);
+    }
+
+    // Render frames based on current state
+    function renderFrames() {
+      framesWrapper.innerHTML = '';
+
+      if (currentViewport === 'side-by-side') {
+        directionGroup.style.display = 'none';
+
+        directions.forEach(dir => {
+          const container = document.createElement('div');
+          container.className = 'frame-container';
+
+          const topbar = document.createElement('div');
+          topbar.className = 'frame-topbar';
+          topbar.innerHTML = `
+            <div class="frame-title">
+              <span>${dir.label}</span>
+              <span class="frame-size-badge">390 &times; 844</span>
+            </div>
+            <div class="frame-actions">
+              <a href="${dir.id}/${currentScreen}" target="_blank" rel="noopener" title="Open full screen in a new tab">Open &nearr;</a>
+              <button type="button" data-reload="${dir.id}">Reload</button>
+            </div>
+          `;
+
+          const phone = document.createElement('div');
+          phone.className = 'device-phone';
+          const iframe = document.createElement('iframe');
+          iframe.src = `${dir.id}/${currentScreen}`;
+          iframe.id = `iframe-${dir.id}`;
+          iframe.title = `${dir.label} - ${currentScreen}`;
+          phone.appendChild(iframe);
+
+          container.appendChild(topbar);
+          container.appendChild(phone);
+          framesWrapper.appendChild(container);
+        });
+      } else if (currentViewport === 'phone') {
+        directionGroup.style.display = 'flex';
+
+        const dir = directions.find(d => d.id === currentDirection) || directions[0];
+        const container = document.createElement('div');
+        container.className = 'frame-container';
+
+        const topbar = document.createElement('div');
+        topbar.className = 'frame-topbar';
+        topbar.style.width = '390px';
+        topbar.innerHTML = `
+          <div class="frame-title">
+            <span>${dir.label}</span>
+            <span class="frame-size-badge">390 &times; 844</span>
+          </div>
+          <div class="frame-actions">
+            <a href="${dir.id}/${currentScreen}" target="_blank" rel="noopener" title="Open full screen in a new tab">Open &nearr;</a>
+            <button type="button" data-reload="${dir.id}">Reload</button>
+          </div>
+        `;
+
+        const phone = document.createElement('div');
+        phone.className = 'device-phone';
+        const iframe = document.createElement('iframe');
+        iframe.src = `${dir.id}/${currentScreen}`;
+        iframe.id = `iframe-${dir.id}`;
+        iframe.title = `${dir.label} - ${currentScreen}`;
+        phone.appendChild(iframe);
+
+        container.appendChild(topbar);
+        container.appendChild(phone);
+        framesWrapper.appendChild(container);
+      } else if (currentViewport === 'desktop') {
+        directionGroup.style.display = 'flex';
+
+        const dir = directions.find(d => d.id === currentDirection) || directions[0];
+        const container = document.createElement('div');
+        container.className = 'frame-container';
+
+        const topbar = document.createElement('div');
+        topbar.className = 'frame-topbar';
+        topbar.style.width = '1280px';
+        topbar.innerHTML = `
+          <div class="frame-title">
+            <span>${dir.label}</span>
+            <span class="frame-size-badge">1280 &times; 800</span>
+          </div>
+          <div class="frame-actions">
+            <a href="${dir.id}/${currentScreen}" target="_blank" rel="noopener" title="Open full screen in a new tab">Open &nearr;</a>
+            <button type="button" data-reload="${dir.id}">Reload</button>
+          </div>
+        `;
+
+        const desktop = document.createElement('div');
+        desktop.className = 'device-desktop';
+
+        const browserHeader = document.createElement('div');
+        browserHeader.className = 'desktop-browser-header';
+        browserHeader.innerHTML = `
+          <div class="browser-dots">
+            <span class="browser-dot" style="background:#f85149;"></span>
+            <span class="browser-dot" style="background:#d29922;"></span>
+            <span class="browser-dot" style="background:#3fb950;"></span>
+          </div>
+          <div class="browser-url-bar">mainline.app/${currentScreen.replace('.html', '')}</div>
+        `;
+
+        const iframe = document.createElement('iframe');
+        iframe.src = `${dir.id}/${currentScreen}`;
+        iframe.id = `iframe-${dir.id}`;
+        iframe.title = `${dir.label} - ${currentScreen}`;
+
+        desktop.appendChild(browserHeader);
+        desktop.appendChild(iframe);
+
+        container.appendChild(topbar);
+        container.appendChild(desktop);
+        framesWrapper.appendChild(container);
+      }
+
+      applyScale();
+      attachReloadListeners();
+    }
+
+    // Scale frames wrapper
+    function applyScale() {
+      framesWrapper.style.transform = `scale(${currentScale})`;
+    }
+
+    // Attach reload listeners to frame buttons
+    function attachReloadListeners() {
+      document.querySelectorAll('button[data-reload]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-reload');
+          const iframe = document.getElementById(`iframe-${id}`);
+          if (iframe) {
+            iframe.src = iframe.src;
+            showToast(`Reloaded ${id}`);
+          }
+        });
+      });
+    }
+
+    // Screen selector clicks
+    document.querySelectorAll('[data-screen]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-screen]').forEach(b => {
+          b.setAttribute('aria-pressed', 'false');
+          b.setAttribute('aria-selected', 'false');
+        });
+        btn.setAttribute('aria-pressed', 'true');
+        btn.setAttribute('aria-selected', 'true');
+        currentScreen = btn.getAttribute('data-screen');
+        renderFrames();
+      });
+    });
+
+    // Viewport selector clicks
+    document.querySelectorAll('[data-viewport]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-viewport]').forEach(b => {
+          b.setAttribute('aria-pressed', 'false');
+          b.setAttribute('aria-selected', 'false');
+        });
+        btn.setAttribute('aria-pressed', 'true');
+        btn.setAttribute('aria-selected', 'true');
+        currentViewport = btn.getAttribute('data-viewport');
+        renderFrames();
+      });
+    });
+
+    // Direction selector clicks
+    document.querySelectorAll('[data-direction]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-direction]').forEach(b => {
+          b.setAttribute('aria-pressed', 'false');
+          b.setAttribute('aria-selected', 'false');
+        });
+        btn.setAttribute('aria-pressed', 'true');
+        btn.setAttribute('aria-selected', 'true');
+        currentDirection = btn.getAttribute('data-direction');
+        renderFrames();
+      });
+    });
+
+    // Scale clicks
+    document.querySelectorAll('[data-scale]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-scale]').forEach(b => b.setAttribute('aria-pressed', 'false'));
+        btn.setAttribute('aria-pressed', 'true');
+        currentScale = parseFloat(btn.getAttribute('data-scale'));
+        applyScale();
+      });
+    });
+
+    // Reload all frames
+    document.getElementById('reload-all-btn').addEventListener('click', () => {
+      document.querySelectorAll('iframe').forEach(iframe => {
+        iframe.src = iframe.src;
+      });
+      showToast('Reloaded all frames');
+    });
+
+    // Toggle summary cards section
+    toggleSummaryBtn.addEventListener('click', () => {
+      const isCollapsed = summarySection.classList.toggle('collapsed');
+      toggleSummaryBtn.setAttribute('aria-expanded', !isCollapsed);
+      toggleSummaryText.textContent = isCollapsed ? 'Show direction cards' : 'Hide direction cards';
+    });
+
+    // Studio theme toggle
+    themeToggleBtn.addEventListener('click', () => {
+      const html = document.documentElement;
+      const current = html.getAttribute('data-theme') || 'dark';
+      const next = current === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', next);
+      themeToggleLabel.textContent = next === 'dark' ? 'Light mode' : 'Dark mode';
+      showToast(`Switched studio theme to ${next}`);
+    });
+
+    // Copy swatch hex code
+    document.querySelectorAll('.swatch').forEach(swatch => {
+      swatch.addEventListener('click', () => {
+        const hex = swatch.getAttribute('data-hex');
+        if (hex) {
+          navigator.clipboard.writeText(hex).then(() => {
+            showToast(`Copied ${hex} to clipboard`);
+          }).catch(() => {
+            showToast(`Hex code: ${hex}`);
+          });
+        }
+      });
+    });
+
+    // Initial render
+    renderFrames();
+  </script>
+</body>
+</html>

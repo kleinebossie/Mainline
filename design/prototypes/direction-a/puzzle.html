@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Training Focus - Mainline (Direction A: Sheet, refined)</title>
+  
+  <!-- Google Fonts: Fraunces (titles only), Public Sans (body, controls), IBM Plex Mono (numbers only) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="styles.css">
+
+  <style>
+    /* Focus layout container */
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      background-color: var(--color-paper);
+    }
+
+    /* Focus mode top header */
+    .focus-header {
+      height: 48px;
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--color-card-border-subtle);
+      background-color: var(--color-raised);
+      flex-shrink: 0;
+      z-index: 20;
+    }
+
+    .exit-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--color-graphite);
+      padding: 6px 10px;
+      border-radius: var(--radius-sm);
+      text-decoration: none;
+    }
+
+    .exit-btn:hover {
+      color: var(--color-ink);
+      background-color: var(--color-card-border-subtle);
+      text-decoration: none;
+    }
+
+    .progress-center {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .progress-segments {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .seg {
+      width: 14px;
+      height: 4px;
+      border-radius: var(--radius-full);
+      background-color: var(--color-card-border);
+    }
+
+    .seg.done {
+      background-color: var(--color-evergreen);
+    }
+
+    .seg.current {
+      background-color: var(--color-ink);
+      width: 18px;
+    }
+
+    .progress-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--color-graphite);
+    }
+
+    .elapsed-timer-badge {
+      display: none;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--color-graphite);
+      background-color: var(--color-card-border-subtle);
+      padding: 2px 7px;
+      border-radius: var(--radius-sm);
+    }
+
+    .elapsed-timer-badge.visible {
+      display: inline-block;
+    }
+
+    .focus-controls-right {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      position: relative;
+    }
+
+    /* Focus Popover Menu */
+    .focus-menu-popover {
+      position: absolute;
+      top: 42px;
+      right: 0;
+      width: 220px;
+      background-color: var(--color-raised);
+      border: 1px solid var(--color-card-border);
+      border-radius: var(--radius-md);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+      padding: 8px;
+      display: none;
+      flex-direction: column;
+      gap: 4px;
+      z-index: 50;
+    }
+
+    .focus-menu-popover.open {
+      display: flex;
+    }
+
+    .menu-item-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 10px;
+      font-size: 13px;
+      color: var(--color-ink);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+    }
+
+    .menu-item-row:hover {
+      background-color: var(--color-card-border-subtle);
+    }
+
+    /* Main Focus Workspace */
+    .focus-workspace {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 12px 16px;
+      gap: 12px;
+      max-width: 100%;
+    }
+
+    /* Phone (390x844): One-screen fit, zero scroll */
+    @media (max-width: 767px) {
+      .focus-workspace {
+        padding: 8px 16px 20px;
+        gap: 10px;
+      }
+      
+      .board-wrapper {
+        width: 100%;
+        max-width: 358px;
+        aspect-ratio: 1 / 1;
+        margin: 0 auto;
+      }
+
+      .puzzle-info-panel {
+        width: 100%;
+        max-width: 358px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+    }
+
+    /* Desktop (768px+): 2-column side-by-side */
+    @media (min-width: 768px) {
+      .focus-workspace {
+        flex-direction: row;
+        align-items: center;
+        justify-content: center;
+        gap: 40px;
+        max-width: var(--wide-max-width);
+        margin: 0 auto;
+        padding: 24px 32px;
+        height: calc(100vh - 48px);
+      }
+
+      .board-wrapper {
+        width: min(560px, calc(100vh - 120px));
+        height: min(560px, calc(100vh - 120px));
+        aspect-ratio: 1 / 1;
+        flex-shrink: 0;
+      }
+
+      .puzzle-info-panel {
+        width: 360px;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+        justify-content: center;
+      }
+    }
+
+    /* Chessboard SVG */
+    .chessboard-svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+      border-radius: var(--radius-sm);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+
+    .board-sq {
+      cursor: pointer;
+      transition: fill 0.1s ease;
+    }
+
+    .board-sq:hover {
+      opacity: 0.94;
+    }
+
+    .chess-piece {
+      cursor: grab;
+      transition: transform 0.15s ease;
+    }
+
+    .chess-piece:active {
+      cursor: grabbing;
+    }
+
+    /* Prompt Box */
+    .prompt-box {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .prompt-eyebrow {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--color-graphite);
+    }
+
+    .prompt-main-text {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--color-ink);
+      line-height: 1.35;
+    }
+
+    /* Feedback Cards (Correct / Wrong) */
+    .feedback-card {
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+      padding: 12px 14px;
+      border-radius: var(--radius-md);
+      animation: fadeIn 0.12s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(3px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .feedback-correct {
+      background-color: var(--color-evergreen-subtle);
+      border: 1px solid var(--color-evergreen-border);
+      color: var(--color-evergreen-text);
+    }
+
+    .feedback-mistake {
+      background-color: var(--color-clay-subtle);
+      border: 1px solid var(--color-clay-border);
+      color: var(--color-clay-text);
+    }
+
+    .feedback-title-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .feedback-body-text {
+      font-size: 14px;
+      color: var(--color-ink);
+      line-height: 1.4;
+    }
+
+    /* Actions row */
+    .puzzle-actions-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .action-btn-full {
+      flex: 1;
+      min-height: 44px;
+    }
+
+    /* In-between Screen Card (Decision 11) */
+    .inbetween-screen {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background-color: var(--color-paper);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .inbetween-screen.visible {
+      display: flex;
+    }
+
+    .inbetween-card {
+      background-color: var(--color-raised);
+      border: 1px solid var(--color-card-border);
+      border-radius: var(--radius-lg);
+      padding: 32px 28px;
+      max-width: 480px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+      animation: inbetweenEnter 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes inbetweenEnter {
+      from { opacity: 0; transform: scale(0.96); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .inbetween-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--color-evergreen-text);
+      background-color: var(--color-evergreen-subtle);
+      padding: 4px 10px;
+      border-radius: var(--radius-full);
+      width: fit-content;
+    }
+
+    .inbetween-title {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--color-ink);
+    }
+
+    .inbetween-stats {
+      font-size: 14px;
+      color: var(--color-graphite);
+    }
+
+    .inbetween-next-box {
+      background-color: var(--color-paper);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      border: 1px solid var(--color-card-border-subtle);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .next-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--color-graphite);
+    }
+
+    .next-block-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--color-ink);
+    }
+
+    .next-block-desc {
+      font-size: 13px;
+      color: var(--color-ink-secondary);
+      line-height: 1.4;
+    }
+
+    .inbetween-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Piece Symbol Definitions (standard Cburnett SVG pieces) -->
+  <svg xmlns="http://www.w3.org/2000/svg" style="display:none;"><defs>
+<g id="piece-wP"><path d="m 22.5,9 c -2.21,0 -4,1.79 -4,4 0,0.89 0.29,1.71 0.78,2.38 C 17.33,16.5 16,18.59 16,21 c 0,2.03 0.94,3.84 2.41,5.03 C 15.41,27.09 11,31.58 11,39.5 H 34 C 34,31.58 29.59,27.09 26.59,26.03 28.06,24.84 29,23.03 29,21 29,18.59 27.67,16.5 25.72,15.38 26.21,14.71 26.5,13.89 26.5,13 c 0,-2.21 -1.79,-4 -4,-4 z" style="opacity:1;fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"></path></g>
+<g id="piece-wR"><g style="opacity:1;fill:#ffffff;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"><path d="M 9,39 L 36,39 L 36,36 L 9,36 L 9,39 z " style="stroke-linecap:butt"></path><path d="M 12,36 L 12,32 L 33,32 L 33,36 L 12,36 z " style="stroke-linecap:butt"></path><path d="M 11,14 L 11,9 L 15,9 L 15,11 L 20,11 L 20,9 L 25,9 L 25,11 L 30,11 L 30,9 L 34,9 L 34,14" style="stroke-linecap:butt"></path><path d="M 34,14 L 31,17 L 14,17 L 11,14"></path><path d="M 31,17 L 31,29.5 L 14,29.5 L 14,17" style="stroke-linecap:butt;stroke-linejoin:miter"></path><path d="M 31,29.5 L 32.5,32 L 12.5,32 L 14,29.5"></path><path d="M 11,14 L 34,14" style="fill:none;stroke:#000000;stroke-linejoin:miter"></path></g></g>
+<g id="piece-wN"><g style="opacity:1;fill:none;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"><path d="M 22,10 C 32.5,11 38.5,18 38,39 L 15,39 C 15,30 25,32.5 23,18" style="fill:#ffffff;stroke:#000000"></path><path d="M 24,18 C 24.38,20.91 18.45,25.37 16,27 C 13,29 13.18,31.34 11,31 C 9.958,30.06 12.41,27.96 11,28 C 10,28 11.19,29.23 10,30 C 9,30 5.997,31 6,26 C 6,24 12,14 12,14 C 12,14 13.89,12.1 14,10.5 C 13.27,9.506 13.5,8.5 13.5,7.5 C 14.5,6.5 16.5,10 16.5,10 L 18.5,10 C 18.5,10 19.28,8.008 21,7 C 22,7 22,10 22,10" style="fill:#ffffff;stroke:#000000"></path><path d="M 9.5 25.5 A 0.5 0.5 0 1 1 8.5,25.5 A 0.5 0.5 0 1 1 9.5 25.5 z" style="fill:#000000;stroke:#000000"></path><path d="M 15 15.5 A 0.5 1.5 0 1 1  14,15.5 A 0.5 1.5 0 1 1  15 15.5 z" transform="matrix(0.866,0.5,-0.5,0.866,9.693,-5.173)" style="fill:#000000;stroke:#000000"></path></g></g>
+<g id="piece-wB"><g style="opacity:1;fill:none;fill-rule:evenodd;fill-opacity:1;stroke:#000000;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"><g style="fill:#ffffff;stroke:#000000;stroke-linecap:butt"><path d="M 9,36 C 12.39,35.03 19.11,36.43 22.5,34 C 25.89,36.43 32.61,35.03 36,36 C 36,36 37.65,36.54 39,38 C 38.32,38.97 37.35,38.99 36,38.5 C 32.61,37.53 25.89,38.96 22.5,37.5 C 19.11,38.96 12.39,37.53 9,38.5 C 7.65,38.99 6.68,38.97 6,38 C 7.35,36.54 9,36 9,36 z"></path><path d="M 15,32 C 17.5,34.5 27.5,34.5 30,32 C 30.5,30.5 30,30 30,30 C 30,27.5 27.5,26 27.5,26 C 33,24.5 33.5,14.5 22.5,10.5 C 11.5,14.5 12,24.5 17.5,26 C 17.5,26 15,27.5 15,30 C 15,30 14.5,30.5 15,32 z"></path><path d="M 25 8 A 2.5 2.5 0 1 1  20,8 A 2.5 2.5 0 1 1  25 8 z"></path></g><path d="M 17.5,26 L 27.5,26 M 15,30 L 30,30 M 22.5,15.5 L 22.5,20.5 M 20,18 L 25,18" style="fill:none;stroke:#000000;stroke-linejoin:miter"></path></g></g>
+<g id="piece-wQ"><g style="fill:#ffffff;stroke:#000000;stroke-width:1.5;stroke-linejoin:round"><path d="M 9,26 C 17.5,24.5 30,24.5 36,26 L 38.5,13.5 L 31,25 L 30.7,10.9 L 25.5,24.5 L 22.5,10 L 19.5,24.5 L 14.3,10.9 L 14,25 L 6.5,13.5 L 9,26 z"></path><path d="M 9,26 C 9,28 10.5,28 11.5,30 C 12.5,31.5 12.5,31 12,33.5 C 10.5,34.5 11,36 11,36 C 9.5,37.5 11,38.5 11,38.5 C 17.5,39.5 27.5,39.5 34,38.5 C 34,38.5 35.5,37.5 34,36 C 34,36 34.5,34.5 33,33.5 C 32.5,31 32.5,31.5 33.5,30 C 34.5,28 36,28 36,26 C 27.5,24.5 17.5,24.5 9,26 z"></path><path d="M 11.5,30 C 15,29 30,29 33.5,30" style="fill:none"></path><path d="M 12,33.5 C 18,32.5 27,32.5 33,33.5" style="fill:none"></path><circle cx="6" cy="12" r="2"></circle><circle cx="14" cy="9" r="2"></circle><circle cx="22.5" cy="8" r="2"></circle><circle cx="31" cy="9" r="2"></circle><circle cx="39" cy="12" r="2"></circle></g></g>
+<g id="piece-wK"><g style="fill:none;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"><path d="M 22.5,11.63 L 22.5,6" style="fill:none;stroke:#000000;stroke-linejoin:miter"></path><path d="M 20,8 L 25,8" style="fill:none;stroke:#000000;stroke-linejoin:miter"></path><path d="M 22.5,25 C 22.5,25 27,17.5 25.5,14.5 C 25.5,14.5 24.5,12 22.5,12 C 20.5,12 19.5,14.5 19.5,14.5 C 18,17.5 22.5,25 22.5,25" style="fill:#ffffff;stroke:#000000;stroke-linecap:butt;stroke-linejoin:miter"></path><path d="M 12.5,37 C 18,40.5 27,40.5 32.5,37 L 32.5,30 C 32.5,30 41.5,25.5 38.5,19.5 C 34.5,13 25,16 22.5,23.5 L 22.5,27 L 22.5,23.5 C 20,16 10.5,13 6.5,19.5 C 3.5,25.5 12.5,30 12.5,30 L 12.5,37" style="fill:#ffffff;stroke:#000000"></path><path d="M 12.5,30 C 18,27 27,27 32.5,30" style="fill:none;stroke:#000000"></path><path d="M 12.5,33.5 C 18,30.5 27,30.5 32.5,33.5" style="fill:none;stroke:#000000"></path><path d="M 12.5,37 C 18,34 27,34 32.5,37" style="fill:none;stroke:#000000"></path></g></g>
+<g id="piece-bP"><path d="m 22.5,9 c -2.21,0 -4,1.79 -4,4 0,0.89 0.29,1.71 0.78,2.38 C 17.33,16.5 16,18.59 16,21 c 0,2.03 0.94,3.84 2.41,5.03 C 15.41,27.09 11,31.58 11,39.5 H 34 C 34,31.58 29.59,27.09 26.59,26.03 28.06,24.84 29,23.03 29,21 29,18.59 27.67,16.5 25.72,15.38 26.21,14.71 26.5,13.89 26.5,13 c 0,-2.21 -1.79,-4 -4,-4 z" style="opacity:1;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"></path></g>
+<g id="piece-bR"><g style="opacity:1;fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"><path d="M 9,39 L 36,39 L 36,36 L 9,36 L 9,39 z " style="stroke-linecap:butt"></path><path d="M 12.5,32 L 14,29.5 L 31,29.5 L 32.5,32 L 12.5,32 z " style="stroke-linecap:butt"></path><path d="M 12,36 L 12,32 L 33,32 L 33,36 L 12,36 z " style="stroke-linecap:butt"></path><path d="M 14,29.5 L 14,16.5 L 31,16.5 L 31,29.5 L 14,29.5 z " style="stroke-linecap:butt;stroke-linejoin:miter"></path><path d="M 14,16.5 L 11,14 L 34,14 L 31,16.5 L 14,16.5 z " style="stroke-linecap:butt"></path><path d="M 11,14 L 11,9 L 15,9 L 15,11 L 20,11 L 20,9 L 25,9 L 25,11 L 30,11 L 30,9 L 34,9 L 34,14 L 11,14 z " style="stroke-linecap:butt"></path><path d="M 12,35.5 L 33,35.5 L 33,35.5" style="fill:none;stroke:#ffffff;stroke-width:1;stroke-linejoin:miter"></path><path d="M 13,31.5 L 32,31.5" style="fill:none;stroke:#ffffff;stroke-width:1;stroke-linejoin:miter"></path><path d="M 14,29.5 L 31,29.5" style="fill:none;stroke:#ffffff;stroke-width:1;stroke-linejoin:miter"></path><path d="M 14,16.5 L 31,16.5" style="fill:none;stroke:#ffffff;stroke-width:1;stroke-linejoin:miter"></path><path d="M 11,14 L 34,14" style="fill:none;stroke:#ffffff;stroke-width:1;stroke-linejoin:miter"></path></g></g>
+<g id="piece-bN"><g style="opacity:1;fill:none;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"><path d="M 22,10 C 32.5,11 38.5,18 38,39 L 15,39 C 15,30 25,32.5 23,18" style="fill:#000000;stroke:#000000"></path><path d="M 24,18 C 24.38,20.91 18.45,25.37 16,27 C 13,29 13.18,31.34 11,31 C 9.958,30.06 12.41,27.96 11,28 C 10,28 11.19,29.23 10,30 C 9,30 5.997,31 6,26 C 6,24 12,14 12,14 C 12,14 13.89,12.1 14,10.5 C 13.27,9.506 13.5,8.5 13.5,7.5 C 14.5,6.5 16.5,10 16.5,10 L 18.5,10 C 18.5,10 19.28,8.008 21,7 C 22,7 22,10 22,10" style="fill:#000000;stroke:#000000"></path><path d="M 9.5 25.5 A 0.5 0.5 0 1 1 8.5,25.5 A 0.5 0.5 0 1 1 9.5 25.5 z" style="fill:#ffffff;stroke:#ffffff"></path><path d="M 15 15.5 A 0.5 1.5 0 1 1  14,15.5 A 0.5 1.5 0 1 1  15 15.5 z" transform="matrix(0.866,0.5,-0.5,0.866,9.693,-5.173)" style="fill:#ffffff;stroke:#ffffff"></path><path d="M 24.55,10.4 L 24.1,11.85 L 24.6,12 C 27.75,13 30.25,14.49 32.5,18.75 C 34.75,23.01 35.75,29.06 35.25,39 L 35.2,39.5 L 37.45,39.5 L 37.5,39 C 38,28.94 36.62,22.15 34.25,17.66 C 31.88,13.17 28.46,11.02 25.06,10.5 L 24.55,10.4 z " style="fill:#ffffff;stroke:none"></path></g></g>
+<g id="piece-bB"><g style="opacity:1;fill:none;fill-rule:evenodd;fill-opacity:1;stroke:#000000;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"><g style="fill:#000000;stroke:#000000;stroke-linecap:butt"><path d="M 9,36 C 12.39,35.03 19.11,36.43 22.5,34 C 25.89,36.43 32.61,35.03 36,36 C 36,36 37.65,36.54 39,38 C 38.32,38.97 37.35,38.99 36,38.5 C 32.61,37.53 25.89,38.96 22.5,37.5 C 19.11,38.96 12.39,37.53 9,38.5 C 7.65,38.99 6.68,38.97 6,38 C 7.35,36.54 9,36 9,36 z"></path><path d="M 15,32 C 17.5,34.5 27.5,34.5 30,32 C 30.5,30.5 30,30 30,30 C 30,27.5 27.5,26 27.5,26 C 33,24.5 33.5,14.5 22.5,10.5 C 11.5,14.5 12,24.5 17.5,26 C 17.5,26 15,27.5 15,30 C 15,30 14.5,30.5 15,32 z"></path><path d="M 25 8 A 2.5 2.5 0 1 1  20,8 A 2.5 2.5 0 1 1  25 8 z"></path></g><path d="M 17.5,26 L 27.5,26 M 15,30 L 30,30 M 22.5,15.5 L 22.5,20.5 M 20,18 L 25,18" style="fill:none;stroke:#ffffff;stroke-linejoin:miter"></path></g></g>
+<g id="piece-bQ"><g style="fill:#000000;stroke:#000000;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round"><path d="M 9,26 C 17.5,24.5 30,24.5 36,26 L 38.5,13.5 L 31,25 L 30.7,10.9 L 25.5,24.5 L 22.5,10 L 19.5,24.5 L 14.3,10.9 L 14,25 L 6.5,13.5 L 9,26 z" style="stroke-linecap:butt;fill:#000000"></path><path d="m 9,26 c 0,2 1.5,2 2.5,4 1,1.5 1,1 0.5,3.5 -1.5,1 -1,2.5 -1,2.5 -1.5,1.5 0,2.5 0,2.5 6.5,1 16.5,1 23,0 0,0 1.5,-1 0,-2.5 0,0 0.5,-1.5 -1,-2.5 -0.5,-2.5 -0.5,-2 0.5,-3.5 1,-2 2.5,-2 2.5,-4 -8.5,-1.5 -18.5,-1.5 -27,0 z"></path><path d="M 11.5,30 C 15,29 30,29 33.5,30"></path><path d="m 12,33.5 c 6,-1 15,-1 21,0"></path><circle cx="6" cy="12" r="2"></circle><circle cx="14" cy="9" r="2"></circle><circle cx="22.5" cy="8" r="2"></circle><circle cx="31" cy="9" r="2"></circle><circle cx="39" cy="12" r="2"></circle><path d="M 11,38.5 A 35,35 1 0 0 34,38.5" style="fill:none;stroke:#000000;stroke-linecap:butt"></path><g style="fill:none;stroke:#ffffff"><path d="M 11,29 A 35,35 1 0 1 34,29"></path><path d="M 12.5,31.5 L 32.5,31.5"></path><path d="M 11.5,34.5 A 35,35 1 0 0 33.5,34.5"></path><path d="M 10.5,37.5 A 35,35 1 0 0 34.5,37.5"></path></g></g></g>
+<g id="piece-bK"><g style="fill:none;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"><path d="M 22.5,11.63 L 22.5,6" style="fill:none;stroke:#000000;stroke-linejoin:miter" id="path6570"></path><path d="M 22.5,25 C 22.5,25 27,17.5 25.5,14.5 C 25.5,14.5 24.5,12 22.5,12 C 20.5,12 19.5,14.5 19.5,14.5 C 18,17.5 22.5,25 22.5,25" style="fill:#000000;fill-opacity:1;stroke-linecap:butt;stroke-linejoin:miter"></path><path d="M 12.5,37 C 18,40.5 27,40.5 32.5,37 L 32.5,30 C 32.5,30 41.5,25.5 38.5,19.5 C 34.5,13 25,16 22.5,23.5 L 22.5,27 L 22.5,23.5 C 20,16 10.5,13 6.5,19.5 C 3.5,25.5 12.5,30 12.5,30 L 12.5,37" style="fill:#000000;stroke:#000000"></path><path d="M 20,8 L 25,8" style="fill:none;stroke:#000000;stroke-linejoin:miter"></path><path d="M 32,29.5 C 32,29.5 40.5,25.5 38.03,19.85 C 34.15,14 25,18 22.5,24.5 L 22.5,26.6 L 22.5,24.5 C 20,18 10.85,14 6.97,19.85 C 4.5,25.5 13,29.5 13,29.5" style="fill:none;stroke:#ffffff"></path><path d="M 12.5,30 C 18,27 27,27 32.5,30 M 12.5,33.5 C 18,30.5 27,30.5 32.5,33.5 M 12.5,37 C 18,34 27,34 32.5,37" style="fill:none;stroke:#ffffff"></path></g></g>
+</defs></svg>
+
+  <!-- ========================================================================
+       Focus Mode Top Bar (No app nav, quiet progress, exit button)
+       ======================================================================== -->
+  <header class="focus-header" role="banner">
+    <!-- Exit back to Today -->
+    <a href="today.html" class="exit-btn" title="Exit training and return to Today">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+      <span>Today</span>
+    </a>
+
+    <!-- Block progress & timer -->
+    <div class="progress-center">
+      <div class="progress-segments" title="Progress: 3 of 8 puzzles completed">
+        <span class="seg done"></span>
+        <span class="seg done"></span>
+        <span class="seg current"></span>
+        <span class="seg"></span>
+        <span class="seg"></span>
+        <span class="seg"></span>
+        <span class="seg"></span>
+        <span class="seg"></span>
+      </div>
+      <span class="progress-label num">3 of 8</span>
+      <span class="elapsed-timer-badge num" id="elapsed-timer" title="Elapsed puzzle time">0:34</span>
+    </div>
+
+    <!-- Controls (Sound toggle, Focus menu) -->
+    <div class="focus-controls-right">
+      <button type="button" class="btn-icon" id="sound-btn" title="Toggle move sounds" aria-label="Toggle sound">
+        <svg id="sound-icon-on" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+        <svg id="sound-icon-off" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+      </button>
+
+      <button type="button" class="btn-icon" id="focus-menu-btn" title="Focus options" aria-label="Open focus options menu">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+      </button>
+
+      <!-- Focus Menu Popover -->
+      <div class="focus-menu-popover" id="focus-menu-popover" role="menu">
+        <label class="menu-item-row" style="cursor:pointer;">
+          <span>Sound effects</span>
+          <input type="checkbox" id="menu-sound-check" checked style="accent-color:var(--color-evergreen);">
+        </label>
+        <label class="menu-item-row" style="cursor:pointer;">
+          <span>Show timer</span>
+          <input type="checkbox" id="menu-time-check" style="accent-color:var(--color-evergreen);">
+        </label>
+        <div style="height:1px; background-color:var(--color-card-border-subtle); margin:4px 0;"></div>
+        <button type="button" class="menu-item-row" id="menu-why-btn" style="width:100%; text-align:left; border:none; background:none;">
+          <span>Why this drill?</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ========================================================================
+       Focus Workspace (Board + Puzzle Info Panel)
+       ======================================================================== -->
+  <main class="focus-workspace" id="puzzle-main">
+    
+    <!-- 8x8 Chessboard Container -->
+    <div class="board-wrapper">
+      <svg class="chessboard-svg" viewBox="0 0 800 800" role="img" aria-label="Chess puzzle board: Black to move. White knight on a4 is undefended. Black queen on a5 attacks a4.">
+        
+      <!-- Board Squares -->
+      <g id="board-squares">
+        <rect id="sq-h1" class="board-sq" data-sq="h1" x="0" y="0" width="100" height="100" fill="var(--board-dark)"/>
+          <rect id="sq-g1" class="board-sq" data-sq="g1" x="100" y="0" width="100" height="100" fill="var(--board-light)"/>
+          <rect id="sq-f1" class="board-sq" data-sq="f1" x="200" y="0" width="100" height="100" fill="var(--board-dark)"/>
+          <rect id="sq-e1" class="board-sq" data-sq="e1" x="300" y="0" width="100" height="100" fill="var(--board-light)"/>
+          <rect id="sq-d1" class="board-sq" data-sq="d1" x="400" y="0" width="100" height="100" fill="var(--board-dark)"/>
+          <rect id="sq-c1" class="board-sq" data-sq="c1" x="500" y="0" width="100" height="100" fill="var(--board-light)"/>
+          <rect id="sq-b1" class="board-sq" data-sq="b1" x="600" y="0" width="100" height="100" fill="var(--board-dark)"/>
+          <rect id="sq-a1" class="board-sq" data-sq="a1" x="700" y="0" width="100" height="100" fill="var(--board-light)"/>
+          <rect id="sq-h2" class="board-sq" data-sq="h2" x="0" y="100" width="100" height="100" fill="var(--board-light)"/>
+          <rect id="sq-g2" class="board-sq" data-sq="g2" x="100" y="100" width="100" height="100" fill="var(--board-dark)"/>
+          <rect id="sq-f2" class="board-sq" data-sq="f2" x="200" y="100" width="100" height="100" fill="var(--board-light)"/>
+          <rect id="sq-e2" class="board-sq" data-sq="e2" x="300" y="100" width="100" height="100" fill="var(--board-dark)"/>
+          <rect id="sq-d2" class="board-sq" data-sq="d2" x="400" y="100" width="100" height="100" fill="var(--board-light)"/>
+          <rect id="sq-c2" class="board-sq" data-sq="c2" x="500" y="100" width="100" height="100" fill="var(--board-dark)"/>
+          <rect id="sq-b2" class="board-sq" data-sq="b2" x="600" y="100" width="100" height="100" fill="var(--board-light)"/>
+          <rect id="sq-a2" class="board-sq" data-sq="a2" x="700" y="100" width="100" height="100" fill="var(--board-dark)"/>
+          <rect id="sq-h3" class="board-sq" data-sq="h3" x="0" y="200" width="100" height="100" fill="var(--board-dark)"/>
+          <rect id="sq-g3" class="board-sq" data-sq="g3" x="100" y="200" width="100" height="100" fill="var(--board-light)"/>
+          <rect id="sq-f3" class="board-sq" data-sq="f3" x="200" y="200" width="100" height="100" fill="var(--board-dark)"/>
+          <rect id="sq-e3" class="board-sq" data-sq="e3" x="300" y="200" width="100" height="100" fill="var(--board-light)"/>
+          <rect id="sq-d3" class="board-sq" data-sq="d3" x="400" y="200" width="100" height="100" fill="var(--board-dark)"/>
+          <rect id="sq-c3" class="board-sq" data-sq="c3" x="500" y="200" width="100" height="100" fill="var(--board-light)"/>
+          <rect id="sq-b3" class="board-sq" data-sq="b3" x="600" y="200" width="100" height="100" fill="var(--board-dark)"/>
+          <rect id="sq-a3" class="board-sq" data-sq="a3" x="700" y="200" width="100" height="100" fill="var(--board-light)"/>
+          <rect id="sq-h4" class="board-sq" data-sq="h4" x="0" y="300" width="100" height="100" fill="var(--board-light)"/>
+          <rect id="sq-g4" class="board-sq" data-sq="g4" x="100" y="300" width="100" height="100" fill="var(--board-dark)"/>
+          <rect id="sq-f4" class="board-sq" data-sq="f4" x="200" y="300" width="100" height="100" fill="var(--board-light)"/>
+          <rect id="sq-e4" class="board-sq" data-sq="e4" x="300" y="300" width="100" height="100" fill="var(--board-dark)"/>
+          <rect id="sq-d4" class="board-sq" data-sq="d4" x="400" y="300" width="100" height="100" fill="var(--board-light)"/>
+          <rect id="sq-c4" class="board-sq" data-sq="c4" x="500" y="300" width="100" height="100" fill="var(--board-dark)"/>
+          <rect id="sq-b4" class="board-sq" data-sq="b4" x="600" y="300" width="100" height="100" fill="var(--board-light)"/>
+          <rect id="sq-a4" class="board-sq" data-sq="a4" x="700" y="300" width="100" height="100" fill="var(--board-dark)"/>
+          <rect id="sq-h5" class="board-sq" data-sq="h5" x="0" y="400" width="100" height="100" fill="var(--board-dark)"/>
+          <rect id="sq-g5" class="board-sq" data-sq="g5" x="100" y="400" width="100" height="100" fill="var(--board-light)"/>
+          <rect id="sq-f5" class="board-sq" data-sq="f5" x="200" y="400" width="100" height="100" fill="var(--board-dark)"/>
+          <rect id="sq-e5" class="board-sq" data-sq="e5" x="300" y="400" width="100" height="100" fill="var(--board-light)"/>
+          <rect id="sq-d5" class="board-sq" data-sq="d5" x="400" y="400" width="100" height="100" fill="var(--board-dark)"/>
+          <rect id="sq-c5" class="board-sq" data-sq="c5" x="500" y="400" width="100" height="100" fill="var(--board-light)"/>
+          <rect id="sq-b5" class="board-sq" data-sq="b5" x="600" y="400" width="100" height="100" fill="var(--board-dark)"/>
+          <rect id="sq-a5" class="board-sq" data-sq="a5" x="700" y="400" width="100" height="100" fill="var(--board-light)"/>
+          <rect id="sq-h6" class="board-sq" data-sq="h6" x="0" y="500" width="100" height="100" fill="var(--board-light)"/>
+          <rect id="sq-g6" class="board-sq" data-sq="g6" x="100" y="500" width="100" height="100" fill="var(--board-dark)"/>
+          <rect id="sq-f6" class="board-sq" data-sq="f6" x="200" y="500" width="100" height="100" fill="var(--board-light)"/>
+          <rect id="sq-e6" class="board-sq" data-sq="e6" x="300" y="500" width="100" height="100" fill="var(--board-dark)"/>
+          <rect id="sq-d6" class="board-sq" data-sq="d6" x="400" y="500" width="100" height="100" fill="var(--board-light)"/>
+          <rect id="sq-c6" class="board-sq" data-sq="c6" x="500" y="500" width="100" height="100" fill="var(--board-dark)"/>
+          <rect id="sq-b6" class="board-sq" data-sq="b6" x="600" y="500" width="100" height="100" fill="var(--board-light)"/>
+          <rect id="sq-a6" class="board-sq" data-sq="a6" x="700" y="500" width="100" height="100" fill="var(--board-dark)"/>
+          <rect id="sq-h7" class="board-sq" data-sq="h7" x="0" y="600" width="100" height="100" fill="var(--board-dark)"/>
+          <rect id="sq-g7" class="board-sq" data-sq="g7" x="100" y="600" width="100" height="100" fill="var(--board-light)"/>
+          <rect id="sq-f7" class="board-sq" data-sq="f7" x="200" y="600" width="100" height="100" fill="var(--board-dark)"/>
+          <rect id="sq-e7" class="board-sq" data-sq="e7" x="300" y="600" width="100" height="100" fill="var(--board-light)"/>
+          <rect id="sq-d7" class="board-sq" data-sq="d7" x="400" y="600" width="100" height="100" fill="var(--board-dark)"/>
+          <rect id="sq-c7" class="board-sq" data-sq="c7" x="500" y="600" width="100" height="100" fill="var(--board-light)"/>
+          <rect id="sq-b7" class="board-sq" data-sq="b7" x="600" y="600" width="100" height="100" fill="var(--board-dark)"/>
+          <rect id="sq-a7" class="board-sq" data-sq="a7" x="700" y="600" width="100" height="100" fill="var(--board-light)"/>
+          <rect id="sq-h8" class="board-sq" data-sq="h8" x="0" y="700" width="100" height="100" fill="var(--board-light)"/>
+          <rect id="sq-g8" class="board-sq" data-sq="g8" x="100" y="700" width="100" height="100" fill="var(--board-dark)"/>
+          <rect id="sq-f8" class="board-sq" data-sq="f8" x="200" y="700" width="100" height="100" fill="var(--board-light)"/>
+          <rect id="sq-e8" class="board-sq" data-sq="e8" x="300" y="700" width="100" height="100" fill="var(--board-dark)"/>
+          <rect id="sq-d8" class="board-sq" data-sq="d8" x="400" y="700" width="100" height="100" fill="var(--board-light)"/>
+          <rect id="sq-c8" class="board-sq" data-sq="c8" x="500" y="700" width="100" height="100" fill="var(--board-dark)"/>
+          <rect id="sq-b8" class="board-sq" data-sq="b8" x="600" y="700" width="100" height="100" fill="var(--board-light)"/>
+          <rect id="sq-a8" class="board-sq" data-sq="a8" x="700" y="700" width="100" height="100" fill="var(--board-dark)"/>
+      </g>
+      
+      <!-- Coordinate Labels -->
+      <g id="board-coords">
+        <text x="4" y="16" font-family="var(--font-mono)" font-size="11" font-weight="600" fill="var(--board-coord-dark)" pointer-events="none">1</text>
+          <text x="4" y="116" font-family="var(--font-mono)" font-size="11" font-weight="600" fill="var(--board-coord-light)" pointer-events="none">2</text>
+          <text x="4" y="216" font-family="var(--font-mono)" font-size="11" font-weight="600" fill="var(--board-coord-dark)" pointer-events="none">3</text>
+          <text x="4" y="316" font-family="var(--font-mono)" font-size="11" font-weight="600" fill="var(--board-coord-light)" pointer-events="none">4</text>
+          <text x="4" y="416" font-family="var(--font-mono)" font-size="11" font-weight="600" fill="var(--board-coord-dark)" pointer-events="none">5</text>
+          <text x="4" y="516" font-family="var(--font-mono)" font-size="11" font-weight="600" fill="var(--board-coord-light)" pointer-events="none">6</text>
+          <text x="4" y="616" font-family="var(--font-mono)" font-size="11" font-weight="600" fill="var(--board-coord-dark)" pointer-events="none">7</text>
+          <text x="4" y="716" font-family="var(--font-mono)" font-size="11" font-weight="600" fill="var(--board-coord-light)" pointer-events="none">8</text>
+          <text x="86" y="794" font-family="var(--font-mono)" font-size="11" font-weight="600" fill="var(--board-coord-light)" pointer-events="none">h</text>
+          <text x="186" y="794" font-family="var(--font-mono)" font-size="11" font-weight="600" fill="var(--board-coord-dark)" pointer-events="none">g</text>
+          <text x="286" y="794" font-family="var(--font-mono)" font-size="11" font-weight="600" fill="var(--board-coord-light)" pointer-events="none">f</text>
+          <text x="386" y="794" font-family="var(--font-mono)" font-size="11" font-weight="600" fill="var(--board-coord-dark)" pointer-events="none">e</text>
+          <text x="486" y="794" font-family="var(--font-mono)" font-size="11" font-weight="600" fill="var(--board-coord-light)" pointer-events="none">d</text>
+          <text x="586" y="794" font-family="var(--font-mono)" font-size="11" font-weight="600" fill="var(--board-coord-dark)" pointer-events="none">c</text>
+          <text x="686" y="794" font-family="var(--font-mono)" font-size="11" font-weight="600" fill="var(--board-coord-light)" pointer-events="none">b</text>
+          <text x="786" y="794" font-family="var(--font-mono)" font-size="11" font-weight="600" fill="var(--board-coord-dark)" pointer-events="none">a</text>
+      </g>
+
+      <!-- Selection & Feedback Overlays -->
+      <g id="board-overlays">
+        <rect id="overlay-selected" x="0" y="0" width="100" height="100" fill="var(--board-selected)" style="display:none;" pointer-events="none"/>
+        <rect id="overlay-feedback" x="0" y="0" width="100" height="100" fill="none" style="display:none;" pointer-events="none"/>
+      </g>
+
+      <!-- Board Pieces -->
+      <g id="board-pieces">
+        <use id="piece-at-g1" class="chess-piece" data-sq="g1" data-piece="wK" href="#piece-wK" x="100" y="0" width="100" height="100"/>
+          <use id="piece-at-f1" class="chess-piece" data-sq="f1" data-piece="wR" href="#piece-wR" x="200" y="0" width="100" height="100"/>
+          <use id="piece-at-d1" class="chess-piece" data-sq="d1" data-piece="wQ" href="#piece-wQ" x="400" y="0" width="100" height="100"/>
+          <use id="piece-at-c1" class="chess-piece" data-sq="c1" data-piece="wR" href="#piece-wR" x="500" y="0" width="100" height="100"/>
+          <use id="piece-at-h2" class="chess-piece" data-sq="h2" data-piece="wP" href="#piece-wP" x="0" y="100" width="100" height="100"/>
+          <use id="piece-at-g2" class="chess-piece" data-sq="g2" data-piece="wP" href="#piece-wP" x="100" y="100" width="100" height="100"/>
+          <use id="piece-at-f2" class="chess-piece" data-sq="f2" data-piece="wP" href="#piece-wP" x="200" y="100" width="100" height="100"/>
+          <use id="piece-at-e2" class="chess-piece" data-sq="e2" data-piece="wB" href="#piece-wB" x="300" y="100" width="100" height="100"/>
+          <use id="piece-at-b2" class="chess-piece" data-sq="b2" data-piece="wP" href="#piece-wP" x="600" y="100" width="100" height="100"/>
+          <use id="piece-at-a2" class="chess-piece" data-sq="a2" data-piece="wP" href="#piece-wP" x="700" y="100" width="100" height="100"/>
+          <use id="piece-at-e3" class="chess-piece" data-sq="e3" data-piece="wP" href="#piece-wP" x="300" y="200" width="100" height="100"/>
+          <use id="piece-at-a4" class="chess-piece" data-sq="a4" data-piece="wN" href="#piece-wN" x="700" y="300" width="100" height="100"/>
+          <use id="piece-at-a5" class="chess-piece" data-sq="a5" data-piece="bQ" href="#piece-bQ" x="700" y="400" width="100" height="100"/>
+          <use id="piece-at-f6" class="chess-piece" data-sq="f6" data-piece="bN" href="#piece-bN" x="200" y="500" width="100" height="100"/>
+          <use id="piece-at-e6" class="chess-piece" data-sq="e6" data-piece="bP" href="#piece-bP" x="300" y="500" width="100" height="100"/>
+          <use id="piece-at-h7" class="chess-piece" data-sq="h7" data-piece="bP" href="#piece-bP" x="0" y="600" width="100" height="100"/>
+          <use id="piece-at-g7" class="chess-piece" data-sq="g7" data-piece="bP" href="#piece-bP" x="100" y="600" width="100" height="100"/>
+          <use id="piece-at-f7" class="chess-piece" data-sq="f7" data-piece="bP" href="#piece-bP" x="200" y="600" width="100" height="100"/>
+          <use id="piece-at-d7" class="chess-piece" data-sq="d7" data-piece="bB" href="#piece-bB" x="400" y="600" width="100" height="100"/>
+          <use id="piece-at-b7" class="chess-piece" data-sq="b7" data-piece="bP" href="#piece-bP" x="600" y="600" width="100" height="100"/>
+          <use id="piece-at-a7" class="chess-piece" data-sq="a7" data-piece="bP" href="#piece-bP" x="700" y="600" width="100" height="100"/>
+          <use id="piece-at-g8" class="chess-piece" data-sq="g8" data-piece="bK" href="#piece-bK" x="100" y="700" width="100" height="100"/>
+          <use id="piece-at-f8" class="chess-piece" data-sq="f8" data-piece="bR" href="#piece-bR" x="200" y="700" width="100" height="100"/>
+          <use id="piece-at-c8" class="chess-piece" data-sq="c8" data-piece="bR" href="#piece-bR" x="500" y="700" width="100" height="100"/>
+      </g>
+
+      <!-- Move Feedback Badge on Piece (Decision 32: ! or ? on moved piece) -->
+      <g id="badge-layer" style="display:none;">
+        <circle id="badge-circle" cx="770" cy="330" r="16" fill="var(--board-correct-solid)" stroke="var(--color-raised)" stroke-width="2.5"/>
+        <text id="badge-text" x="770" y="336" font-family="var(--font-mono)" font-size="16" font-weight="700" fill="#FFFFFF" text-anchor="middle">!</text>
+      </g>
+    
+      </svg>
+    </div>
+
+    <!-- Puzzle Info & Controls Panel -->
+    <div class="puzzle-info-panel">
+      
+      <!-- Prompt State Box -->
+      <div class="prompt-box" id="prompt-box">
+        <span class="prompt-eyebrow">Tactical calculation</span>
+        <h1 class="prompt-main-text">Black to move. Find the best move.</h1>
+        <div style="display:flex; align-items:center; gap:8px; margin-top:4px;">
+          <button type="button" class="btn-quiet" id="why-puzzle-btn" style="padding-left:0;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+            Why this?
+          </button>
+          <span style="font-size:12px; color:var(--color-graphite);">&bull; Hint: Click the Queen at a5, then click a4</span>
+        </div>
+      </div>
+
+      <!-- Correct Move Feedback Box -->
+      <div class="feedback-card feedback-correct" id="feedback-correct">
+        <div class="feedback-title-row">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+          <span>Best move</span>
+        </div>
+        <p class="feedback-body-text">
+          Best move. Wins the undefended knight.
+        </p>
+      </div>
+
+      <!-- Wrong Move Feedback Box -->
+      <div class="feedback-card feedback-mistake" id="feedback-mistake">
+        <div class="feedback-title-row">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span>Mistake</span>
+        </div>
+        <p class="feedback-body-text">
+          Allows mate in two. Look at the back rank.
+        </p>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="puzzle-actions-row" id="puzzle-actions">
+        <!-- Next button shown when move is made -->
+        <button type="button" class="btn-primary action-btn-full" id="next-puzzle-btn" style="display:none;">
+          Next
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </button>
+
+        <!-- Try again button shown when mistake is made -->
+        <button type="button" class="btn-secondary" id="try-again-btn" style="display:none;">
+          Try again
+        </button>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- ========================================================================
+       In-Between Screen State (Decision 11: calm auto-advance transition)
+       ======================================================================== -->
+  <div class="inbetween-screen" id="inbetween-screen" role="dialog" aria-modal="true" aria-labelledby="inbetween-title">
+    <div class="inbetween-card">
+      <span class="inbetween-badge">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+        Block complete
+      </span>
+
+      <div>
+        <h2 class="inbetween-title title-display" id="inbetween-title">Endgame technique finished</h2>
+        <p class="inbetween-stats num">8 of 8 positions solved &bull; 14 minutes</p>
+      </div>
+
+      <div class="inbetween-next-box">
+        <span class="next-label">Next block</span>
+        <h3 class="next-block-title">Game review (15 min)</h3>
+        <p class="next-block-desc">
+          A guided queue: review critical moments from your recent games.
+        </p>
+      </div>
+
+      <div class="inbetween-actions">
+        <button type="button" class="btn-primary action-btn-full" id="continue-next-block-btn">
+          Continue
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </button>
+        <a href="today.html" class="exit-btn" style="justify-content:center;">
+          Back to Today
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       "Why This?" Sheet Modal
+       ======================================================================== -->
+  <div class="sheet-backdrop" id="why-backdrop" aria-hidden="true"></div>
+  <aside class="sheet-panel" id="why-sheet" role="dialog" aria-modal="true" aria-labelledby="why-title">
+    <div class="sheet-header">
+      <h2 id="why-title" class="title-display" style="font-size: 18px;">Why this drill?</h2>
+      <button type="button" class="btn-icon" id="why-close-btn" aria-label="Close why this panel">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg>
+      </button>
+    </div>
+    
+    <div class="sheet-body">
+      <div style="display:flex; flex-direction:column; gap:14px;">
+        <div>
+          <h3 style="font-size:17px; font-weight:600; color:var(--color-ink);">Tactical calculation</h3>
+          <span style="font-size:13px; color:var(--color-graphite); font-family:var(--font-mono);">15 min &bull; 8 puzzles</span>
+        </div>
+
+        <div>
+          <span class="evidence-chip evidence-chip-strong">
+            Strong evidence <span class="chip-glyph" aria-hidden="true">!!</span>
+          </span>
+        </div>
+
+        <div style="background-color:var(--color-paper); padding:14px; border-radius:var(--radius-md); border:1px solid var(--color-card-border-subtle);">
+          <p style="font-size:14px; color:var(--color-ink); line-height:1.5;">
+            Slow, calculate-to-the-end puzzles are intended to practise depth. The goal is accurate visualization before moving.
+          </p>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:4px;">
+          <span style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; color:var(--color-graphite);">Evidence tier</span>
+          <p style="font-size:13px; color:var(--color-ink-secondary);">Tier 1: Direct experimental research in calculation depth and retrieval practice.</p>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:4px;">
+          <span style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; color:var(--color-graphite);">Citation</span>
+          <p style="font-size:12px; color:var(--color-graphite); font-family:var(--font-mono);">Bjork & Bjork 2011 &bull; Desirable difficulties in memory retrieval</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="sheet-footer">
+      <button type="button" class="btn-primary" id="why-sheet-ok-btn">Got it</button>
+    </div>
+  </aside>
+
+  <!-- ========================================================================
+       Floating Prototype Toolbar (testing controls)
+       ======================================================================== -->
+  <aside class="proto-toolbar" aria-label="Prototype testing controls">
+    <span class="proto-label">State</span>
+
+    <button type="button" class="proto-btn active" id="proto-state-prompt">Prompt</button>
+    <button type="button" class="proto-btn" id="proto-state-correct">Correct (!)</button>
+    <button type="button" class="proto-btn" id="proto-state-wrong">Wrong (?)</button>
+    <button type="button" class="proto-btn" id="proto-state-inbetween">In-between</button>
+
+    <span style="width:1px; height:16px; background-color:var(--color-card-border);"></span>
+    <button type="button" class="proto-btn" id="proto-theme-btn">Dark</button>
+
+    <a href="today.html" class="proto-btn">&larr; Today</a>
+    <a href="wordmark.html" class="proto-btn">Wordmark</a>
+  </aside>
+
+  <!-- ========================================================================
+       Interactive Puzzle Scripts (Move handler, Audio synth, States)
+       ======================================================================== -->
+  <script>
+    const htmlEl = document.documentElement;
+    let soundEnabled = true;
+    let showTimeEnabled = false;
+
+    // Theme toggling
+    const protoThemeBtn = document.getElementById('proto-theme-btn');
+    function setTheme(theme) {
+      htmlEl.setAttribute('data-theme', theme);
+      protoThemeBtn.textContent = theme === 'dark' ? 'Light' : 'Dark';
+      localStorage.setItem('mainline_theme', theme);
+    }
+    function toggleTheme() {
+      const current = htmlEl.getAttribute('data-theme') || 'light';
+      setTheme(current === 'dark' ? 'light' : 'dark');
+    }
+    protoThemeBtn.addEventListener('click', toggleTheme);
+    const savedTheme = localStorage.getItem('mainline_theme') || 'light';
+    setTheme(savedTheme);
+
+    // Audio synthesizer for move & capture sounds
+    function playMoveSound() {
+      if (!soundEnabled) return;
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(260, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(120, ctx.currentTime + 0.05);
+        gain.gain.setValueAtTime(0.2, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.05);
+      } catch (e) {}
+    }
+
+    function playCaptureSound() {
+      if (!soundEnabled) return;
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(180, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.08);
+        gain.gain.setValueAtTime(0.3, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.08);
+      } catch (e) {}
+    }
+
+    // Elements
+    const soundBtn = document.getElementById('sound-btn');
+    const soundIconOn = document.getElementById('sound-icon-on');
+    const soundIconOff = document.getElementById('sound-icon-off');
+    const focusMenuBtn = document.getElementById('focus-menu-btn');
+    const focusMenuPopover = document.getElementById('focus-menu-popover');
+    const menuSoundCheck = document.getElementById('menu-sound-check');
+    const menuTimeCheck = document.getElementById('menu-time-check');
+    const elapsedTimer = document.getElementById('elapsed-timer');
+
+    const promptBox = document.getElementById('prompt-box');
+    const feedbackCorrect = document.getElementById('feedback-correct');
+    const feedbackMistake = document.getElementById('feedback-mistake');
+    const nextPuzzleBtn = document.getElementById('next-puzzle-btn');
+    const tryAgainBtn = document.getElementById('try-again-btn');
+    const inbetweenScreen = document.getElementById('inbetween-screen');
+
+    // SVG elements
+    const overlaySelected = document.getElementById('overlay-selected');
+    const overlayFeedback = document.getElementById('overlay-feedback');
+    const badgeLayer = document.getElementById('badge-layer');
+    const badgeCircle = document.getElementById('badge-circle');
+    const badgeText = document.getElementById('badge-text');
+    const pieceQa5 = document.getElementById('piece-at-a5');
+    const pieceNa4 = document.getElementById('piece-at-a4');
+    const pieceRc8 = document.getElementById('piece-at-c8');
+    const pieceRc1 = document.getElementById('piece-at-c1');
+
+    // Focus menu logic
+    focusMenuBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      focusMenuPopover.classList.toggle('open');
+    });
+
+    document.addEventListener('click', () => {
+      focusMenuPopover.classList.remove('open');
+    });
+
+    focusMenuPopover.addEventListener('click', (e) => {
+      e.stopPropagation();
+    });
+
+    menuSoundCheck.addEventListener('change', () => {
+      soundEnabled = menuSoundCheck.checked;
+      soundIconOn.style.display = soundEnabled ? 'block' : 'none';
+      soundIconOff.style.display = soundEnabled ? 'none' : 'block';
+    });
+
+    soundBtn.addEventListener('click', () => {
+      soundEnabled = !soundEnabled;
+      menuSoundCheck.checked = soundEnabled;
+      soundIconOn.style.display = soundEnabled ? 'block' : 'none';
+      soundIconOff.style.display = soundEnabled ? 'none' : 'block';
+    });
+
+    menuTimeCheck.addEventListener('change', () => {
+      showTimeEnabled = menuTimeCheck.checked;
+      elapsedTimer.classList.toggle('visible', showTimeEnabled);
+    });
+
+    // States: 'prompt' | 'correct' | 'wrong' | 'inbetween'
+    let currentState = 'prompt';
+    let selectedSquare = null;
+
+    function applyState(state) {
+      currentState = state;
+
+      // Update toolbar buttons
+      document.getElementById('proto-state-prompt').classList.toggle('active', state === 'prompt');
+      document.getElementById('proto-state-correct').classList.toggle('active', state === 'correct');
+      document.getElementById('proto-state-wrong').classList.toggle('active', state === 'wrong');
+      document.getElementById('proto-state-inbetween').classList.toggle('active', state === 'inbetween');
+
+      // Reset base board SVG positions
+      overlaySelected.style.display = 'none';
+      overlayFeedback.style.display = 'none';
+      badgeLayer.style.display = 'none';
+
+      // Restore piece positions
+      if (pieceQa5) {
+        pieceQa5.setAttribute('x', '700');
+        pieceQa5.setAttribute('y', '400');
+        pieceQa5.style.display = 'block';
+      }
+      if (pieceNa4) {
+        pieceNa4.style.display = 'block';
+      }
+      if (pieceRc8) {
+        pieceRc8.setAttribute('x', '500');
+        pieceRc8.setAttribute('y', '700');
+        pieceRc8.style.display = 'block';
+      }
+      if (pieceRc1) {
+        pieceRc1.style.display = 'block';
+      }
+
+      // Feedback views
+      feedbackCorrect.style.display = 'none';
+      feedbackMistake.style.display = 'none';
+      nextPuzzleBtn.style.display = 'none';
+      tryAgainBtn.style.display = 'none';
+      inbetweenScreen.classList.remove('visible');
+
+      if (state === 'prompt') {
+        promptBox.style.display = 'flex';
+      } else if (state === 'correct') {
+        promptBox.style.display = 'none';
+        feedbackCorrect.style.display = 'flex';
+        nextPuzzleBtn.style.display = 'inline-flex';
+
+        // Move Queen from a5 to a4
+        if (pieceQa5) {
+          pieceQa5.setAttribute('x', '700');
+          pieceQa5.setAttribute('y', '300');
+        }
+        if (pieceNa4) {
+          pieceNa4.style.display = 'none'; // Captured
+        }
+
+        // Destination square a4 tinted with --board-correct
+        overlayFeedback.setAttribute('x', '700');
+        overlayFeedback.setAttribute('y', '300');
+        overlayFeedback.setAttribute('fill', 'var(--board-correct)');
+        overlayFeedback.setAttribute('stroke', 'var(--board-correct-solid)');
+        overlayFeedback.setAttribute('stroke-width', '2.5');
+        overlayFeedback.style.display = 'block';
+
+        // Badge ! on piece at a4
+        badgeCircle.setAttribute('cx', '775');
+        badgeCircle.setAttribute('cy', '325');
+        badgeCircle.setAttribute('fill', 'var(--board-correct-solid)');
+        badgeText.setAttribute('x', '775');
+        badgeText.setAttribute('y', '331');
+        badgeText.textContent = '!';
+        badgeLayer.style.display = 'block';
+
+      } else if (state === 'wrong') {
+        promptBox.style.display = 'none';
+        feedbackMistake.style.display = 'flex';
+        tryAgainBtn.style.display = 'inline-flex';
+        nextPuzzleBtn.style.display = 'inline-flex';
+
+        // Wrong move: Rook c8 takes c1
+        if (pieceRc8) {
+          pieceRc8.setAttribute('x', '500');
+          pieceRc8.setAttribute('y', '0');
+        }
+        if (pieceRc1) {
+          pieceRc1.style.display = 'none';
+        }
+
+        // Destination square c1 tinted with --board-mistake
+        overlayFeedback.setAttribute('x', '500');
+        overlayFeedback.setAttribute('y', '0');
+        overlayFeedback.setAttribute('fill', 'var(--board-mistake)');
+        overlayFeedback.setAttribute('stroke', 'var(--board-mistake-solid)');
+        overlayFeedback.setAttribute('stroke-width', '2.5');
+        overlayFeedback.style.display = 'block';
+
+        // Badge ? on piece at c1
+        badgeCircle.setAttribute('cx', '575');
+        badgeCircle.setAttribute('cy', '25');
+        badgeCircle.setAttribute('fill', 'var(--board-mistake-solid)');
+        badgeText.setAttribute('x', '575');
+        badgeText.setAttribute('y', '31');
+        badgeText.textContent = '?';
+        badgeLayer.style.display = 'block';
+
+      } else if (state === 'inbetween') {
+        inbetweenScreen.classList.add('visible');
+      }
+    }
+
+    // State switcher toolbar clicks
+    document.getElementById('proto-state-prompt').addEventListener('click', () => applyState('prompt'));
+    document.getElementById('proto-state-correct').addEventListener('click', () => {
+      playCaptureSound();
+      applyState('correct');
+    });
+    document.getElementById('proto-state-wrong').addEventListener('click', () => {
+      playMoveSound();
+      applyState('wrong');
+    });
+    document.getElementById('proto-state-inbetween').addEventListener('click', () => applyState('inbetween'));
+
+    // Board square clicks (Interactive move solving)
+    document.querySelectorAll('.board-sq, .chess-piece').forEach(el => {
+      el.addEventListener('click', (e) => {
+        const sq = el.getAttribute('data-sq');
+        if (!sq) return;
+
+        if (currentState !== 'prompt') return;
+
+        if (!selectedSquare) {
+          // Select piece
+          if (sq === 'a5') {
+            selectedSquare = 'a5';
+            overlaySelected.setAttribute('x', '700');
+            overlaySelected.setAttribute('y', '400');
+            overlaySelected.style.display = 'block';
+            playMoveSound();
+          } else if (sq === 'c8') {
+            selectedSquare = 'c8';
+            overlaySelected.setAttribute('x', '500');
+            overlaySelected.setAttribute('y', '700');
+            overlaySelected.style.display = 'block';
+            playMoveSound();
+          }
+        } else {
+          // Move from selected square
+          if (selectedSquare === 'a5' && sq === 'a4') {
+            // Winning capture!
+            playCaptureSound();
+            selectedSquare = null;
+            applyState('correct');
+          } else if (selectedSquare === 'c8' && sq === 'c1') {
+            // Wrong move!
+            playCaptureSound();
+            selectedSquare = null;
+            applyState('wrong');
+          } else {
+            // Other wrong click
+            playMoveSound();
+            selectedSquare = null;
+            applyState('wrong');
+          }
+        }
+      });
+    });
+
+    // Action buttons
+    tryAgainBtn.addEventListener('click', () => {
+      applyState('prompt');
+    });
+
+    nextPuzzleBtn.addEventListener('click', () => {
+      applyState('inbetween');
+    });
+
+    document.getElementById('continue-next-block-btn').addEventListener('click', () => {
+      alert('Block complete. Advancing to Game review.');
+      window.location.href = 'today.html';
+    });
+
+    // Why This Sheet
+    const whySheet = document.getElementById('why-sheet');
+    const whyBackdrop = document.getElementById('why-backdrop');
+    const whyPuzzleBtn = document.getElementById('why-puzzle-btn');
+    const menuWhyBtn = document.getElementById('menu-why-btn');
+    const whyCloseBtn = document.getElementById('why-close-btn');
+    const whySheetOkBtn = document.getElementById('why-sheet-ok-btn');
+
+    function openWhySheet() {
+      whyBackdrop.classList.add('open');
+      whySheet.classList.add('open');
+    }
+    function closeWhySheet() {
+      whyBackdrop.classList.remove('open');
+      whySheet.classList.remove('open');
+    }
+
+    whyPuzzleBtn.addEventListener('click', openWhySheet);
+    menuWhyBtn.addEventListener('click', () => {
+      focusMenuPopover.classList.remove('open');
+      openWhySheet();
+    });
+    whyCloseBtn.addEventListener('click', closeWhySheet);
+    whySheetOkBtn.addEventListener('click', closeWhySheet);
+    whyBackdrop.addEventListener('click', closeWhySheet);
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeWhySheet();
+        focusMenuPopover.classList.remove('open');
+      }
+    });
+  </script>
+</body>
+</html>
