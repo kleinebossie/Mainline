@@ -13,6 +13,7 @@ import { ErrorNotice } from "@/components/ui/error-notice";
 import {
   BOARD_SIZE_CLASS,
   InteractiveBoard,
+  type BoardFeedback,
 } from "@/components/interactive-board";
 
 import { stepSolve, type SolveState } from "@/engine/interactive/session";
@@ -122,6 +123,7 @@ export function Calibration() {
   const [solveStatus, setSolveStatus] = useState<
     "pending" | "correct" | "wrong" | "solved"
   >("pending");
+  const [boardFeedback, setBoardFeedback] = useState<BoardFeedback | null>(null);
 
   const activePuzzle = state.data?.activePuzzle;
   const activeTrack = state.data?.activeTrack;
@@ -141,13 +143,15 @@ export function Calibration() {
       setSolveState(setup);
       setOrientation(playerSide);
       setSolveStatus("pending");
+      setBoardFeedback(null);
     } else {
       setSolveState(null);
       setSolveStatus("pending");
+      setBoardFeedback(null);
     }
   }, [activePuzzle]);
 
-  const handleMove = (move: { san: string }) => {
+  const handleMove = (move: { san: string; to?: string }) => {
     if (!solveState || !activePuzzle || !activeTrack || pending) return;
 
     const result = stepSolve(solveState, {
@@ -158,6 +162,9 @@ export function Calibration() {
 
     if (result.step === "solved") {
       setSolveStatus("solved");
+      if (move.to) {
+        setBoardFeedback({ square: move.to, kind: "correct" });
+      }
       submit.mutate({
         ratingShown: activeTrack.next.ratingTarget,
         correct: true,
@@ -168,6 +175,9 @@ export function Calibration() {
       });
     } else if (result.step === "wrong") {
       setSolveStatus("wrong");
+      if (move.to) {
+        setBoardFeedback({ square: move.to, kind: "mistake" });
+      }
       submit.mutate({
         ratingShown: activeTrack.next.ratingTarget,
         correct: false,
@@ -178,7 +188,11 @@ export function Calibration() {
       });
     } else if (result.step === "correct" || result.step === "continue") {
       setSolveStatus("correct");
+      if (move.to) {
+        setBoardFeedback({ square: move.to, kind: "correct" });
+      }
       setTimeout(() => {
+        setBoardFeedback(null);
         setSolveStatus((prev) => (prev === "correct" ? "pending" : prev));
       }, 1000);
     }
@@ -380,6 +394,7 @@ export function Calibration() {
                 disabled={
                   pending || isAdvancing || solveStatus === "solved" || solveStatus === "wrong"
                 }
+                feedback={boardFeedback}
                 showEvalBar={affordances?.showEvalBar ?? false}
                 showLegalMoveDots={affordances?.showLegalMoveDots ?? false}
                 allowArrows={affordances?.allowArrows ?? true}

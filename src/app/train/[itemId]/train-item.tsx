@@ -9,19 +9,29 @@ import React, {
 } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import {
+  AlertCircle,
+  ArrowRight,
+  Check,
+  Clock,
+  Volume2,
+  VolumeX,
+} from "lucide-react";
+
 import { trpc } from "@/lib/trpc/react";
 import type { inferRouterOutputs } from "@trpc/server";
 import type { AppRouter } from "@/server/routers/_app";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusMessage } from "@/components/ui/status-message";
 import { ErrorNotice } from "@/components/ui/error-notice";
+import { FocusShell } from "@/components/focus-shell";
 import {
-  BOARD_SIZE_CLASS,
   InteractiveBoard,
+  type BoardFeedback,
 } from "@/components/interactive-board";
 import { EndgameDrillSession } from "@/app/train/[itemId]/endgame-drill";
 import { UnavailableTrainingBlock } from "@/app/train/[itemId]/unavailable-training-block";
+import { WhyButton } from "@/components/ui/why-button";
 import { stepSolve, type SolveState } from "@/engine/interactive/session";
 import {
   puzzleToSolveState,
@@ -31,7 +41,6 @@ import {
 import { systemClock } from "@/lib/clock";
 import {
   allottedTrainingMs,
-  formatTrainingCountdown,
   trainingDeadlineMs,
   trainingTimeRemainingMs,
 } from "@/lib/training-timer";
@@ -41,21 +50,14 @@ import {
   resultPersistenceState,
 } from "@/lib/result-persistence";
 import { cn } from "@/lib/utils";
-import { humanizeTheme } from "@/integrations/puzzles/themes";
-import { GradeMark } from "@/components/evidence";
-import { itemSummary } from "@/app/today/today-copy";
+import { useSoundEnabled } from "@/lib/sound";
 import {
   getGuestSession,
   updateGuestProgramItemStatus,
   recordGuestActivityEvent,
 } from "@/lib/guest-session";
-
 import { getGuestTrainItemData } from "@/lib/guest-solvables";
 
-// One board-solvable item (a Lichess puzzle or a personal blunder drill), as returned by
-// program.getTrainItem. Both render on the same board + redo flow; only the solve-state
-// construction (a puzzle has an opponent setup move, a drill does not) and the logged event
-// type differ by `kind`.
 type TrainData =
   NonNullable<inferRouterOutputs<AppRouter>["program"]["getTrainItem"]>;
 type Solvable = TrainData["solvables"][number];
@@ -68,10 +70,24 @@ export function TrainItem({ programItemId }: TrainItemProps) {
   const router = useRouter();
   const utils = trpc.useUtils();
   const [mounted, setMounted] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useSoundEnabled();
+  const [showTime, setShowTime] = useState(false);
 
   useEffect(() => {
     setMounted(true);
+    if (typeof window !== "undefined") {
+      const stored = window.localStorage.getItem("mainline_show_time");
+      setShowTime(stored === "true");
+    }
   }, []);
+
+  const toggleShowTime = () => {
+    const next = !showTime;
+    setShowTime(next);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("mainline_show_time", next ? "true" : "false");
+    }
+  };
 
   const guestItem = useMemo(() => {
     if (!mounted || typeof window === "undefined") return null;
@@ -82,7 +98,6 @@ export function TrainItem({ programItemId }: TrainItemProps) {
   }, [mounted, programItemId]);
 
   const {
-
     data: serverData,
     isLoading: serverLoading,
     error: serverError,
@@ -98,16 +113,13 @@ export function TrainItem({ programItemId }: TrainItemProps) {
   }, [guestItem]);
 
   const isGuest = Boolean(
-    !serverLoading && (serverError != null || !serverData) && guestTrainData != null
+    !serverLoading && (serverError != null || !serverData) && guestTrainData != null,
   );
 
   const data = serverData ?? (isGuest ? (guestTrainData as unknown as TrainData) : null);
   const isLoading = !mounted || (serverLoading && !guestTrainData);
   const error = isGuest ? null : serverError;
 
-  // Personalized analysis fallback (feedback round 2): the manual-log card must say
-  // WHY nothing can be analysed yet. Signed-in: the library summary; guests: the
-  // local connection + game cache state.
   const librarySummary = trpc.analysis.summary.useQuery(undefined, {
     retry: false,
   });
@@ -119,7 +131,9 @@ export function TrainItem({ programItemId }: TrainItemProps) {
     try {
       const raw = localStorage.getItem("mainline_guest_games");
       cachedGames = raw ? (JSON.parse(raw) as unknown[]).length : 0;
-    } catch {}
+    } catch {
+      cachedGames = 0;
+    }
     return {
       hasConnection:
         connections.length > 0 || Boolean(session.baseline?.username),
@@ -130,9 +144,6 @@ export function TrainItem({ programItemId }: TrainItemProps) {
   const hasAnyGames = isGuest
     ? Boolean(guestAnalysisContext?.hasGames)
     : (librarySummary.data?.total ?? 0) > 0;
-  const guestHasConnection = isGuest
-    ? Boolean(guestAnalysisContext?.hasConnection)
-    : false;
 
   const logMutation = trpc.tracker.logOutcome.useMutation({
     onSuccess: () => {
@@ -140,6 +151,7 @@ export function TrainItem({ programItemId }: TrainItemProps) {
       void utils.tracker.dueReviews.invalidate();
     },
   });
+
   const completionMutation = trpc.tracker.completeProgramItem.useMutation({
     onSuccess: () => {
       utils.program.getToday.setData(undefined, (current) => {
@@ -157,6 +169,7 @@ export function TrainItem({ programItemId }: TrainItemProps) {
   });
   const completionRequestIdRef = useRef<string | null>(null);
   const completeProgramItem = completionMutation.mutate;
+
   const emptyCloseRequestIdRef = useRef<string | null>(null);
   const emptyCloseMutation = trpc.tracker.logOutcome.useMutation({
     onSuccess: () => {
@@ -184,6 +197,7 @@ export function TrainItem({ programItemId }: TrainItemProps) {
   const [solveStatus, setSolveStatus] = useState<
     "pending" | "correct" | "wrong" | "solved"
   >("pending");
+  const [boardFeedback, setBoardFeedback] = useState<BoardFeedback | null>(null);
 
   // Timer for elapsed solve time
   const [elapsedMs, setElapsedMs] = useState<number>(0);
@@ -201,23 +215,20 @@ export function TrainItem({ programItemId }: TrainItemProps) {
   >("completed");
   const [advanceAfterSave, setAdvanceAfterSave] = useState(false);
 
-  // Hint State (Phase 1)
+  // Hint State
   const [hintActive, setHintActive] = useState<boolean>(false);
   const [highlightedSquares, setHighlightedSquares] = useState<string[]>([]);
 
-  // Delay Phase State (Phase 2). The wait length is a Seam-6 config value (L1).
+  // Delay Phase State
   const retestDelaySec = data?.redoFlow.retestDelaySec ?? 0;
   const [delayRemaining, setDelayRemaining] = useState<number>(retestDelaySec);
   const delayTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const [sessionRemainingMs, setSessionRemainingMs] = useState<number | null>(
-    null,
-  );
   const sessionDeadlineRef = useRef<number | null>(null);
   const sessionTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Auto-advance State
   const [autoAdvanceSec, setAutoAdvanceSec] = useState<number | null>(null);
-  const [autoAdvancePaused, setAutoAdvancePaused] = useState<boolean>(false);
+  const [autoAdvancePaused] = useState<boolean>(false);
   const autoAdvanceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const finishSession = useCallback(
@@ -260,6 +271,7 @@ export function TrainItem({ programItemId }: TrainItemProps) {
     setBoardPosition(setup.position);
     setOrientation(playerSide);
     setSolveStatus("pending");
+    setBoardFeedback(null);
     setElapsedMs(0);
     setFirstTryPassed(true);
     setHintActive(false);
@@ -288,7 +300,6 @@ export function TrainItem({ programItemId }: TrainItemProps) {
     sessionDeadlineRef.current = null;
     completionRequestIdRef.current = null;
     emptyCloseRequestIdRef.current = null;
-    setSessionRemainingMs(null);
   }, [programItemId]);
 
   useEffect(() => {
@@ -320,7 +331,6 @@ export function TrainItem({ programItemId }: TrainItemProps) {
         deadlineMs,
         systemClock.now(),
       );
-      setSessionRemainingMs(remainingMs);
       if (remainingMs === 0) finishSession("time_up");
       return remainingMs;
     };
@@ -355,7 +365,6 @@ export function TrainItem({ programItemId }: TrainItemProps) {
     };
   }, []);
 
-  // Log one outcome, routing to the right event type by kind (puzzle_attempt vs drill_done).
   const logOutcome = async (
     s: Solvable,
     correct: boolean,
@@ -405,6 +414,7 @@ export function TrainItem({ programItemId }: TrainItemProps) {
       );
   const resultBlocked = resultAdvanceBlocked(persistenceState);
 
+  // Auto-advance countdown on complete
   useEffect(() => {
     if (
       phase !== "complete" ||
@@ -420,7 +430,7 @@ export function TrainItem({ programItemId }: TrainItemProps) {
     }
 
     if (autoAdvanceSec === null) {
-      setAutoAdvanceSec(4);
+      setAutoAdvanceSec(5);
       return;
     }
 
@@ -459,7 +469,7 @@ export function TrainItem({ programItemId }: TrainItemProps) {
       try {
         await completionMutation.mutateAsync(completionMutation.variables);
       } catch {
-        // The mutation state retains the safe, user-facing retry notice.
+        // Retain safe error message.
       }
       return;
     }
@@ -471,11 +481,11 @@ export function TrainItem({ programItemId }: TrainItemProps) {
         handleNext({ persisted: true });
       }
     } catch {
-      // The mutation state retains the safe, user-facing retry notice.
+      // Retain safe error message.
     }
   }
 
-  const handleMove = (move: { san: string }) => {
+  const handleMove = (move: { san: string; to?: string }) => {
     if (!solveState || resultBlocked) return;
     const activeList = phase === "retest" ? retestQueue : solvables;
     const current = activeList[currentIdx];
@@ -488,27 +498,31 @@ export function TrainItem({ programItemId }: TrainItemProps) {
     });
     setSolveState(result.state);
 
+    const destSquare = move.to ?? "";
+
     if (result.step === "solved") {
       setBoardPosition(result.state.position);
       setSolveStatus("solved");
+      if (destSquare) {
+        setBoardFeedback({ square: destSquare, kind: "correct" });
+      }
       if (timerRef.current) clearInterval(timerRef.current);
 
-      // Training mode, solved on the first attempt → log success.
       if (phase === "training" && firstTryPassed && isFirstAttempt) {
         void logOutcome(current, true, result.solveMs).catch(() => undefined);
       }
     } else if (result.step === "wrong") {
       setSolveStatus("wrong");
+      if (destSquare) {
+        setBoardFeedback({ square: destSquare, kind: "mistake" });
+      }
       setBoardPosition(result.transientPosition ?? result.checkpointPosition);
 
-      // First mistake triggers fail logging and registers the item for retest.
       if (phase === "training" && isFirstAttempt && firstTryPassed) {
         setFirstTryPassed(false);
         void logOutcome(current, false, result.solveMs).catch(() => undefined);
         setRetestQueue((prev) => [...prev, current]);
 
-        // Render the configured scaffold mechanically. The Methodology owns which
-        // scaffold is allowed and the evidence-carrying copy shown with it.
         const hint = data?.redoFlow.hint;
         const nextCorrectMove = solveState.solutionLine[solveState.cursor];
         if (hint?.mode === "solution-start-square" && nextCorrectMove) {
@@ -521,13 +535,18 @@ export function TrainItem({ programItemId }: TrainItemProps) {
       if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
       feedbackTimerRef.current = setTimeout(() => {
         setBoardPosition(resetPosition);
+        setBoardFeedback(null);
         setSolveStatus((prev) => (prev === "wrong" ? "pending" : prev));
       }, 1500);
     } else if (result.step === "continue" || result.step === "correct") {
       setSolveStatus("correct");
+      if (destSquare) {
+        setBoardFeedback({ square: destSquare, kind: "correct" });
+      }
       setBoardPosition(result.state.position);
       if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
       feedbackTimerRef.current = setTimeout(() => {
+        setBoardFeedback(null);
         setSolveStatus((prev) => (prev === "correct" ? "pending" : prev));
       }, 1000);
     }
@@ -545,7 +564,6 @@ export function TrainItem({ programItemId }: TrainItemProps) {
     if (nextIdx < activeList.length) {
       setCurrentIdx(nextIdx);
     } else {
-      // Finished the current batch.
       if (phase === "training") {
         if (effectiveRetestQueue.length > 0) {
           setPhase("delay");
@@ -615,28 +633,36 @@ export function TrainItem({ programItemId }: TrainItemProps) {
 
   if (isLoading) {
     return (
-      <StatusMessage tone="loading">Loading practice session…</StatusMessage>
+      <FocusShell title="Loading" exitHref="/today">
+        <div className="flex flex-1 items-center justify-center py-16">
+          <StatusMessage tone="loading">Loading training block…</StatusMessage>
+        </div>
+      </FocusShell>
     );
   }
 
   if (error || !data) {
     return (
-      <ErrorNotice
-        error={error}
-        heading="Practice session unavailable"
-        message="Mainline could not load this training block. Try it again, or return to Today for the latest session."
-        onRetry={() => void refetch()}
-        retrying={isFetching}
-        retryLabel="Reload practice session"
-        secondaryAction={
-          <Link
-            href="/today"
-            className={buttonVariants({ variant: "ghost", size: "sm" })}
-          >
-            Back to Today
-          </Link>
-        }
-      />
+      <FocusShell title="Unavailable" exitHref="/today">
+        <div className="flex flex-1 items-center justify-center py-12">
+          <ErrorNotice
+            error={error}
+            heading="Practice session unavailable"
+            message="Mainline could not load this training block. Try it again, or return to Today."
+            onRetry={() => void refetch()}
+            retrying={isFetching}
+            retryLabel="Reload practice session"
+            secondaryAction={
+              <Link
+                href="/today"
+                className={buttonVariants({ variant: "ghost", size: "sm" })}
+              >
+                Back to Today
+              </Link>
+            }
+          />
+        </div>
+      </FocusShell>
     );
   }
 
@@ -670,102 +696,31 @@ export function TrainItem({ programItemId }: TrainItemProps) {
       router.push("/today");
     };
 
-    // Nothing to analyse yet: explain both paths in, then keep the manual log
-    // as a quiet secondary action for games reviewed elsewhere.
-    if (!hasAnyGames) {
-      return (
-        <div className="settle mx-auto flex w-full max-w-2xl flex-col gap-5 py-6">
-          <Card className="overflow-hidden p-6 sm:p-8 bg-card shadow-sheet">
-            <div className="flex flex-col gap-4">
-              <p className="eyebrow text-evergreen">Game Analysis</p>
-              <h1 className="font-serif text-2xl sm:text-3xl font-semibold leading-tight text-ink">
-                Nothing to analyse yet
-              </h1>
-              <p className="font-serif text-sm leading-relaxed text-graphite">
-                Mainline can only review games it has imported. There are two
-                ways to bring them in:
-              </p>
-              <ol className="flex list-decimal flex-col gap-2 pl-5 font-serif text-sm leading-relaxed text-graphite">
-                <li>
-                  {isGuest && !guestHasConnection ? (
-                    <>
-                      Connect your Chess.com or Lichess account, and recent
-                      games import automatically.
-                    </>
-                  ) : (
-                    <>Sync your connected chess account from the Analysis page.</>
-                  )}
-                </li>
-                <li>Import a PGN file by hand from the Analysis page.</li>
-              </ol>
-              <div className="mt-2 flex flex-wrap items-center gap-3">
-                {isGuest && !guestHasConnection ? (
-                  <Link
-                    href="/connections"
-                    className={buttonVariants({ variant: "default" })}
-                  >
-                    Connect chess account →
-                  </Link>
-                ) : null}
-                <Link
-                  href="/analysis"
-                  className={
-                    isGuest && !guestHasConnection
-                      ? buttonVariants({ variant: "outline" })
-                      : buttonVariants({ variant: "default" })
-                  }
-                >
-                  Open Analysis
-                </Link>
-              </div>
-              <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-line pt-4">
-                <p className="text-graphite font-serif text-sm">
-                  Already reviewed a game somewhere else?
-                </p>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={completionMutation.isPending}
-                  onClick={handleManualLog}
-                >
-                  {completionMutation.isPending ? "Saving…" : "Log it"}
-                </Button>
-                <Link
-                  href="/today"
-                  className={buttonVariants({ variant: "ghost", size: "sm" })}
-                >
-                  Back to Today
-                </Link>
-              </div>
-            </div>
-          </Card>
-        </div>
-      );
-    }
-
     return (
-      <div className="settle mx-auto flex w-full max-w-2xl flex-col gap-5 py-6">
-        <Card className="overflow-hidden p-6 sm:p-8 bg-card shadow-sheet">
-          <div className="flex flex-col gap-4">
-            <p className="eyebrow text-evergreen">Game Analysis</p>
-            <h1 className="font-serif text-2xl sm:text-3xl font-semibold leading-tight text-ink">
-              Reviewed a game on your own? Log it.
+      <FocusShell title={data.item.label} exitHref="/today">
+        <div className="mx-auto flex w-full max-w-xl flex-col gap-6 py-6">
+          <div className="rounded-lg border border-line bg-paper-raised p-6 flex flex-col gap-4 shadow-sm">
+            <span className="font-sans text-xs font-semibold uppercase tracking-wider text-evergreen">
+              Game analysis
+            </span>
+            <h1 className="font-serif text-2xl font-bold text-ink">
+              {hasAnyGames
+                ? "Reviewed a game on your own? Log it."
+                : "Nothing to analyse yet"}
             </h1>
-            <p className="font-serif text-sm leading-relaxed text-graphite">
-              If you analyzed your game outside this guided session, log it here
-              to complete this analysis block.
+            <p className="font-sans text-sm text-graphite leading-relaxed">
+              {hasAnyGames
+                ? "If you analyzed your game outside this guided session, log it here to complete this analysis block."
+                : "Mainline reviews games imported from your connected platform or PGN files."}
             </p>
-            <div className="mt-4 flex flex-wrap items-center gap-3">
+
+            <div className="flex flex-wrap items-center gap-3 pt-2">
               <Button
                 type="button"
-                variant="default"
                 disabled={completionMutation.isPending}
                 onClick={handleManualLog}
               >
-                {completionMutation.isPending
-                  ? "Saving…"
-                  : "Mark block as done"}
+                {completionMutation.isPending ? "Saving…" : "Mark block as done"}
               </Button>
               <Link
                 href="/today"
@@ -775,8 +730,8 @@ export function TrainItem({ programItemId }: TrainItemProps) {
               </Link>
             </div>
           </div>
-        </Card>
-      </div>
+        </div>
+      </FocusShell>
     );
   }
 
@@ -795,225 +750,191 @@ export function TrainItem({ programItemId }: TrainItemProps) {
       });
     };
     return (
-      <UnavailableTrainingBlock
-        error={emptyCloseMutation.error}
-        pending={emptyCloseMutation.isPending}
-        onClose={closeEmptyBlock}
-        onRetry={() => {
-          if (emptyCloseMutation.variables) {
-            emptyCloseMutation.mutate(emptyCloseMutation.variables);
-          }
-        }}
-      />
+      <FocusShell title={data.item.label} exitHref="/today">
+        <UnavailableTrainingBlock
+          error={emptyCloseMutation.error}
+          pending={emptyCloseMutation.isPending}
+          onClose={closeEmptyBlock}
+          onRetry={() => {
+            if (emptyCloseMutation.variables) {
+              emptyCloseMutation.mutate(emptyCloseMutation.variables);
+            }
+          }}
+        />
+      </FocusShell>
     );
   }
 
-  // M13: an endgame drill is PLAYED OUT vs the engine, not matched to a fixed line. It has
-  // its own session surface. Branch after the data load (all hooks above already ran, so hook
-  // order is stable).
   if (data.item.activityType === "endgame_drill") {
     return <EndgameDrillSession programItemId={programItemId} data={data} />;
   }
-
-  const formattedSessionTime =
-    sessionRemainingMs === null
-      ? null
-      : formatTrainingCountdown(sessionRemainingMs);
 
   const activeList = phase === "retest" ? retestQueue : solvables;
   const current = activeList[currentIdx];
   const isDrill = current?.kind === "blunder_drill";
 
-  // Render complete state
+  // In-between screen / auto-advance screen when block completes (Decision 11 & Section 6.1)
   if (phase === "complete") {
     const completionHeading =
       finishReason === "time_up"
         ? "Scheduled time is up"
-        : finishReason === "manual"
-          ? "Session finished"
+        : data.nextItem
+          ? "Block complete"
           : "Session complete";
-    const completionMessage =
-      persistenceState === "saving"
-        ? "The final result is still being saved. Keep this page open until it finishes."
-        : persistenceState === "failed"
-          ? "The session is finished, but one result still needs to be saved before you return to Today."
-          : finishReason === "time_up"
-            ? "This block stopped at its planned limit. Completed puzzle results are saved."
-            : finishReason === "manual"
-              ? "Completed puzzle results are saved. Unattempted puzzles were left untouched."
-              : data.nextItem
-                ? `You completed this training block. Ready to advance to Block ${data.nextItem.orderIndex + 1}.`
-                : "Your outcomes have been recorded and any follow-up review work is scheduled in Today.";
+
+    const accuracyPercent =
+      solvables.length > 0
+        ? Math.round(
+            ((solvables.length - retestQueue.length) / solvables.length) * 100,
+          )
+        : 100;
 
     return (
-      <div className="flex flex-col gap-6 py-6 settle">
-        {(logMutation.error || completionMutation.error) && (
-          <ErrorNotice
-            error={logMutation.error ?? completionMutation.error}
-            heading="Session not saved"
-            message="The position results are safe, but this block is not marked complete yet. Try finishing it again."
-            onRetry={() => void retryOutcome()}
-            retrying={logMutation.isPending || completionMutation.isPending}
-            retryLabel="Try finishing session"
-          />
-        )}
-        {persistenceState === "saving" && (
-          <StatusMessage tone="loading">Saving final result…</StatusMessage>
-        )}
-        <Card gutter="A">
-          <CardHeader>
-            <CardTitle className="font-serif text-2xl font-bold">
+      <FocusShell
+        title={data.item.label}
+        exitHref="/today"
+        mainClassName="flex items-center justify-center"
+      >
+        <div className="w-full max-w-lg rounded-lg border border-line bg-paper-raised p-6 sm:p-8 shadow-sm flex flex-col gap-5 animate-in fade-in duration-200">
+          {(logMutation.error || completionMutation.error) && (
+            <ErrorNotice
+              error={logMutation.error ?? completionMutation.error}
+              heading="Session not saved"
+              message="The position results are safe, but this block is not marked complete yet. Try finishing it again."
+              onRetry={() => void retryOutcome()}
+              retrying={logMutation.isPending || completionMutation.isPending}
+              retryLabel="Try finishing session"
+            />
+          )}
+
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-evergreen/10 px-3 py-1 font-sans text-xs font-semibold text-evergreen">
+              <Check className="h-3.5 w-3.5" aria-hidden="true" />
+              {data.nextItem ? "Block complete" : "Session complete"}
+            </span>
+          </div>
+
+          <div>
+            <h2 className="font-serif text-2xl font-bold text-ink">
               {completionHeading}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <p className="text-graphite font-serif text-sm leading-relaxed">
-              {completionMessage}
-            </p>
-            {solvables.length > 0 && (
-              <p className="font-mono text-xs text-evergreen border-l-2 border-evergreen/40 pl-3">
-                {solvables.length - retestQueue.length} of {solvables.length}{" "}
-                positions correct on first attempt (
-                {Math.round(
-                  ((solvables.length - retestQueue.length) / solvables.length) *
-                    100,
-                )}
-                % accuracy).
-              </p>
-            )}
-
-            {data.nextItem && (
-              <div className="rounded-md border border-evergreen/30 bg-evergreen/[0.04] p-3 sm:p-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <p className="eyebrow text-evergreen">
-                      Next in today&apos;s session
-                    </p>
-                    <p className="mt-0.5 font-serif text-base font-semibold text-ink">
-                      Block {data.nextItem.orderIndex + 1}:{" "}
-                      {data.nextItem.label}
-                    </p>
-                    {!autoAdvancePaused &&
-                      autoAdvanceSec !== null &&
-                      autoAdvanceSec > 0 &&
-                      !resultBlocked && (
-                        <p className="text-graphite font-mono text-xs mt-1">
-                          Auto-advancing in {autoAdvanceSec}s…
-                        </p>
-                      )}
-                    {autoAdvancePaused && (
-                      <p className="text-graphite font-mono text-xs mt-1">
-                        Auto-advance paused.
-                      </p>
-                    )}
-                  </div>
-                  {!autoAdvancePaused &&
-                    autoAdvanceSec !== null &&
-                    autoAdvanceSec > 0 &&
-                    !resultBlocked && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setAutoAdvancePaused(true)}
-                      >
-                        Pause auto-advance
-                      </Button>
-                    )}
-                </div>
-              </div>
-            )}
-
-            <div className="flex flex-wrap items-center gap-3 pt-2">
-              {data.nextItem ? (
+            </h2>
+            <p className="mt-1 font-sans text-sm text-graphite">
+              {solvables.length > 0 ? (
                 <>
-                  <Button
-                    onClick={() => {
-                      if (autoAdvanceTimerRef.current) {
-                        clearInterval(autoAdvanceTimerRef.current);
-                      }
-                      router.push(data.nextItem?.url ?? "/today");
-                    }}
-                    disabled={resultBlocked}
-                  >
-                    {resultAdvanceLabel(
-                      persistenceState,
-                      `Continue to Block ${data.nextItem.orderIndex + 1}`,
-                    )}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      if (autoAdvanceTimerRef.current) {
-                        clearInterval(autoAdvanceTimerRef.current);
-                      }
-                      router.push("/today");
-                    }}
-                    disabled={resultBlocked}
-                  >
-                    Back to Today
-                  </Button>
+                  {solvables.length - retestQueue.length} of {solvables.length}{" "}
+                  positions correct on first attempt ({accuracyPercent}% accuracy).
                 </>
               ) : (
-                <Button
-                  onClick={() => router.push("/today")}
-                  disabled={resultBlocked}
-                >
-                  {resultAdvanceLabel(persistenceState, "Back to Today")}
-                </Button>
+                "Completed training block."
               )}
+            </p>
+          </div>
+
+          {data.nextItem ? (
+            <div className="rounded-md border border-line bg-paper p-4 flex flex-col gap-1.5">
+              <span className="font-sans text-[11px] font-semibold uppercase tracking-wider text-graphite">
+                Up next
+              </span>
+              <h3 className="font-sans text-base font-semibold text-ink">
+                {data.nextItem.label}
+                {data.nextItem.estMinutes ? ` (${data.nextItem.estMinutes} min)` : ""}
+              </h3>
+              <p className="font-sans text-xs text-graphite">
+                Block {data.nextItem.orderIndex + 1} of today&apos;s session.
+              </p>
+              {!autoAdvancePaused &&
+                autoAdvanceSec !== null &&
+                autoAdvanceSec > 0 &&
+                !resultBlocked && (
+                  <p className="font-mono text-xs text-graphite mt-1">
+                    Auto-advancing in {autoAdvanceSec}s…
+                  </p>
+                )}
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          ) : (
+            <div className="rounded-md border border-line bg-paper p-4">
+              <p className="font-sans text-sm text-graphite">
+                All blocks in today&apos;s session are complete.
+              </p>
+            </div>
+          )}
+
+          <div className="flex flex-col gap-3 pt-2">
+            {data.nextItem ? (
+              <>
+                <Button
+                  onClick={() => {
+                    if (autoAdvanceTimerRef.current) {
+                      clearInterval(autoAdvanceTimerRef.current);
+                    }
+                    router.push(data.nextItem?.url ?? "/today");
+                  }}
+                  disabled={resultBlocked}
+                  className="min-h-[44px] w-full"
+                >
+                  {resultAdvanceLabel(persistenceState, "Continue")}
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    if (autoAdvanceTimerRef.current) {
+                      clearInterval(autoAdvanceTimerRef.current);
+                    }
+                    router.push("/today");
+                  }}
+                  disabled={resultBlocked}
+                  className="text-graphite hover:text-ink w-full"
+                >
+                  Back to Today
+                </Button>
+              </>
+            ) : (
+              <Button
+                onClick={() => router.push("/today")}
+                disabled={resultBlocked}
+                className="min-h-[44px] w-full"
+              >
+                {resultAdvanceLabel(persistenceState, "Back to Today")}
+              </Button>
+            )}
+          </div>
+        </div>
+      </FocusShell>
     );
   }
 
-  // Render delay screen (Phase 2). Wait length and rationale come from config (Seam 6).
+  // Spacing interval delay phase
   if (phase === "delay") {
     const mins = Math.floor(delayRemaining / 60);
     const secs = Math.floor(delayRemaining % 60);
     const formattedTime = `${mins}:${secs.toString().padStart(2, "0")}`;
-    const delayMinutes = Math.max(1, Math.round(retestDelaySec / 60));
 
     return (
-      <div className="flex flex-col gap-6 py-6 settle max-w-xl mx-auto">
-        <Card gutter="C">
-          <CardHeader>
-            <CardTitle className="font-serif text-2xl font-bold text-center">
-              Desirable difficulty: spacing interval
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-5 text-center">
-            {formattedSessionTime && (
-              <p
-                role="timer"
-                aria-label={`${formattedSessionTime} remaining in this training block`}
-                className="text-graphite font-mono text-sm"
-              >
-                Scheduled block left: {formattedSessionTime}
+      <FocusShell title={data.item.label} exitHref="/today">
+        <div className="mx-auto flex w-full max-w-lg flex-col gap-6 py-6 text-center">
+          <div className="rounded-lg border border-line bg-paper-raised p-6 sm:p-8 flex flex-col gap-5 shadow-sm">
+            <span className="font-sans text-xs font-semibold uppercase tracking-wider text-graphite">
+              Spacing interval
+            </span>
+            <h2 className="font-serif text-2xl font-bold text-ink">
+              Desirable difficulty: wait before retest
+            </h2>
+            <div className="rounded-md border border-line bg-paper p-6 my-1">
+              <p className="font-sans text-xs text-graphite mb-1">
+                Retest countdown
               </p>
-            )}
-            <div className="bg-paper/40 border rounded-md p-6 my-2">
-              <p className="eyebrow !text-xs mb-2">Retest countdown</p>
-              <p className="text-5xl font-mono font-bold text-ink tracking-tight tabular-nums">
+              <p className="font-mono text-5xl font-bold text-ink tracking-tight tabular-nums">
                 {formattedTime}
               </p>
             </div>
 
-            <blockquote className="border-l-4 border-evergreen/40 pl-4 py-1 text-left text-sm text-graphite italic font-serif leading-relaxed">
-              &ldquo;{data.redoFlow.rationale.value}&rdquo;
-              <div className="mt-2 flex items-center justify-end not-italic">
-                <GradeMark
-                  grade={data.redoFlow.rationale.grade}
-                  tier={data.redoFlow.rationale.tier}
-                />
-              </div>
-            </blockquote>
+            <p className="font-sans text-xs text-graphite italic leading-relaxed text-left border-l-2 border-line pl-3">
+              {data.redoFlow.rationale.value}
+            </p>
 
-            <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4 border-t border-line">
+            <div className="flex flex-col sm:flex-row gap-3 justify-center pt-3 border-t border-line">
               <Button variant="outline" size="sm" onClick={skipDelay}>
-                I&apos;ve waited {delayMinutes} min. Retest now
+                Retest now
               </Button>
               <Button
                 variant="ghost"
@@ -1023,83 +944,136 @@ export function TrainItem({ programItemId }: TrainItemProps) {
                 Finish session
               </Button>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </div>
+      </FocusShell>
     );
   }
 
   if (!current || !solveState || !boardPosition) {
     return (
-      <StatusMessage tone="loading">
-        Preparing the next practice position…
-      </StatusMessage>
+      <FocusShell title={data.item.label} exitHref="/today">
+        <div className="flex flex-1 items-center justify-center py-16">
+          <StatusMessage tone="loading">
+            Preparing next practice position…
+          </StatusMessage>
+        </div>
+      </FocusShell>
     );
   }
 
-  const phaseLabel =
-    phase === "retest"
-      ? "Phase 3: Retest mistakes"
-      : isDrill
-        ? "Blunder drill"
-        : "In-app practice";
+  const promptTitle =
+    orientation === "white"
+      ? "White to move. Find the best move."
+      : "Black to move. Find the best move.";
+
+  const progressText = `${currentIdx + 1} of ${activeList.length}`;
+
+  const headerProgressSlot = (
+    <div className="flex items-center gap-2">
+      <div
+        className="hidden xs:flex items-center gap-1"
+        aria-hidden="true"
+      >
+        {activeList.slice(0, 10).map((_, idx) => (
+          <span
+            key={idx}
+            className={cn(
+              "h-1.5 rounded-full transition-all",
+              idx < currentIdx
+                ? "w-3 bg-evergreen"
+                : idx === currentIdx
+                  ? "w-4 bg-ink"
+                  : "w-3 bg-line",
+            )}
+          />
+        ))}
+      </div>
+      <span className="font-sans text-xs font-semibold text-graphite tabular-nums">
+        {progressText}
+      </span>
+      {showTime && (
+        <span
+          className="font-mono text-xs text-graphite bg-paper-raised border border-line px-1.5 py-0.5 rounded-xs tabular-nums"
+          title="Elapsed puzzle time"
+        >
+          {(elapsedMs / 1000).toFixed(1)}s
+        </span>
+      )}
+    </div>
+  );
+
+  const headerControlsSlot = (
+    <div className="flex items-center gap-1">
+      <button
+        type="button"
+        onClick={() => setSoundEnabled(!soundEnabled)}
+        aria-label={soundEnabled ? "Mute sound" : "Enable sound"}
+        title={soundEnabled ? "Mute move sounds" : "Enable move sounds"}
+        className="inline-flex h-8 w-8 items-center justify-center rounded-xs text-graphite hover:text-ink hover:bg-ink/[0.04] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        {soundEnabled ? (
+          <Volume2 className="h-4 w-4" aria-hidden="true" />
+        ) : (
+          <VolumeX className="h-4 w-4" aria-hidden="true" />
+        )}
+      </button>
+
+      <button
+        type="button"
+        onClick={toggleShowTime}
+        aria-label={showTime ? "Hide timer" : "Show timer"}
+        title={showTime ? "Hide timer" : "Show timer"}
+        className={cn(
+          "inline-flex h-8 w-8 items-center justify-center rounded-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          showTime
+            ? "text-ink bg-ink/[0.06]"
+            : "text-graphite hover:text-ink hover:bg-ink/[0.04]",
+        )}
+      >
+        <Clock className="h-4 w-4" aria-hidden="true" />
+      </button>
+
+      <WhyButton
+        rationaleText={data.item.rationaleText}
+        evidenceGrade={data.item.evidenceGrade}
+        evidenceTier={data.item.evidenceTier}
+        citationKey={data.item.citationKey}
+        citationSource={data.item.citationSource}
+        title={data.item.label}
+      />
+    </div>
+  );
 
   return (
-    <div className="flex flex-col gap-6 py-6 settle">
+    <FocusShell
+      title={data.item.label}
+      progressSlot={headerProgressSlot}
+      controlsSlot={headerControlsSlot}
+      exitHref="/today"
+      mainClassName="flex flex-col justify-center py-2"
+    >
       {logMutation.error && (
-        <ErrorNotice
-          error={logMutation.error}
-          heading="Result not saved"
-          message="The practice board can continue, but this result did not reach your training history. Try saving it again."
-          onRetry={() => {
-            void retryOutcome();
-          }}
-          retrying={logMutation.isPending}
-          retryLabel="Try saving result"
-        />
-      )}
-      <div className="flex flex-col gap-3 border-b border-line pb-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex flex-col gap-1.5 min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="eyebrow !text-[0.65rem] uppercase tracking-wider">
-              {phaseLabel} · {data.item.label}
-            </p>
-            <GradeMark
-              grade={data.item.evidenceGrade}
-              tier={data.item.evidenceTier}
-            />
-          </div>
-          <h1 className="text-ink font-serif text-2xl font-bold tracking-tight sm:text-3xl">
-            {phase === "retest"
-              ? "Retest this position"
-              : isDrill
-                ? "Find the missed move"
-                : "Current puzzle"}
-          </h1>
-          <p className="text-graphite font-serif text-sm leading-relaxed max-w-2xl">
-            {itemSummary(data.item)}
-          </p>
+        <div className="w-full max-w-wide mx-auto mb-2">
+          <ErrorNotice
+            error={logMutation.error}
+            heading="Result not saved"
+            message="The practice board can continue, but this result did not reach your training history. Try saving it again."
+            onRetry={() => {
+              void retryOutcome();
+            }}
+            retrying={logMutation.isPending}
+            retryLabel="Try saving result"
+          />
         </div>
-        <span className="text-graphite font-mono text-sm sm:text-right shrink-0">
-          {current.rating != null
-            ? `Rating target: ${current.rating}`
-            : "From your own game"}
-        </span>
-      </div>
+      )}
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] items-start">
-        {/* Chessboard View */}
-        <div className="flex flex-col items-center gap-3">
-          <div
-            className={`${BOARD_SIZE_CLASS} flex items-center justify-between px-1`}
-          >
-            <span className="eyebrow !text-[0.6rem]">
-              {orientation === "white" ? "White" : "Black"} to move
-            </span>
-            <span className="text-graphite font-mono text-xs">
-              You play {orientation}
-            </span>
-          </div>
+      <div className="w-full max-w-wide mx-auto flex flex-col items-center justify-center md:flex-row md:items-center md:justify-center md:gap-10">
+        {/* Board column */}
+        <div
+          data-testid="focus-board-column"
+          className="w-full max-w-[min(100%,350px)] md:max-w-[min(540px,calc(100vh-140px))] aspect-square shrink-0 flex items-center justify-center"
+        >
           <InteractiveBoard
             fen={boardPosition}
             onMove={handleMove}
@@ -1110,136 +1084,154 @@ export function TrainItem({ programItemId }: TrainItemProps) {
               solveStatus === "wrong"
             }
             highlightedSquares={highlightedSquares}
+            feedback={boardFeedback}
             showEvalBar={data.affordances.showEvalBar}
             showLegalMoveDots={data.affordances.showLegalMoveDots}
             allowArrows={data.affordances.allowArrows}
             allowHover={data.affordances.allowHover}
-            className={BOARD_SIZE_CLASS}
+            className="w-full h-full"
           />
-          <div
-            className={`${BOARD_SIZE_CLASS} flex flex-wrap items-center justify-between gap-2 px-1`}
-          >
-            {formattedSessionTime && (
-              <span
-                role="timer"
-                aria-label={`${formattedSessionTime} remaining in this training block`}
-                className="text-ink font-mono text-xs font-semibold tabular-nums"
-              >
-                Scheduled time left: {formattedSessionTime}
-              </span>
-            )}
-            <span className="text-graphite ml-auto font-mono text-xs tabular-nums">
-              Puzzle elapsed: {(elapsedMs / 1000).toFixed(1)}s
-            </span>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-auto px-2 py-1"
-              onClick={() => finishSession("manual")}
-              disabled={resultBlocked}
-            >
-              Finish session
-            </Button>
-          </div>
         </div>
 
-        {/* Info Sidebar */}
-        <div className="flex flex-col gap-4">
-          <Card className="h-full">
-            <CardHeader className="pb-3">
-              <CardTitle className="font-serif text-lg">
-                {isDrill ? "Find the move you missed" : "Practice status"}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-4">
-              {isDrill && (
-                <p className="text-graphite font-serif text-sm leading-relaxed">
-                  You blundered in this position in one of your own games. Find
-                  the move the engine prefers.
-                </p>
-              )}
-              <div className="flex flex-col gap-2 rounded-md border border-line bg-paper/50 p-4">
-                <span
-                  className={cn(
-                    "font-serif text-lg font-semibold",
-                    solveStatus === "solved" && "text-evergreen-bright",
-                    solveStatus === "wrong" && "text-destructive",
-                    solveStatus === "correct" && "text-evergreen",
-                    solveStatus === "pending" && "text-graphite",
-                  )}
+        {/* Info & action panel column */}
+        <div
+          data-testid="focus-panel-column"
+          className="w-full max-w-[350px] md:w-[360px] flex flex-col gap-3 md:gap-4 mt-2 md:mt-0 justify-center"
+        >
+          {/* Plain-word prompt */}
+          <div className="flex flex-col gap-0.5">
+            <span className="font-sans text-xs font-medium text-graphite uppercase tracking-wide">
+              {phase === "retest"
+                ? "Retest position"
+                : isDrill
+                  ? "Blunder drill"
+                  : data.item.label}
+            </span>
+            <h1 className="font-serif text-base sm:text-lg font-semibold text-ink leading-snug">
+              {promptTitle}
+            </h1>
+          </div>
+
+          {/* Move feedback banner */}
+          {solveStatus === "solved" && (
+            <div className="flex items-center gap-2.5 rounded-md border border-evergreen/30 bg-evergreen/10 px-3 py-2 text-sm text-evergreen-bright animate-in fade-in duration-120">
+              <Check className="h-4 w-4 shrink-0 text-evergreen" aria-hidden="true" />
+              <span className="font-medium">Solved</span>
+              <span className="text-xs text-evergreen-bright/90">· Best move found</span>
+            </div>
+          )}
+
+          {solveStatus === "correct" && (
+            <div className="flex items-center gap-2.5 rounded-md border border-evergreen/30 bg-evergreen/10 px-3 py-2 text-sm text-evergreen-bright animate-in fade-in duration-120">
+              <Check className="h-4 w-4 shrink-0 text-evergreen" aria-hidden="true" />
+              <span className="font-medium">Correct move. Keep going.</span>
+            </div>
+          )}
+
+          {solveStatus === "wrong" && (
+            <div className="flex items-center gap-2.5 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive animate-in fade-in duration-120">
+              <AlertCircle
+                className="h-4 w-4 shrink-0 text-destructive"
+                aria-hidden="true"
+              />
+              <span className="font-medium text-xs leading-normal">
+                {hintActive
+                  ? data?.redoFlow.hint.copy
+                  : "Incorrect move. The position will reset shortly."}
+              </span>
+            </div>
+          )}
+
+          {/* Hint details when active */}
+          {hintActive && solveStatus !== "wrong" && (
+            <div className="flex flex-col gap-1 rounded-md border border-amber/30 bg-amber/10 p-2.5 text-xs text-ink">
+              <span className="font-medium text-amber">Hint</span>
+              <p className="text-graphite">{data?.redoFlow.hint.copy}</p>
+            </div>
+          )}
+
+          {/* Primary Action Buttons */}
+          <div className="flex items-center gap-2.5 pt-0.5">
+            {solveStatus === "solved" ? (
+              <Button
+                onClick={() => handleNext()}
+                className="flex-1 min-h-[44px]"
+                disabled={resultBlocked}
+              >
+                {resultAdvanceLabel(
+                  persistenceState,
+                  currentIdx + 1 < activeList.length ? "Next" : "Continue",
+                )}
+                <ArrowRight className="h-4 w-4 ml-1.5" aria-hidden="true" />
+              </Button>
+            ) : (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => void handleSkip()}
+                  disabled={resultBlocked}
+                  className="min-h-[44px] flex-1"
                 >
-                  {solveStatus === "solved" && "Solved"}
-                  {solveStatus === "wrong" && "Incorrect move"}
-                  {solveStatus === "correct" && "Correct move"}
-                  {solveStatus === "pending" &&
-                    (isDrill ? "Find the missed move" : "Find the move")}
-                </span>
-                {solveStatus === "wrong" && (
-                  <p className="text-destructive font-serif text-xs leading-relaxed">
-                    That move was not optimal. The position will reset shortly
-                    so you can retry.
-                  </p>
-                )}
-              </div>
+                  Skip puzzle
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => finishSession("manual")}
+                  disabled={resultBlocked}
+                  className="text-graphite hover:text-ink min-h-[44px]"
+                >
+                  Finish
+                </Button>
+              </>
+            )}
+          </div>
 
-              {/* Scaffolded Hint Display (Phase 1) */}
-              {hintActive && (
-                <div className="flex flex-col gap-2 rounded-md border border-evergreen/20 bg-evergreen/5 p-4 transition-all settle">
-                  <span className="text-evergreen font-mono text-xs font-semibold uppercase tracking-wider">
-                    Hint
-                  </span>
-                  <p className="text-sm font-serif text-ink leading-relaxed">
-                    {data?.redoFlow.hint.copy}
-                    {data?.redoFlow.hint.includeMotifNames &&
-                      current.themes.length > 0 && (
-                        <>
-                          {" "}
-                          Look for:{" "}
-                          <span className="font-medium text-evergreen">
-                            {current.themes
-                              .map(humanizeTheme)
-                              .slice(0, 3)
-                              .join(", ")}
-                          </span>
-                          .
-                        </>
-                      )}
-                  </p>
-                  <p className="text-graphite font-mono text-[0.7rem]">
-                    Grade {data?.redoFlow.hint.evidenceGrade} · Tier{" "}
-                    {data?.redoFlow.hint.evidenceTier} ·{" "}
-                    {data?.redoFlow.hint.citationSource}
-                  </p>
-                </div>
-              )}
-
-              {/* Action Buttons */}
-              <div className="flex flex-col gap-2 border-t border-line/80 pt-4">
-                {solveStatus === "solved" ? (
-                  <Button
-                    onClick={() => handleNext()}
-                    className="w-full"
-                    disabled={resultBlocked}
-                  >
-                    {resultAdvanceLabel(
-                      persistenceState,
-                      currentIdx + 1 < activeList.length ? "Next" : "Continue",
-                    )}
-                  </Button>
-                ) : (
-                  <Button
-                    variant="outline"
-                    onClick={() => void handleSkip()}
-                    disabled={resultBlocked}
-                  >
-                    Skip puzzle
-                  </Button>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+          {/* Keyboard input for accessibility */}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              const form = e.currentTarget;
+              const input = form.elements.namedItem(
+                "keyboardMove",
+              ) as HTMLInputElement | null;
+              if (input && input.value.trim()) {
+                handleMove({ san: input.value.trim() });
+                input.value = "";
+              }
+            }}
+            className="flex items-center gap-2 pt-1 border-t border-line/60"
+          >
+            <label htmlFor="keyboard-move-input" className="sr-only">
+              Enter move in standard notation
+            </label>
+            <input
+              id="keyboard-move-input"
+              name="keyboardMove"
+              type="text"
+              placeholder="Algebraic move (e.g. Nf3)"
+              className="h-8 flex-1 rounded-xs border border-line bg-paper px-2 font-mono text-xs text-ink placeholder:text-graphite/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              disabled={
+                resultBlocked ||
+                solveStatus === "solved" ||
+                solveStatus === "wrong"
+              }
+            />
+            <Button
+              type="submit"
+              variant="secondary"
+              size="sm"
+              className="h-8 text-xs shrink-0"
+              disabled={
+                resultBlocked ||
+                solveStatus === "solved" ||
+                solveStatus === "wrong"
+              }
+            >
+              Play
+            </Button>
+          </form>
         </div>
       </div>
-    </div>
+    </FocusShell>
   );
 }

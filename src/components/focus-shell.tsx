@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { X } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -27,6 +27,7 @@ export interface FocusShellProps {
   confirmTitle?: string;
   confirmDescription?: string;
   className?: string;
+  mainClassName?: string;
 }
 
 export function FocusShell({
@@ -40,6 +41,7 @@ export function FocusShell({
   confirmTitle = "Leave training session?",
   confirmDescription = "Your current block progress will be saved, but the active position will reset.",
   className,
+  mainClassName,
 }: FocusShellProps) {
   const [confirmOpen, setConfirmOpen] = React.useState(false);
 
@@ -60,17 +62,18 @@ export function FocusShell({
       )}
     >
       {/* Compact Focus Header: no tabs, no app nav */}
-      <header className="h-[54px] border-b border-line bg-paper/85 backdrop-blur-md px-4 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-3">
+      <header className="h-[48px] sm:h-[52px] border-b border-line bg-paper/85 backdrop-blur-md px-3 sm:px-4 flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           {confirmExit ? (
             <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
               <DialogTrigger asChild>
                 <button
                   type="button"
                   aria-label="Exit training"
-                  className="flex h-9 w-9 items-center justify-center rounded-xs text-graphite hover:text-ink hover:bg-ink/[0.04] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="inline-flex items-center gap-1.5 rounded-xs text-graphite hover:text-ink hover:bg-ink/[0.04] px-2 py-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
-                  <X className="h-4 w-4" aria-hidden="true" />
+                  <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+                  <span className="text-xs font-medium">Today</span>
                 </button>
               </DialogTrigger>
               <DialogContent>
@@ -93,27 +96,33 @@ export function FocusShell({
               href={exitHref}
               onClick={onExit}
               aria-label="Exit training"
-              className="flex h-9 w-9 items-center justify-center rounded-xs text-graphite hover:text-ink hover:bg-ink/[0.04] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="inline-flex items-center gap-1.5 rounded-xs text-graphite hover:text-ink hover:bg-ink/[0.04] px-2 py-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              <X className="h-4 w-4" aria-hidden="true" />
+              <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+              <span className="text-xs font-medium">Today</span>
             </Link>
           )}
 
           {title && (
-            <div className="font-sans text-sm font-semibold text-ink truncate">
+            <div className="font-sans text-xs sm:text-sm font-semibold text-ink truncate">
               {title}
             </div>
           )}
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           {progressSlot}
           {controlsSlot}
         </div>
       </header>
 
       {/* Focus Area */}
-      <main className="flex-1 flex flex-col max-w-wide w-full mx-auto p-4 sm:p-6">
+      <main
+        className={cn(
+          "flex-1 flex flex-col max-w-wide w-full mx-auto px-3 py-2 sm:p-6",
+          mainClassName,
+        )}
+      >
         {children}
       </main>
     </div>
