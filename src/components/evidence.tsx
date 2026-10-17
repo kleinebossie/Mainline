@@ -1,8 +1,8 @@
 "use client";
 
-// The evidence-annotation system: Mainline's signature and the visible form of the
-// honesty brand (VISION §2). Evidence grades borrow chess's annotation grammar
-// (!! ! ?! ??) and confidence reads like an engine's depth meter. Color encodes evidence
+// The evidence-annotation system: Mainline signature and the visible form of the
+// honesty brand (VISION section 2). Evidence grades borrow chess annotation grammar
+// (!! ! ?! ??) and confidence reads like an engine depth meter. Color encodes evidence
 // and nothing else, so trust is legible at a glance and an unverified claim can never pose as
 // established fact (L3).
 
@@ -18,14 +18,14 @@ export const GRADE_DETAILS: Record<
 > = {
   A: {
     glyph: "!!",
-    label: "Grade A",
+    label: "Strong evidence",
     note: "Strong, replicated evidence",
     detail: "Multiple high-quality studies show consistent results.",
     cls: "text-grade-a border-grade-a/40 bg-grade-a/10",
   },
   B: {
     glyph: "!",
-    label: "Grade B",
+    label: "Some evidence",
     note: "Suggestive but limited",
     detail:
       "Good experimental evidence exists, but replication in chess is limited.",
@@ -33,7 +33,7 @@ export const GRADE_DETAILS: Record<
   },
   C: {
     glyph: "?!",
-    label: "Grade C",
+    label: "Best guess",
     note: "Theory / best-guess",
     detail:
       "A plausible mechanism exists, but it lacks direct empirical proof.",
@@ -41,7 +41,7 @@ export const GRADE_DETAILS: Record<
   },
   D: {
     glyph: "??",
-    label: "Grade D",
+    label: "Not supported",
     note: "Popular but unsupported; avoid",
     detail: "Popular training lore not supported by empirical data.",
     cls: "text-grade-d border-grade-d/40 bg-grade-d/10",
@@ -62,9 +62,11 @@ export function asEvidenceGrade(g: string): EvidenceGrade {
   return g === "A" || g === "B" || g === "C" || g === "D" ? g : "C";
 }
 
+export { EvidenceChip } from "@/components/ui/evidence-chip";
+
 /**
  * GradeMark: An interactive chess-annotation chip for an evidence grade.
- * The glyph carries the verdict (‼ best line to ?? blunder-to-avoid).
+ * Plain-word label appears first, and the chess glyph is decorative.
  * Supports click and keyboard activation to open an evidence inspection popover.
  */
 export function GradeMark({
@@ -83,6 +85,8 @@ export function GradeMark({
   const popoverId = useId();
   const g = asEvidenceGrade(grade);
   const meta = GRADE_DETAILS[g];
+  const tierNote = tier != null ? TIER_NOTE[tier] ?? `tier ${tier}` : null;
+  const accessibleName = `Evidence: ${meta.label}${tierNote ? `, ${tierNote}` : ""}. ${meta.note}.${interactive ? " Click to inspect evidence details." : ""}`;
 
   useEffect(() => {
     if (!open) return;
@@ -109,16 +113,16 @@ export function GradeMark({
 
   const badgeContent = (
     <>
+      <span className="tracking-tight">{meta.label}</span>
       <span
         aria-hidden="true"
-        className="font-mono text-xs font-bold leading-none shrink-0 inline-flex items-center justify-center tracking-tight"
+        className="font-mono text-[0.7rem] font-bold leading-none shrink-0 inline-flex items-center justify-center tracking-tight"
       >
         {meta.glyph}
       </span>
-      <span className="tracking-tight">{meta.label}</span>
-      {tier != null && (
-        <span className="text-graphite font-normal">
-          · {TIER_NOTE[tier] ?? `tier ${tier}`}
+      {tierNote && (
+        <span className="text-graphite font-normal" aria-hidden="true">
+          · {tierNote}
         </span>
       )}
     </>
@@ -128,11 +132,12 @@ export function GradeMark({
     return (
       <span
         className={cn(
-          "inline-flex items-center gap-1.5 rounded-sm border px-2 py-0.5 font-mono text-xs font-medium",
+          "inline-flex items-center gap-1.5 rounded-xs border px-2 py-0.5 font-sans text-xs font-medium",
           meta.cls,
           className,
         )}
         title={meta.note}
+        aria-label={accessibleName}
       >
         {badgeContent}
       </span>
@@ -148,7 +153,7 @@ export function GradeMark({
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-controls={open ? popoverId : undefined}
-        aria-label={`Evidence ${meta.label}: ${meta.note}. Click to inspect evidence details.`}
+        aria-label={accessibleName}
         title={`${meta.note} (click to inspect)`}
         onClick={(e) => {
           e.stopPropagation();
@@ -162,7 +167,7 @@ export function GradeMark({
           }
         }}
         className={cn(
-          "inline-flex cursor-pointer items-center gap-1.5 rounded-sm border px-2 py-0.5 font-mono text-xs font-medium transition-all hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-paper",
+          "inline-flex cursor-pointer items-center gap-1.5 rounded-xs border px-2 py-0.5 font-sans text-xs font-medium transition-all hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-paper min-h-8 sm:min-h-0",
           meta.cls,
           className,
         )}
@@ -175,18 +180,18 @@ export function GradeMark({
           id={popoverId}
           role="dialog"
           aria-label="Evidence inspection details"
-          className="absolute left-0 top-full z-50 mt-1.5 w-72 sm:w-80 rounded-md border border-line bg-paper-raised/95 p-3.5 shadow-xl backdrop-blur-md animate-in fade-in-0 zoom-in-95 motion-reduce:animate-none"
+          className="absolute left-0 top-full z-50 mt-1.5 w-72 sm:w-80 rounded-md border border-line bg-paper-raised p-3.5 shadow-xl backdrop-blur-md animate-in fade-in-0 zoom-in-95 motion-reduce:animate-none"
         >
           <div className="flex items-start justify-between gap-2 border-b border-line/80 pb-2">
             <div className="flex items-center gap-2">
               <span
                 className={cn(
-                  "inline-flex items-center gap-1 rounded-sm border px-1.5 py-0.5 font-mono text-xs font-bold",
+                  "inline-flex items-center gap-1.5 rounded-xs border px-1.5 py-0.5 font-sans text-xs font-bold",
                   meta.cls,
                 )}
               >
-                <span>{meta.glyph}</span>
                 <span>{meta.label}</span>
+                <span className="font-mono text-[0.7rem]">{meta.glyph}</span>
               </span>
               <span className="font-serif text-xs font-semibold text-ink">
                 Evidence Standard
@@ -210,7 +215,7 @@ export function GradeMark({
               <p className="font-mono text-[0.65rem] uppercase tracking-[0.1em] text-graphite">
                 Current Rating
               </p>
-              <p className="mt-0.5 font-serif text-xs leading-relaxed text-ink">
+              <p className="mt-0.5 font-sans text-xs leading-relaxed text-ink">
                 <span className="font-semibold">{meta.note}.</span>{" "}
                 {meta.detail}
               </p>
@@ -221,7 +226,7 @@ export function GradeMark({
                 <p className="font-mono text-[0.65rem] uppercase tracking-[0.1em] text-graphite">
                   Evidence Tier
                 </p>
-                <p className="mt-0.5 font-serif text-xs leading-relaxed text-ink">
+                <p className="mt-0.5 font-sans text-xs leading-relaxed text-ink">
                   <span className="font-semibold capitalize">
                     {TIER_NOTE[tier] ?? `Tier ${tier}`}:
                   </span>{" "}
@@ -231,11 +236,11 @@ export function GradeMark({
               </div>
             )}
 
-            <div className="rounded-sm border border-line/60 bg-paper/60 p-2 text-left">
+            <div className="rounded-xs border border-line bg-paper p-2 text-left">
               <p className="font-mono text-[0.62rem] uppercase tracking-[0.1em] text-graphite">
                 Mainline Honesty Commitment
               </p>
-              <p className="mt-1 font-serif text-[0.75rem] leading-normal text-graphite">
+              <p className="mt-1 font-sans text-[0.75rem] leading-normal text-graphite">
                 No training activity is proven to cause a rating gain. We
                 schedule methods with the best available scientific support.
               </p>
@@ -245,7 +250,7 @@ export function GradeMark({
               <p className="font-mono text-[0.62rem] uppercase tracking-[0.1em] text-graphite mb-1.5">
                 Grade Scale
               </p>
-              <div className="grid grid-cols-2 gap-1 font-mono text-[0.68rem]">
+              <div className="grid grid-cols-2 gap-1 font-sans text-xs">
                 {(["A", "B", "C", "D"] as EvidenceGrade[]).map((gradeKey) => {
                   const itemMeta = GRADE_DETAILS[gradeKey];
                   const isCurrent = gradeKey === g;
@@ -253,14 +258,14 @@ export function GradeMark({
                     <div
                       key={gradeKey}
                       className={cn(
-                        "flex items-center gap-1 rounded-xs px-1.5 py-0.5",
+                        "flex items-center justify-between rounded-xs px-1.5 py-0.5",
                         isCurrent
                           ? "bg-ink/10 font-bold text-ink"
                           : "text-graphite",
                       )}
                     >
-                      <span className="w-3 text-center">{itemMeta.glyph}</span>
                       <span>{itemMeta.label}</span>
+                      <span className="font-mono text-[0.7rem]">{itemMeta.glyph}</span>
                     </div>
                   );
                 })}
@@ -281,7 +286,7 @@ const CONFIDENCE: Record<string, { filled: number; note: string }> = {
 };
 
 /**
- * ConfidenceBar: How much of your data backs a call, drawn like an engine's depth meter.
+ * ConfidenceBar: How much of your data backs a call, drawn like an engine depth meter.
  * Four segments; empty segments are honest about what we do not know yet.
  */
 export function ConfidenceBar({
@@ -316,19 +321,19 @@ export function ConfidenceBar({
           {confidence}
         </span>
       </span>
-      <span className="text-graphite font-serif text-[0.7rem] italic leading-tight">
+      <span className="text-graphite font-sans text-xs italic leading-tight">
         {meta.note}
       </span>
     </span>
   );
 }
 
-/** ProvisionalTag: Flags a stub / best-guess value so it never reads as established fact (L3). */
+/** ProvisionalTag: Flags a stub or best-guess value so it never reads as established fact (L3). */
 export function ProvisionalTag({ className }: { className?: string }) {
   return (
     <span
       className={cn(
-        "text-clay border-clay/40 bg-clay/10 inline-flex items-center gap-1 rounded-sm border px-1.5 py-0.5 font-mono text-[0.62rem] font-semibold uppercase tracking-[0.12em]",
+        "text-clay border-clay/40 bg-clay/10 inline-flex items-center gap-1 rounded-xs border px-1.5 py-0.5 font-mono text-[0.62rem] font-semibold uppercase tracking-[0.12em]",
         className,
       )}
     >

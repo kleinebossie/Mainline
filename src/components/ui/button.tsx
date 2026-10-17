@@ -3,36 +3,41 @@ import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
 
-// Controls read as commands on an instrument: monospace, lightly tracked, crisp. The
-// machine-readout voice (VISION §4: Engine⟷Methodology) extends to the things you press.
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md font-mono text-sm font-medium tracking-tight transition-[color,background-color,border-color,box-shadow,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-paper disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-45 active:translate-y-px",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-sm font-sans text-sm font-medium tracking-tight transition-[color,background-color,border-color,box-shadow,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-paper disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-45 active:translate-y-px",
   {
     variants: {
       variant: {
+        primary:
+          "bg-evergreen text-primary-foreground shadow-sm hover:bg-evergreen-bright",
         default:
           "bg-evergreen text-primary-foreground shadow-sm hover:bg-evergreen-bright",
+        secondary:
+          "bg-paper-raised text-ink border border-line hover:bg-ink/[0.04]",
         outline:
-          "border border-ink/25 bg-transparent text-ink hover:border-ink/50 hover:bg-ink/[0.04]",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-accent",
+          "border border-line bg-transparent text-ink hover:bg-ink/[0.04] hover:border-ink/40",
+        quiet: "text-graphite hover:bg-ink/[0.05] hover:text-ink",
         ghost: "text-graphite hover:bg-ink/[0.05] hover:text-ink",
+        danger:
+          "bg-clay text-destructive-foreground shadow-sm hover:bg-clay/90",
         destructive:
           "bg-clay text-destructive-foreground shadow-sm hover:bg-clay/90",
       },
       size: {
-        default: "h-10 min-w-10 px-4 py-2",
-        sm: "h-9 min-w-9 px-3 text-xs",
-        lg: "h-12 rounded-md px-7 text-base",
+        default: "min-h-11 sm:min-h-10 px-4 py-2",
+        sm: "min-h-10 sm:min-h-9 px-3 text-xs",
+        lg: "min-h-12 px-6 text-base",
+        icon: "h-11 w-11 sm:h-10 sm:w-10 p-0",
       },
     },
     defaultVariants: {
-      variant: "default",
+      variant: "primary",
       size: "default",
     },
   },
 );
 
-interface ButtonProps
+export interface ButtonProps
   extends
     React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {}

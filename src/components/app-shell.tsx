@@ -3,30 +3,52 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { Calendar, BarChart2, BookOpen, TrendingUp } from "lucide-react";
 
 import { AccountMenu } from "@/components/account-menu";
 import { NAV } from "@/components/navigation";
+import { useNavigationDataPrefetch } from "@/components/navigation-data-prefetch";
 import { cn } from "@/lib/utils";
 
-// The app shell: one slim mono top bar across every signed-in surface, so the product
-// reads as a single instrument instead of a stack of pages. The wordmark carries the
-// annotation mark (·!) that is the brand's whole idea: a graded, honest line.
-//
-// IA: primary training surfaces live in the top bar. Progress is restored as a top-level
-// process surface, while secondary About copy can yield on the smallest screens.
+const TAB_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  "/today": Calendar,
+  "/analysis": BarChart2,
+  "/library": BookOpen,
+  "/progress": TrendingUp,
+};
 
 export function Wordmark({ className }: { className?: string }) {
   return (
     <Link
       href="/today"
+      aria-label="Mainline"
       className={cn(
-        "group inline-flex items-baseline gap-1 rounded-sm font-mono text-sm font-bold uppercase tracking-[0.2em] text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-paper",
+        "group inline-flex items-center gap-2 rounded-xs text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-paper min-h-10 sm:min-h-0",
         className,
       )}
     >
-      Mainline
-      <span className="text-evergreen tracking-normal" aria-hidden>
-        ·!
+      <svg
+        className="h-6 w-6 shrink-0"
+        viewBox="0 0 512 512"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-hidden="true"
+      >
+        <rect
+          width="512"
+          height="512"
+          rx="96"
+          fill="currentColor"
+          fillOpacity="0.08"
+        />
+        <path
+          d="M120 376V136h56l80 132 80-132h56v240h-54V240l-82 120-82-120v136z"
+          fill="currentColor"
+        />
+        <circle cx="392" cy="120" r="28" fill="hsl(var(--evergreen))" />
+      </svg>
+      <span className="font-serif text-lg font-bold tracking-tight text-ink">
+        Mainline
       </span>
     </Link>
   );
@@ -34,14 +56,17 @@ export function Wordmark({ className }: { className?: string }) {
 
 function TopBar() {
   const pathname = usePathname();
+  const prefetch = useNavigationDataPrefetch();
 
   return (
-    <header className="bg-paper/80 sticky top-0 z-30 border-b border-line/80 backdrop-blur-sm">
-      <div className="mx-auto flex min-h-14 max-w-5xl flex-wrap items-center gap-x-2 px-4 sm:grid sm:h-14 sm:grid-cols-[1fr_auto_1fr] sm:gap-4 sm:px-6">
+    <header className="sticky top-0 z-30 h-[54px] border-b border-line bg-paper/85 backdrop-blur-md">
+      <div className="mx-auto flex h-full max-w-wide items-center justify-between px-4 sm:px-6">
         <Wordmark className="shrink-0" />
+
+        {/* Desktop primary navigation centered (768px and wider) */}
         <nav
           aria-label="Primary navigation"
-          className="order-3 -mx-4 flex w-[calc(100%+2rem)] border-t border-line/70 sm:order-none sm:mx-0 sm:w-auto sm:justify-self-center sm:border-t-0"
+          className="hidden md:flex items-center gap-1"
         >
           {NAV.map((item) => {
             const active =
@@ -51,24 +76,25 @@ function TopBar() {
                 key={item.href}
                 href={item.href}
                 aria-current={active ? "page" : undefined}
+                onMouseEnter={() => prefetch(item.href)}
+                onFocus={() => prefetch(item.href)}
                 className={cn(
-                  "relative flex min-h-11 flex-1 items-center justify-center whitespace-nowrap rounded-sm px-2.5 py-2 font-mono text-[0.72rem] tracking-tight transition-colors focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset sm:min-h-0 sm:flex-none sm:px-3 sm:py-1.5 sm:text-[0.8rem]",
-                  item.secondary && "hidden sm:inline-flex",
+                  "relative flex h-8 items-center justify-center rounded-xs px-3 font-sans text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   active
-                    ? "text-ink font-medium"
+                    ? "text-ink font-semibold"
                     : "text-graphite hover:bg-ink/[0.04] hover:text-ink",
                 )}
               >
-                <span className="leading-none">{item.label}</span>
+                <span>{item.label}</span>
                 {active && (
-                  <span className="bg-evergreen absolute inset-x-3 bottom-0 h-0.5 rounded-full sm:inset-x-2 sm:-bottom-px" />
+                  <span className="absolute inset-x-3 -bottom-[11px] h-0.5 rounded-full bg-evergreen" />
                 )}
               </Link>
             );
           })}
         </nav>
-        <div className="ml-auto flex shrink-0 items-center gap-2 sm:ml-0 sm:justify-self-end">
-          <span className="hidden h-5 w-px bg-line/80 sm:block" aria-hidden />
+
+        <div className="flex shrink-0 items-center gap-2">
           <AccountMenu />
         </div>
       </div>
@@ -76,10 +102,45 @@ function TopBar() {
   );
 }
 
-/**
- * PageShell: the signed-in page frame: the top bar plus a centered measure and an optional
- * masthead (mono eyebrow, serif title, graphite lede).
- */
+function BottomTabBar() {
+  const pathname = usePathname();
+  const prefetch = useNavigationDataPrefetch();
+
+  return (
+    <nav
+      aria-label="Mobile navigation"
+      className="fixed inset-x-0 bottom-0 z-40 flex h-[60px] items-center justify-around border-t border-line bg-paper/95 px-2 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden"
+    >
+      {NAV.map((item) => {
+        const active =
+          pathname === item.href || pathname.startsWith(item.href + "/");
+        const Icon = TAB_ICONS[item.href] ?? Calendar;
+
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            aria-current={active ? "page" : undefined}
+            onMouseEnter={() => prefetch(item.href)}
+            onFocus={() => prefetch(item.href)}
+            className={cn(
+              "flex flex-1 flex-col items-center justify-center gap-1 py-1 text-center font-sans transition-colors min-h-[48px]",
+              active
+                ? "text-evergreen font-semibold"
+                : "text-graphite hover:text-ink",
+            )}
+          >
+            <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+            <span className="text-[11px] leading-none tracking-tight">
+              {item.label}
+            </span>
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
 export function PageShell({
   children,
   eyebrow,
@@ -91,13 +152,15 @@ export function PageShell({
   eyebrow?: string;
   title?: string;
   lede?: ReactNode;
-  width?: "default" | "wide";
+  width?: "default" | "reading" | "wide";
 }) {
+  const maxWidthClass = width === "wide" ? "max-w-wide" : "max-w-reading";
+
   return (
     <div className="min-h-screen">
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-md focus:border focus:border-line focus:bg-paper-raised focus:px-3 focus:py-2 focus:font-mono focus:text-xs focus:text-ink focus:shadow-sheet"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-md focus:border focus:border-line focus:bg-paper-raised focus:px-3 focus:py-2 focus:font-sans focus:text-xs focus:text-ink focus:shadow-sm"
       >
         Skip to content
       </a>
@@ -106,20 +169,22 @@ export function PageShell({
         id="main-content"
         tabIndex={-1}
         className={cn(
-          "mx-auto px-4 py-8 sm:px-6 sm:py-12",
-          width === "wide" ? "max-w-5xl" : "max-w-2xl",
+          "mx-auto px-4 py-6 sm:px-6 sm:py-10 pb-24 md:pb-12",
+          maxWidthClass,
         )}
       >
         {(eyebrow || title || lede) && (
-          <header className="settle mb-8 flex flex-col gap-3 sm:mb-10">
-            {eyebrow && <p className="eyebrow">{eyebrow}</p>}
+          <header className="settle mb-6 flex flex-col gap-2 sm:mb-8">
+            {eyebrow && (
+              <p className="eyebrow text-graphite">{eyebrow}</p>
+            )}
             {title && (
-              <h1 className="font-serif text-[2.35rem] font-semibold leading-[1.05] tracking-tight sm:text-5xl">
+              <h1 className="font-serif text-3xl font-semibold leading-tight tracking-tight sm:text-4xl text-ink">
                 {title}
               </h1>
             )}
             {lede && (
-              <p className="text-graphite max-w-xl text-base leading-relaxed">
+              <p className="text-graphite max-w-xl text-sm leading-relaxed sm:text-base">
                 {lede}
               </p>
             )}
@@ -127,6 +192,7 @@ export function PageShell({
         )}
         {children}
       </main>
+      <BottomTabBar />
     </div>
   );
 }

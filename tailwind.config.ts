@@ -11,13 +11,17 @@ const config: Config = {
       screens: { "2xl": "1200px" },
     },
     extend: {
+      maxWidth: {
+        reading: "680px",
+        wide: "1120px",
+      },
       fontFamily: {
+        sans: ["var(--font-public-sans)", "system-ui", "sans-serif"],
         serif: ["var(--font-fraunces)", "Georgia", "serif"],
         mono: ["var(--font-plex-mono)", "ui-monospace", "monospace"],
-        sans: ["var(--font-fraunces)", "Georgia", "serif"],
       },
       colors: {
-        // raw palette — the analysis sheet
+        // Raw palette: the analysis sheet
         paper: {
           DEFAULT: "hsl(var(--paper))",
           raised: "hsl(var(--paper-raised))",
@@ -31,7 +35,18 @@ const config: Config = {
         },
         amber: "hsl(var(--amber))",
         clay: "hsl(var(--clay))",
-        // evidence grade ramp (chess annotation grammar)
+        // Semantic aliases
+        surface: {
+          DEFAULT: "hsl(var(--surface))",
+          raised: "hsl(var(--surface-raised))",
+        },
+        correct: "hsl(var(--correct))",
+        mistake: "hsl(var(--mistake))",
+        text: {
+          DEFAULT: "hsl(var(--text))",
+          muted: "hsl(var(--text-muted))",
+        },
+        // Evidence grade ramp (chess annotation grammar)
         grade: {
           a: "hsl(var(--grade-a))",
           b: "hsl(var(--grade-b))",
@@ -74,9 +89,9 @@ const config: Config = {
         },
       },
       borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        lg: "var(--radius-lg, var(--radius))",
+        md: "var(--radius-md, calc(var(--radius) - 2px))",
+        sm: "var(--radius-sm, calc(var(--radius) - 4px))",
       },
       boxShadow: {
         sheet:

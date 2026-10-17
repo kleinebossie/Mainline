@@ -1,20 +1,29 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { Fraunces, IBM_Plex_Mono } from "next/font/google";
+import { Fraunces, IBM_Plex_Mono, Public_Sans } from "next/font/google";
 import "./globals.css";
 import { TRPCReactProvider } from "@/lib/trpc/react";
 import { ServiceWorkerRegistration } from "@/components/service-worker-registration";
+import { ThemeProvider } from "@/components/theme-provider";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
-// Two families, split by role — the product's Engine⟷Methodology, human⟷machine split.
-// Fraunces is the human voice (titles, prose, honest declarations); IBM Plex Mono is the
-// machine readout (data, grades, labels, controls-as-commands).
+// Direction A typography:
+// Fraunces is the display voice (titles and major headings).
+// Public Sans is the primary interface voice (body, navigation, buttons, controls).
+// IBM Plex Mono is the machine voice (notation, tabular numbers, badges, timers).
 const fraunces = Fraunces({
   subsets: ["latin"],
   style: ["normal", "italic"],
   display: "swap",
   variable: "--font-fraunces",
+});
+
+const publicSans = Public_Sans({
+  subsets: ["latin"],
+  style: ["normal", "italic"],
+  display: "swap",
+  variable: "--font-public-sans",
 });
 
 const plexMono = IBM_Plex_Mono({
@@ -43,18 +52,20 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html
       lang="en"
-      className={`${fraunces.variable} ${plexMono.variable} scroll-smooth`}
+      className={`${fraunces.variable} ${publicSans.variable} ${plexMono.variable} scroll-smooth`}
       suppressHydrationWarning
     >
-      <body className="bg-paper text-ink min-h-screen antialiased">
-        <TRPCReactProvider>{children}</TRPCReactProvider>
-        <ServiceWorkerRegistration />
-        {(process.env.VERCEL || process.env.NEXT_PUBLIC_VERCEL_ENV) && (
-          <>
-            <Analytics />
-            <SpeedInsights />
-          </>
-        )}
+      <body className="bg-paper text-ink min-h-screen font-sans antialiased">
+        <ThemeProvider>
+          <TRPCReactProvider>{children}</TRPCReactProvider>
+          <ServiceWorkerRegistration />
+          {(process.env.VERCEL || process.env.NEXT_PUBLIC_VERCEL_ENV) && (
+            <>
+              <Analytics />
+              <SpeedInsights />
+            </>
+          )}
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -24,7 +24,7 @@ describe("CalibrationTrackGauges", () => {
 
     expect(html).toContain("Tactical vision");
     expect(html).toContain("≈ 700 ± 400");
-    expect(html).toContain("Grade B");
+    expect(html).toContain("Some evidence");
     expect(html).toContain("left:0%");
     expect(html).not.toMatch(/(?:left|width):-/);
   });

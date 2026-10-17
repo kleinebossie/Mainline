@@ -100,7 +100,7 @@ describe("TransparencyCard", () => {
     expect(html).toContain(
       "Trains deep calculation and candidate move validation.",
     );
-    expect(html).toContain("Grade A");
+    expect(html).toContain("Strong evidence");
     expect(html).toContain("!!");
     expect(html).toContain("chess-specific");
   });
