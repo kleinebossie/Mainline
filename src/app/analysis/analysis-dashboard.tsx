@@ -516,7 +516,7 @@ export function AnalysisDashboard() {
                   size="sm"
                   onClick={() => setIsImportOpen(true)}
                 >
-                  Import PGN
+                  Add game from PGN
                 </Button>
               </div>
             }

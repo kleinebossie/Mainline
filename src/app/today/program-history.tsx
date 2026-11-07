@@ -63,7 +63,7 @@ export function ProgramArchive({
   const hasError = error != null && error !== false;
 
   return (
-    <Surface className="overflow-hidden">
+    <Surface as="section" className="overflow-hidden">
       <div className="flex flex-wrap items-end justify-between gap-3 border-b border-line px-4 py-3 sm:px-5">
         <div>
           <p className="font-mono text-xs uppercase tracking-wider text-graphite">Program</p>
