@@ -652,12 +652,11 @@ export function AnalysisDashboard() {
             </p>
             <WhyButton
               rationaleText={successBiasRationale.value}
-              evidenceGrade={successBiasRationale.evidenceGrade}
-              evidenceTier={successBiasRationale.evidenceTier}
+              evidenceGrade={successBiasRationale.grade}
+              evidenceTier={successBiasRationale.tier}
               citationKey={successBiasRationale.citationKey}
-              citationSource={successBiasRationale.citationSource}
-              confidence={successBiasRationale.confidence}
               soften={successBiasRationale.soften}
+              flag={successBiasRationale.flag}
               label="Why this ratio?"
             />
           </Surface>

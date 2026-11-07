@@ -178,7 +178,7 @@ function SkillSignals({
     estimate: number;
     uncertainty: number;
     sampleSize: number;
-    isRating: boolean;
+    isRating?: boolean;
   }[];
 }) {
   if (skills.length === 0) {
@@ -192,7 +192,7 @@ function SkillSignals({
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       {skills.map((skill) => {
-        const isRating = skill.isRating;
+        const isRating = skill.isRating ?? (skill.dimension === "tactics");
         const isLowSample = skill.sampleSize < 3;
         const displayValue = isRating
           ? `~${Math.round(skill.estimate)} (±${Math.round(skill.uncertainty)})`

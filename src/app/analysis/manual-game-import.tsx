@@ -286,8 +286,7 @@ export function ManualGameImport({ onImported }: { onImported: () => void }) {
               unknown.
             </span>
           </div>
-        </div>
-      </Surface>
+        </Surface>
 
       {fileError && <StatusMessage tone="error">{fileError}</StatusMessage>}
       {preview.error && (

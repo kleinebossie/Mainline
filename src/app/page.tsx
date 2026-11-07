@@ -2,7 +2,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { LandingIcon, type LandingIconName } from "@/components/landing-icons";
 
-import { cn } from "@/lib/utils";
 import { beginSelectedBetaSignIn } from "@/app/signin/actions";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
 import { buttonVariants } from "@/components/ui/button";
@@ -104,7 +103,7 @@ export default async function Home() {
   );
 
   return (
-    <main className="min-h-screen overflow-x-clip">
+    <main className="min-h-screen overflow-x-clip bg-paper">
       <header className="bg-paper/90 sticky top-0 z-30 border-b border-line/80 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-6 px-4 sm:px-6">
           <Link
@@ -146,122 +145,37 @@ export default async function Home() {
       </header>
       <LandingTelemetry />
 
-      <section className="relative border-b border-line/80">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-y-0 left-1/2 hidden w-px bg-line/80 lg:block"
-        />
-        <div className="mx-auto grid max-w-6xl lg:grid-cols-2">
-          <div className="settle flex flex-col justify-center px-4 py-12 sm:px-6 sm:py-20 lg:min-h-[690px] lg:pr-16">
+      {/* Hero section with live blunder analyzer */}
+      <section className="relative border-b border-line/80 py-12 sm:py-16 lg:py-20">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <div className="max-w-3xl mb-10 sm:mb-14">
             <p className="eyebrow text-evergreen">
               Evidence-based chess training
             </p>
-            <h1 className="mt-4 max-w-xl font-serif text-4xl font-semibold leading-[1.02] tracking-[-0.03em] sm:text-6xl lg:text-7xl">
+            <h1 className="mt-4 font-serif text-4xl font-semibold leading-[1.05] tracking-[-0.03em] sm:text-6xl lg:text-7xl">
               Stop guessing what to train.
             </h1>
-            <p className="mt-6 max-w-lg font-serif text-lg leading-relaxed text-graphite sm:text-2xl">
-              Mainline converts your games, goals, and daily time into an
-              adaptive training program grounded in learning science.
+            <p className="mt-5 font-serif text-lg leading-relaxed text-graphite sm:text-2xl">
+              Mainline isolates your recurring tactical mistakes, schedules spaced reviews, and builds an adaptive daily training program grounded in learning science.
             </p>
-            <p className="mt-4 max-w-lg text-sm sm:text-base leading-relaxed text-graphite">
-              Instead of giving you endless random puzzles, Mainline targets
-              your measured mistakes and schedules spaced reviews.
-            </p>
-            <div className="mt-8 flex flex-col sm:flex-row sm:items-center gap-3.5">
-              <a
-                href="#blunder-analyzer"
-                className={buttonVariants({
-                  size: "lg",
-                  className: "w-full sm:w-auto text-center justify-center",
-                })}
-              >
-                Analyze my games
-              </a>
-              <a
-                href="#how-it-works"
-                className="text-center rounded-sm font-mono text-xs sm:text-sm text-graphite underline decoration-line underline-offset-4 transition-colors hover:text-ink py-1"
-              >
-                See how setup works
-              </a>
+            <div className="mt-6 flex flex-wrap items-center gap-4">
+              <span className="inline-flex items-center gap-2 rounded-full border border-line bg-paper-raised px-3 py-1 font-mono text-xs text-graphite">
+                <span className="h-1.5 w-1.5 rounded-full bg-evergreen" />
+                Live Stockfish WASM in your browser
+              </span>
+              <span className="font-mono text-xs text-graphite">
+                No sign-in required to scan
+              </span>
             </div>
-            <p className="mt-4 font-mono text-[0.68rem] uppercase tracking-[0.12em] text-graphite">
-              Open beta · no sign-in required
-            </p>
           </div>
 
-          <div className="settle flex items-center bg-ink px-4 py-12 text-paper [animation-delay:100ms] sm:px-6 sm:py-16 lg:min-h-[690px] lg:pl-16">
-            <div className="mx-auto w-full max-w-md">
-              <div className="flex items-end justify-between gap-4 border-b border-paper/15 pb-4">
-                <div>
-                  <p className="font-mono text-[0.65rem] uppercase tracking-[0.2em] text-evergreen-bright">
-                    Example daily session
-                  </p>
-                  <h2 className="mt-2 font-serif text-2xl font-semibold">
-                    Structured daily training
-                  </h2>
-                </div>
-                <span className="font-mono text-xs text-paper/50">Today</span>
-              </div>
-
-              <div className="grid grid-cols-[1fr_auto] gap-x-5 gap-y-3 border-b border-paper/15 py-5 font-mono text-xs">
-                <span className="text-paper/50">Time budget</span>
-                <span>25 minutes</span>
-                <span className="text-paper/50">Primary weakness</span>
-                <span>tactical conversions</span>
-                <span className="text-paper/50">Format goal</span>
-                <span>rapid chess</span>
-                <span className="text-paper/50">Due reviews</span>
-                <span>2 blocks</span>
-              </div>
-
-              <div className="relative space-y-3 py-6 before:absolute before:bottom-10 before:left-[1.18rem] before:top-10 before:w-px before:bg-evergreen-bright/40">
-                <TrainingBlock
-                  number="1"
-                  minutes="10 min"
-                  title="Blunder drills from your games"
-                  reason="Positions extracted directly from your recent losses."
-                  delay="[animation-delay:150ms]"
-                />
-                <TrainingBlock
-                  number="2"
-                  minutes="8 min"
-                  title="Spaced repetition reviews"
-                  reason="Scheduled based on past mistake review intervals."
-                  delay="[animation-delay:250ms]"
-                />
-                <TrainingBlock
-                  number="3"
-                  minutes="7 min"
-                  title="Endgame conversion drills"
-                  reason="Practical endgame structures matched to your rating."
-                  delay="[animation-delay:350ms]"
-                />
-              </div>
-
-              <div className="border-t border-dashed border-paper/20 pt-4">
-                <p className="flex items-start gap-3 font-serif text-sm leading-relaxed text-paper/65">
-                  <LandingIcon
-                    name="help"
-                    className="mt-0.5 h-4 w-4 shrink-0 text-evergreen-bright"
-                  />
-                  Every block includes an evidence grade, data source, and
-                  clear explanation of uncertainty.
-                </p>
-              </div>
-            </div>
+          <div id="blunder-analyzer" className="scroll-mt-20">
+            <HomepageBlunderAnalyzer />
           </div>
         </div>
       </section>
 
-      <section
-        id="blunder-analyzer"
-        className="scroll-mt-16 border-b border-line/80 bg-paper py-14 sm:py-20"
-      >
-        <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <HomepageBlunderAnalyzer />
-        </div>
-      </section>
-
+      {/* 5-step onboarding flow */}
       <section
         id="how-it-works"
         className="scroll-mt-16 border-b border-line/80 bg-paper-raised/70"
@@ -310,6 +224,7 @@ export default async function Home() {
         </div>
       </section>
 
+      {/* Principles */}
       <section id="principles" className="scroll-mt-16 border-b border-line/80">
         <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-24">
           <div className="max-w-2xl">
@@ -347,6 +262,7 @@ export default async function Home() {
         </div>
       </section>
 
+      {/* Get started */}
       <section id="get-started" className="scroll-mt-16 bg-ink text-paper">
         <div className="mx-auto grid max-w-6xl gap-12 px-4 py-20 sm:px-6 sm:py-24 lg:grid-cols-[1fr_0.82fr] lg:items-center lg:gap-20">
           <div>
@@ -407,7 +323,6 @@ export default async function Home() {
               <GuestLandingButton />
             </div>
             <p className="mt-6 border-t border-line pt-5 text-center font-mono text-[0.68rem] leading-relaxed text-graphite">
-
               Read-only connections · no password stored · export or delete your
               data at any time
             </p>
@@ -424,37 +339,5 @@ export default async function Home() {
         </div>
       </footer>
     </main>
-  );
-}
-
-function TrainingBlock({
-  number,
-  minutes,
-  title,
-  reason,
-  delay = "[animation-delay:150ms]",
-}: {
-  number: string;
-  minutes: string;
-  title: string;
-  reason: string;
-  delay?: string;
-}) {
-  return (
-    <div
-      className={cn(
-        "settle relative grid grid-cols-[2.4rem_1fr_auto] items-start gap-3 rounded-md border border-paper/10 bg-paper/[0.04] p-3.5",
-        delay,
-      )}
-    >
-      <span className="relative z-10 flex h-6 w-6 items-center justify-center rounded-full bg-evergreen font-mono text-[0.65rem] font-semibold text-primary-foreground">
-        {number}
-      </span>
-      <div>
-        <h3 className="font-serif text-base font-semibold">{title}</h3>
-        <p className="mt-1 text-xs leading-relaxed text-paper/50">{reason}</p>
-      </div>
-      <span className="font-mono text-[0.68rem] text-paper/50">{minutes}</span>
-    </div>
   );
 }

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import Link from "next/link";
-import { ChevronDown, MoreHorizontal, Check, Clock, ExternalLink, Play, BookOpen, AlertCircle } from "lucide-react";
+import { ChevronDown, MoreHorizontal, Check, ExternalLink } from "lucide-react";
 
 import { BookLogForm, type OwnedBook } from "@/app/today/today-book-log";
 import {
@@ -8,7 +8,6 @@ import {
   completionEventType,
   firstIncompleteItem,
   formatMinuteCap,
-  formatMeasurementCoverage,
   formatMeasuredMinutes,
   isAutoLoggedInternal,
   isClosedItem,
@@ -88,7 +87,6 @@ export function TodayHeader({
   program,
   due,
   actualMinutes,
-  actualMeasuredEvents,
   actualEventCount,
   actualMeasurementTruncated,
   historyLoading,

@@ -8,7 +8,6 @@ import type {
   GameAnalysisSession,
 } from "@/app/analysis/[gameId]/game-analysis-types";
 import {
-  MethodologyRationaleCard,
   MethodologyRationaleGroup,
 } from "@/components/methodology-rationale-card";
 import {
@@ -239,6 +238,10 @@ export function ActiveReproductionStep({
                 {
                   title: "Delayed engine feedback",
                   rationale: engineDelayRationale,
+                },
+                {
+                  title: "Blunder filter criteria",
+                  rationale: filterRationale,
                 },
                 ...(lastAttempt || revealed
                   ? [

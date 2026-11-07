@@ -1,12 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { BookOpen, Check, ExternalLink } from "lucide-react";
+import { Check } from "lucide-react";
 import { trpc } from "@/lib/trpc/react";
 import { Surface } from "@/components/ui/surface";
-import { Button, buttonVariants } from "@/components/ui/button";
 import { Notice } from "@/components/ui/notice";
-import { asEvidenceGrade, GradeMark } from "@/components/evidence";
+import { asEvidenceGrade } from "@/components/evidence";
 import { WhyButton } from "@/components/ui/why-button";
 import {
   Sheet,
@@ -16,7 +15,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-import type { GradedCopy, LibraryView } from "@/server/library";
+import type { LibraryView } from "@/server/library";
 
 type Protocol = LibraryView["protocol"];
 
