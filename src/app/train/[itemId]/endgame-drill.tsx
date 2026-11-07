@@ -3,17 +3,25 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Chess } from "chess.js";
+import {
+  AlertCircle,
+  ArrowRight,
+  Check,
+  Volume2,
+  VolumeX,
+} from "lucide-react";
+
 import { trpc } from "@/lib/trpc/react";
 import type { inferRouterOutputs } from "@trpc/server";
 import type { AppRouter } from "@/server/routers/_app";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusMessage } from "@/components/ui/status-message";
-import { ErrorNotice } from "@/components/ui/error-notice";
+import { FocusShell } from "@/components/focus-shell";
 import {
-  BOARD_SIZE_CLASS,
   InteractiveBoard,
+  type BoardFeedback,
 } from "@/components/interactive-board";
+import { WhyButton } from "@/components/ui/why-button";
 import { createEnginePlay } from "@/engine/interactive/engine-play";
 import {
   classifyTerminal,
@@ -30,25 +38,18 @@ import {
   resultPersistenceState,
 } from "@/lib/result-persistence";
 import { cn } from "@/lib/utils";
-
-// M13: play a curated endgame OUT against the client-side chess engine, then judge the
-// played-out result against the position's objective (win / hold the draw). The opponent's
-// moves come from the in-browser Stockfish (engine-play), so there is zero server compute;
-// the optional Lichess tablebase (cached server-side) shows the ground-truth verdict. The
-// outcome is auto-logged (`drill_done`) and FSRS-rescheduled by the existing loop, unchanged.
+import { useSoundEnabled } from "@/lib/sound";
+import {
+  recordGuestActivityEvent,
+  updateGuestProgramItemStatus,
+} from "@/lib/guest-session";
 
 type AnalysisEngine = import("@/analysis").StockfishAnalysisEngine;
 type TrainData =
   NonNullable<inferRouterOutputs<AppRouter>["program"]["getTrainItem"]>;
 
-// Infra constants (client responsiveness / runaway-game guard), NOT methodology (L1).
 const ENGINE_DEPTH = 12;
 const MOVE_CAP_PLIES = 80;
-
-import {
-  recordGuestActivityEvent,
-  updateGuestProgramItemStatus,
-} from "@/lib/guest-session";
 
 export function EndgameDrillSession({
   programItemId,
@@ -59,6 +60,7 @@ export function EndgameDrillSession({
 }) {
   const router = useRouter();
   const utils = trpc.useUtils();
+  const [soundEnabled, setSoundEnabled] = useSoundEnabled();
   const positions = data.solvables.filter((s) => s.kind === "endgame");
 
   const me = trpc.account.me.useQuery(undefined, {
@@ -110,18 +112,18 @@ export function EndgameDrillSession({
     outcome: EndgameOutcome;
     reason: string;
   } | null>(null);
+  const [boardFeedback, setBoardFeedback] = useState<BoardFeedback | null>(null);
   const [engineError, setEngineError] = useState<string | null>(null);
   const startRef = useRef<number>(systemClock.now());
   const pliesRef = useRef<number>(0);
   const outcomeRequestIdRef = useRef<string | null>(null);
 
-  // Optional tablebase ground truth for the start position (cache-first, server-side).
+  // Tablebase ground truth
   const tb = trpc.program.probeTablebase.useQuery(
     { fen: current?.fen ?? "" },
-    { enabled: !!current, staleTime: Infinity, refetchOnWindowFocus: false },
+    { enabled: Boolean(current), staleTime: Infinity, refetchOnWindowFocus: false },
   );
 
-  // One reused Stockfish worker, serialised so replies never overlap (mirrors ReviewBoard).
   const [isEngineLoading, setIsEngineLoading] = useState(false);
   const engineRef = useRef<AnalysisEngine | null>(null);
   const queueRef = useRef<Promise<unknown>>(Promise.resolve());
@@ -143,6 +145,7 @@ export function EndgameDrillSession({
       setIsEngineLoading(false);
     }
   }, []);
+
   useEffect(() => {
     return () => {
       engineRef.current?.dispose();
@@ -150,12 +153,12 @@ export function EndgameDrillSession({
     };
   }, []);
 
-  // Re-initialise when the active position changes.
   useEffect(() => {
     if (!current) return;
     setFen(current.fen);
     setStatus("playing");
     setResult(null);
+    setBoardFeedback(null);
     setEngineError(null);
     pliesRef.current = 0;
     outcomeRequestIdRef.current = null;
@@ -167,11 +170,17 @@ export function EndgameDrillSession({
   const objective = current?.objective ?? "win";
 
   const finish = useCallback(
-    (finalFen: string, override?: EndgameOutcome) => {
+    (finalFen: string, override?: EndgameOutcome, lastSquare?: string) => {
       if (!current) return;
       const outcome = override ?? classifyTerminal(finalFen, playerColor);
       const score = scoreEndgame(outcome, objective);
       setResult({ correct: score.correct, outcome, reason: score.reason });
+      if (lastSquare) {
+        setBoardFeedback({
+          square: lastSquare,
+          kind: score.correct ? "correct" : "mistake",
+        });
+      }
       setStatus("done");
 
       if (isGuest) {
@@ -204,8 +213,9 @@ export function EndgameDrillSession({
     (move: { san: string }) => {
       if (!current || status !== "playing") return;
       const chess = new Chess(fen);
+      let moveObj;
       try {
-        chess.move(move.san);
+        moveObj = chess.move(move.san);
       } catch {
         return; // illegal: board will snap back to `fen`
       }
@@ -213,9 +223,9 @@ export function EndgameDrillSession({
       setFen(afterUser);
       pliesRef.current += 1;
 
-      if (chess.isGameOver()) return finish(afterUser);
+      if (chess.isGameOver()) return finish(afterUser, undefined, moveObj?.to);
       if (pliesRef.current >= MOVE_CAP_PLIES)
-        return finish(afterUser, "unresolved");
+        return finish(afterUser, "unresolved", moveObj?.to);
 
       // Engine replies from the in-browser Stockfish (serialised).
       setStatus("thinking");
@@ -227,13 +237,14 @@ export function EndgameDrillSession({
             depth: ENGINE_DEPTH,
           });
           const after = new Chess(afterUser);
-          after.move(reply.san);
+          const engineMoveObj = after.move(reply.san);
           const afterEngine = after.fen();
           setFen(afterEngine);
           pliesRef.current += 1;
-          if (after.isGameOver()) return finish(afterEngine);
+          if (after.isGameOver())
+            return finish(afterEngine, undefined, engineMoveObj?.to);
           if (pliesRef.current >= MOVE_CAP_PLIES)
-            return finish(afterEngine, "unresolved");
+            return finish(afterEngine, "unresolved", engineMoveObj?.to);
           setStatus("playing");
         } catch {
           // Discard a failed worker so the next move gets a clean retry.
@@ -249,31 +260,46 @@ export function EndgameDrillSession({
     [current, status, fen, finish, getEngine],
   );
 
-  const goNext = () => {
-    if (idx + 1 < positions.length) {
-      setIdx(idx + 1);
-      return;
+  const goNext = useCallback(() => {
+    if (resultBlocked) return;
+    const nextIdx = idx + 1;
+    if (nextIdx < positions.length) {
+      setIdx(nextIdx);
+    } else {
+      if (isGuest) {
+        updateGuestProgramItemStatus(programItemId, "done");
+        setIdx(positions.length);
+      } else {
+        completionRequestIdRef.current ??= crypto.randomUUID();
+        completionMutation.mutate({
+          requestId: completionRequestIdRef.current,
+          programItemId,
+        });
+      }
     }
-    if (isGuest) {
-      updateGuestProgramItemStatus(programItemId, "done");
-      setIdx(positions.length);
-      return;
-    }
-    completionRequestIdRef.current ??= crypto.randomUUID();
-    completionMutation.mutate({
-      requestId: completionRequestIdRef.current,
-      programItemId,
-    });
-  };
+  }, [
+    completionMutation,
+    idx,
+    isGuest,
+    positions.length,
+    programItemId,
+    resultBlocked,
+  ]);
 
+  const isCompleted = idx >= positions.length;
+
+  // Auto-advance countdown on complete
   const [autoAdvanceSec, setAutoAdvanceSec] = useState<number | null>(null);
-  const [autoAdvancePaused, setAutoAdvancePaused] = useState<boolean>(false);
+  const [autoAdvancePaused] = useState<boolean>(false);
   const autoAdvanceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const isCompleted = positions.length === 0 || idx >= positions.length;
-
   useEffect(() => {
-    if (!isCompleted || !data?.nextItem || autoAdvancePaused || resultBlocked) {
+    if (
+      !isCompleted ||
+      !data?.nextItem ||
+      autoAdvancePaused ||
+      resultBlocked
+    ) {
       if (autoAdvanceTimerRef.current) {
         clearInterval(autoAdvanceTimerRef.current);
         autoAdvanceTimerRef.current = null;
@@ -282,7 +308,7 @@ export function EndgameDrillSession({
     }
 
     if (autoAdvanceSec === null) {
-      setAutoAdvanceSec(4);
+      setAutoAdvanceSec(5);
       return;
     }
 
@@ -316,304 +342,275 @@ export function EndgameDrillSession({
     router,
   ]);
 
-  // Completed all positions.
   if (isCompleted) {
     return (
-      <div className="flex flex-col gap-6 py-6 settle">
-        <Card gutter="A">
-          <CardHeader>
-            <CardTitle className="font-serif text-2xl font-bold">
+      <FocusShell
+        title={data.item.label}
+        exitHref="/today"
+        mainClassName="flex items-center justify-center"
+      >
+        <div className="w-full max-w-lg rounded-lg border border-line bg-paper-raised p-6 sm:p-8 shadow-sm flex flex-col gap-5 animate-in fade-in duration-200">
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-evergreen/10 px-3 py-1 font-sans text-xs font-semibold text-evergreen">
+              <Check className="h-3.5 w-3.5" aria-hidden="true" />
+              {data.nextItem ? "Block complete" : "Session complete"}
+            </span>
+          </div>
+
+          <div>
+            <h2 className="font-serif text-2xl font-bold text-ink">
               {positions.length === 0
                 ? "No endgame drills due"
-                : "Endgame session complete"}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <p className="text-graphite font-serif text-sm leading-relaxed">
-              {positions.length === 0
-                ? "There are no endgame positions due right now. They will return on their spaced schedule."
                 : data.nextItem
-                  ? `Each result has been logged. Ready to advance to Block ${data.nextItem.orderIndex + 1}.`
-                  : "Each result has been logged and rescheduled for a future review."}
+                  ? "Block complete"
+                  : "Session complete"}
+            </h2>
+            <p className="mt-1 font-sans text-sm text-graphite">
+              {positions.length === 0
+                ? "There are no endgame positions due right now."
+                : "Each endgame result has been recorded."}
             </p>
+          </div>
 
-            {data.nextItem && (
-              <div className="rounded-md border border-evergreen/30 bg-evergreen/[0.04] p-3 sm:p-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <p className="eyebrow text-evergreen">
-                      Next in today&apos;s session
-                    </p>
-                    <p className="mt-0.5 font-serif text-base font-semibold text-ink">
-                      Block {data.nextItem.orderIndex + 1}:{" "}
-                      {data.nextItem.label}
-                    </p>
-                    {!autoAdvancePaused &&
-                      autoAdvanceSec !== null &&
-                      autoAdvanceSec > 0 &&
-                      !resultBlocked && (
-                        <p className="text-graphite font-mono text-xs mt-1">
-                          Auto-advancing in {autoAdvanceSec}s…
-                        </p>
-                      )}
-                    {autoAdvancePaused && (
-                      <p className="text-graphite font-mono text-xs mt-1">
-                        Auto-advance paused.
-                      </p>
-                    )}
-                  </div>
-                  {!autoAdvancePaused &&
-                    autoAdvanceSec !== null &&
-                    autoAdvanceSec > 0 &&
-                    !resultBlocked && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setAutoAdvancePaused(true)}
-                      >
-                        Pause auto-advance
-                      </Button>
-                    )}
-                </div>
-              </div>
-            )}
-
-            <div className="flex flex-wrap items-center gap-3 pt-2">
-              {data.nextItem ? (
-                <>
-                  <Button
-                    onClick={() => {
-                      if (autoAdvanceTimerRef.current) {
-                        clearInterval(autoAdvanceTimerRef.current);
-                      }
-                      router.push(data.nextItem?.url ?? "/today");
-                    }}
-                    disabled={resultBlocked}
-                  >
-                    {resultAdvanceLabel(
-                      persistenceState,
-                      `Continue to Block ${data.nextItem.orderIndex + 1}`,
-                    )}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      if (autoAdvanceTimerRef.current) {
-                        clearInterval(autoAdvanceTimerRef.current);
-                      }
-                      router.push("/today");
-                    }}
-                    disabled={resultBlocked}
-                  >
-                    Back to Today
-                  </Button>
-                </>
-              ) : (
-                <Button
-                  onClick={() => router.push("/today")}
-                  disabled={resultBlocked}
-                >
-                  {resultAdvanceLabel(persistenceState, "Back to Today")}
-                </Button>
-              )}
+          {data.nextItem ? (
+            <div className="rounded-md border border-line bg-paper p-4 flex flex-col gap-1.5">
+              <span className="font-sans text-[11px] font-semibold uppercase tracking-wider text-graphite">
+                Up next
+              </span>
+              <h3 className="font-sans text-base font-semibold text-ink">
+                {data.nextItem.label}
+                {data.nextItem.estMinutes ? ` (${data.nextItem.estMinutes} min)` : ""}
+              </h3>
+              <p className="font-sans text-xs text-graphite">
+                Block {data.nextItem.orderIndex + 1} of today&apos;s session.
+              </p>
+              {!autoAdvancePaused &&
+                autoAdvanceSec !== null &&
+                autoAdvanceSec > 0 &&
+                !resultBlocked && (
+                  <p className="font-mono text-xs text-graphite mt-1">
+                    Auto-advancing in {autoAdvanceSec}s…
+                  </p>
+                )}
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          ) : (
+            <div className="rounded-md border border-line bg-paper p-4">
+              <p className="font-sans text-sm text-graphite">
+                All blocks in today&apos;s session are complete.
+              </p>
+            </div>
+          )}
+
+          <div className="flex flex-col gap-3 pt-2">
+            {data.nextItem ? (
+              <>
+                <Button
+                  onClick={() => {
+                    if (autoAdvanceTimerRef.current) {
+                      clearInterval(autoAdvanceTimerRef.current);
+                    }
+                    router.push(data.nextItem?.url ?? "/today");
+                  }}
+                  disabled={resultBlocked}
+                  className="min-h-[44px] w-full"
+                >
+                  {resultAdvanceLabel(persistenceState, "Continue")}
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    if (autoAdvanceTimerRef.current) {
+                      clearInterval(autoAdvanceTimerRef.current);
+                    }
+                    router.push("/today");
+                  }}
+                  disabled={resultBlocked}
+                  className="text-graphite hover:text-ink w-full"
+                >
+                  Back to Today
+                </Button>
+              </>
+            ) : (
+              <Button
+                onClick={() => router.push("/today")}
+                disabled={resultBlocked}
+                className="min-h-[44px] w-full"
+              >
+                {resultAdvanceLabel(persistenceState, "Back to Today")}
+              </Button>
+            )}
+          </div>
+        </div>
+      </FocusShell>
     );
   }
 
   const verdict = tb.data ? tablebaseVerdict(tb.data.category) : null;
-  const objectiveLabel =
-    objective === "win" ? "Win (deliver checkmate)" : "Hold the draw";
+  const promptTitle = `${orientation === "white" ? "White" : "Black"} to move. ${objective === "win" ? "Win this endgame." : "Hold the draw."}`;
+
+  const progressSlot = (
+    <div className="flex items-center gap-2">
+      <span className="font-sans text-xs font-semibold text-graphite tabular-nums">
+        {idx + 1} of {positions.length}
+      </span>
+    </div>
+  );
+
+  const controlsSlot = (
+    <div className="flex items-center gap-1">
+      <button
+        type="button"
+        onClick={() => setSoundEnabled(!soundEnabled)}
+        aria-label={soundEnabled ? "Mute sound" : "Enable sound"}
+        title={soundEnabled ? "Mute move sounds" : "Enable move sounds"}
+        className="inline-flex h-8 w-8 items-center justify-center rounded-xs text-graphite hover:text-ink hover:bg-ink/[0.04] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        {soundEnabled ? (
+          <Volume2 className="h-4 w-4" aria-hidden="true" />
+        ) : (
+          <VolumeX className="h-4 w-4" aria-hidden="true" />
+        )}
+      </button>
+
+      <WhyButton
+        rationaleText={data.item.rationaleText}
+        evidenceGrade={data.item.evidenceGrade}
+        evidenceTier={data.item.evidenceTier}
+        citationKey={data.item.citationKey}
+        citationSource={data.item.citationSource}
+        title={data.item.label}
+      />
+    </div>
+  );
 
   return (
-    <div className="flex flex-col gap-6 py-6 settle">
-      <div className="flex flex-col gap-2 border-b border-line pb-3 sm:flex-row sm:items-baseline sm:justify-between">
-        <div className="flex flex-col gap-1">
-          <p className="eyebrow !text-[0.65rem] uppercase tracking-wider">
-            Endgame drill · {data.item.label}
-          </p>
-          <h1 className="text-ink font-serif text-3xl font-bold tracking-tight">
-            {current?.label ?? "Current endgame"}
-          </h1>
-        </div>
-        <span className="text-graphite font-mono text-sm sm:text-right">
-          You play {orientation}
-        </span>
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] items-start">
-        <div className="flex flex-col items-center gap-3">
-          <div
-            className={`${BOARD_SIZE_CLASS} flex items-center justify-between px-1`}
-          >
-            <span className="eyebrow !text-[0.6rem]">
-              Objective: {objectiveLabel}
-            </span>
-            <span className="text-graphite font-mono text-xs">
-              {status === "thinking" ? "Engine thinking…" : "Your move"}
-            </span>
-          </div>
+    <FocusShell
+      title={data.item.label}
+      progressSlot={progressSlot}
+      controlsSlot={controlsSlot}
+      exitHref="/today"
+      mainClassName="flex flex-col justify-center py-2"
+    >
+      <div className="w-full max-w-wide mx-auto flex flex-col items-center justify-center md:flex-row md:items-center md:justify-center md:gap-10">
+        {/* Board column */}
+        <div className="w-full max-w-[min(100%,350px)] md:max-w-[min(540px,calc(100vh-140px))] aspect-square shrink-0 flex items-center justify-center">
           <InteractiveBoard
             fen={fen}
             onMove={handleMove}
             orientation={orientation}
             disabled={status !== "playing"}
             highlightedSquares={[]}
+            feedback={boardFeedback}
             showEvalBar={data.affordances.showEvalBar}
             showLegalMoveDots={data.affordances.showLegalMoveDots}
             allowArrows={data.affordances.allowArrows}
             allowHover={data.affordances.allowHover}
-            className={BOARD_SIZE_CLASS}
+            className="w-full h-full"
           />
         </div>
 
-        <div className="flex flex-col gap-4">
-          <Card className="h-full">
-            <CardHeader className="pb-3">
-              <CardTitle className="font-serif text-lg">
-                Play against engine
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-4">
-              <p className="text-graphite font-serif text-sm leading-relaxed">
-                Convert this endgame against the engine. The result is judged on
-                whether you achieve the objective.
-              </p>
+        {/* Info & action panel column */}
+        <div className="w-full max-w-[350px] md:w-[360px] flex flex-col gap-3 md:gap-4 mt-2 md:mt-0 justify-center">
+          <div className="flex flex-col gap-0.5">
+            <span className="font-sans text-xs font-medium text-graphite uppercase tracking-wide">
+              {current?.label ?? "Endgame drill"}
+            </span>
+            <h1 className="font-serif text-base sm:text-lg font-semibold text-ink leading-snug">
+              {promptTitle}
+            </h1>
+          </div>
 
-              {isEngineLoading && (
-                <StatusMessage tone="loading">
-                  Initializing Stockfish WASM engine in browser…
-                </StatusMessage>
+          {/* Engine status indicator */}
+          {status === "thinking" && (
+            <div className="flex items-center gap-2 rounded-md border border-line bg-paper px-3 py-2 text-xs text-graphite">
+              <span className="h-2 w-2 rounded-full bg-evergreen animate-ping" />
+              <span>Stockfish engine is thinking…</span>
+            </div>
+          )}
+
+          {isEngineLoading && (
+            <StatusMessage tone="loading">
+              Starting local engine in browser…
+            </StatusMessage>
+          )}
+
+          {engineError && (
+            <StatusMessage tone="error" heading="Engine issue">
+              {engineError}
+            </StatusMessage>
+          )}
+
+          {/* Tablebase oracle */}
+          {verdict && (
+            <div className="rounded-md border border-line bg-paper/60 px-3 py-2 text-xs text-graphite">
+              <span className="font-semibold text-ink">Tablebase: </span>
+              {verdict === "win"
+                ? "Theoretical win."
+                : verdict === "draw"
+                  ? "Theoretical draw."
+                  : "Theoretically lost."}
+              {tb.data?.dtz != null && ` DTZ ${Math.abs(tb.data.dtz)}.`}
+            </div>
+          )}
+
+          {/* Result banner */}
+          {result && (
+            <div
+              className={cn(
+                "flex items-center gap-2.5 rounded-md border px-3 py-2 text-sm animate-in fade-in duration-120",
+                result.correct
+                  ? "border-evergreen/30 bg-evergreen/10 text-evergreen-bright"
+                  : "border-destructive/30 bg-destructive/10 text-destructive",
               )}
-
-              {engineError && (
-                <StatusMessage tone="error" heading="Engine unavailable">
-                  {engineError}
-                </StatusMessage>
+            >
+              {result.correct ? (
+                <Check className="h-4 w-4 shrink-0 text-evergreen" aria-hidden="true" />
+              ) : (
+                <AlertCircle className="h-4 w-4 shrink-0 text-destructive" aria-hidden="true" />
               )}
+              <span className="font-medium text-xs leading-normal">
+                {result.reason}
+              </span>
+            </div>
+          )}
 
-              {tb.error && (
-                <ErrorNotice
-                  error={tb.error}
-                  heading="Tablebase check unavailable"
-                  message="The drill still works with the local engine, but Mainline could not verify the starting result."
-                  onRetry={() => void tb.refetch()}
-                  retrying={tb.isFetching}
-                  retryLabel="Retry tablebase check"
-                />
-              )}
-
-              {logMutation.error && (
-                <ErrorNotice
-                  error={logMutation.error}
-                  heading="Result not saved"
-                  message="This drill is still open and its review schedule is unchanged. Try saving the same result again."
-                  onRetry={() => {
-                    if (logMutation.variables) {
-                      logMutation.mutate(logMutation.variables);
-                    }
-                  }}
-                  retrying={logMutation.isPending}
-                  retryLabel="Try saving result"
-                />
-              )}
-
-              {completionMutation.error && (
-                <ErrorNotice
-                  error={completionMutation.error}
-                  heading="Session not saved"
-                  message="Each endgame result is safe, but this block is not marked complete yet. Try finishing it again."
-                  onRetry={() => {
-                    if (completionMutation.variables) {
-                      completionMutation.mutate(completionMutation.variables);
-                    }
-                  }}
-                  retrying={completionMutation.isPending}
-                  retryLabel="Try finishing session"
-                />
-              )}
-
-              {/* Tablebase ground truth (optional oracle). */}
-              {verdict && (
-                <div className="flex flex-col gap-1.5 rounded-md border border-line bg-paper/40 p-4">
-                  <span className="text-graphite font-mono text-[0.65rem] font-semibold uppercase tracking-wider">
-                    Tablebase ground truth
-                  </span>
-                  <p className="text-sm font-serif text-ink leading-relaxed">
-                    {verdict === "win"
-                      ? "This is a theoretical win. Convert it."
-                      : verdict === "draw"
-                        ? "This is a theoretical draw. Hold it."
-                        : "This is theoretically lost for you. Try to hold on."}
-                    {tb.data?.dtz != null && ` (DTZ ${Math.abs(tb.data.dtz)}).`}
-                  </p>
-                </div>
-              )}
-
-              {/* Result. */}
-              {result && (
-                <div
-                  className={cn(
-                    "flex flex-col gap-1.5 rounded-md border p-4",
-                    result.correct
-                      ? "border-grade-a/30 bg-grade-a/5"
-                      : "border-grade-d/30 bg-grade-d/5",
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "font-serif text-lg font-semibold",
-                      result.correct
-                        ? "text-evergreen-bright"
-                        : "text-destructive",
-                    )}
-                  >
-                    {result.correct ? "✓ Objective met" : "✗ Not this time"}
-                  </span>
-                  <p className="text-graphite font-serif text-sm leading-relaxed">
-                    {result.reason}
-                  </p>
-                </div>
-              )}
-
-              <div className="flex flex-col gap-2 border-t border-line/80 pt-4">
-                {status === "done" ? (
-                  <Button
-                    onClick={goNext}
-                    className="w-full"
-                    disabled={resultBlocked}
-                  >
-                    {resultAdvanceLabel(
-                      persistenceState,
-                      idx + 1 < positions.length ? "Next endgame" : "Finish",
-                    )}
-                  </Button>
-                ) : (
-                  <Button
-                    variant="outline"
-                    onClick={() => finish(fen, "unresolved")}
-                    disabled={status === "thinking" || resultBlocked}
-                  >
-                    I cannot convert this
-                  </Button>
+          {/* Primary Action Buttons */}
+          <div className="flex items-center gap-2.5 pt-0.5">
+            {status === "done" ? (
+              <Button
+                onClick={goNext}
+                className="flex-1 min-h-[44px]"
+                disabled={resultBlocked}
+              >
+                {resultAdvanceLabel(
+                  persistenceState,
+                  idx + 1 < positions.length ? "Next endgame" : "Continue",
                 )}
+                <ArrowRight className="h-4 w-4 ml-1.5" aria-hidden="true" />
+              </Button>
+            ) : (
+              <>
                 <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  disabled={resultBlocked}
-                  onClick={() => router.push("/today")}
+                  variant="outline"
+                  onClick={() => finish(fen, "unresolved")}
+                  disabled={status === "thinking" || resultBlocked}
+                  className="min-h-[44px] flex-1 text-xs"
                 >
-                  {resultAdvanceLabel(persistenceState, "Back to Today")}
+                  I cannot convert this
                 </Button>
-              </div>
-            </CardContent>
-          </Card>
+                <Button
+                  variant="ghost"
+                  onClick={() => router.push("/today")}
+                  disabled={resultBlocked}
+                  className="text-graphite hover:text-ink min-h-[44px]"
+                >
+                  Exit
+                </Button>
+              </>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </FocusShell>
   );
 }

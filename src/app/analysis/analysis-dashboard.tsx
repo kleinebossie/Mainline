@@ -4,11 +4,18 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc/react";
 import { PageShell } from "@/components/app-shell";
-import { Card, CardContent } from "@/components/ui/card";
+import { Surface } from "@/components/ui/surface";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { StatusMessage } from "@/components/ui/status-message";
-import { ErrorNotice } from "@/components/ui/error-notice";
-import { MethodologyRationaleCard } from "@/components/methodology-rationale-card";
+import { Notice } from "@/components/ui/notice";
+import { EmptyState } from "@/components/ui/empty-state";
+import { WhyButton } from "@/components/ui/why-button";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import {
   resultLabel,
@@ -25,14 +32,13 @@ import {
 } from "@/lib/guest-session";
 
 function resultChipClass(result: string | null | undefined): string {
-  if (result === "win") return "bg-grade-a/10 text-grade-a";
-  if (result === "loss") return "bg-grade-d/10 text-grade-d";
-  return "bg-grade-c/10 text-grade-c";
+  if (result === "win") return "bg-evergreen/10 text-evergreen border border-evergreen/30";
+  if (result === "loss") return "bg-clay/10 text-clay border border-clay/30";
+  return "bg-amber/10 text-amber border border-amber/30";
 }
 
 type BatchStatus = "idle" | "running" | "error" | "partial";
 
-// The client-side Stockfish adapter type (imported lazily at call time, typed here).
 type AnalysisEngine = import("@/analysis").StockfishAnalysisEngine;
 
 interface AnalysisGameItem {
@@ -64,6 +70,8 @@ export function AnalysisDashboard() {
   );
   const [guestGames, setGuestGames] = useState<AnalysisGameItem[]>([]);
   const [isGuestSyncing, setIsGuestSyncing] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
+  const [resultFilter, setResultFilter] = useState<"all" | "win" | "loss">("all");
 
   const isGuest = me.data ? !me.data.authenticated : true;
 
@@ -89,7 +97,6 @@ export function AnalysisDashboard() {
     total: number;
   } | null>(null);
   const [batchError, setBatchError] = useState<string | null>(null);
-  // The id of the single game whose engine analysis is running (per-row "Engine analysis").
   const [analyzingGameId, setAnalyzingGameId] = useState<string | null>(null);
 
   const syncGuestAccounts = useCallback(
@@ -185,9 +192,14 @@ export function AnalysisDashboard() {
     null;
 
   const allGames = [...(library?.games ?? []), ...guestGames];
-  const games = allGames.filter(
+  const gamesForPlatform = allGames.filter(
     (g) => !selectedPlatform || g.platform === selectedPlatform,
   );
+  const games = gamesForPlatform.filter((g) => {
+    if (resultFilter === "win") return g.result === "win";
+    if (resultFilter === "loss") return g.result === "loss";
+    return true;
+  });
 
   const choosePlatform = (p: string) => {
     setPlatformOverride(p);
@@ -196,8 +208,6 @@ export function AnalysisDashboard() {
     }
   };
 
-  // Analyse one game with an already-initialised engine and persist its raw features.
-  // Shared by the batch runner and the per-game "Engine analysis" button.
   async function analyzeAndSave(
     engine: AnalysisEngine,
     game: { id: string; pgn: string; color: string | null },
@@ -229,8 +239,6 @@ export function AnalysisDashboard() {
     }
   }
 
-  // Per-game engine analysis: turn Stockfish on for ONE game (the row's "Engine analysis"
-  // button). Once its raw features are saved, the row flips to the "Analyze" review entry.
   async function runSingleAnalysis(gameId: string) {
     setAnalyzingGameId(gameId);
     setBatchError(null);
@@ -265,8 +273,6 @@ export function AnalysisDashboard() {
     }
   }
 
-  // Runs Stockfish (browser WASM) over a bounded recent window scoped to the selected
-  // platform. The caller passes either the visible game count or the explicit recent count.
   async function runBatchAnalysis(limit: number) {
     setBatchStatus("running");
     setBatchError(null);
@@ -325,330 +331,335 @@ export function AnalysisDashboard() {
 
   return (
     <PageShell
-      eyebrow="Structured game review"
       title="Review your games"
       lede="Pick one of your games, think through its critical moments before seeing engine feedback, then schedule the mistakes for review."
       width="default"
     >
-      <div className="flex flex-col gap-8">
+      <div className="flex flex-col gap-6">
         {!isGuest && suggestionsQuery.error && (
-          <ErrorNotice
-            error={suggestionsQuery.error}
+          <Notice
+            tone="error"
             heading="Review guidance unavailable"
-            message="Your games can still be reviewed, but Mainline could not load the explanation for this recommendation."
-            onRetry={() => void suggestionsQuery.refetch()}
-            retrying={suggestionsQuery.isFetching}
-            retryLabel="Reload guidance"
-          />
+          >
+            Your games can still be reviewed, but Mainline could not load the explanation for this recommendation.
+          </Notice>
         )}
-        <ManualGameImport onImported={() => setPlatformOverride("manual")} />
-        {/* Pick a game: the library, filtered by primary platform. */}
-        <section className="flex flex-col gap-4">
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div className="flex flex-col gap-0.5">
-              <h2 className="eyebrow">Your games · pick one to review</h2>
+
+        {/* Import PGN Sheet */}
+        <Sheet open={isImportOpen} onOpenChange={setIsImportOpen}>
+          <SheetContent side="responsive" className="overflow-y-auto max-h-screen">
+            <SheetHeader>
+              <SheetTitle>Import games from PGN</SheetTitle>
+              <SheetDescription>
+                Upload a PGN file or paste raw moves to analyze games in your browser.
+              </SheetDescription>
+            </SheetHeader>
+            <div className="mt-4">
+              <ManualGameImport
+                onImported={() => {
+                  setPlatformOverride("manual");
+                  void utils.analysis.library.invalidate();
+                }}
+              />
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              {platforms.length > 0 && (
-                <div
-                  role="group"
-                  aria-label="Primary platform"
-                  className="flex items-center gap-0.5 rounded-md border border-line bg-card p-0.5"
-                >
-                  {platforms.map((p) => (
-                    <button
-                      key={p}
-                      type="button"
-                      aria-pressed={selectedPlatform === p}
-                      onClick={() => choosePlatform(p)}
-                      className={cn(
-                        "min-h-8 rounded px-2.5 py-1 font-mono text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-paper",
-                        selectedPlatform === p
-                          ? "bg-evergreen text-paper"
-                          : "text-graphite hover:text-ink",
-                      )}
-                    >
-                      {platformLabel(p)}
-                    </button>
-                  ))}
-                </div>
-              )}
-              {selectedPlatform !== "manual" && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={sync.isPending || isGuestSyncing}
-                  onClick={() => void handleSync()}
-                >
-                  {sync.isPending || isGuestSyncing ? "Syncing…" : "Sync now"}
-                </Button>
-              )}
-            </div>
+          </SheetContent>
+        </Sheet>
+
+        {/* Header Actions & Controls */}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
+          <div>
+            <h2 className="font-serif text-xl sm:text-2xl font-semibold text-ink">
+              Your games
+            </h2>
+            <p className="font-mono text-xs text-graphite mt-0.5">
+              Select a game to review critical decisions and tactical mistakes.
+            </p>
           </div>
-
-          {library?.primaryPlatform == null &&
-            platforms.filter((platform) => platform !== "manual").length >
-              1 && (
-              <p className="text-graphite font-serif text-xs italic">
-                Pick Lichess or Chess.com to set a primary rating platform.
-                Manual PGN remains a library filter only.
-              </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setIsImportOpen(true)}
+            >
+              Import PGN
+            </Button>
+            {selectedPlatform !== "manual" && (
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={sync.isPending || isGuestSyncing}
+                onClick={() => void handleSync()}
+              >
+                {sync.isPending || isGuestSyncing ? "Syncing…" : "Sync now"}
+              </Button>
             )}
+          </div>
+        </div>
 
-          {!isGuest && sync.error && (
-            <ErrorNotice
-              error={sync.error}
-              heading="Games not synced"
-              message="No new games were imported. Your existing library is unchanged."
-              onRetry={() => sync.mutate()}
-              retrying={sync.isPending}
-              retryLabel="Try sync again"
-            />
-          )}
-
-          {!isGuest && setPrimary.error && (
-            <ErrorNotice
-              error={setPrimary.error}
-              heading="Platform not saved"
-              message="The game list changed for this visit, but your default platform is unchanged. Choose it again to retry."
-            />
-          )}
-
-          {selectedPlatform && games.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={batchStatus === "running" || analyzingGameId !== null}
-                onClick={() => void runBatchAnalysis(games.length)}
-              >
-                Scan all games
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={batchStatus === "running" || analyzingGameId !== null}
-                onClick={() => void runBatchAnalysis(20)}
-              >
-                Scan recent 20
-              </Button>
-              {batchStatus === "running" && (
-                <span className="text-graphite font-mono text-xs">
-                  {batchProgress
-                    ? `Scanning ${batchProgress.done}/${batchProgress.total}…`
-                    : "Starting scan…"}
-                </span>
-              )}
-              {(batchStatus === "error" || batchStatus === "partial") &&
-                batchError && (
-                  <ErrorNotice
-                    className="basis-full"
-                    heading={
-                      batchStatus === "partial"
-                        ? "Some games were not scanned"
-                        : "Game scan stopped"
-                    }
-                    message={batchError}
-                    onRetry={() => void runBatchAnalysis(games.length)}
-                    retryLabel="Scan remaining games"
-                  />
-                )}
-            </div>
-          )}
-
-          {platforms.length === 0 && games.length === 0 ? (
-            <Card className="border-line bg-card shadow-sheet">
-              <CardContent className="flex flex-col gap-5 py-6">
-                <div className="flex flex-col gap-2">
-                  <p className="eyebrow text-evergreen">
-                    Automatic game imports
-                  </p>
-                  <h3 className="font-serif text-xl font-semibold text-ink">
-                    Connect a chess account to sync your games automatically.
-                  </h3>
-                  <p className="font-serif text-sm text-graphite leading-relaxed max-w-xl">
-                    Link your Lichess or Chess.com account to automatically
-                    import your games, scan for tactical mistakes, and build
-                    your daily blunder drills.
-                  </p>
-                </div>
-                <div className="flex flex-wrap items-center gap-3 border-t border-line/80 pt-4">
-                  <Link
-                    href="/connections"
-                    className={buttonVariants({
-                      variant: "default",
-                      size: "sm",
-                    })}
-                  >
-                    Connect chess account →
-                  </Link>
-                  <Link
-                    href="/signin"
-                    className={buttonVariants({
-                      variant: "outline",
-                      size: "sm",
-                    })}
-                  >
-                    Sign in
-                  </Link>
-                </div>
-              </CardContent>
-            </Card>
-          ) : !isGuest && libraryQuery.isLoading ? (
-            <StatusMessage tone="loading">Loading your games…</StatusMessage>
-          ) : !isGuest && libraryQuery.error ? (
-            <ErrorNotice
-              error={libraryQuery.error}
-              heading="Games unavailable"
-              message="Mainline could not load your imported games. Try the list again."
-              onRetry={() => void libraryQuery.refetch()}
-              retrying={libraryQuery.isFetching}
-              retryLabel="Reload games"
-            />
-          ) : isGuestSyncing && games.length === 0 ? (
-            <StatusMessage tone="loading">
-              Fetching your recent games…
-            </StatusMessage>
-          ) : games.length === 0 ? (
-            <Card gutter="B">
-              <CardContent className="flex flex-col gap-6 py-6">
-                <div className="flex flex-col gap-2 text-center">
-                  <h3 className="font-serif text-xl font-bold text-ink">
-                    Start converting your real games into personal drills
-                  </h3>
-                  <p className="text-graphite font-serif text-sm max-w-xl mx-auto leading-relaxed">
-                    {selectedPlatform === "manual"
-                      ? "Import PGN files or paste raw game text above. Mainline scans your moves for critical blunders and queues them for interactive practice."
-                      : platforms.length === 0
-                        ? "Connect your Lichess or Chess.com username. Mainline automatically pulls your recent games, identifies tactical mistakes, and generates custom training blocks."
-                        : `No ${platformLabel(selectedPlatform)} games imported yet. Click sync below to fetch your latest games or manage connected accounts.`}
-                  </p>
-                </div>
-
-                {selectedPlatform !== "manual" && (
-                  <div className="flex flex-wrap justify-center gap-3 border-t border-line/80 pt-4">
-                    <Button
-                      size="sm"
-                      disabled={sync.isPending || isGuestSyncing}
-                      onClick={() => void handleSync()}
-                    >
-                      {sync.isPending || isGuestSyncing
-                        ? "Syncing games…"
-                        : "Sync games now"}
-                    </Button>
-                    <Link
-                      href="/connections"
-                      className={buttonVariants({
-                        variant: "outline",
-                        size: "sm",
-                      })}
-                    >
-                      {platforms.length === 0
-                        ? "Connect Lichess or Chess.com"
-                        : "Manage connected accounts"}
-                    </Link>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-2">
-              {games.map((g) => (
-                <div
-                  key={g.id}
-                  className="flex flex-col gap-3 rounded-lg border border-line bg-card px-4 py-3 shadow-sheet transition-colors hover:border-ink/20 sm:flex-row sm:items-center sm:justify-between"
+        {/* Filter Tabs & Platform Switcher */}
+        {allGames.length > 0 && (
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-1 rounded-sm border border-line bg-paper-raised p-0.5">
+              {(["all", "win", "loss"] as const).map((tab) => (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => setResultFilter(tab)}
+                  className={cn(
+                    "px-3 py-1 rounded-xs font-mono text-xs transition-colors",
+                    resultFilter === tab
+                      ? "bg-ink text-paper font-semibold"
+                      : "text-graphite hover:text-ink",
+                  )}
                 >
-                  <div className="flex min-w-0 flex-col gap-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span
-                        className={cn(
-                          "rounded px-1.5 py-0.5 font-mono text-[0.6rem] font-bold uppercase",
-                          resultChipClass(g.result),
-                        )}
-                      >
-                        {resultLabel(g.result)}
-                      </span>
-                      <span className="truncate font-serif text-sm font-semibold text-ink">
-                        {colorWord(g.color)} vs {g.opponent ?? "Opponent"}
-                        {g.opponentRating != null && (
-                          <span className="text-graphite font-mono text-xs">
-                            {" "}
-                            ({g.opponentRating})
-                          </span>
-                        )}
-                      </span>
-                      {g.analyzed && (
-                        <span className="rounded bg-evergreen/10 px-1.5 py-0.5 font-mono text-[0.55rem] font-bold uppercase tracking-wide text-evergreen">
-                          Scanned
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex flex-wrap items-center gap-x-2 text-graphite font-mono text-[0.7rem]">
-                      <span>{platformLabel(g.platform)}</span>
-                      {g.timeControl && (
-                        <>
-                          <span aria-hidden>·</span>
-                          <span>{g.timeControl}</span>
-                        </>
-                      )}
-                      <span aria-hidden>·</span>
-                      <span>{formatGameDate(g.playedAt, g.platform)}</span>
-                      {g.opening && (
-                        <>
-                          <span aria-hidden>·</span>
-                          <span className="truncate">{g.opening}</span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                  {g.analyzed ? (
-                    <Link
-                      href={`/analysis/${g.id}`}
-                      className={cn(
-                        buttonVariants({ size: "sm", variant: "default" }),
-                        "self-start shrink-0 sm:self-auto",
-                      )}
-                    >
-                      Review game
-                    </Link>
-                  ) : (
-                    // Not scanned yet — turn the engine on for just this game. Neutral
-                    // outline, so it never looks like the same control as "Review game".
+                  {tab === "all" ? "All" : tab === "win" ? "Wins" : "Losses"}
+                </button>
+              ))}
+            </div>
+
+            {platforms.length > 1 && (
+              <div
+                role="group"
+                aria-label="Filter by platform"
+                className="flex items-center gap-1 font-mono text-xs"
+              >
+                {platforms.map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    aria-pressed={selectedPlatform === p}
+                    onClick={() => choosePlatform(p)}
+                    className={cn(
+                      "px-2.5 py-1 rounded-sm border transition-colors",
+                      selectedPlatform === p
+                        ? "border-evergreen bg-evergreen/10 text-evergreen font-semibold"
+                        : "border-line text-graphite hover:text-ink",
+                    )}
+                  >
+                    {platformLabel(p)}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Scanning Controls */}
+        {selectedPlatform && games.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={batchStatus === "running" || analyzingGameId !== null}
+              onClick={() => void runBatchAnalysis(games.length)}
+            >
+              Scan all games
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={batchStatus === "running" || analyzingGameId !== null}
+              onClick={() => void runBatchAnalysis(20)}
+            >
+              Scan recent 20
+            </Button>
+            {batchStatus === "running" && (
+              <span className="font-mono text-xs text-graphite">
+                {batchProgress
+                  ? `Scanning ${batchProgress.done}/${batchProgress.total}…`
+                  : "Starting scan…"}
+              </span>
+            )}
+            {(batchStatus === "error" || batchStatus === "partial") &&
+              batchError && (
+                <Notice
+                  tone="error"
+                  heading={
+                    batchStatus === "partial"
+                      ? "Some games were not scanned"
+                      : "Game scan stopped"
+                  }
+                  className="basis-full"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <span>{batchError}</span>
                     <Button
                       size="sm"
                       variant="outline"
-                      className="self-start shrink-0 sm:self-auto"
-                      disabled={
-                        analyzingGameId !== null || batchStatus === "running"
-                      }
-                      onClick={() => void runSingleAnalysis(g.id)}
+                      onClick={() => void runBatchAnalysis(games.length)}
                     >
-                      {analyzingGameId === g.id ? "Scanning…" : "Scan game"}
+                      Scan remaining games
                     </Button>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
+                  </div>
+                </Notice>
+              )}
+          </div>
+        )}
 
-        {/* Honest one-line recommendation (Seam 4.1 §Step5): no curated list, since the
-            player can already pick any game above. */}
+        {/* Empty State */}
+        {platforms.length === 0 && games.length === 0 ? (
+          <EmptyState
+            message="Connect a chess account to sync your games automatically, or import a PGN to analyze games right now."
+            action={
+              <div className="flex flex-wrap items-center justify-center gap-3">
+                <Link
+                  href="/connections"
+                  className={buttonVariants({
+                    variant: "default",
+                    size: "sm",
+                  })}
+                >
+                  Connect chess account
+                </Link>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsImportOpen(true)}
+                >
+                  Add game from PGN
+                </Button>
+              </div>
+            }
+          />
+        ) : !isGuest && libraryQuery.isLoading ? (
+          <Notice tone="loading">Loading your games…</Notice>
+        ) : !isGuest && libraryQuery.error ? (
+          <Notice
+            tone="error"
+            heading="Games unavailable"
+          >
+            Mainline could not load your imported games. Try loading them again.
+          </Notice>
+        ) : isGuestSyncing && games.length === 0 ? (
+          <Notice tone="loading">Fetching your recent games…</Notice>
+        ) : games.length === 0 ? (
+          <EmptyState
+            message={
+              selectedPlatform === "manual"
+                ? "No manual PGN games imported yet. Click Import PGN above to add games."
+                : `No ${resultFilter === "win" ? "won" : resultFilter === "loss" ? "lost" : ""} games found for ${platformLabel(selectedPlatform)}.`
+            }
+            action={
+              selectedPlatform === "manual" ? (
+                <Button
+                  size="sm"
+                  onClick={() => setIsImportOpen(true)}
+                >
+                  Import PGN
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setResultFilter("all")}
+                >
+                  Show all games
+                </Button>
+              )
+            }
+          />
+        ) : (
+          <div className="grid gap-2">
+            {games.map((g) => (
+              <Surface
+                key={g.id}
+                className="flex flex-col gap-3 p-4 transition-colors hover:border-ink/20 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div className="flex min-w-0 flex-col gap-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span
+                      className={cn(
+                        "rounded-xs px-1.5 py-0.5 font-mono text-[0.65rem] font-bold uppercase",
+                        resultChipClass(g.result),
+                      )}
+                    >
+                      {resultLabel(g.result)}
+                    </span>
+                    <span className="truncate font-serif text-sm font-semibold text-ink">
+                      {colorWord(g.color)} vs {g.opponent ?? "Opponent"}
+                      {g.opponentRating != null && (
+                        <span className="font-mono text-xs text-graphite">
+                          {" "}
+                          ({g.opponentRating})
+                        </span>
+                      )}
+                    </span>
+                    {g.analyzed && (
+                      <span className="rounded-xs bg-evergreen/10 px-1.5 py-0.5 font-mono text-[0.6rem] font-bold uppercase tracking-wider text-evergreen">
+                        Scanned
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-x-2 font-mono text-[0.7rem] text-graphite">
+                    <span>{platformLabel(g.platform)}</span>
+                    {g.timeControl && (
+                      <>
+                        <span aria-hidden>·</span>
+                        <span>{g.timeControl}</span>
+                      </>
+                    )}
+                    <span aria-hidden>·</span>
+                    <span>{formatGameDate(g.playedAt, g.platform)}</span>
+                    {g.opening && (
+                      <>
+                        <span aria-hidden>·</span>
+                        <span className="truncate">{g.opening}</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                {g.analyzed ? (
+                  <Link
+                    href={`/analysis/${g.id}`}
+                    className={cn(
+                      buttonVariants({ size: "sm", variant: "default" }),
+                      "self-start shrink-0 sm:self-auto bg-evergreen hover:bg-evergreen-bright text-paper",
+                    )}
+                  >
+                    Review game
+                  </Link>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="self-start shrink-0 sm:self-auto"
+                    disabled={
+                      analyzingGameId !== null || batchStatus === "running"
+                    }
+                    onClick={() => void runSingleAnalysis(g.id)}
+                  >
+                    {analyzingGameId === g.id ? "Scanning…" : "Scan game"}
+                  </Button>
+                )}
+              </Surface>
+            ))}
+          </div>
+        )}
+
+        {/* Win/Loss Balance Rationale */}
         {ratio && successBiasRationale && (
-          <section className="flex flex-col gap-3 rounded-lg border border-line bg-card px-5 py-4 shadow-sheet">
-            <p className="text-ink font-serif text-sm leading-relaxed">
-              When picking a game above, aim for roughly{" "}
+          <Surface className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <p className="font-sans text-sm text-ink leading-relaxed">
+              When picking games to review, aim for roughly{" "}
               <span className="font-mono font-semibold">
                 {ratio.winPct}% wins
               </span>{" "}
               to{" "}
               <span className="font-mono font-semibold">
                 {ratio.lossPct}% losses
-              </span>{" "}
+              </span>
               : {ratio.focusDescription}.
             </p>
-            <MethodologyRationaleCard rationale={successBiasRationale} />
-          </section>
+            <WhyButton
+              rationaleText={successBiasRationale.value}
+              evidenceGrade={successBiasRationale.grade}
+              evidenceTier={successBiasRationale.tier}
+              citationKey={successBiasRationale.citationKey}
+              soften={successBiasRationale.soften}
+              flag={successBiasRationale.flag}
+              label="Why this ratio?"
+            />
+          </Surface>
         )}
       </div>
     </PageShell>

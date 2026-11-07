@@ -2,27 +2,31 @@ import * as React from "react";
 import type { EvidenceGrade } from "@/components/evidence";
 import { cn } from "@/lib/utils";
 
-export interface SurfaceProps extends React.ComponentProps<"div"> {
+export interface SurfaceProps extends React.HTMLAttributes<HTMLDivElement> {
+  as?: "div" | "section" | "article" | "aside";
   gutter?: EvidenceGrade;
   provisional?: boolean;
   raised?: boolean;
 }
 
 const Surface = React.forwardRef<HTMLDivElement, SurfaceProps>(
-  ({ className, gutter, provisional, raised = true, ...props }, ref) => (
-    <div
-      ref={ref}
-      data-grade={gutter}
-      data-provisional={provisional ? "true" : undefined}
-      className={cn(
-        "rounded-md border border-line text-ink transition-colors",
-        raised ? "bg-paper-raised" : "bg-paper",
-        gutter && "eval-gutter",
-        className,
-      )}
-      {...props}
-    />
-  ),
+  ({ as: Component = "div", className, gutter, provisional, raised = true, ...props }, ref) => {
+    const Tag = Component as "div";
+    return (
+      <Tag
+        ref={ref}
+        data-grade={gutter}
+        data-provisional={provisional ? "true" : undefined}
+        className={cn(
+          "rounded-md border border-line text-ink transition-colors",
+          raised ? "bg-paper-raised" : "bg-paper",
+          gutter && "eval-gutter",
+          className,
+        )}
+        {...props}
+      />
+    );
+  },
 );
 Surface.displayName = "Surface";
 

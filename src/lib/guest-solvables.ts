@@ -1,7 +1,7 @@
 // Standalone solvable puzzle and drill fixtures for guest training mode (BETA_PRIORITIZATION_PLAN.md §3.2).
 // Allows guest visitors to complete real interactive drills in the browser without database dependencies.
 
-import type { GuestProgramItem } from "@/lib/guest-session";
+import { getGuestSession, type GuestProgramItem } from "@/lib/guest-session";
 
 export interface GuestSolvable {
   kind: "puzzle" | "blunder_drill";
@@ -91,7 +91,7 @@ const GUEST_FIXTURES: Record<string, GuestSolvable[]> = {
       kind: "blunder_drill",
       id: "guest_blunder_2",
       fen: "r1bqk2r/pppp1ppp/2n5/4p3/1b2n3/2NP1N2/PPP1BPPP/R1BQK2R w KQkq - 0 6",
-      line: ["c3e4"],
+      line: ["d3e4"],
       rating: 1450,
       themes: ["hangingPiece"],
     },
@@ -200,6 +200,30 @@ export function getGuestTrainItemData(item: GuestProgramItem): GuestTrainData {
       restrictionRationaleKey: "affordance_restriction",
     },
     restrictionRationale: null,
-    nextItem: null,
+    nextItem: (() => {
+      if (typeof window === "undefined") return null;
+      try {
+        const session = getGuestSession();
+        const items = session.program?.items ?? [];
+        const currentIdx = items.findIndex((it) => it.id === item.id);
+        if (currentIdx < 0) return null;
+        const nextPending = items
+          .slice(currentIdx + 1)
+          .find((it) => it.status !== "done" && it.status !== "skipped");
+        if (!nextPending) return null;
+        return {
+          id: nextPending.id,
+          orderIndex: nextPending.orderIndex,
+          label: nextPending.label,
+          url: `/train/${nextPending.id}`,
+          externalUrl: null,
+          delivery: "internal" as const,
+          activityType: nextPending.activityType,
+          estMinutes: nextPending.estMinutes,
+        };
+      } catch {
+        return null;
+      }
+    })(),
   };
 }

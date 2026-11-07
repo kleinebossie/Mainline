@@ -5,7 +5,7 @@ import {
   DEMO_ENDGAME_FEN,
   DEMO_PUZZLE_FEN,
   DEMO_PUZZLE_SOLUTION,
-} from "@/app/train/train-demo-fixtures";
+} from "../../fixtures/train-demo-fixtures";
 import {
   classifyTerminal,
   endgamePlayerColor,

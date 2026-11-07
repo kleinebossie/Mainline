@@ -35,9 +35,13 @@
     /* Board tokens */
     --board-light: #E7ECE4;
     --board-dark: #7B9B8A;
+    --board-coord-light: #5E7A6B;
+    --board-coord-dark: #D2DAD0;
     --board-highlight: rgba(46, 107, 80, 0.26);
     --board-correct: rgba(46, 107, 80, 0.35);
+    --board-correct-solid: #2E6B50;
     --board-mistake: rgba(168, 69, 47, 0.35);
+    --board-mistake-solid: #A8452F;
 
     /* Evidence grade ramp (chess annotation grammar) */
     --grade-a: var(--evergreen);
@@ -95,9 +99,13 @@
     /* Board tokens (Dark) */
     --board-light: #4A565C;
     --board-dark: #273731;
+    --board-coord-light: #25332E;
+    --board-coord-dark: #8C999F;
     --board-highlight: rgba(74, 155, 118, 0.35);
     --board-correct: rgba(74, 155, 118, 0.40);
+    --board-correct-solid: #4A9B76;
     --board-mistake: rgba(224, 109, 83, 0.40);
+    --board-mistake-solid: #E06D53;
 
     /* Evidence grade ramp (Dark) */
     --grade-a: var(--evergreen);

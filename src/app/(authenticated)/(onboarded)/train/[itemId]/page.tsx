@@ -1,4 +1,3 @@
-import { PageShell } from "@/components/app-shell";
 import { TrainItem } from "@/app/train/[itemId]/train-item";
 
 interface TrainItemPageProps {
@@ -8,9 +7,5 @@ interface TrainItemPageProps {
 export default async function TrainItemPage({ params }: TrainItemPageProps) {
   const { itemId } = await params;
 
-  return (
-    <PageShell width="wide">
-      <TrainItem programItemId={itemId} />
-    </PageShell>
-  );
+  return <TrainItem programItemId={itemId} />;
 }

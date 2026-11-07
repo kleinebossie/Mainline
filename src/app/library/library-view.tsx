@@ -1,63 +1,114 @@
 "use client";
 
-import type { ReactNode } from "react";
-
+import { useState } from "react";
+import { Check } from "lucide-react";
 import { trpc } from "@/lib/trpc/react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { asEvidenceGrade, GradeMark } from "@/components/evidence";
+import { Surface } from "@/components/ui/surface";
+import { Notice } from "@/components/ui/notice";
+import { asEvidenceGrade } from "@/components/evidence";
+import { WhyButton } from "@/components/ui/why-button";
 import {
-  TransparencyCard,
-  TransparencyCardGroup,
-  type TransparencyCardItem,
-} from "@/components/transparency-card";
-import { StatusMessage } from "@/components/ui/status-message";
-import { ErrorNotice } from "@/components/ui/error-notice";
-import type { GradedCopy, LibraryView } from "@/server/library";
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { cn } from "@/lib/utils";
+import type { LibraryView } from "@/server/library";
 
-// The "Library" client (BUILD.md M14). Renders the deliberately-external layer: graded book
-// recommendations (with the cognitive-load block rule already applied server-side), the
-// book-study protocol, the 2D/3D modality + OTB guidance (gated by the user's play medium),
-// and rolled-up progress. Study-session logging lives on Today, where scheduled external
-// work is completed. Every recommendation shows how strong its evidence is: never a rating promise.
+type Protocol = LibraryView["protocol"];
 
-/** A graded "why" block rendered as the brand's TransparencyCard (confidence is a band prior). */
-function Why({
-  copy,
-  defaultCollapsed,
-}: {
-  copy: GradedCopy;
-  defaultCollapsed?: boolean;
-}) {
-  return (
-    <TransparencyCard
-      rationaleText={copy.text}
-      evidenceGrade={copy.grade}
-      evidenceTier={copy.tier}
-      citationKey={copy.citationKey}
-      citationSource={copy.citationSource}
-      confidence="low"
-      soften={copy.soften}
-      flag={copy.flag}
-      defaultCollapsed={defaultCollapsed}
-    />
-  );
-}
-
-function whyItem(title: string, copy: GradedCopy): TransparencyCardItem {
+function categoryCoverStyle(category: string): { bg: string; text: string; border: string; accent: string } {
+  const c = category.toLowerCase();
+  if (c.includes("tactic") || c.includes("puzzle")) {
+    return {
+      bg: "bg-[#1E4333]",
+      text: "text-[#EEF0EA]",
+      border: "border-[#2E6B50]",
+      accent: "text-[#5DC092]",
+    };
+  }
+  if (c.includes("endgame")) {
+    return {
+      bg: "bg-[#332214]",
+      text: "text-[#F8F9F5]",
+      border: "border-[#8C5C15]",
+      accent: "text-[#E5AD5A]",
+    };
+  }
+  if (c.includes("calculation") || c.includes("blunder")) {
+    return {
+      bg: "bg-[#361914]",
+      text: "text-[#F8F9F5]",
+      border: "border-[#A8452F]",
+      accent: "text-[#E06D53]",
+    };
+  }
   return {
-    title,
-    rationaleText: copy.text,
-    evidenceGrade: copy.grade,
-    evidenceTier: copy.tier,
-    citationKey: copy.citationKey,
-    citationSource: copy.citationSource,
-    confidence: "low",
-    soften: copy.soften,
-    flag: copy.flag,
+    bg: "bg-[#1A2226]",
+    text: "text-[#ECEEE9]",
+    border: "border-[#3A464E]",
+    accent: "text-[#9BA2A8]",
   };
 }
 
-type Protocol = LibraryView["protocol"];
+function BookCover({
+  book,
+  onClick,
+}: {
+  book: LibraryView["books"][number];
+  onClick: () => void;
+}) {
+  const style = categoryCoverStyle(book.category);
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "group relative flex flex-col justify-between rounded-sm border p-4 text-left transition-all duration-200 aspect-[3/4] hover:-translate-y-1 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer",
+        style.bg,
+        style.border,
+        style.text,
+      )}
+    >
+      {/* Top: Category & Owned Badge */}
+      <div className="flex items-center justify-between gap-2">
+        <span
+          className={cn(
+            "font-mono text-[0.62rem] uppercase tracking-wider",
+            style.accent,
+          )}
+        >
+          {book.category}
+        </span>
+        {book.owned && (
+          <span className="flex items-center gap-1 rounded-xs bg-evergreen px-1.5 py-0.5 font-mono text-[0.58rem] font-semibold uppercase tracking-wider text-paper">
+            <Check className="h-2.5 w-2.5" />
+            Owned
+          </span>
+        )}
+      </div>
+
+      {/* Center: Typographic Title */}
+      <div className="my-auto py-2">
+        <h3 className="font-serif text-lg sm:text-xl font-bold leading-snug line-clamp-3">
+          {book.title}
+        </h3>
+        <p className="mt-2 font-sans text-xs opacity-80">
+          {book.author}
+        </p>
+      </div>
+
+      {/* Bottom: Evidence & Prompt */}
+      <div className="flex items-center justify-between border-t border-white/10 pt-2 font-mono text-[0.65rem] opacity-75">
+        <span>Grade {book.evidenceGrade}</span>
+        <span className="group-hover:underline">Open details →</span>
+      </div>
+    </button>
+  );
+}
 
 function ProtocolStep({
   step,
@@ -66,19 +117,19 @@ function ProtocolStep({
 }: {
   step: number;
   title: string;
-  children: ReactNode;
+  children: React.ReactNode;
 }) {
   return (
-    <li className="flex flex-col gap-1 border-b border-line/70 pb-4 last:border-b-0">
+    <li className="flex flex-col gap-1 border-b border-line pb-4 last:border-b-0 last:pb-0">
       <div className="flex items-baseline gap-2">
-        <span className="eyebrow !text-[0.62rem] text-evergreen shrink-0">
+        <span className="font-mono text-xs font-semibold text-evergreen shrink-0">
           Step {step}
         </span>
-        <h3 className="text-ink font-serif text-base font-semibold leading-snug">
+        <h4 className="text-ink font-serif text-base font-semibold leading-snug">
           {title}
-        </h3>
+        </h4>
       </div>
-      <div className="text-graphite font-serif text-sm leading-relaxed mt-0.5">
+      <div className="text-graphite font-sans text-sm leading-relaxed mt-0.5">
         {children}
       </div>
     </li>
@@ -89,252 +140,258 @@ function BookStudyProtocol({ protocol }: { protocol: Protocol }) {
   const hasWoodpecker = protocol.woodpecker.cycles.length > 0;
 
   return (
-    <Card gutter={asEvidenceGrade(protocol.activeRecall.grade)}>
-      <CardHeader>
-        <CardTitle>How to study a book</CardTitle>
-        <p className="text-graphite font-serif text-sm leading-relaxed">
-          Use the book you own. Mainline gives the workflow and the log; the
-          actual pages stay in the book.
+    <Surface gutter={asEvidenceGrade(protocol.activeRecall.grade)} className="p-5 sm:p-6 flex flex-col gap-5">
+      <div>
+        <h3 className="font-serif text-xl font-semibold text-ink">
+          How to study a book
+        </h3>
+        <p className="text-graphite font-sans text-sm leading-relaxed mt-1">
+          Use the physical or digital book you own. Mainline gives the active
+          recall protocol and the reading log.
         </p>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-6">
-        <ol className="flex flex-col gap-4">
-          <ProtocolStep step={1} title="Pick today's unit">
-            Follow the book&apos;s own chapter, exercise, or game order. Stop
-            when the assigned session time is done; do not turn it into a
-            marathon.
-          </ProtocolStep>
-          <ProtocolStep step={2} title="Cover the answer">
-            Set the position, hide the solution, and calculate before reading.
-            Say or write your candidate move and plan, then check after up to{" "}
-            <span className="text-ink font-mono tabular-nums">
-              {protocol.activeRecall.timeLimitMin} min
-            </span>
-            .
-          </ProtocolStep>
-          <ProtocolStep step={3} title="Check and mark outcome">
-            Mark the attempt as correct, almost, or missed, or log a success
-            percentage. Aim for{" "}
-            <span className="text-ink font-mono tabular-nums">
-              {protocol.calibration.targetPct}%
-            </span>{" "}
-            success. Below{" "}
-            <span className="text-ink font-mono tabular-nums">
-              {protocol.calibration.lowerPct}%
-            </span>{" "}
-            suggests the book may be too hard; above{" "}
-            <span className="text-ink font-mono tabular-nums">
-              {protocol.calibration.upperPct}%
-            </span>{" "}
-            suggests it may be too easy.
-          </ProtocolStep>
-          <ProtocolStep step={4} title="Log the position">
-            Record the chapter, exercise or game number, minutes, and success
-            rate. For tactics workbooks, add the Woodpecker cycle number so the
-            next repeat stays in sequence.
-          </ProtocolStep>
-          {hasWoodpecker && (
-            <ProtocolStep step={5} title="Use spaced Woodpecker cycles">
-              A Woodpecker cycle means re-solving the same set later, faster:
-              work through it carefully first, then repeat it after spaced gaps
-              with a tighter clock. This builds fluency and pattern recognition;
-              it is not proof of rating gain.
-            </ProtocolStep>
-          )}
-        </ol>
+      </div>
 
+      <ol className="flex flex-col gap-4">
+        <ProtocolStep step={1} title="Pick today's unit">
+          Follow the book&apos;s chapter or exercise order. Stop when the session
+          time finishes; do not turn it into a marathon.
+        </ProtocolStep>
+        <ProtocolStep step={2} title="Cover the answer">
+          Set up the position, cover the solution, and calculate before reading.
+          Write your candidate moves, then check after up to{" "}
+          <span className="font-mono font-semibold text-ink">
+            {protocol.activeRecall.timeLimitMin} min
+          </span>
+          .
+        </ProtocolStep>
+        <ProtocolStep step={3} title="Check and mark outcome">
+          Check the solution. Aim for{" "}
+          <span className="font-mono font-semibold text-ink">
+            {protocol.calibration.targetPct}%
+          </span>{" "}
+          accuracy. Below {protocol.calibration.lowerPct}% suggests the book may
+          be too hard; above {protocol.calibration.upperPct}% suggests it may be
+          too easy.
+        </ProtocolStep>
+        <ProtocolStep step={4} title="Log progress">
+          Record chapter, exercise number, minutes, and accuracy in Today&apos;s
+          reading log.
+        </ProtocolStep>
         {hasWoodpecker && (
-          <div className="border-evergreen/30 bg-evergreen/5 rounded-md border p-4">
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h3 className="font-serif text-base font-semibold">
-                Woodpecker spacing
-              </h3>
-              <span className="text-graphite font-mono text-[0.7rem] uppercase tracking-[0.12em]">
-                at least {protocol.woodpecker.recommendedMinCycles} cycles
-              </span>
-            </div>
-            <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {protocol.woodpecker.cycles.map((cycle) => (
-                <div
-                  key={cycle.cycle}
-                  className="rounded-sm border border-line/80 bg-paper/70 px-3 py-2"
-                >
-                  <p className="text-ink font-mono text-xs tabular-nums">
-                    Cycle {cycle.cycle}
-                  </p>
-                  <p className="text-graphite mt-1 font-serif text-sm">
-                    Re-solve after {cycle.intervalDays} day
-                    {cycle.intervalDays === 1 ? "" : "s"}.
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
+          <ProtocolStep step={5} title="Apply Woodpecker cycles">
+            Re-solve the same exercise set later with faster target times to
+            crystallize visual pattern recognition.
+          </ProtocolStep>
         )}
+      </ol>
 
-        <TransparencyCardGroup
-          items={[
-            whyItem("Active recall", protocol.activeRecall),
-            whyItem("Difficulty calibration", protocol.calibration),
-            whyItem("Woodpecker cycles", protocol.woodpecker),
-          ]}
+      <div className="pt-2 border-t border-line">
+        <WhyButton
+          rationaleText={protocol.activeRecall.text}
+          evidenceGrade={protocol.activeRecall.grade}
+          evidenceTier={protocol.activeRecall.tier}
+          citationKey={protocol.activeRecall.citationKey}
+          citationSource={protocol.activeRecall.citationSource}
+          label="Why active book recall?"
         />
-      </CardContent>
-    </Card>
+      </div>
+    </Surface>
   );
 }
 
 export function Library() {
   const library = trpc.library.get.useQuery();
+  const [selectedBook, setSelectedBook] = useState<LibraryView["books"][number] | null>(null);
 
   if (library.isLoading) {
-    return <StatusMessage tone="loading">Loading your library…</StatusMessage>;
+    return <Notice tone="loading">Loading your library…</Notice>;
   }
+
   if (library.error) {
     return (
-      <ErrorNotice
-        error={library.error}
-        heading="Library unavailable"
-        message="Mainline could not load your recommendations. Try the library again."
-        onRetry={() => void library.refetch()}
-        retrying={library.isFetching}
-        retryLabel="Reload library"
-      />
+      <Notice tone="error" heading="Library unavailable">
+        Mainline could not load book recommendations. Try refreshing the page.
+      </Notice>
     );
   }
+
   const data = library.data;
   if (!data) {
     return (
-      <StatusMessage tone="neutral" heading="Library not tailored yet">
-        Finish setup first; we tailor these to your level and how you play.
-      </StatusMessage>
+      <Notice tone="neutral" heading="Library not tailored yet">
+        Finish setup first to see recommendations tailored to your level and format.
+      </Notice>
     );
   }
 
+  // Sort owned books first (decision 30)
+  const sortedBooks = [...data.books].sort((a, b) => {
+    if (a.owned && !b.owned) return -1;
+    if (!a.owned && b.owned) return 1;
+    return 0;
+  });
+
   return (
     <div className="flex flex-col gap-8">
-      <p className="text-graphite font-mono text-xs">
-        Tailored to your level (
-        <span className="text-ink">{data.bandLabel}</span>) and how you play (
-        <span className="text-ink capitalize">{data.targetFocus}</span>).
-      </p>
+      <div className="border-b border-line pb-4">
+        <p className="font-mono text-xs text-graphite">
+          Curated reading and study protocols tailored to your level (
+          <span className="text-ink font-semibold">{data.bandLabel}</span>) and format (
+          <span className="text-ink font-semibold capitalize">{data.targetFocus}</span>).
+        </p>
+      </div>
 
-      {/* --- 2D/3D modality + over-the-board calibration (gated by play medium) --- */}
+      {/* Book Shelf (Decision 30) */}
       <section className="flex flex-col gap-4">
-        <h2 className="font-serif text-2xl font-semibold tracking-tight">
-          Screen vs. board
-        </h2>
-        <Card gutter={asEvidenceGrade(data.modality.split.grade)}>
-          <CardHeader>
-            <CardTitle className="flex flex-wrap items-baseline justify-between gap-3">
-              <span>Your modality split</span>
-              <span className="text-graphite font-mono text-sm tabular-nums">
-                {data.modality.digitalPct}% screen · {data.modality.physicalPct}
-                % board
-              </span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            {data.modality.surfacePhysical ? (
-              <>
-                <p className="text-ink font-serif text-sm leading-relaxed">
-                  {data.modality.physicalBoardAdvice}
-                </p>
-                <div className="border-l-2 border-evergreen/40 pl-3">
-                  <p className="eyebrow !text-[0.62rem]">
-                    Over-the-board tournament simulation
-                  </p>
-                  <p className="text-ink mt-1 font-serif text-sm leading-relaxed">
-                    {data.modality.otbCadence}
-                  </p>
-                </div>
-              </>
-            ) : (
-              <p className="text-graphite font-serif text-sm leading-relaxed">
-                You train online, so a screen-first split is right: it maximises
-                how many patterns you see per hour. If you ever play
-                over-the-board, switch your play medium in Setup and we&apos;ll
-                add physical-board work.
-              </p>
-            )}
-            {data.modality.surfacePhysical ? (
-              <TransparencyCardGroup
-                items={[
-                  whyItem("Modality split", data.modality.split),
-                  whyItem("Tournament simulation", data.modality.otb),
-                ]}
+        <div>
+          <h2 className="font-serif text-xl sm:text-2xl font-semibold text-ink">
+            Recommended books
+          </h2>
+          <p className="text-graphite font-sans text-sm mt-0.5">
+            Select a book to inspect study instructions, scientific rationale, and reading logs.
+          </p>
+        </div>
+
+        {sortedBooks.length === 0 ? (
+          <Notice tone="neutral">
+            No book recommendations are available for your current rating band yet.
+          </Notice>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            {sortedBooks.map((b) => (
+              <BookCover
+                key={b.id}
+                book={b}
+                onClick={() => setSelectedBook(b)}
               />
-            ) : (
-              <Why copy={data.modality.split} />
-            )}
-          </CardContent>
-        </Card>
+            ))}
+          </div>
+        )}
       </section>
 
-      {/* --- Book-study protocol --- */}
+      {/* Book Detail Sheet */}
+      <Sheet open={selectedBook !== null} onOpenChange={(open) => !open && setSelectedBook(null)}>
+        {selectedBook && (
+          <SheetContent side="responsive" className="flex flex-col gap-5 overflow-y-auto max-h-screen">
+            <SheetHeader>
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-xs uppercase tracking-wider text-graphite">
+                  {selectedBook.category}
+                </span>
+                {selectedBook.owned && (
+                  <span className="rounded-xs bg-evergreen px-1.5 py-0.5 font-mono text-[0.62rem] font-semibold uppercase text-paper">
+                    Owned
+                  </span>
+                )}
+              </div>
+              <SheetTitle className="text-xl sm:text-2xl">
+                {selectedBook.title}
+              </SheetTitle>
+              <SheetDescription>
+                By {selectedBook.author}
+              </SheetDescription>
+            </SheetHeader>
+
+            <div className="flex flex-col gap-4 text-sm text-ink leading-relaxed">
+              <div className="rounded-md border border-line bg-paper-raised p-4">
+                <h4 className="font-serif text-sm font-semibold text-ink">
+                  Why this book?
+                </h4>
+                <p className="mt-1 text-graphite font-sans text-sm">
+                  {selectedBook.why}
+                </p>
+                <div className="mt-3">
+                  <WhyButton
+                    rationaleText={selectedBook.why}
+                    evidenceGrade={selectedBook.evidenceGrade}
+                    evidenceTier={selectedBook.evidenceTier}
+                    label="View methodology citations"
+                  />
+                </div>
+              </div>
+
+              <div className="rounded-md border border-line bg-paper-raised p-4">
+                <h4 className="font-serif text-sm font-semibold text-ink">
+                  How to train with this book
+                </h4>
+                <p className="mt-1 text-graphite font-sans text-sm leading-relaxed">
+                  Set up positions on a real board or screen. Hide the solution, calculate candidate moves, and record your accuracy in Today&apos;s book log.
+                </p>
+              </div>
+            </div>
+          </SheetContent>
+        )}
+      </Sheet>
+
+      {/* Screen vs Board Modality */}
+      <section className="flex flex-col gap-4">
+        <h2 className="font-serif text-xl sm:text-2xl font-semibold text-ink">
+          Screen vs board
+        </h2>
+        <Surface gutter={asEvidenceGrade(data.modality.split.grade)} className="p-5 sm:p-6 flex flex-col gap-4">
+          <div className="flex flex-wrap items-baseline justify-between gap-3">
+            <h3 className="font-serif text-lg font-semibold text-ink">
+              Your modality split
+            </h3>
+            <span className="font-mono text-sm text-graphite tabular-nums">
+              {data.modality.digitalPct}% screen · {data.modality.physicalPct}% board
+            </span>
+          </div>
+
+          {data.modality.surfacePhysical ? (
+            <>
+              <p className="text-ink font-sans text-sm leading-relaxed">
+                {data.modality.physicalBoardAdvice}
+              </p>
+              <div className="border-l-2 border-evergreen/40 pl-3">
+                <p className="font-mono text-xs uppercase tracking-wider text-evergreen">
+                  Tournament simulation
+                </p>
+                <p className="text-ink mt-1 font-sans text-sm leading-relaxed">
+                  {data.modality.otbCadence}
+                </p>
+              </div>
+            </>
+          ) : (
+            <p className="text-graphite font-sans text-sm leading-relaxed">
+              You train online, so a screen-first split is right: it maximizes
+              how many tactical patterns you see per hour. If you ever play
+              over-the-board, switch your play medium in Settings to add
+              physical board drills.
+            </p>
+          )}
+
+          <div className="pt-2 border-t border-line">
+            <WhyButton
+              rationaleText={data.modality.split.text}
+              evidenceGrade={data.modality.split.grade}
+              evidenceTier={data.modality.split.tier}
+              citationKey={data.modality.split.citationKey}
+              citationSource={data.modality.split.citationSource}
+              label="Why this modality split?"
+            />
+          </div>
+        </Surface>
+      </section>
+
+      {/* Book Study Protocol */}
       <section className="flex flex-col gap-4">
         <BookStudyProtocol protocol={data.protocol} />
       </section>
 
-      {/* --- Recommended books --- */}
-      <section className="flex flex-col gap-4">
-        <h2 className="font-serif text-2xl font-semibold tracking-tight">
-          Recommended for you
-        </h2>
-        <p className="text-graphite font-serif text-sm leading-relaxed -mt-2">
-          We never host these. They stay where you bought or borrowed them.
-          Books that would overload your level are left out on purpose.
-        </p>
-        {data.books.length === 0 ? (
-          <StatusMessage tone="neutral" heading="No recommendations yet">
-            There are no book recommendations for your current setup yet.
-          </StatusMessage>
-        ) : (
-          data.books.map((b) => (
-            <Card
-              key={b.id}
-              gutter={asEvidenceGrade(b.evidenceGrade)}
-              provisional
-            >
-              <CardHeader className="pb-3">
-                <CardTitle className="flex flex-wrap items-baseline justify-between gap-2">
-                  <span>{b.title}</span>
-                  {b.owned && (
-                    <span className="text-evergreen border-evergreen/40 bg-evergreen/10 rounded-sm border px-2 py-0.5 font-mono text-[0.62rem] uppercase tracking-wide">
-                      You own this
-                    </span>
-                  )}
-                </CardTitle>
-                <p className="text-graphite mt-1 font-mono text-xs">
-                  {b.author} · {b.category}
-                </p>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-3">
-                <p className="text-ink font-serif text-sm leading-relaxed">
-                  {b.why}
-                </p>
-                <div className="flex flex-wrap items-center gap-3">
-                  <GradeMark grade={b.evidenceGrade} tier={b.evidenceTier} />
-                </div>
-              </CardContent>
-            </Card>
-          ))
-        )}
-      </section>
-
-      {/* --- Progress --- */}
+      {/* Reading Progress */}
       {data.progress.length > 0 && (
         <section className="flex flex-col gap-4">
-          <h2 className="font-serif text-2xl font-semibold tracking-tight">
-            Your progress
+          <h2 className="font-serif text-xl sm:text-2xl font-semibold text-ink">
+            Reading progress
           </h2>
-          {data.progress.map((p) => (
-            <Card key={p.resourceRefId}>
-              <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-6">
+          <div className="grid gap-3 sm:grid-cols-2">
+            {data.progress.map((p) => (
+              <Surface key={p.resourceRefId} className="p-4 flex flex-col justify-between gap-3">
                 <div>
-                  <p className="text-ink font-serif text-sm font-medium">
+                  <h3 className="text-ink font-serif text-sm font-semibold">
                     {p.title ?? p.resourceRefId}
-                  </p>
+                  </h3>
                   <p className="text-graphite mt-1 font-mono text-xs">
                     {p.sessions} session{p.sessions === 1 ? "" : "s"}
                     {p.totalMinutes > 0 && ` · ${p.totalMinutes} min`}
@@ -344,18 +401,16 @@ export function Library() {
                       ` · ${p.position.unitCount} ${
                         p.studyUnit === "games" ? "games" : "exercises"
                       }`}
-                    {p.woodpeckerCycle != null &&
-                      ` · cycle ${p.woodpeckerCycle}`}
                   </p>
                 </div>
                 {p.lastSuccessRate != null && (
-                  <span className="text-graphite font-mono text-xs tabular-nums">
-                    last {Math.round(p.lastSuccessRate * 100)}%
+                  <span className="font-mono text-xs text-evergreen font-semibold">
+                    Accuracy: {Math.round(p.lastSuccessRate * 100)}%
                   </span>
                 )}
-              </CardContent>
-            </Card>
-          ))}
+              </Surface>
+            ))}
+          </div>
         </section>
       )}
     </div>

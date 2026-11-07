@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 
 import { trpc } from "@/lib/trpc/react";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Surface } from "@/components/ui/surface";
 import { GradeMark, type EvidenceGrade } from "@/components/evidence";
 import { TransparencyCardGroup } from "@/components/transparency-card";
 import { StatusMessage } from "@/components/ui/status-message";
@@ -198,10 +198,10 @@ export function Reveal() {
 
   if (!completed || !estimate) {
     return (
-      <Card className="settle border-line bg-card shadow-sheet p-6 sm:p-8">
+      <Surface className="settle p-6 sm:p-8">
         <div className="flex flex-col gap-5">
           <div>
-            <p className="eyebrow text-evergreen">Step 4 of setup</p>
+            <p className="font-mono text-xs uppercase tracking-wider text-evergreen">Step 4 of setup</p>
             <h2 className="font-serif text-2xl sm:text-3xl font-semibold mt-1">
               Tactical calibration not completed yet
             </h2>
@@ -229,7 +229,7 @@ export function Reveal() {
             </Link>
           </div>
         </div>
-      </Card>
+      </Surface>
     );
   }
 
@@ -261,20 +261,20 @@ export function Reveal() {
           retryLabel="Reload supporting data"
         />
       )}
-      {/* 1 — the measured, multi-dimensional baseline */}
-      <Card gutter={estimate.evidenceGrade as EvidenceGrade} className="settle">
-        <CardHeader className="pb-4">
-          <CardTitle className="font-serif text-2xl font-semibold">
+      {/* 1: the measured, multi-dimensional baseline */}
+      <Surface gutter={estimate.evidenceGrade as EvidenceGrade} className="settle p-5 sm:p-6">
+        <div className="pb-4">
+          <h2 className="font-serif text-2xl font-semibold text-ink">
             Your starting baseline
-          </CardTitle>
+          </h2>
           <p className="text-graphite font-mono text-sm mt-1">
             {tracks.length === 1
               ? "A behavioural read of your tactical level."
               : `A behavioural read across ${tracks.length} dimensions.`}{" "}
             Uncertainty shrinks with more games and reviews.
           </p>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-5">
+        </div>
+        <div className="flex flex-col gap-5">
           <CalibrationTrackGauges tracks={tracks} />
 
           <div className="bg-paper/60 rounded-md border border-dashed p-4">
@@ -291,17 +291,17 @@ export function Reveal() {
               picture, your real leaks, comes from your games, below.
             </p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </Surface>
 
-      {/* 2 — what the games actually reveal (Seam 3), honestly gated */}
-      <Card className="settle [animation-delay:80ms]">
-        <CardHeader className="pb-4">
-          <CardTitle className="font-serif text-2xl font-semibold">
+      {/* 2: what the games actually reveal (Seam 3), honestly gated */}
+      <Surface className="settle p-5 sm:p-6">
+        <div className="pb-4">
+          <h2 className="font-serif text-2xl font-semibold text-ink">
             What your games reveal
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-5">
+          </h2>
+        </div>
+        <div className="flex flex-col gap-5">
           {signals.isLoading ? (
             <p className="text-graphite font-mono text-sm">
               Reading your games…
@@ -356,8 +356,8 @@ export function Reveal() {
               />
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </Surface>
 
       {/* 2.5: see it for yourself: the interactive first blunder drill (M12) */}
       <InstantBlunderDrill
@@ -376,14 +376,14 @@ export function Reveal() {
       />
 
 
-      {/* 3 — what you said you want, and how we reconcile it */}
-      <Card className="settle [animation-delay:160ms]">
-        <CardHeader className="pb-4">
-          <CardTitle className="font-serif text-2xl font-semibold">
+      {/* 3: what you said you want, and how we reconcile it */}
+      <Surface className="settle p-5 sm:p-6">
+        <div className="pb-4">
+          <h2 className="font-serif text-2xl font-semibold text-ink">
             What you told us you want
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-5">
+          </h2>
+        </div>
+        <div className="flex flex-col gap-5">
           {goals.length > 0 ? (
             <ul className="flex flex-wrap gap-2">
               {goals.map((g, i) => (
@@ -427,8 +427,8 @@ export function Reveal() {
             }}
           />
 
-        </CardContent>
-      </Card>
+        </div>
+      </Surface>
     </div>
   );
 }

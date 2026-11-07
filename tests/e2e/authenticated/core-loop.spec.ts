@@ -418,7 +418,7 @@ test("normal core loop persists outcomes, adaptation, history, replan, and feedb
       new RegExp(`/train/${puzzleItem.id}$`),
     );
     await expect(
-      coreLoopPage.getByRole("heading", { name: "Current puzzle" }),
+      coreLoopPage.getByRole("heading", { name: /to move/i }),
     ).toBeVisible();
     await coreLoopPage.locator("#interactive-board-square-e7").click();
     await coreLoopPage.locator("#interactive-board-square-e5").click();
@@ -431,7 +431,9 @@ test("normal core loop persists outcomes, adaptation, history, replan, and feedb
     await expect(continueButton).toBeEnabled();
     await continueButton.click();
     await expect(
-      coreLoopPage.getByText("Session complete", { exact: true }),
+      coreLoopPage.getByRole("heading", {
+        name: /Block complete|Session complete/,
+      }),
     ).toBeVisible();
     const backToToday = coreLoopPage.getByRole("button", {
       name: "Back to Today",

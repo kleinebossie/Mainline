@@ -4,7 +4,7 @@ import { useState, type ChangeEvent } from "react";
 import type { inferRouterOutputs } from "@trpc/server";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Surface } from "@/components/ui/surface";
 import { ErrorNotice } from "@/components/ui/error-notice";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -217,19 +217,18 @@ export function ManualGameImport({ onImported }: { onImported: () => void }) {
       className="flex flex-col gap-4"
       aria-labelledby="manual-pgn-heading"
     >
-      <div className="flex flex-col gap-1 border-b border-line/80 pb-3">
-        <h2 id="manual-pgn-heading" className="eyebrow">
+      <div className="flex flex-col gap-1 border-b border-line pb-3">
+        <h2 id="manual-pgn-heading" className="font-mono text-xs uppercase tracking-wider text-graphite">
           Add a game from PGN
         </h2>
-        <p className="font-serif text-sm leading-relaxed text-graphite">
+        <p className="font-sans text-sm leading-relaxed text-graphite">
           Paste one game or choose a PGN file with up to {MANUAL_PGN_MAX_GAMES}{" "}
           games. Each valid game is imported separately, then uses the same
           browser scan and review flow.
         </p>
       </div>
 
-      <Card>
-        <CardContent className="flex flex-col gap-4 py-5">
+      <Surface className="flex flex-col gap-4 p-5">
           <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
             <div className="flex flex-col gap-1.5">
               <label
@@ -282,13 +281,12 @@ export function ManualGameImport({ onImported }: { onImported: () => void }) {
             >
               {preview.isPending ? "Checking PGN…" : "Check games"}
             </Button>
-            <span className="font-serif text-xs text-graphite">
+            <span className="font-sans text-xs text-graphite">
               Standard chess only. Missing dates, ratings, and clocks stay
               unknown.
             </span>
           </div>
-        </CardContent>
-      </Card>
+        </Surface>
 
       {fileError && <StatusMessage tone="error">{fileError}</StatusMessage>}
       {preview.error && (

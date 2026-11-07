@@ -7,12 +7,13 @@ import { Loader2 } from "lucide-react";
 
 import { trpc } from "@/lib/trpc/react";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Surface } from "@/components/ui/surface";
 import { StatusMessage } from "@/components/ui/status-message";
 import { ErrorNotice } from "@/components/ui/error-notice";
 import {
   BOARD_SIZE_CLASS,
   InteractiveBoard,
+  type BoardFeedback,
 } from "@/components/interactive-board";
 
 import { stepSolve, type SolveState } from "@/engine/interactive/session";
@@ -122,6 +123,7 @@ export function Calibration() {
   const [solveStatus, setSolveStatus] = useState<
     "pending" | "correct" | "wrong" | "solved"
   >("pending");
+  const [boardFeedback, setBoardFeedback] = useState<BoardFeedback | null>(null);
 
   const activePuzzle = state.data?.activePuzzle;
   const activeTrack = state.data?.activeTrack;
@@ -141,13 +143,15 @@ export function Calibration() {
       setSolveState(setup);
       setOrientation(playerSide);
       setSolveStatus("pending");
+      setBoardFeedback(null);
     } else {
       setSolveState(null);
       setSolveStatus("pending");
+      setBoardFeedback(null);
     }
   }, [activePuzzle]);
 
-  const handleMove = (move: { san: string }) => {
+  const handleMove = (move: { san: string; to?: string }) => {
     if (!solveState || !activePuzzle || !activeTrack || pending) return;
 
     const result = stepSolve(solveState, {
@@ -158,6 +162,9 @@ export function Calibration() {
 
     if (result.step === "solved") {
       setSolveStatus("solved");
+      if (move.to) {
+        setBoardFeedback({ square: move.to, kind: "correct" });
+      }
       submit.mutate({
         ratingShown: activeTrack.next.ratingTarget,
         correct: true,
@@ -168,6 +175,9 @@ export function Calibration() {
       });
     } else if (result.step === "wrong") {
       setSolveStatus("wrong");
+      if (move.to) {
+        setBoardFeedback({ square: move.to, kind: "mistake" });
+      }
       submit.mutate({
         ratingShown: activeTrack.next.ratingTarget,
         correct: false,
@@ -178,7 +188,11 @@ export function Calibration() {
       });
     } else if (result.step === "correct" || result.step === "continue") {
       setSolveStatus("correct");
+      if (move.to) {
+        setBoardFeedback({ square: move.to, kind: "correct" });
+      }
       setTimeout(() => {
+        setBoardFeedback(null);
         setSolveStatus((prev) => (prev === "correct" ? "pending" : prev));
       }, 1000);
     }
@@ -219,10 +233,10 @@ export function Calibration() {
 
   if (state.data.locked) {
     return (
-      <Card className="settle border-line bg-card shadow-sheet p-6 sm:p-8">
+      <Surface className="settle p-6 sm:p-8">
         <div className="flex flex-col gap-5">
           <div>
-            <p className="eyebrow text-evergreen">
+            <p className="font-mono text-xs uppercase tracking-wider text-evergreen">
               Tactical Calibration · Locked
             </p>
             <h2 className="font-serif text-2xl sm:text-3xl font-semibold mt-1">
@@ -251,7 +265,7 @@ export function Calibration() {
             </Link>
           </div>
         </div>
-      </Card>
+      </Surface>
     );
   }
 
@@ -261,10 +275,10 @@ export function Calibration() {
 
   if (completed || !activeTrack) {
     return (
-      <Card className="settle border-line bg-card shadow-sheet p-6 sm:p-8">
+      <Surface className="settle p-6 sm:p-8">
         <div className="flex flex-col gap-5">
           <div>
-            <p className="eyebrow text-evergreen">Calibration complete</p>
+            <p className="font-mono text-xs uppercase tracking-wider text-evergreen">Calibration complete</p>
             <h2 className="font-serif text-2xl sm:text-3xl font-semibold mt-1">
               Your calibration is already finished
             </h2>
@@ -290,7 +304,7 @@ export function Calibration() {
             </Button>
           </div>
         </div>
-      </Card>
+      </Surface>
     );
   }
 
@@ -306,22 +320,22 @@ export function Calibration() {
 
 
   return (
-    <Card className="settle">
-      <CardHeader className="pb-4">
+    <Surface className="settle p-5 sm:p-6">
+      <div className="pb-4">
         <div className="flex items-center justify-between gap-3">
-          <p className="eyebrow !text-[0.65rem]">Tactical Calibration</p>
+          <p className="font-mono text-xs uppercase tracking-wider text-graphite">Tactical Calibration</p>
           <p className="text-graphite font-mono text-[0.65rem] uppercase tracking-wider">
             3 puzzles
           </p>
         </div>
-        <CardTitle className="font-serif text-2xl sm:text-3xl font-semibold mt-1">
+        <h2 className="font-serif text-2xl sm:text-3xl font-semibold mt-1">
           Puzzle {activeTrack.next.itemNumber} of {maxItems}
-        </CardTitle>
+        </h2>
         <p className="text-graphite text-sm leading-relaxed mt-1">
           Solve 3 quick tactical puzzles to build your starting baseline.
         </p>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-5">
+      </div>
+      <div className="flex flex-col gap-5">
         {(submit.error || reset.error) && (
           <ErrorNotice
             error={submit.error ?? reset.error}
@@ -380,6 +394,7 @@ export function Calibration() {
                 disabled={
                   pending || isAdvancing || solveStatus === "solved" || solveStatus === "wrong"
                 }
+                feedback={boardFeedback}
                 showEvalBar={affordances?.showEvalBar ?? false}
                 showLegalMoveDots={affordances?.showLegalMoveDots ?? false}
                 allowArrows={affordances?.allowArrows ?? true}
@@ -500,7 +515,7 @@ export function Calibration() {
             Start over
           </Button>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </Surface>
   );
 }
