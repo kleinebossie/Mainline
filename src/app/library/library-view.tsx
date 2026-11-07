@@ -233,12 +233,8 @@ export function Library() {
 
   return (
     <div className="flex flex-col gap-8">
-      {/* Page Heading for E2E Test Compatibility */}
       <div className="border-b border-line pb-4">
-        <h1 className="font-serif text-2xl sm:text-3xl font-semibold text-ink">
-          Library
-        </h1>
-        <p className="mt-1 font-mono text-xs text-graphite">
+        <p className="font-mono text-xs text-graphite">
           Curated reading and study protocols tailored to your level (
           <span className="text-ink font-semibold">{data.bandLabel}</span>) and format (
           <span className="text-ink font-semibold capitalize">{data.targetFocus}</span>).

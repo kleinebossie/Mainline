@@ -35,7 +35,7 @@ export default async function SettingsPage() {
           href="#plan"
           className="rounded-full border border-line bg-paper-raised px-3.5 py-1.5 text-xs font-mono text-ink transition-colors hover:border-line-emphasis"
         >
-          Plan
+          Plan constraints
         </a>
         <a
           href="#appearance"
@@ -47,19 +47,19 @@ export default async function SettingsPage() {
           href="#accounts"
           className="rounded-full border border-line bg-paper-raised px-3.5 py-1.5 text-xs font-mono text-ink transition-colors hover:border-line-emphasis"
         >
-          Accounts
+          Connected accounts
         </a>
         <a
           href="#feedback"
           className="rounded-full border border-line bg-paper-raised px-3.5 py-1.5 text-xs font-mono text-ink transition-colors hover:border-line-emphasis"
         >
-          Feedback
+          Send feedback
         </a>
         <a
           href="#analysis"
           className="rounded-full border border-line bg-paper-raised px-3.5 py-1.5 text-xs font-mono text-ink transition-colors hover:border-line-emphasis"
         >
-          Analysis
+          Run analysis
         </a>
         <a
           href="#data"
@@ -72,7 +72,7 @@ export default async function SettingsPage() {
             href="#admin"
             className="rounded-full border border-line bg-paper-raised px-3.5 py-1.5 text-xs font-mono text-ink transition-colors hover:border-line-emphasis"
           >
-            Operations
+            System operations
           </a>
         )}
       </nav>
