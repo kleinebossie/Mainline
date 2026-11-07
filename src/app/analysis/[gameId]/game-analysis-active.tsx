@@ -17,7 +17,7 @@ import {
   type BoardMove,
 } from "@/components/interactive-board";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Surface } from "@/components/ui/surface";
 import { StatusMessage } from "@/components/ui/status-message";
 
 export type AnalysisStatus = "loading" | "ready" | "error";
@@ -70,21 +70,18 @@ export function ActiveReproductionStep({
   if (session.criticalMoments.length === 0) {
     return (
       <div className="mx-auto w-full max-w-2xl">
-        <Card>
-          <CardHeader>
-            <CardTitle>No critical moments at your level</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <p className="text-ink font-serif text-base leading-relaxed">
-              Nothing in this game met the configured threshold for active
-              reproduction.
-            </p>
-            <MethodologyRationaleCard rationale={filterRationale} />
-            <div className="flex justify-end">
-              <Button onClick={onFinish}>Finish review</Button>
-            </div>
-          </CardContent>
-        </Card>
+        <Surface className="p-6 flex flex-col gap-4">
+          <h2 className="font-serif text-xl font-semibold text-ink">
+            No critical moments at your level
+          </h2>
+          <p className="text-ink font-sans text-sm leading-relaxed">
+            Nothing in this game met the configured threshold for active
+            reproduction.
+          </p>
+          <div className="flex justify-end">
+            <Button onClick={onFinish}>Finish review</Button>
+          </div>
+        </Surface>
       </div>
     );
   }
@@ -118,13 +115,12 @@ export function ActiveReproductionStep({
         </div>
       </div>
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="font-serif text-lg">
+      <Surface className="p-5 flex flex-col gap-4">
+        <div>
+          <h3 className="font-serif text-lg font-semibold text-ink">
             Find a better move
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
+          </h3>
+        </div>
           {analysisStatus === "loading" && (
             <StatusMessage tone="loading" className="py-2">
               Stockfish is reading the position…
@@ -255,8 +251,7 @@ export function ActiveReproductionStep({
               ]}
             />
           </div>
-        </CardContent>
-      </Card>
+      </Surface>
     </div>
   );
 }

@@ -7,7 +7,7 @@ import { Loader2 } from "lucide-react";
 
 import { trpc } from "@/lib/trpc/react";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Surface } from "@/components/ui/surface";
 import { StatusMessage } from "@/components/ui/status-message";
 import { ErrorNotice } from "@/components/ui/error-notice";
 import {
@@ -233,10 +233,10 @@ export function Calibration() {
 
   if (state.data.locked) {
     return (
-      <Card className="settle border-line bg-card shadow-sheet p-6 sm:p-8">
+      <Surface className="settle p-6 sm:p-8">
         <div className="flex flex-col gap-5">
           <div>
-            <p className="eyebrow text-evergreen">
+            <p className="font-mono text-xs uppercase tracking-wider text-evergreen">
               Tactical Calibration · Locked
             </p>
             <h2 className="font-serif text-2xl sm:text-3xl font-semibold mt-1">
@@ -265,7 +265,7 @@ export function Calibration() {
             </Link>
           </div>
         </div>
-      </Card>
+      </Surface>
     );
   }
 
@@ -275,10 +275,10 @@ export function Calibration() {
 
   if (completed || !activeTrack) {
     return (
-      <Card className="settle border-line bg-card shadow-sheet p-6 sm:p-8">
+      <Surface className="settle p-6 sm:p-8">
         <div className="flex flex-col gap-5">
           <div>
-            <p className="eyebrow text-evergreen">Calibration complete</p>
+            <p className="font-mono text-xs uppercase tracking-wider text-evergreen">Calibration complete</p>
             <h2 className="font-serif text-2xl sm:text-3xl font-semibold mt-1">
               Your calibration is already finished
             </h2>
@@ -304,7 +304,7 @@ export function Calibration() {
             </Button>
           </div>
         </div>
-      </Card>
+      </Surface>
     );
   }
 
@@ -320,22 +320,22 @@ export function Calibration() {
 
 
   return (
-    <Card className="settle">
-      <CardHeader className="pb-4">
+    <Surface className="settle p-5 sm:p-6">
+      <div className="pb-4">
         <div className="flex items-center justify-between gap-3">
-          <p className="eyebrow !text-[0.65rem]">Tactical Calibration</p>
+          <p className="font-mono text-xs uppercase tracking-wider text-graphite">Tactical Calibration</p>
           <p className="text-graphite font-mono text-[0.65rem] uppercase tracking-wider">
             3 puzzles
           </p>
         </div>
-        <CardTitle className="font-serif text-2xl sm:text-3xl font-semibold mt-1">
+        <h2 className="font-serif text-2xl sm:text-3xl font-semibold mt-1">
           Puzzle {activeTrack.next.itemNumber} of {maxItems}
-        </CardTitle>
+        </h2>
         <p className="text-graphite text-sm leading-relaxed mt-1">
           Solve 3 quick tactical puzzles to build your starting baseline.
         </p>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-5">
+      </div>
+      <div className="flex flex-col gap-5">
         {(submit.error || reset.error) && (
           <ErrorNotice
             error={submit.error ?? reset.error}
@@ -515,7 +515,7 @@ export function Calibration() {
             Start over
           </Button>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </Surface>
   );
 }

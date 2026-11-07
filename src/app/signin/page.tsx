@@ -1,13 +1,16 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/server/auth";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
 import { buttonVariants } from "@/components/ui/button";
-import { ErrorNotice } from "@/components/ui/error-notice";
+import { Notice } from "@/components/ui/notice";
+import { Surface } from "@/components/ui/surface";
 import { Wordmark } from "@/components/app-shell";
 import { beginSelectedBetaSignIn } from "@/app/signin/actions";
 import { prisma } from "@/db/client";
 import { getPostAuthDestination } from "@/server/onboarding";
+import { cn } from "@/lib/utils";
 
 // Custom sign-in page (Auth.js `pages.signIn`). Lichess needs no secret, so it is
 // always offered; Google appears only when configured.
@@ -74,14 +77,16 @@ export default async function SignInPage({
         </div>
 
         {signInError && (
-          <ErrorNotice
-            className="mb-4"
+          <Notice
+            tone="error"
             heading={signInError.heading}
-            message={signInError.message}
-          />
+            className="mb-4"
+          >
+            {signInError.message}
+          </Notice>
         )}
 
-        <div className="bg-card rounded-lg border p-6 shadow-sheet">
+        <Surface className="p-6">
           <form action={beginSelectedBetaSignIn}>
             <div className="grid gap-3">
               <PendingSubmitButton
@@ -109,11 +114,29 @@ export default async function SignInPage({
             </div>
           </form>
 
-          <p className="text-graphite mt-5 border-t border-line/80 pt-4 text-center font-mono text-[0.7rem] leading-relaxed">
-            Connected game access is read-only. Your training data is exportable
-            and deletable at any time.
+          <div className="relative my-5 flex items-center justify-center">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-line" />
+            </div>
+            <div className="relative bg-paper px-2 text-xs font-mono uppercase tracking-wider text-graphite">
+              Or
+            </div>
+          </div>
+
+          <Link
+            href="/today"
+            className={cn(
+              buttonVariants({ variant: "outline", size: "lg" }),
+              "w-full text-sm font-medium",
+            )}
+          >
+            Continue as guest
+          </Link>
+
+          <p className="mt-5 border-t border-line/60 pt-4 text-center font-mono text-[0.7rem] text-graphite leading-relaxed">
+            Guest mode keeps training data in your current browser. Sign in with Lichess or Google to sync across devices.
           </p>
-        </div>
+        </Surface>
       </div>
     </main>
   );

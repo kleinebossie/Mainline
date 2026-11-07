@@ -465,6 +465,7 @@ test("manual PGN import is user-scoped and duplicate replay is explicit", async 
 
   try {
     await page.goto("/analysis");
+    await page.getByRole("button", { name: "Import PGN" }).click();
     await page.getByLabel("Or paste PGN").fill(pgn);
     await page.getByRole("button", { name: "Check games" }).click();
     await expect(page.getByText("Game 1 · 6 plies")).toBeVisible();

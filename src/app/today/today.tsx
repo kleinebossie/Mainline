@@ -8,6 +8,7 @@ import {
   MIN_MINUTES_PER_DAY,
 } from "@/lib/constraint-limits";
 import { Button } from "@/components/ui/button";
+import { Notice } from "@/components/ui/notice";
 import { StatusMessage } from "@/components/ui/status-message";
 import { ErrorNotice } from "@/components/ui/error-notice";
 import { buttonVariants } from "@/components/ui/button";
@@ -867,7 +868,7 @@ function ProgramActionNotice({
   onDismiss: () => void;
 }) {
   return (
-    <StatusMessage
+    <Notice
       tone={notice.tone}
       heading={notice.heading}
       className="shadow-sheet"
@@ -878,6 +879,6 @@ function ProgramActionNotice({
           Dismiss
         </Button>
       </div>
-    </StatusMessage>
+    </Notice>
   );
 }

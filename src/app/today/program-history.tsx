@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { ErrorNotice } from "@/components/ui/error-notice";
 import { StatusMessage } from "@/components/ui/status-message";
+import { Surface } from "@/components/ui/surface";
 import type { ProgramHistoryEntry } from "@/lib/program-history";
 import {
   formatForecastDate,
@@ -62,10 +63,10 @@ export function ProgramArchive({
   const hasError = error != null && error !== false;
 
   return (
-    <section className="overflow-hidden rounded-lg border bg-card shadow-sheet">
+    <Surface className="overflow-hidden">
       <div className="flex flex-wrap items-end justify-between gap-3 border-b border-line px-4 py-3 sm:px-5">
         <div>
-          <p className="eyebrow">Program</p>
+          <p className="font-mono text-xs uppercase tracking-wider text-graphite">Program</p>
           <h2 className="mt-1 font-serif text-lg font-semibold text-ink">
             History
           </h2>
@@ -132,7 +133,7 @@ export function ProgramArchive({
           </Button>
         </div>
       )}
-    </section>
+    </Surface>
   );
 }
 

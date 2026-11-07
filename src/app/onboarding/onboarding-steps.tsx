@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Check } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
+import { Surface } from "@/components/ui/surface";
 import { cn } from "@/lib/utils";
 import type { OnboardingStatus } from "@/server/onboarding";
 
@@ -102,10 +103,10 @@ export function OnboardingSteps({ status }: { status: OnboardingStatus }) {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="bg-card rounded-lg border p-5 shadow-sheet">
+      <Surface className="p-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="eyebrow !text-[0.65rem]">Setup progress</p>
+            <p className="font-mono text-xs uppercase tracking-wider text-graphite">Setup progress</p>
             <p className="font-serif text-lg font-semibold mt-1">
               {doneCount} of {steps.length} steps done
             </p>
@@ -122,39 +123,39 @@ export function OnboardingSteps({ status }: { status: OnboardingStatus }) {
             ))}
           </div>
         </div>
-      </div>
+      </Surface>
 
       {isComplete ? (
-        <div className="bg-paper-raised border border-evergreen/40 rounded-lg p-5 shadow-sheet flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <Surface className="border-evergreen/40 p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <p className="eyebrow text-evergreen">Ready to train</p>
+            <p className="font-mono text-xs uppercase tracking-wider text-evergreen">Ready to train</p>
             <p className="font-serif text-lg font-semibold text-ink mt-1">
               Your first daily training session is ready
             </p>
-            <p className="text-graphite font-serif text-sm mt-0.5 max-w-lg">
+            <p className="text-graphite font-sans text-sm mt-0.5 max-w-lg">
               You can start training right now, or finish connecting your
               accounts and calibration below to refine your starting signals.
             </p>
           </div>
           <Link
             href="/today"
-            className={cn(buttonVariants({ size: "default" }), "shrink-0")}
+            className={cn(buttonVariants({ size: "default" }), "shrink-0 bg-evergreen hover:bg-evergreen-bright text-paper")}
           >
             Start Today&apos;s session →
           </Link>
-        </div>
+        </Surface>
       ) : (
-        <div
-          className="rounded-lg border border-line bg-card px-4 py-3"
+        <Surface
+          className="px-4 py-3"
           role="status"
         >
-          <p className="font-serif text-sm font-semibold text-ink">
+          <p className="font-sans text-sm font-semibold text-ink">
             {`${requiredDone} of ${requiredCount} required steps done`}
           </p>
           <p className="mt-1 text-sm text-graphite">
             Complete the required constraints step to unlock daily training.
           </p>
-        </div>
+        </Surface>
       )}
 
       <ol className="flex flex-col gap-4">
@@ -164,7 +165,7 @@ export function OnboardingSteps({ status }: { status: OnboardingStatus }) {
             <li
               key={step.href}
               className={cn(
-                "bg-card flex flex-col items-stretch gap-4 rounded-lg border p-4 shadow-sheet transition-all sm:flex-row sm:items-center sm:justify-between",
+                "bg-paper-raised flex flex-col items-stretch gap-4 rounded-md border border-line p-4 transition-all sm:flex-row sm:items-center sm:justify-between",
                 isNext && "ring-2 ring-evergreen/40 border-evergreen/40",
               )}
             >
