@@ -971,6 +971,13 @@ function TodayBlockDetails({
               Grade {fitExplanation.evidenceGrade} · Tier {fitExplanation.evidenceTier} · {fitExplanation.citationKey}
             </span>
           </p>
+          {fitExplanation.soften && (
+            <p className="text-graphite mt-1 font-mono text-[0.68rem] leading-relaxed">
+              {fitExplanation.flag === "best-guess"
+                ? "Best-guess delivery rule, not evidence that this activity works better."
+                : "Low-confidence delivery rule, not evidence that this activity works better."}
+            </p>
+          )}
         </div>
       )}
 

@@ -358,7 +358,7 @@ export function AnalysisDashboard() {
               <ManualGameImport
                 onImported={() => {
                   setPlatformOverride("manual");
-                  void utils.import.analysisGames.invalidate();
+                  void utils.analysis.library.invalidate();
                 }}
               />
             </div>
