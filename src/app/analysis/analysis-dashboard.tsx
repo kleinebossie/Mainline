@@ -357,8 +357,8 @@ export function AnalysisDashboard() {
             <div className="mt-4">
               <ManualGameImport
                 onImported={() => {
-                  setIsImportOpen(false);
                   setPlatformOverride("manual");
+                  void utils.import.analysisGames.invalidate();
                 }}
               />
             </div>
